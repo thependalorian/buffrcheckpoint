@@ -1,0 +1,13 @@
+# Buffr Checkpoint API — Railway deploy (buffrcheckpoint.md §11.7.8)
+# https://docs.railway.app/guides/config-as-code
+
+[build]
+builder = "NIXPACKS"
+buildCommand = "npm ci && npm run build"
+
+[deploy]
+startCommand = "node dist/src/main.js"
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3
+healthcheckPath = "/health"
+healthcheckTimeout = 120

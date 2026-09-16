@@ -1,0 +1,18 @@
+old_identifier	new_identifier	kind	reason
+platform-control-plane/	billing/	directory	bundled: split by capability — billing changes for billing reasons (pricing, invoicing rules), not because §11.9 grouped it with CRM/KYB/incidents
+platform-control-plane/	crm/	directory	bundled: split by capability — CRM changes for sales-process reasons, unrelated to billing/incidents release cadence
+platform-control-plane/	kyb/	directory	bundled: split by capability — KYB changes for onboarding-compliance reasons
+platform-control-plane/	support-tickets/	directory	bundled: split by capability — ticketing workflow changes independently of billing/CRM
+platform-control-plane/	platform-incidents/	directory	bundled: split by capability — incident management changes independently of the others
+platform-control-plane/	support-sessions/	directory	bundled: split by capability — break-glass access/consent flow is its own security-sensitive surface, not a CRM/billing concern
+platform-control-plane/	organisation-health/	directory	bundled: split by capability — churn/health scoring changes on its own model-iteration schedule
+platform-control-plane/	platform-dashboard/	directory	bundled: split by capability — aggregate KPI reads change independently of any single underlying capability
+platform-control-plane.module.ts	(deleted — 8 module files below)	module	bundled: one @Module() had no reason to hold 8 unrelated capabilities beyond "§11.9 listed them as one product surface"
+	billing.module.ts	module	new — registers BillingController/BillingService
+	crm.module.ts	module	new — registers CrmController/CrmService
+	kyb.module.ts	module	new — registers KybController/KybService
+	support-tickets.module.ts	module	new — registers SupportTicketsController/SupportTicketsService
+	platform-incidents.module.ts	module	new — registers PlatformIncidentsController/PlatformIncidentsService
+	support-sessions.module.ts	module	new — registers SupportSessionsController/SupportSessionsService (needs AuthModule, NotificationsModule)
+	organisation-health.module.ts	module	new — registers OrganisationHealthService/OrganisationHealthWorkerService
+	platform-dashboard.module.ts	module	new — registers PlatformDashboardController/PlatformDashboardService (needs OrganisationHealthService for churn-queue)

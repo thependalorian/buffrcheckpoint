@@ -1,0 +1,122 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+/* Buffr Checkpoint's light-canvas theme (buffrcheckpoint.md Section
+   11.5/11.6.2, v0.5 correction) — the only preset here, matching the
+   light-only decision (Section 11.5.6). File is byte-identical to
+   website/src/styles/presets/buffr-checkpoint.css. The three template
+   presets this used to also import (brutalist/soft-pop/tangerine) were
+   dead weight: theme.ts hand-fixed the preset to this one, non-switchable
+   value, so nothing could ever reach them. Removed in v0.7 along with the
+   rest of this file's leftover template scaffolding — see that version's
+   changelog entry for the full list. */
+@import "../styles/presets/buffr-checkpoint.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  /* v0.7 fix: these two used to be hardcoded to `var(--font-sans)` /
+     omitted entirely, which meant the `font-heading` utility (used by
+     every Card/Dialog/Sheet/Drawer/AlertDialog/Empty title, and the auth
+     hero H1) silently rendered in Geist instead of Archivo, and
+     `font-mono` (audit-log hashes, device serials, evidence references —
+     Section 11.5.2) rendered in Tailwind's generic mono stack instead of
+     Geist Mono. Both now pass through to the preset's real values instead
+     of being short-circuited. */
+  --font-heading: var(--font-heading);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  /* Raw brand tokens exposed as utilities too — e.g. bg-sodium-yellow,
+     text-status-live — for the one-off badge/CTA cases that need the exact
+     brand color rather than the semantic primary/accent mapping. */
+  --color-sodium-yellow: var(--color-sodium-yellow);
+  --color-sodium-yellow-ink: var(--color-sodium-yellow-ink);
+  --color-lime-pulse: var(--color-lime-pulse);
+  --color-status-live: var(--color-status-live);
+  --color-carbon: var(--color-carbon);
+  --color-graphite: var(--color-graphite);
+  --color-slate: var(--color-slate);
+  --color-frost: var(--color-frost);
+  --color-cloud: var(--color-cloud);
+  --color-ash: var(--color-ash);
+}
+
+:root {
+  /* Darkened from the dark-theme's #22c55e (~2.3:1 on white) to clear
+     4.5:1 on the light canvas. */
+  --color-status-live: #15803d;
+  /* The brand preset (buffr-checkpoint.css) doesn't define chart colors —
+     no chart existed when it was written. Kept restrained rather than a
+     generic multi-hue palette, per Section 11.5's "one chromatic color,
+     rationed" principle: the accent leads the primary series, the rest
+     step through the neutral ink scale. */
+  --chart-1: var(--color-sodium-yellow);
+  --chart-2: var(--color-carbon);
+  --chart-3: var(--color-slate);
+  --chart-4: var(--color-ash);
+  --chart-5: var(--color-frost);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans), system-ui, sans-serif;
+  }
+
+  html {
+    @apply font-sans;
+  }
+}
+
+html {
+  overscroll-behavior: none;
+}
+
+/* Toggled during preference changes (theme/layout switches) to suppress
+   the transition flash — src/lib/preferences/theme-utils.ts. */
+.disable-transitions * {
+  transition: none !important;
+}

@@ -1,0 +1,54 @@
+# Buffr Checkpoint
+#
+# Monorepo layout:
+# - backend/      NestJS API (Railway)
+# - admin/        Customer admin (Vercel)
+# - ops-console/  Platform ops console (Vercel)
+# - website/      Marketing site (Vercel)
+# - kiosk/        Android kiosk app
+# - shared/       Shared TypeScript package
+#
+# Product/engineering source of truth: buffrcheckpoint.md
+
+node_modules/
+dist/
+build/
+out/
+.next/
+.turbo/
+.vercel/
+coverage/
+*.tsbuildinfo
+
+# Secrets and local env (keep *.example)
+.env
+.env.*
+!.env.example
+!**/.env.example
+
+# OS / editor
+.DS_Store
+*.pem
+.idea/
+.vscode/
+
+# Local Claude / agent scratch (large PDFs, locks)
+.claude/**/*.pdf
+.claude/scheduled_tasks.lock
+.claude/settings.local.json
+
+# Ad-hoc screenshots at repo root
+/*.PNG
+/*.png
+/*.jpg
+/*.jpeg
+
+# Android / kiosk build outputs
+kiosk/.gradle/
+kiosk/**/build/
+kiosk/**/*.apk
+kiosk/**/*.aab
+kiosk/local.properties
+
+# Evidence / generated packs
+**/generated-evidence-packs/

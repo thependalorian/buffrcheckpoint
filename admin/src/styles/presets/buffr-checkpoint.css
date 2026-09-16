@@ -1,0 +1,256 @@
+/* Buffr Checkpoint — light-canvas theme, matched to the real wordmark/icon
+   assets (black type + Sodium Yellow accent on a white/off-white ground).
+   Adopted for the admin app and public website.
+
+   v0.5 correction: this preset originally specified a dark, near-black
+   canvas ("Adnaut dark theme" — carbon #1f1d01 background). The real brand
+   assets (wordmark + app icon) are light-canvas, black-on-white, single
+   gold accent — the opposite polarity. The Sodium Yellow accent itself was
+   sampled correctly from the logo and is unchanged; only the canvas
+   polarity and every token whose role depended on it have been flipped.
+   See buffrcheckpoint.md Section 11.5's v0.5 changelog entry for the full
+   before/after token table. */
+
+/* Color tokens */
+:root,
+[data-theme-preset="buffr-checkpoint"] {
+  --color-sodium-yellow: #e2a603;
+  --color-lime-pulse: #00ff1a;
+  --color-carbon: #171717;
+  --color-graphite: #e9e7e0;
+  --color-slate: #6b6b6b;
+  --color-frost: #d9d9d4;
+  --color-cloud: #f5f4ef;
+  --color-pure-white: #ffffff;
+  --color-ash: #9a9a94;
+  --color-charcoal: #2a2a28;
+  /* Darkened sodium-yellow for use as text/status color on the light
+     canvas — the raw brand gold is ~1.97:1 on --color-cloud (fine as a
+     button fill under near-black text, fails WCAG AA as foreground text).
+     8a6403 clears 4.88:1. Same fix pattern as --color-status-live below. */
+  --color-sodium-yellow-ink: #8a6403;
+
+  /* Map to existing semantic tokens */
+  --background: var(--color-cloud);
+  --foreground: var(--color-carbon);
+  --card: var(--color-pure-white);
+  --card-foreground: var(--color-carbon);
+  --popover: var(--color-pure-white);
+  --popover-foreground: var(--color-carbon);
+  --primary: var(--color-sodium-yellow);
+  --primary-foreground: var(--color-carbon);
+  --secondary: var(--color-graphite);
+  --secondary-foreground: var(--color-carbon);
+  --muted: var(--color-graphite);
+  --muted-foreground: var(--color-slate);
+  --accent: var(--color-sodium-yellow);
+  --accent-foreground: var(--color-carbon);
+  /* Darkened from #ef4444 (~3.42:1 on --color-cloud) to clear 4.5:1 —
+     text-destructive is the error-message color across both apps'
+     forms; the original shade failed WCAG AA as text. Same fix pattern
+     as --color-status-live below. */
+  --destructive: #b91c1c;
+  --border: var(--color-frost);
+  --input: var(--color-frost);
+  --ring: var(--color-sodium-yellow);
+  --sidebar: var(--color-pure-white);
+  --sidebar-foreground: var(--color-carbon);
+  --sidebar-primary: var(--color-sodium-yellow);
+  --sidebar-primary-foreground: var(--color-carbon);
+  --sidebar-accent: var(--color-graphite);
+  --sidebar-accent-foreground: var(--color-carbon);
+  --sidebar-border: var(--color-frost);
+  --sidebar-ring: var(--color-sodium-yellow);
+
+  /* Typography */
+  --font-heading: var(--font-archivo), var(--font-sans);
+  --font-sans: var(--font-geist), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  /* Radius */
+  --radius: 0.5rem;
+}
+
+/* Light-only enforcement (was dark-only pre-v0.5; see theme.ts).
+   Re-pins every semantic token under .dark at higher specificity than
+   globals.css's plain `.dark { ... }` block (which sits later in source
+   order and would otherwise win the cascade tie and silently revert the
+   app to shadcn's stock dark oklch palette against an unstyled body —
+   the white-on-white bug fixed in v0.5.1). This is single-canvas brand
+   enforcement, not a second theme: the values are identical to the
+   :root block above. */
+.dark[data-theme-preset="buffr-checkpoint"] {
+  --background: var(--color-cloud);
+  --foreground: var(--color-carbon);
+  --card: var(--color-pure-white);
+  --card-foreground: var(--color-carbon);
+  --popover: var(--color-pure-white);
+  --popover-foreground: var(--color-carbon);
+  --primary: var(--color-sodium-yellow);
+  --primary-foreground: var(--color-carbon);
+  --secondary: var(--color-graphite);
+  --secondary-foreground: var(--color-carbon);
+  --muted: var(--color-graphite);
+  --muted-foreground: var(--color-slate);
+  --accent: var(--color-sodium-yellow);
+  --accent-foreground: var(--color-carbon);
+  --destructive: #b91c1c;
+  --border: var(--color-frost);
+  --input: var(--color-frost);
+  --ring: var(--color-sodium-yellow);
+  --sidebar: var(--color-pure-white);
+  --sidebar-foreground: var(--color-carbon);
+  --sidebar-primary: var(--color-sodium-yellow);
+  --sidebar-primary-foreground: var(--color-carbon);
+  --sidebar-accent: var(--color-graphite);
+  --sidebar-accent-foreground: var(--color-carbon);
+  --sidebar-border: var(--color-frost);
+  --sidebar-ring: var(--color-sodium-yellow);
+}
+
+[data-theme-preset="buffr-checkpoint"] {
+  color-scheme: light;
+}
+
+[data-theme-preset="buffr-checkpoint"] body {
+  background-color: var(--color-cloud);
+  color: var(--color-carbon);
+}
+
+/* Headings use Archivo ultra-light */
+[data-theme-preset="buffr-checkpoint"] h1,
+[data-theme-preset="buffr-checkpoint"] h2,
+[data-theme-preset="buffr-checkpoint"] h3,
+[data-theme-preset="buffr-checkpoint"] h4,
+[data-theme-preset="buffr-checkpoint"] h5,
+[data-theme-preset="buffr-checkpoint"] h6 {
+  font-family: var(--font-heading);
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  color: var(--color-carbon);
+}
+
+[data-theme-preset="buffr-checkpoint"] h1 {
+  font-size: clamp(3rem, 5vw, 4.5rem);
+  line-height: 1.1;
+}
+
+[data-theme-preset="buffr-checkpoint"] h2 {
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 1.15;
+}
+
+[data-theme-preset="buffr-checkpoint"] h3 {
+  font-size: clamp(1.25rem, 2vw, 1.5rem);
+  line-height: 1.3;
+}
+
+/* Body and UI text use Geist */
+[data-theme-preset="buffr-checkpoint"] body,
+[data-theme-preset="buffr-checkpoint"] p,
+[data-theme-preset="buffr-checkpoint"] li,
+[data-theme-preset="buffr-checkpoint"] td,
+[data-theme-preset="buffr-checkpoint"] th,
+[data-theme-preset="buffr-checkpoint"] input,
+[data-theme-preset="buffr-checkpoint"] textarea,
+[data-theme-preset="buffr-checkpoint"] select,
+[data-theme-preset="buffr-checkpoint"] button {
+  font-family: var(--font-sans);
+}
+
+/* Technical labels use Geist Mono */
+[data-theme-preset="buffr-checkpoint"] code,
+[data-theme-preset="buffr-checkpoint"] pre,
+[data-theme-preset="buffr-checkpoint"] .font-mono,
+[data-theme-preset="buffr-checkpoint"] .geist-mono {
+  font-family: var(--font-mono);
+}
+
+/* Cards and surfaces */
+[data-theme-preset="buffr-checkpoint"] .card,
+[data-theme-preset="buffr-checkpoint"] [data-slot="card"] {
+  background-color: var(--color-pure-white);
+  border: 1px solid var(--color-frost);
+  border-radius: 1rem;
+}
+
+/* Primary buttons — sodium yellow fill, near-black text (matches the
+   wordmark's black-on-gold "checkpoint" lockup; white text on this gold
+   fails WCAG AA contrast — ~2.2:1 — near-black clears ~9.7:1). */
+[data-theme-preset="buffr-checkpoint"] .btn-primary,
+[data-theme-preset="buffr-checkpoint"] [data-variant="default"] {
+  background-color: var(--color-sodium-yellow);
+  color: var(--color-carbon);
+  border-radius: 0.75rem;
+  font-weight: 500;
+}
+
+[data-theme-preset="buffr-checkpoint"] .btn-primary:hover,
+[data-theme-preset="buffr-checkpoint"] [data-variant="default"]:hover {
+  background-color: oklch(0.78 0.15 85);
+}
+
+/* Accent cards — yellow fill, rationed */
+[data-theme-preset="buffr-checkpoint"] .accent-card {
+  background-color: var(--color-sodium-yellow);
+  color: var(--color-carbon);
+  border-radius: 1rem;
+}
+
+/* Status live — dedicated green (not lime-pulse), darkened from the dark-
+   theme's #22c55e (~2.3:1 on white) to clear 4.5:1 on a light ground. */
+[data-theme-preset="buffr-checkpoint"] .status-live {
+  color: #15803d;
+}
+
+[data-theme-preset="buffr-checkpoint"] .status-targeted {
+  color: var(--color-sodium-yellow-ink);
+}
+
+/* --color-ash (#9a9a94) is ~2.57:1 on --color-cloud — fine for borders/
+   decorative use, fails WCAG AA as text. Reuse --color-slate (already
+   proven at 4.84:1 as --muted-foreground) rather than add a third ink
+   variant. */
+[data-theme-preset="buffr-checkpoint"] .status-not-live {
+  color: var(--color-slate);
+}
+
+/* No drop-shadow elevation — elevation comes from a white surface + a 1px
+   hairline border/ring, per Section 11.6.5's "no shadows" rule. This used
+   to be a blanket `* { box-shadow: none !important }` kill switch, but
+   Tailwind's `ring-*` utilities also compile to `box-shadow` — the same
+   property a real drop-shadow uses — so that rule was silently erasing
+   every popover/dropdown/select/sheet/menu's `ring-1` border along with
+   the shadows it was meant to suppress, leaving them edgeless. Fixed at
+   the source instead (every `shadow-*` utility removed from
+   `admin/src/components/ui/*` and app code directly, verified by grep),
+   so this blanket override is no longer needed and doesn't collide with
+   `ring`. */
+
+/* Nav and interactive elements — no sharp corners */
+[data-theme-preset="buffr-checkpoint"] button,
+[data-theme-preset="buffr-checkpoint"] a,
+[data-theme-preset="buffr-checkpoint"] input,
+[data-theme-preset="buffr-checkpoint"] select,
+[data-theme-preset="buffr-checkpoint"] [role="button"] {
+  border-radius: 0.5rem !important;
+}
+
+/* Section spacing */
+[data-theme-preset="buffr-checkpoint"] section {
+  padding-top: 4rem;
+  padding-bottom: 4rem;
+}
+
+@media (min-width: 768px) {
+  [data-theme-preset="buffr-checkpoint"] section {
+    padding-top: 6rem;
+    padding-bottom: 6rem;
+  }
+}
+
+/* Container max-width */
+[data-theme-preset="buffr-checkpoint"] .container,
+[data-theme-preset="buffr-checkpoint"] [class*="max-w-7xl"] {
+  max-width: 1280px;
+}
