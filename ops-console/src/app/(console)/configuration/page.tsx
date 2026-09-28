@@ -2,12 +2,8 @@ import { DashboardErrorState, EmptyState } from "@/components/dashboard-state";
 import { List, ListRow } from "@/components/ui/list";
 import { apiFetch, loadOrError } from "@/lib/api";
 
-import {
-  HealthWeightsForm,
-  TemplateForm,
-  type TemplateRow,
-  type WeightsPayload,
-} from "./_components/configuration-forms";
+import { HealthWeightsForm, TemplateForm, type WeightsPayload } from "./_components/configuration-forms";
+import { groupTemplates, type TemplateRow } from "./_components/template-groups";
 
 interface ChangeLogRow {
   id: string;
@@ -60,12 +56,21 @@ export default async function ConfigurationPage() {
         {templates.length === 0 ? (
           <EmptyState
             title="No templates seeded"
-            description="Migration 0029 seeds the templates the backend sends. Until it runs, send paths use their built-in copy."
+            description="Migration 0038 seeds the branded template catalog. Until it runs, send paths use their built-in fallback copy."
           />
         ) : (
-          <div className="mt-3 space-y-4">
-            {templates.map((template) => (
-              <TemplateForm key={template.id} template={template} />
+          <div className="mt-3 space-y-8">
+            {groupTemplates(templates).map((group) => (
+              <div key={group.category}>
+                <h3 className="mb-3 font-medium text-foreground text-xs uppercase tracking-wide">
+                  {group.category}
+                </h3>
+                <div className="space-y-4">
+                  {group.items.map((template) => (
+                    <TemplateForm key={template.id} template={template} />
+                  ))}
+                </div>
+              </div>
             ))}
           </div>
         )}

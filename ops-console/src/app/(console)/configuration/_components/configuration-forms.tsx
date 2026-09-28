@@ -8,22 +8,50 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
-import { updateHealthWeightsAction, updateTemplateAction } from "../actions";
+import { testTemplateAction, updateHealthWeightsAction, updateTemplateAction } from "../actions";
+import type { TemplateRow } from "./template-groups";
 
-export interface TemplateRow {
-  id: string;
-  templateCode: string;
-  templateLabel: string;
-  subject: string | null;
-  body: string;
-  updatedAt: string | null;
-}
+const TEMPLATE_TOKENS: Record<string, string[]> = {
+  email_verification: ["verifyUrl"],
+  password_reset: ["resetUrl"],
+  account_lockout: ["lockoutMinutes", "forgotPasswordUrl", "lockedAtUtc"],
+  mfa_enabled: ["email"],
+  password_changed: ["email", "forgotPasswordUrl"],
+  org_welcome: ["organisationName", "adminEmail", "adminUrl"],
+  platform_staff_invitation: ["resetUrl"],
+  support_access_request: ["organisationName"],
+  ops_new_organisation: ["organisationName", "organisationId", "adminEmail", "sectorCode", "adminUrl", "opsOrgUrl"],
+  ops_contact_enquiry: ["name", "email", "company", "message"],
+  ops_contact_ack: ["name", "signupUrl"],
+  invoice_issued: ["invoiceNumber", "organisationName", "amount", "currencyCode", "dueAt", "invoiceUrl"],
+  invoice_reminder: ["invoiceNumber", "organisationName", "amount", "currencyCode", "dueAt", "invoiceUrl"],
+  pop_received_ack: ["invoiceNumber", "amount", "currencyCode"],
+  pop_received_ops: ["invoiceNumber", "organisationName", "amount", "currencyCode", "submittedByEmail", "opsBillingUrl"],
+  pop_rejected: ["invoiceNumber", "note", "invoiceUrl"],
+  payment_confirmed: ["invoiceNumber", "amount", "currencyCode"],
+  receipt_issued: ["invoiceNumber", "amount", "currencyCode", "receiptUrl"],
+  subscription_activated: ["organisationName", "statusCode", "adminUrl"],
+  suspension_warning: ["organisationName", "billingUrl"],
+  kyb_submitted_ack: ["organisationName"],
+  kyb_verified: ["organisationName"],
+  kyb_rejected: ["organisationName", "note"],
+  host_visitor_arrived: ["visitorName", "siteLabel", "detailBlock"],
+  host_escalation: ["actionCode", "visitId", "siteLabel", "visitorName"],
+  support_ticket_ack: ["name", "ticketReference"],
+  visitor_prereg_invite: ["siteLabel", "visitDate", "preregUrl"],
+  credit_note_issued: ["creditNoteNumber", "amount", "currencyCode"],
+};
 
 export function TemplateForm({ template }: { template: TemplateRow }) {
   const [state, formAction, pending] = useActionState(
     async (_prev: { error?: string; message?: string }, formData: FormData) => updateTemplateAction(formData),
     {},
   );
+  const [testState, testAction, testPending] = useActionState(
+    async (_prev: { error?: string; message?: string }, formData: FormData) => testTemplateAction(formData),
+    {},
+  );
+  const tokens = TEMPLATE_TOKENS[template.templateCode] ?? [];
 
   return (
     <CardForm action={formAction} className="space-y-3">
@@ -34,6 +62,11 @@ export function TemplateForm({ template }: { template: TemplateRow }) {
           {template.templateCode}
           {template.updatedAt ? ` · last edited ${new Date(template.updatedAt).toLocaleString()}` : ""}
         </p>
+        {tokens.length > 0 ? (
+          <p className="mt-1 text-muted-foreground text-xs">
+            Tokens: {tokens.map((t) => `{{${t}}}`).join(" · ")}
+          </p>
+        ) : null}
       </div>
       <div className="space-y-1">
         <Label htmlFor={`subject-${template.id}`}>Subject</Label>
@@ -49,11 +82,18 @@ export function TemplateForm({ template }: { template: TemplateRow }) {
         <Textarea id={`body-${template.id}`} name="body" defaultValue={template.body} rows={6} />
       </div>
       <Input name="note" placeholder="Why this change (recorded in the change log)" className="w-full" />
-      <Button type="submit" size="sm" disabled={pending}>
-        {pending ? "Saving…" : "Save template"}
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        <Button type="submit" size="sm" disabled={pending}>
+          {pending ? "Saving…" : "Save template"}
+        </Button>
+        <Button type="submit" size="sm" variant="outline" disabled={testPending} formAction={testAction}>
+          {testPending ? "Sending…" : "Send test to ops inbox"}
+        </Button>
+      </div>
       {state?.error ? <p className="text-destructive text-xs">{state.error}</p> : null}
       {state?.message ? <p className="text-muted-foreground text-xs">{state.message}</p> : null}
+      {testState?.error ? <p className="text-destructive text-xs">{testState.error}</p> : null}
+      {testState?.message ? <p className="text-muted-foreground text-xs">{testState.message}</p> : null}
     </CardForm>
   );
 }
@@ -65,9 +105,6 @@ export interface WeightsPayload {
   seeded: boolean;
 }
 
-// Field order follows the scorecard's own reading order in
-// organisation-health.service.ts: base, then each signal's contribution, then
-// the band cutoffs.
 const WEIGHT_LABELS: Record<string, string> = {
   baseScore: "Starting score",
   visitVolumeTrendWeight: "Visit-volume trend multiplier",

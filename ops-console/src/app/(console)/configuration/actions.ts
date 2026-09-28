@@ -21,6 +21,20 @@ export async function updateTemplateAction(formData: FormData): Promise<{ error?
   return { message: "Template saved. New sends use this copy immediately." };
 }
 
+export async function testTemplateAction(formData: FormData): Promise<{ error?: string; message?: string }> {
+  const templateId = String(formData.get("templateId"));
+  try {
+    const result = await api.post<{ ok: boolean; to?: string; error?: string; templateCode?: string }>(
+      `/platform/configuration/notification-templates/${templateId}/test-send`,
+      {},
+    );
+    if (!result.ok) return { error: result.error ?? "Test send failed" };
+    return { message: `Test queued to ${result.to} (${result.templateCode}). Check the outbox / inbox shortly.` };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Failed to send test" };
+  }
+}
+
 export async function updateHealthWeightsAction(formData: FormData): Promise<{ error?: string; message?: string }> {
   // Only send fields the operator actually changed — the backend merges onto
   // the current values, so an untouched field keeps its value rather than

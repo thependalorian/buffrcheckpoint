@@ -52,3 +52,15 @@ kiosk/local.properties
 
 # Evidence / generated packs
 **/generated-evidence-packs/
+
+# Acceptance gate local marks / sign-offs (§17.4)
+scripts/acceptance/state.json
+scripts/acceptance/state.*.json
+
+# CiMSO INNterchange proprietary package (NDA / Restricted) — keep notes, not the dump
+docs/cimso-innterchange/INNterchange_Specifications_*/
+docs/cimso-innterchange/*.7z
+docs/cimso-innterchange/C-AGR-CND_*.pdf
+
+# E2E screenshots may contain visitor PII
+e2e-screenshots/
