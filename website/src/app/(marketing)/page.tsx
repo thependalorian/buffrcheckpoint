@@ -9,6 +9,7 @@ import { MarketingHero } from "@/components/marketing/marketing-hero";
 import { MarketingPageClose } from "@/components/marketing/marketing-page-close";
 import { MarketingProductScreenshot } from "@/components/marketing/marketing-product-screenshot";
 import { PhoneProductFrame } from "@/components/marketing/phone-product-frame";
+import { REPORTING_ANCHOR, reportingCopy } from "@/lib/copy/reporting";
 import { MARKETING_SECONDARY_PRICING_CTA } from "@/lib/copy/signup";
 import { marketingCapabilityCard, marketingFeatureCard, marketingLead } from "@/lib/marketing-layout";
 import { MARKETING_HERO_IMAGES } from "@/lib/marketing-visuals";
@@ -270,6 +271,23 @@ export default function HomePage() {
               focusClassName="object-[30%_0%]"
             />
           </div>
+        </div>
+      </section>
+
+      <section className="border-b border-border bg-background">
+        <div className="mx-auto flex min-w-0 max-w-7xl flex-col gap-4 px-4 py-12 sm:px-6 md:flex-row md:items-end md:justify-between lg:px-8">
+          <div className="max-w-2xl">
+            <h2 className="font-heading text-2xl font-light tracking-tight text-foreground sm:text-3xl">
+              {reportingCopy.homeBand.title}
+            </h2>
+            <p className="mt-3 text-muted-foreground">{reportingCopy.homeBand.body}</p>
+          </div>
+          <Link
+            href={`/platform#${REPORTING_ANCHOR}`}
+            className="inline-flex shrink-0 items-center rounded-md border border-border px-6 py-3 text-sm font-medium text-foreground transition-colors hover:bg-muted"
+          >
+            {reportingCopy.homeBand.link}
+          </Link>
         </div>
       </section>
 

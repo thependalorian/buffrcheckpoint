@@ -1,8 +1,16 @@
 import type { Metadata } from "next";
 
 import { MarketingHero } from "@/components/marketing/marketing-hero";
-import { marketingCapabilityCard, marketingNarrowSection, marketingPageTitle, marketingSectionTitle, marketingWideSection } from "@/lib/marketing-layout";
 import { MarketingPageClose } from "@/components/marketing/marketing-page-close";
+import { ReportingFigure } from "@/components/marketing/reporting-figure";
+import { REPORTING_ANCHOR, reportingCopy } from "@/lib/copy/reporting";
+import {
+  marketingCapabilityCard,
+  marketingNarrowSection,
+  marketingPageTitle,
+  marketingSectionTitle,
+  marketingWideSection,
+} from "@/lib/marketing-layout";
 import { MARKETING_HERO_IMAGES } from "@/lib/marketing-visuals";
 
 export const metadata: Metadata = {
@@ -47,11 +55,26 @@ const ROLES = [
     "Front desk work, site config, compliance review, day-to-day admin",
     "Site reports and configuration exports",
   ],
-  ["Front Desk Operator", "Current-day roster for assigned site", "Assisted check-in, sign-out, badge issue", "Current-day operational list"],
+  [
+    "Front Desk Operator",
+    "Current-day roster for assigned site",
+    "Assisted check-in, sign-out, badge issue",
+    "Current-day operational list",
+  ],
   ["Site Manager", "Full history for assigned site", "Site fields, hosts, local configuration", "Site reports"],
   ["Regional Manager", "Aggregated sites in assigned region", "Limited regional configuration", "Regional reports"],
-  ["Compliance / Audit Officer", "Organisation-wide records and audit trail", "Legal holds, retention review, DSAR workflow", "Evidence packs"],
-  ["System Administrator", "Configuration and operational metadata", "Roles, sites, policy, integrations", "Configuration and audit exports"],
+  [
+    "Compliance / Audit Officer",
+    "Organisation-wide records and audit trail",
+    "Legal holds, retention review, DSAR workflow",
+    "Evidence packs",
+  ],
+  [
+    "System Administrator",
+    "Configuration and operational metadata",
+    "Roles, sites, policy, integrations",
+    "Configuration and audit exports",
+  ],
   ["Platform Support", "None by default", "Time-bound, approved support access only", "No routine export"],
 ];
 
@@ -86,9 +109,7 @@ export default function PlatformPage() {
         backgroundAlt={MARKETING_HERO_IMAGES.platform.alt}
         layout="intro"
       >
-        <h1 className={`max-w-3xl ${marketingPageTitle}`}>
-          Six ways to check in. One encrypted record.
-        </h1>
+        <h1 className={`max-w-3xl ${marketingPageTitle}`}>Six ways to check in. One encrypted record.</h1>
         <p className="mt-6 max-w-2xl text-base text-muted-foreground sm:text-lg">
           Every visitor gets through the door, whatever they carry. The channel changes from visitor to visitor. The
           data protection stays fixed.
@@ -111,6 +132,44 @@ export default function PlatformPage() {
                 </ul>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      <section id={REPORTING_ANCHOR} className="scroll-mt-20 border-b border-border bg-background">
+        <div className={marketingWideSection}>
+          <h2 className={marketingSectionTitle}>{reportingCopy.title}</h2>
+          <p className="mt-4 max-w-3xl text-muted-foreground">{reportingCopy.intro}</p>
+
+          <div className="mt-12 grid min-w-0 gap-8 lg:grid-cols-2 lg:items-start">
+            <ol className="min-w-0 space-y-6">
+              {reportingCopy.principles.map((item, i) => (
+                <li key={item.title} className="flex gap-4">
+                  <span className="font-mono text-xs text-muted-foreground">{String(i + 1).padStart(2, "0")}</span>
+                  <div className="min-w-0">
+                    <h3 className="font-heading text-lg font-medium text-foreground">{item.title}</h3>
+                    <p className="mt-1 text-sm text-muted-foreground">{item.body}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+            <ReportingFigure {...reportingCopy.figures.busyHours} />
+          </div>
+
+          <h3 className="mt-16 font-heading text-xl font-medium text-foreground">{reportingCopy.audiencesTitle}</h3>
+          <div className="mt-6 grid min-w-0 gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {reportingCopy.audiences.map((card) => (
+              <div key={card.who} className={`min-w-0 ${marketingCapabilityCard}`}>
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{card.who}</p>
+                <p className="mt-2 font-heading text-base font-medium text-foreground">{card.question}</p>
+                <p className="mt-2 text-sm text-muted-foreground">{card.answer}</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-10 grid min-w-0 gap-6 lg:grid-cols-2">
+            <ReportingFigure {...reportingCopy.figures.channels} />
+            <ReportingFigure {...reportingCopy.figures.visitorTypes} />
           </div>
         </div>
       </section>
