@@ -186,9 +186,8 @@ export default function PlatformPage() {
             ))}
           </div>
 
-          <div className="mt-10 grid min-w-0 gap-6 lg:grid-cols-2">
+          <div className="mt-10">
             <ReportingFigure {...reportingCopy.figures.channels} />
-            <ReportingFigure {...reportingCopy.figures.visitorTypes} />
           </div>
         </div>
       </section>
