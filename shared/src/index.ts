@@ -5,6 +5,16 @@ export {
   type IdentityAssuranceLevelCode,
 } from "./identity-assurance-level";
 export {
+  answerScalar,
+  evaluateVisibilityRule,
+  isFieldRequired,
+  isFieldVisible,
+  validateAnswerValue,
+  type FormValidationSchema,
+  type VisibilityCondition,
+  type VisibilityRule,
+} from "./form-rules";
+export {
   OPEN_VISIT_STATUS_CODES,
   VISIT_STATUS_CODES,
   VISIT_STATUS_LABELS,

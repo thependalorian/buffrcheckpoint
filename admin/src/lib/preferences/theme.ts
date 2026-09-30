@@ -1,17 +1,9 @@
-// Light-only by decision (buffrcheckpoint.md Section 11.5, v0.5 correction —
-// was dark-only pre-v0.5). The Buffr Checkpoint preset's tokens are keyed
-// off [data-theme-preset="buffr-checkpoint"], not .dark, so the
-// light/dark/system cycle in theme-switcher.tsx has never changed this
-// preset's colors — it only toggles the <html> .dark class and
-// documentElement.style.colorScheme (theme-boot.tsx), which affects native
-// form-control chrome (scrollbars, checkbox rendering) but not the page's
-// palette. Left in place rather than removed: it's inert for this preset
-// but still meaningful groundwork if a future non-buffr-checkpoint preset
-// is ever added back. ThemeMode itself stays the original three-value
-// union because theme-utils.ts and preferences-provider.tsx still
-// reference "light"/"system" for their system-preference-resolution
-// logic; narrowing the type here would be a much larger, riskier change
-// than this fix needs.
+// Light-only by decision (buffrcheckpoint.md Section 11.5). The Buffr
+// Checkpoint preset's tokens are keyed off [data-theme-preset="buffr-checkpoint"],
+// not .dark. ThemeMode stays the original three-value union because
+// theme-utils.ts and preferences-provider.tsx still reference "light"/"system"
+// for system-preference-resolution; narrowing the type is out of scope here.
+// The unused ThemeSwitcher header control was removed in v0.29.
 export const THEME_MODE_VALUES = ["light", "dark", "system"] as const;
 export type ThemeMode = (typeof THEME_MODE_VALUES)[number];
 export type ResolvedThemeMode = "light" | "dark";

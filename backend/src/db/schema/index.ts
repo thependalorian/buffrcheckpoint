@@ -1,3 +1,4 @@
+export * from "./analytics";
 export * from "./audit";
 export * from "./billing";
 export * from "./capability-status";
@@ -25,6 +26,7 @@ export * from "./organisation-units";
 export * from "./organisations";
 export * from "./platform-configuration";
 export * from "./platform-ops";
+export * from "./pms-integrations";
 export * from "./rbac";
 export * from "./visitor-wait-queue";
 export * from "./secure-onboarding";

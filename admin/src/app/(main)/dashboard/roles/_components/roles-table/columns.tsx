@@ -1,5 +1,6 @@
 "use client";
 import type { ColumnDef } from "@tanstack/react-table";
+import Link from "next/link";
 import { MoreVertical } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -9,13 +10,12 @@ import {
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { DataTableFeatures } from "@/lib/data-table-features";
 import { cn } from "@/lib/utils";
 
-import type { BuffrRole } from "./data";
+import type { BuffrRole } from "./types";
 
 export const rolesColumns: ColumnDef<DataTableFeatures, BuffrRole>[] = [
   {
@@ -105,37 +105,25 @@ export const rolesColumns: ColumnDef<DataTableFeatures, BuffrRole>[] = [
     id: "actions",
     header: "",
     size: 70,
-    cell: ({ row }) => {
-      const isSystemRole = row.original.roleCode.startsWith("system_");
-
-      return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon-sm">
-              <MoreVertical />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-48" align="end">
-            <DropdownMenuGroup>
-              <DropdownMenuItem>View details</DropdownMenuItem>
-              <DropdownMenuItem disabled={isSystemRole}>Edit role</DropdownMenuItem>
-              <DropdownMenuItem disabled={isSystemRole}>Duplicate role</DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem>Review permissions</DropdownMenuItem>
-              <DropdownMenuItem>Manage members</DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem disabled={isSystemRole} variant="destructive">
-                Archive role
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      );
-    },
+    cell: () => (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" size="icon-sm">
+            <MoreVertical />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="w-48" align="end">
+          <DropdownMenuGroup>
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard/users">Assign users</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard/roles">View permission sets</Link>
+            </DropdownMenuItem>
+          </DropdownMenuGroup>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    ),
     enableColumnFilter: false,
   },
 ];

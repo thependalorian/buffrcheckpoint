@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Product and Technical Specifications: Checkpoint by Buffr</title>
+<link rel="stylesheet" href="assets/checkpoint-print.css">
+</head>
+<body>
+<main>
+
+<header class="doc-header">
+  <div class="lockup"><img src="assets/icon-512.png" alt=""><span>Checkpoint</span></div>
+  <div class="doc-meta"><strong>Attachment 02: Product and technical specifications</strong><br>Development Bank of Namibia Innovation Award 2026/27<br>Buffr Financial Services CC</div>
+</header>
+
+<h1>Product and Technical Specifications</h1>
+<p class="lede">What Checkpoint does at the front desk, how it is built, and how it protects guest information. The platform runs in production at buffrcheckpoint.com.</p>
+
+<h2>How a guest checks in</h2>
+<div class="figure-row">
+  <figure class="phone">
+    <img src="assets/shots/phone-check-in-crop.png" alt="The Checkpoint check-in page on a phone, showing language, visitor type, name, mobile number, host and a privacy acknowledgement.">
+    <figcaption>The live check-in page on a phone, captured on our demonstration site. Each property's page carries its own name, logo and colours.</figcaption>
+  </figure>
+  <div>
+    <h3>1. On the guest's own phone</h3>
+    <p>The property prints its QR code and places it at reception. The guest scans it and fills in a short form in English, Afrikaans or Portuguese. No app, no account and no hardware for the property to buy.</p>
+    <h3>2. With the receptionist</h3>
+    <p>A guest without a smartphone, or who prefers help, checks in with the receptionist on a private screen. The record is as private as a self check-in.</p>
+    <h3>3. At an optional self-service tablet</h3>
+    <p>A property can place an Android tablet at reception. It shows the QR code and lets guests check themselves in without waiting for staff. The tablet keeps an encrypted copy of new check-ins through power and network outages and sends them on when the connection returns.</p>
+    <h3>4. With a badge, for regular visitors</h3>
+    <p>Contractors and staff who visit often can tap a near-field communication badge instead of filling in the form each time.</p>
+    <h3>What happens next</h3>
+    <p>The host is notified. Areas that need approval hold the guest until the host approves. Reception sees who is on the property at any moment, and the guest signs out on departure.</p>
+  </div>
+</div>
+
+<h2>Capabilities</h2>
+<p>Our public status page reads from the same register the product uses.</p>
+<table>
+  <thead><tr><th>Capability</th><th>Status</th></tr></thead>
+  <tbody>
+    <tr><td>QR code check-in on the guest's phone</td><td><strong>Live</strong></td></tr>
+    <tr><td>Receptionist-assisted check-in</td><td><strong>Live</strong></td></tr>
+    <tr><td>Pre-registration invitations by QR code</td><td><strong>Live</strong></td></tr>
+    <tr><td>Near-field communication badge check-in</td><td><strong>Live</strong></td></tr>
+    <tr><td>Optional self-service Android tablet with offline capture</td><td><strong>Live</strong></td></tr>
+    <tr><td>CiMSO INNterchange connection (arrivals from the property's booking system)</td><td><strong>Live</strong></td></tr>
+  </tbody>
+</table>
+
+<h2>How it is built</h2>
+<div class="flow">
+  <div class="row four">
+    <div class="node"><strong>Guest's phone</strong>Printed QR code</div>
+    <div class="node"><strong>Receptionist</strong>Private screen</div>
+    <div class="node"><strong>Self-service tablet</strong>Encrypted offline copy</div>
+    <div class="node"><strong>Badge</strong>Tap to check in</div>
+  </div>
+  <div class="arrow">↓</div>
+  <div class="row"><div class="node core"><strong>Checkpoint service</strong>Sign-in and permissions · check-in rules · host notification · audit trail</div></div>
+  <div class="arrow">↓</div>
+  <div class="row three">
+    <div class="node"><strong>Guest records</strong>Encrypted, separated per property and site</div>
+    <div class="node"><strong>Outgoing messages</strong>Queued and retried until delivered</div>
+    <div class="node"><strong>Booking systems</strong>CiMSO INNterchange connection</div>
+  </div>
+</div>
+
+<table class="keep">
+  <thead><tr><th style="width:28%">Layer</th><th>Technology</th></tr></thead>
+  <tbody>
+    <tr><td>Self-service tablet</td><td>Native Android application written in Kotlin, with an encrypted on-device database (SQLCipher) and a queue that sends check-ins when the connection returns</td></tr>
+    <tr><td>Service</td><td>NestJS (TypeScript) application; every request is checked for the user's role, property and site</td></tr>
+    <tr><td>Web applications</td><td>Next.js for the public website, the guest check-in pages, the property's administration console and our internal operations console</td></tr>
+    <tr><td>Data</td><td>PostgreSQL, managed by Neon, with encrypted object storage for documents</td></tr>
+    <tr><td>Delivery</td><td>Railway for the service and Vercel for the web applications, with automatic encrypted connections</td></tr>
+  </tbody>
+</table>
+
+<h2>How it protects guest information</h2>
+<table>
+  <thead><tr><th style="width:30%">Control</th><th>What it means in practice</th></tr></thead>
+  <tbody>
+    <tr><td>One record per guest</td><td>No guest can see another guest's details. There is no shared page.</td></tr>
+    <tr><td>Encryption</td><td>Information is encrypted in transit (TLS) and at rest, including on the tablet.</td></tr>
+    <tr><td>Role-based access</td><td>Staff see only the records their job needs, limited to their property and site. The service enforces access on every request.</td></tr>
+    <tr><td>Two-step sign-in</td><td>Property managers enrol an authenticator app. Our own staff sign in through a separate staff-only door where two-step sign-in is mandatory.</td></tr>
+    <tr><td>Support access by consent</td><td>Our staff can only look inside a property's account with that property's approval, for a limited time, and every action is logged.</td></tr>
+    <tr><td>Tamper-evident audit trail</td><td>Every sensitive view, export, correction and deletion is written to a hash-linked log that shows if an entry is altered.</td></tr>
+    <tr><td>Retention and privacy requests</td><td>Each property sets how long records are kept, can place legal holds, and handles guests' requests to see or delete their information.</td></tr>
+    <tr><td>Data minimisation</td><td>The form asks only for what the visit requires; identity number and email are optional unless the property needs them.</td></tr>
+    <tr><td>Per-site licensing and payment</td><td>A property goes live once its first payment is confirmed, and cannot add sites beyond its plan.</td></tr>
+  </tbody>
+</table>
+
+<h2>Built for the Namibian front desk</h2>
+<ul>
+  <li><strong>Works offline.</strong> The self-service tablet keeps recording through power and network outages. Messages to hosts are queued and sent when the connection returns.</li>
+  <li><strong>No smartphone required.</strong> Receptionist-assisted check-in is part of the product.</li>
+  <li><strong>The legal register, without the shared book.</strong> Each property configures its own check-in form in the form builder, so it can capture the particulars the guest register regulations require and meet its duty to the Namibia Tourism Board without exposing guests to one another <span class="cite">(Regulations Relating to the Registration of Accommodation Establishments, 2004, reg. 29)</span>.</li>
+  <li><strong>Connects to existing booking software.</strong> The CiMSO INNterchange connection brings expected arrivals in as pre-registered guests, maps rooms to on-site zones, and logs every synchronisation.</li>
+  <li><strong>Ready for data protection law.</strong> Minimal collection, restricted access, retention rules and an audit trail are in place ahead of the Data Protection Bill becoming law <span class="cite">(New Era, 2026)</span>.</li>
+</ul>
+
+<h2>Data analytics and reporting</h2>
+<p>Every check-in, sign-out and sensitive action is recorded as structured data, so reporting comes from the same records the desk already creates.</p>
+<ul>
+  <li><strong>Visit activity dashboard.</strong> Managers see daily check-ins and compliance events as a chart, per property and site.</li>
+  <li><strong>Site-manager reporting and audit export.</strong> Visit history, the guest register and audit evidence can be exported for auditors, insurers and head offices.</li>
+  <li><strong>Compliance dashboard and evidence packs</strong> on the Assure plan.</li>
+  <li><strong>Customer health scoring.</strong> Our operations console scores each property from 0 to 100 on a weighted scorecard of usage and engagement, flags churn risk early, and tracks platform-wide performance.</li>
+  <li><strong>Next: forecasting and tourism statistics.</strong> Combining check-in history with expected arrivals from CiMSO lets us forecast busy periods and staff the desk accordingly. Aggregated, anonymised arrival statistics by region and visitor type can feed the Namibia Tourism Board's tourism data management system without sharing any individual guest's details.</li>
+</ul>
+
+<div class="keep">
+<h2>Quality and testing</h2>
+<p>A production check of the live service runs after every release and covers the service's health, the guest check-in form, the check-in and check-out pages, and rejection of wrong passwords. The full billing path (subscription with site count, invoice, invoice PDF and invoice email) was run end to end in production on 29 September 2026.</p>
+</div>
+
+<h2>Abbreviations</h2>
+<table class="abbrev">
+  <tbody>
+    <tr><td>CC</td><td>Close corporation</td></tr>
+    <tr><td>PDF</td><td>Portable document format</td></tr>
+    <tr><td>QR</td><td>Quick response (a scannable code)</td></tr>
+    <tr><td>TLS</td><td>Transport layer security (encryption of data in transit)</td></tr>
+  </tbody>
+</table>
+
+<h2>References</h2>
+<div class="references">
+  <p>New Era. (2026, January 27). <em>Data legislations under final polishing</em>. https://neweralive.na/data-legislations-under-final-polishing/</p>
+  <p>Regulations Relating to the Registration of Accommodation Establishments, Government Notice No. 139 of 2004, Government Gazette No. 3235 (2004) (Namibia). https://www.lac.org.na/laws/annoREG/Namibia%20Tourism%20Board%20Act%2021%20of%202000%20-%20Regulations%202004-139.pdf</p>
+</div>
+
+</main>
+</body>
+</html>

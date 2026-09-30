@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { toast } from "sonner";
 
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { apiBaseUrl, newClientId } from "@/lib/api";
+import { isFieldRequired, isFieldVisible } from "@/lib/form-rules";
 import { AnalyticsEvents, track } from "@/lib/observability/track";
 
 import { CheckInBrandedShell, type CheckInBranding } from "./check-in-branded-shell";
@@ -30,9 +31,19 @@ type CheckInContext = {
 type FormField = {
   fieldCode: string;
   fieldLabel: string;
+  helpText?: string | null;
+  fieldTypeCode?: string;
   required: boolean;
   displayOrder: number;
+  visibilityRule?: Record<string, unknown>;
+  validationSchema?: Record<string, unknown>;
 };
+
+/** Avoid "Email (optional) (optional)" when API labels already include optional. */
+function fieldLabelWithOptional(label: string, required: boolean): string {
+  const base = label.replace(/\s*\(optional\)\s*$/i, "").trim();
+  return required ? base : `${base} (optional)`;
+}
 
 type EffectiveForm = {
   formVersionId: string;
@@ -81,13 +92,21 @@ type DoneState = {
 type Props = {
   siteId: string;
   referenceId: string;
+  initialLanguageCode?: string;
 };
 
-export function CheckInForm({ siteId, referenceId }: Props) {
+const CHECK_IN_LANGUAGES: { code: string; label: string }[] = [
+  { code: "en", label: "English" },
+  { code: "af", label: "Afrikaans" },
+  { code: "pt", label: "Portuguese" },
+];
+
+export function CheckInForm({ siteId, referenceId, initialLanguageCode = "en" }: Props) {
   const [context, setContext] = useState<CheckInContext | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const submitLockRef = useRef(false);
   const [done, setDone] = useState<DoneState | null>(null);
   const [visitorName, setVisitorName] = useState("");
   const [visitorPhone, setVisitorPhone] = useState("");
@@ -101,6 +120,11 @@ export function CheckInForm({ siteId, referenceId }: Props) {
   const [privacyAcknowledged, setPrivacyAcknowledged] = useState(false);
   const [effectiveForm, setEffectiveForm] = useState<EffectiveForm | null>(null);
   const [extraAnswers, setExtraAnswers] = useState<Record<string, string>>({});
+  const [fieldAnswers, setFieldAnswers] = useState<Record<string, string>>({});
+  const [languageCode, setLanguageCode] = useState(() => {
+    const code = initialLanguageCode.trim().toLowerCase();
+    return CHECK_IN_LANGUAGES.some((l) => l.code === code) ? code : "en";
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -127,8 +151,16 @@ export function CheckInForm({ siteId, referenceId }: Props) {
         // Do not auto-pick a host — visitor must choose who they are meeting.
         if (data.visitorTypes.find((t) => t.code === "general")) setVisitorTypeCode("general");
         else if (data.visitorTypes[0]) setVisitorTypeCode(data.visitorTypes[0].code);
-        if (data.purposeCategories.find((p) => p.code === "business")) setPurposeCategoryCode("business");
-        else if (data.purposeCategories[0]) setPurposeCategoryCode(data.purposeCategories[0].code);
+        // Prefer meeting (demo published form options) over global business default —
+        // business exists in type_definition but is often outside form field options.
+        const purposeDefault =
+          data.purposeCategories.find((p) => p.code === "meeting")?.code ??
+          data.purposeCategories.find((p) => p.code === "business")?.code ??
+          data.purposeCategories[0]?.code;
+        if (purposeDefault) {
+          setPurposeCategoryCode(purposeDefault);
+          setFieldAnswers((prev) => ({ ...prev, purpose_category: purposeDefault }));
+        }
       } catch (error) {
         if (!cancelled) {
           setLoadError(error instanceof Error ? error.message : "Unable to load check-in.");
@@ -151,16 +183,38 @@ export function CheckInForm({ siteId, referenceId }: Props) {
       try {
         const url =
           `${apiBaseUrl()}/public/check-in/form?site=${encodeURIComponent(siteId)}` +
-          `&ref=${encodeURIComponent(referenceId)}&visitorTypeCode=${encodeURIComponent(visitorTypeCode)}`;
+          `&ref=${encodeURIComponent(referenceId)}&visitorTypeCode=${encodeURIComponent(visitorTypeCode)}` +
+          `&languageCode=${encodeURIComponent(languageCode)}`;
         const res = await fetch(url);
         if (!res.ok) {
-          if (!cancelled) setEffectiveForm(null);
+          // Context already loaded — use the built-in fallback fields; do not
+          // hard-stop the whole check-in journey (E2E / bug-hunt P0).
+          if (!cancelled) {
+            setEffectiveForm(null);
+          }
           return;
         }
         const data = (await res.json()) as EffectiveForm | null;
         if (!cancelled) {
           setEffectiveForm(data);
           if (data) {
+            const purposeField = data.fields.find((f) => f.fieldCode === "purpose_category");
+            const rawOptions = (purposeField?.validationSchema as { options?: unknown } | undefined)
+              ?.options;
+            const optionCodes = Array.isArray(rawOptions)
+              ? rawOptions.map((o) => (typeof o === "string" ? o : String((o as { code?: string })?.code ?? "")))
+                  .filter(Boolean)
+              : [];
+            if (optionCodes.length > 0) {
+              setFieldAnswers((prev) => {
+                const current = prev.purpose_category;
+                if (current && optionCodes.includes(current)) return prev;
+                const next =
+                  optionCodes.find((c) => c === "meeting") ?? optionCodes[0];
+                setPurposeCategoryCode(next);
+                return { ...prev, purpose_category: next };
+              });
+            }
             track(AnalyticsEvents.checkInFormLoaded, {
               visitor_type_code: data.visitorTypeCode,
               field_count: data.fields.length,
@@ -168,14 +222,16 @@ export function CheckInForm({ siteId, referenceId }: Props) {
           }
         }
       } catch {
-        if (!cancelled) setEffectiveForm(null);
+        if (!cancelled) {
+          setEffectiveForm(null);
+        }
       }
     }
     void loadForm();
     return () => {
       cancelled = true;
     };
-  }, [context, visitorTypeCode, siteId, referenceId]);
+  }, [context, visitorTypeCode, siteId, referenceId, languageCode]);
 
   const branding = context?.branding ?? null;
   const accent = branding?.brandColourToken || "#CF1161";
@@ -184,31 +240,51 @@ export function CheckInForm({ siteId, referenceId }: Props) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!context) return;
+    if (!context || submitting || done || submitLockRef.current) return;
     if (!privacyAcknowledged) {
       toast.error("Please acknowledge the privacy notice to continue.");
       return;
     }
+    submitLockRef.current = true;
     setSubmitting(true);
     try {
-      const answerMap: Record<string, string> = {
-        visitor_name: visitorName.trim(),
-        visitor_phone: visitorPhone.trim(),
-        company_name: companyName.trim(),
-        visitor_email: visitorEmail.trim(),
-        vehicle_registration: vehicleRegistration.trim(),
-        id_document_number: idDocumentNumber.trim(),
-        host: selectedHost?.displayName || hostId,
-        purpose_category: purposeCategoryCode,
-        ...extraAnswers,
-      };
+      const answerMap: Record<string, string> = effectiveForm
+        ? { ...fieldAnswers, host: fieldAnswers.host || selectedHost?.displayName || hostId }
+        : {
+            visitor_name: visitorName.trim(),
+            visitor_phone: visitorPhone.trim(),
+            company_name: companyName.trim(),
+            visitor_email: visitorEmail.trim(),
+            vehicle_registration: vehicleRegistration.trim(),
+            id_document_number: idDocumentNumber.trim(),
+            host: selectedHost?.displayName || hostId,
+            purpose_category: purposeCategoryCode,
+            ...extraAnswers,
+          };
+
+      if (effectiveForm) {
+        for (const field of effectiveForm.fields) {
+          if (!isFieldVisible(field.visibilityRule, answerMap)) continue;
+          const required = isFieldRequired(field.required, field.validationSchema, answerMap);
+          const value = (answerMap[field.fieldCode] ?? "").trim();
+          if (required && !value) {
+            throw new Error(`${field.fieldLabel} is required`);
+          }
+        }
+      }
+
       const formAnswers =
-        effectiveForm?.fields.map((field) => ({
-          formVersionId: effectiveForm.formVersionId,
-          fieldCode: field.fieldCode,
-          fieldLabelSnapshot: field.fieldLabel,
-          answerValue: { value: answerMap[field.fieldCode] ?? "" },
-        })) ?? undefined;
+        effectiveForm?.fields
+          .filter((field) => isFieldVisible(field.visibilityRule, answerMap))
+          .map((field) => ({
+            formVersionId: effectiveForm.formVersionId,
+            fieldCode: field.fieldCode,
+            fieldLabelSnapshot: field.fieldLabel,
+            answerValue: { value: answerMap[field.fieldCode] ?? "" },
+          })) ?? undefined;
+
+      const resolvedName = (answerMap.visitor_name || visitorName).trim();
+      const resolvedPhone = (answerMap.visitor_phone || visitorPhone).trim();
 
       const res = await fetch(`${apiBaseUrl()}/public/check-in`, {
         method: "POST",
@@ -218,16 +294,17 @@ export function CheckInForm({ siteId, referenceId }: Props) {
           siteId: context.siteId,
           referenceId: context.referenceId,
           hostId,
-          visitorName: visitorName.trim(),
-          visitorPhone: visitorPhone.trim(),
-          companyName: companyName.trim(),
-          visitorEmail: visitorEmail.trim() || undefined,
-          vehicleRegistration: vehicleRegistration.trim() || undefined,
-          idDocumentNumber: idDocumentNumber.trim() || undefined,
-          purposeCategoryCode: purposeCategoryCode || undefined,
+          visitorName: resolvedName,
+          visitorPhone: resolvedPhone,
+          companyName: (answerMap.company_name || companyName).trim(),
+          visitorEmail: (answerMap.visitor_email || visitorEmail).trim() || undefined,
+          vehicleRegistration: (answerMap.vehicle_registration || vehicleRegistration).trim() || undefined,
+          idDocumentNumber: (answerMap.id_document_number || idDocumentNumber).trim() || undefined,
+          purposeCategoryCode: (answerMap.purpose_category || purposeCategoryCode) || undefined,
           visitorTypeCode,
           privacyAcknowledged: true,
           formAnswers,
+          languageCode,
         }),
       });
       if (!res.ok) {
@@ -295,10 +372,11 @@ export function CheckInForm({ siteId, referenceId }: Props) {
         has_queue: Boolean(data.nextSteps?.queueNumber ?? data.visitorPass?.queueNumber),
         badge_required: ["contractor", "temporary_staff", "restricted_site"].includes(visitorTypeCode),
       });
-      toast.success(`Checked in — wait for ${hostName} at reception.`);
+      toast.success(`Checked in. Wait for ${hostName} at reception.`);
     } catch (error) {
       track(AnalyticsEvents.checkInFailed, { visitor_type_code: visitorTypeCode });
       toast.error(error instanceof Error ? error.message : "Check-in failed.");
+      submitLockRef.current = false;
     } finally {
       setSubmitting(false);
     }
@@ -312,13 +390,17 @@ export function CheckInForm({ siteId, referenceId }: Props) {
     );
   }
 
-  if (loadError) {
+  if (loadError || !context) {
     return (
       <CheckInBrandedShell branding={null} siteNameFallback="Visitor check-in">
         <div className="space-y-3">
           <h1 className="text-2xl font-semibold tracking-tight">Check-in unavailable</h1>
-          <p className="text-sm text-muted-foreground">{loadError}</p>
-          <p className="text-sm text-muted-foreground">Ask reception to show a fresh QR code on the kiosk.</p>
+          <p className="text-sm text-muted-foreground">
+            {loadError || "Unable to load check-in for this link."}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            Ask reception for a fresh public site QR, or scan the printed check-in QR for this location.
+          </p>
         </div>
       </CheckInBrandedShell>
     );
@@ -371,7 +453,7 @@ export function CheckInForm({ siteId, referenceId }: Props) {
                 {steps.peopleAhead == null
                   ? "Wait at reception until your host or the receptionist calls you."
                   : steps.peopleAhead === 0
-                    ? "You are next — stay at reception."
+                    ? "You are next. Stay at reception."
                     : `${steps.peopleAhead} visitor${steps.peopleAhead === 1 ? "" : "s"} ahead of you.`}
               </p>
             </div>
@@ -446,85 +528,20 @@ export function CheckInForm({ siteId, referenceId }: Props) {
         ) : null}
 
         <div className="space-y-2">
-          <Label htmlFor="visitorName">Full name</Label>
-          <Input
-            id="visitorName"
-            name="visitorName"
-            value={visitorName}
-            onChange={(e) => setVisitorName(e.target.value)}
-            autoComplete="name"
-            required
-            minLength={2}
-            maxLength={120}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="visitorPhone">Mobile phone</Label>
-          <Input
-            id="visitorPhone"
-            name="visitorPhone"
-            type="tel"
-            value={visitorPhone}
-            onChange={(e) => setVisitorPhone(e.target.value)}
-            autoComplete="tel"
-            required
-            minLength={7}
-            maxLength={40}
-            placeholder="+264…"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="companyName">Company / organisation</Label>
-          <Input
-            id="companyName"
-            name="companyName"
-            value={companyName}
-            onChange={(e) => setCompanyName(e.target.value)}
-            autoComplete="organization"
-            required
-            minLength={2}
-            maxLength={160}
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="visitorEmail">Work email (optional)</Label>
-          <Input
-            id="visitorEmail"
-            name="visitorEmail"
-            type="email"
-            value={visitorEmail}
-            onChange={(e) => setVisitorEmail(e.target.value)}
-            autoComplete="email"
-            maxLength={160}
-          />
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="idDocumentNumber">ID / passport number (optional)</Label>
-            <Input
-              id="idDocumentNumber"
-              name="idDocumentNumber"
-              value={idDocumentNumber}
-              onChange={(e) => setIdDocumentNumber(e.target.value)}
-              autoComplete="off"
-              maxLength={64}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="vehicleRegistration">Vehicle registration (optional)</Label>
-            <Input
-              id="vehicleRegistration"
-              name="vehicleRegistration"
-              value={vehicleRegistration}
-              onChange={(e) => setVehicleRegistration(e.target.value)}
-              autoComplete="off"
-              maxLength={40}
-            />
-          </div>
+          <Label htmlFor="languageCode">Language</Label>
+          <select
+            id="languageCode"
+            name="languageCode"
+            value={languageCode}
+            onChange={(e) => setLanguageCode(e.target.value)}
+            className="flex h-10 w-full rounded-md border border-input bg-white px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          >
+            {CHECK_IN_LANGUAGES.map((lang) => (
+              <option key={lang.code} value={lang.code}>
+                {lang.label}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="space-y-2">
@@ -548,86 +565,337 @@ export function CheckInForm({ siteId, referenceId }: Props) {
           </select>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="hostId">Who are you visiting?</Label>
-          {context.hosts.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              No hosts are configured for this site yet. Please see reception.
-            </p>
-          ) : (
-            <select
-              id="hostId"
-              name="hostId"
-              value={hostId}
-              onChange={(e) => setHostId(e.target.value)}
-              className="flex h-10 w-full rounded-md border border-input bg-white px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              required
-            >
-              <option value="" disabled>
-                Select a person or department…
-              </option>
-              {context.hosts.map((host) => (
-                <option key={host.id} value={host.id}>
-                  {host.displayName}
-                  {host.department ? ` — ${host.department}` : ""}
-                </option>
-              ))}
-            </select>
-          )}
-        </div>
+        {effectiveForm ? (
+          effectiveForm.fields
+            .filter((field) => isFieldVisible(field.visibilityRule, fieldAnswers))
+            .map((field) => {
+              const required = isFieldRequired(field.required, field.validationSchema, fieldAnswers);
+              const options = Array.isArray(
+                (field.validationSchema as { options?: string[] } | undefined)?.options,
+              )
+                ? ((field.validationSchema as { options?: string[] }).options ?? [])
+                : [];
+              const value = fieldAnswers[field.fieldCode] ?? "";
+              const setValue = (next: string) =>
+                setFieldAnswers((prev) => ({ ...prev, [field.fieldCode]: next }));
 
-        {context.purposeCategories.length > 0 ? (
-          <div className="space-y-2">
-            <Label htmlFor="purposeCategoryCode">Purpose of visit</Label>
-            <select
-              id="purposeCategoryCode"
-              name="purposeCategoryCode"
-              value={purposeCategoryCode}
-              onChange={(e) => setPurposeCategoryCode(e.target.value)}
-              className="flex h-10 w-full rounded-md border border-input bg-white px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              required
-            >
-              {context.purposeCategories.map((purpose) => (
-                <option key={purpose.code} value={purpose.code}>
-                  {purpose.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        ) : null}
+              if (field.fieldCode === "host") {
+                return (
+                  <div key={field.fieldCode} className="space-y-2">
+                    <Label htmlFor="hostId">
+                      {fieldLabelWithOptional(field.fieldLabel, required)}
+                    </Label>
+                    {field.helpText ? (
+                      <p className="text-xs text-muted-foreground">{field.helpText}</p>
+                    ) : null}
+                    {context.hosts.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">
+                        No hosts are configured for this site yet. Please see reception.
+                      </p>
+                    ) : (
+                      <select
+                        id="hostId"
+                        name="hostId"
+                        value={hostId}
+                        onChange={(e) => {
+                          setHostId(e.target.value);
+                          const host = context.hosts.find((h) => h.id === e.target.value);
+                          setValue(host?.displayName ?? e.target.value);
+                        }}
+                        className="flex h-10 w-full rounded-md border border-input bg-white px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        required={required}
+                      >
+                        <option value="" disabled>
+                          Select a person or department…
+                        </option>
+                        {context.hosts.map((host) => (
+                          <option key={host.id} value={host.id}>
+                            {host.displayName}
+                            {host.department ? ` · ${host.department}` : ""}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                );
+              }
 
-        {effectiveForm?.fields
-          .filter(
-            (field) =>
-              ![
-                "visitor_name",
-                "visitor_phone",
-                "company_name",
-                "visitor_email",
-                "id_document_number",
-                "vehicle_registration",
-                "host",
-                "purpose_category",
-              ].includes(field.fieldCode),
-          )
-          .map((field) => (
-            <div key={field.fieldCode} className="space-y-2">
-              <Label htmlFor={`field-${field.fieldCode}`}>
-                {field.fieldLabel}
-                {field.required ? "" : " (optional)"}
-              </Label>
+              if (field.fieldCode === "purpose_category" && context.purposeCategories.length > 0) {
+                return (
+                  <div key={field.fieldCode} className="space-y-2">
+                    <Label htmlFor="purposeCategoryCode">
+                      {fieldLabelWithOptional(field.fieldLabel, required)}
+                    </Label>
+                    <select
+                      id="purposeCategoryCode"
+                      name="purposeCategoryCode"
+                      value={value || purposeCategoryCode}
+                      onChange={(e) => {
+                        setPurposeCategoryCode(e.target.value);
+                        setValue(e.target.value);
+                      }}
+                      className="flex h-10 w-full rounded-md border border-input bg-white px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      required={required}
+                    >
+                      {(options.length
+                        ? options.map((code) => ({
+                            code,
+                            label:
+                              context.purposeCategories.find((p) => p.code === code)?.label ?? code,
+                          }))
+                        : context.purposeCategories
+                      ).map((purpose) => (
+                        <option key={purpose.code} value={purpose.code}>
+                          {purpose.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                );
+              }
+
+              if (field.fieldTypeCode === "multiple_choice") {
+                const selected = new Set(
+                  value
+                    .split(",")
+                    .map((s) => s.trim())
+                    .filter(Boolean),
+                );
+                return (
+                  <fieldset key={field.fieldCode} className="space-y-2">
+                    <legend className="text-sm font-medium leading-none">
+                      {fieldLabelWithOptional(field.fieldLabel, required)}
+                    </legend>
+                    {field.helpText ? (
+                      <p className="text-xs text-muted-foreground">{field.helpText}</p>
+                    ) : null}
+                    <div className="space-y-2 rounded-md border border-input bg-white px-3 py-2">
+                      {options.map((opt) => (
+                        <label key={opt} className="flex items-center gap-2 text-sm">
+                          <input
+                            type="checkbox"
+                            checked={selected.has(opt)}
+                            onChange={(e) => {
+                              const next = new Set(selected);
+                              if (e.target.checked) next.add(opt);
+                              else next.delete(opt);
+                              setValue([...next].join(","));
+                            }}
+                          />
+                          {opt}
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
+                );
+              }
+
+              if (field.fieldTypeCode === "single_choice" || options.length > 0) {
+                return (
+                  <div key={field.fieldCode} className="space-y-2">
+                    <Label htmlFor={`field-${field.fieldCode}`}>
+                      {fieldLabelWithOptional(field.fieldLabel, required)}
+                    </Label>
+                    {field.helpText ? (
+                      <p className="text-xs text-muted-foreground">{field.helpText}</p>
+                    ) : null}
+                    <select
+                      id={`field-${field.fieldCode}`}
+                      value={value}
+                      onChange={(e) => setValue(e.target.value)}
+                      className="flex h-10 w-full rounded-md border border-input bg-white px-3 py-2 text-sm"
+                      required={required}
+                    >
+                      <option value="">Select…</option>
+                      {options.map((opt) => (
+                        <option key={opt} value={opt}>
+                          {opt}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                );
+              }
+
+              if (field.fieldTypeCode === "boolean") {
+                return (
+                  <label key={field.fieldCode} className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={value === "true"}
+                      onChange={(e) => setValue(e.target.checked ? "true" : "false")}
+                      required={required}
+                    />
+                    {field.fieldLabel}
+                  </label>
+                );
+              }
+
+              const inputType =
+                field.fieldTypeCode === "email"
+                  ? "email"
+                  : field.fieldTypeCode === "phone"
+                    ? "tel"
+                    : field.fieldTypeCode === "date"
+                      ? "date"
+                      : "text";
+
+              return (
+                <div key={field.fieldCode} className="space-y-2">
+                  <Label htmlFor={`field-${field.fieldCode}`}>
+                    {fieldLabelWithOptional(field.fieldLabel, required)}
+                  </Label>
+                  {field.helpText ? (
+                    <p className="text-xs text-muted-foreground">{field.helpText}</p>
+                  ) : null}
+                  {field.fieldTypeCode === "textarea" ? (
+                    <textarea
+                      id={`field-${field.fieldCode}`}
+                      className="min-h-20 w-full rounded-md border border-input bg-white px-3 py-2 text-sm"
+                      value={value}
+                      onChange={(e) => setValue(e.target.value)}
+                      required={required}
+                    />
+                  ) : (
+                    <Input
+                      id={`field-${field.fieldCode}`}
+                      type={inputType}
+                      value={value}
+                      onChange={(e) => setValue(e.target.value)}
+                      required={required}
+                      maxLength={200}
+                    />
+                  )}
+                </div>
+              );
+            })
+        ) : (
+          <>
+            <div className="space-y-2">
+              <Label htmlFor="visitorName">Full name</Label>
               <Input
-                id={`field-${field.fieldCode}`}
-                name={field.fieldCode}
-                value={extraAnswers[field.fieldCode] ?? ""}
-                onChange={(e) =>
-                  setExtraAnswers((prev) => ({ ...prev, [field.fieldCode]: e.target.value }))
-                }
-                required={field.required}
-                maxLength={200}
+                id="visitorName"
+                name="visitorName"
+                value={visitorName}
+                onChange={(e) => setVisitorName(e.target.value)}
+                autoComplete="name"
+                required
+                minLength={2}
+                maxLength={120}
               />
             </div>
-          ))}
+            <div className="space-y-2">
+              <Label htmlFor="visitorPhone">Mobile phone</Label>
+              <Input
+                id="visitorPhone"
+                name="visitorPhone"
+                type="tel"
+                value={visitorPhone}
+                onChange={(e) => setVisitorPhone(e.target.value)}
+                autoComplete="tel"
+                required
+                minLength={7}
+                maxLength={40}
+                placeholder="+264…"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="companyName">Company / organisation</Label>
+              <Input
+                id="companyName"
+                name="companyName"
+                value={companyName}
+                onChange={(e) => setCompanyName(e.target.value)}
+                autoComplete="organization"
+                required
+                minLength={2}
+                maxLength={160}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="visitorEmail">Work email (optional)</Label>
+              <Input
+                id="visitorEmail"
+                name="visitorEmail"
+                type="email"
+                value={visitorEmail}
+                onChange={(e) => setVisitorEmail(e.target.value)}
+                autoComplete="email"
+                maxLength={160}
+              />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="idDocumentNumber">ID / passport number (optional)</Label>
+                <Input
+                  id="idDocumentNumber"
+                  name="idDocumentNumber"
+                  value={idDocumentNumber}
+                  onChange={(e) => setIdDocumentNumber(e.target.value)}
+                  autoComplete="off"
+                  maxLength={64}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="vehicleRegistration">Vehicle registration (optional)</Label>
+                <Input
+                  id="vehicleRegistration"
+                  name="vehicleRegistration"
+                  value={vehicleRegistration}
+                  onChange={(e) => setVehicleRegistration(e.target.value)}
+                  autoComplete="off"
+                  maxLength={40}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="hostId">Who are you visiting?</Label>
+              {context.hosts.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No hosts are configured for this site yet. Please see reception.
+                </p>
+              ) : (
+                <select
+                  id="hostId"
+                  name="hostId"
+                  value={hostId}
+                  onChange={(e) => setHostId(e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-white px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  required
+                >
+                  <option value="" disabled>
+                    Select a person or department…
+                  </option>
+                  {context.hosts.map((host) => (
+                    <option key={host.id} value={host.id}>
+                      {host.displayName}
+                      {host.department ? ` · ${host.department}` : ""}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+            {context.purposeCategories.length > 0 ? (
+              <div className="space-y-2">
+                <Label htmlFor="purposeCategoryCode">Purpose of visit</Label>
+                <select
+                  id="purposeCategoryCode"
+                  name="purposeCategoryCode"
+                  value={purposeCategoryCode}
+                  onChange={(e) => setPurposeCategoryCode(e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-white px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  required
+                >
+                  {context.purposeCategories.map((purpose) => (
+                    <option key={purpose.code} value={purpose.code}>
+                      {purpose.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : null}
+          </>
+        )}
 
         <label className="flex items-start gap-3 rounded-md border border-[#EDEBEC] bg-white/70 p-3 text-sm">
           <input
@@ -644,7 +912,7 @@ export function CheckInForm({ siteId, referenceId }: Props) {
           type="submit"
           className="w-full text-white hover:opacity-90"
           style={{ backgroundColor: accent }}
-          disabled={submitting || context.hosts.length === 0 || !hostId || !privacyAcknowledged}
+          disabled={submitting || Boolean(done) || context.hosts.length === 0 || !hostId || !privacyAcknowledged}
         >
           {submitting ? "Checking in…" : "Check in"}
         </Button>

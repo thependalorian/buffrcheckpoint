@@ -10,6 +10,12 @@ import { SmsContactConfirmationService } from "../integrations/telecoms/sms-cont
 import { createEmailAdapter, type NotificationChannelAdapter } from "./email.adapter";
 import { randomUUID } from "node:crypto";
 
+export interface EmailAttachment {
+  filename: string;
+  contentBase64: string;
+  contentType: string;
+}
+
 export interface SendNotificationInput {
   visitId?: string;
   channelCode: "email" | "sms" | "ussd" | "whatsapp";
@@ -17,6 +23,7 @@ export interface SendNotificationInput {
   message: string;
   subject?: string;
   html?: string;
+  attachments?: EmailAttachment[];
 }
 
 const MAX_DELIVERY_ATTEMPTS = 5;
@@ -47,6 +54,7 @@ export class NotificationsService {
       permissions: [],
       emailVerified: true,
       mfaEnabled: true,
+      audience: "admin",
     });
   }
 
@@ -72,6 +80,7 @@ export class NotificationsService {
         subject: input.subject,
         message: input.message,
         html: input.html,
+        attachmentsJson: input.attachments?.length ? input.attachments : undefined,
         nextAttemptAt: new Date(),
       })
       .returning();
@@ -104,6 +113,7 @@ export class NotificationsService {
         const result = await this.emailAdapter.send(row.recipientReference, row.message, {
           subject: row.subject ?? undefined,
           html: row.html ?? undefined,
+          attachments: row.attachmentsJson ?? undefined,
         });
         delivered = result.delivered;
       } catch (error) {

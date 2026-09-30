@@ -28,6 +28,10 @@ data class CheckInRequest(
     val visitorId: String? = null,
     val visitorName: String? = null,
     val visitorPhone: String? = null,
+    val companyName: String? = null,
+    val visitorEmail: String? = null,
+    val vehicleRegistration: String? = null,
+    val idDocumentNumber: String? = null,
     val hostId: String,
     val visitorTypeCode: String,
     val invitationId: String? = null,
@@ -42,8 +46,13 @@ data class CheckInRequest(
 data class EffectiveFormFieldDto(
     val fieldCode: String,
     val fieldLabel: String,
+    val helpText: String? = null,
+    val fieldTypeCode: String = "text",
     val required: Boolean = false,
     val displayOrder: Int = 0,
+    val dataClassificationCode: String = "basic",
+    val visibilityRule: Map<String, Any?> = emptyMap(),
+    val validationSchema: Map<String, Any?> = emptyMap(),
 )
 
 @JsonClass(generateAdapter = true)

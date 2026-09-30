@@ -8,7 +8,7 @@ import { AuthCardHeader, AuthLayout } from "../_components/auth-layout";
 import { ResetPasswordForm } from "../_components/reset-password-form";
 
 export const metadata: Metadata = {
-  title: "Reset password: Buffr Checkpoint",
+  title: "Reset password: Checkpoint",
 };
 
 export default function ResetPasswordPage() {

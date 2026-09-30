@@ -1,8 +1,9 @@
 "use client";
 import { type ReactNode, useState } from "react";
+import Link from "next/link";
 
 import { type ColumnFiltersState, type PaginationState, useTable } from "@tanstack/react-table";
-import { AlertTriangle, ChevronRight, FileUp, Search } from "lucide-react";
+import { Search } from "lucide-react";
 
 import { Alert, AlertAction, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -12,20 +13,20 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { dataTableFeatures } from "@/lib/data-table-features";
 
 import { rolesColumns } from "./roles-table/columns";
-import type { BuffrRole } from "./roles-table/data";
+import type { BuffrRole } from "./roles-table/types";
 import { RolesTable } from "./roles-table/table";
 
 function _getRoleTypeFilter(groupFilter: string) {
-  if (groupFilter === "Checkpoint Core") {
-    return "Core";
+  if (groupFilter === "Site plan") {
+    return "Site";
   }
 
   if (groupFilter === "Release 1") {
     return "Release 1";
   }
 
-  if (groupFilter === "Professional+") {
-    return "Professional+";
+  if (groupFilter === "Network+") {
+    return "Network+";
   }
 
   if (groupFilter === "Enterprise") {
@@ -36,16 +37,16 @@ function _getRoleTypeFilter(groupFilter: string) {
 }
 
 function getRoleGroupFilterValue(typeFilter: string) {
-  if (typeFilter === "Core") {
-    return "Checkpoint Core";
+  if (typeFilter === "Site") {
+    return "Site plan";
   }
 
   if (typeFilter === "Release 1") {
     return "Release 1";
   }
 
-  if (typeFilter === "Professional+") {
-    return "Professional+";
+  if (typeFilter === "Network+") {
+    return "Network+";
   }
 
   if (typeFilter === "Enterprise") {
@@ -58,9 +59,11 @@ function getRoleGroupFilterValue(typeFilter: string) {
 export function Roles({
   roles,
   accessReviewsSlot,
+  assignUsersHref = "/dashboard/users",
 }: {
   roles: BuffrRole[];
   accessReviewsSlot?: ReactNode;
+  assignUsersHref?: string;
 }) {
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [pagination, setPagination] = useState<PaginationState>({
@@ -95,15 +98,15 @@ export function Roles({
       <div className="flex flex-col items-start gap-4 sm:flex-row sm:justify-between">
         <div className="flex flex-col gap-1">
           <h1 className="text-3xl tracking-tight">Roles & Access</h1>
-          <p className="text-muted-foreground text-sm">Manage role catalogue, assignments, and permission scopes.</p>
+          <p className="text-muted-foreground text-sm">
+            Review the role catalogue, live assignment counts, and permission scopes.
+          </p>
         </div>
 
         <div className="flex items-center gap-2">
-          <Button size="sm" variant="outline">
-            <FileUp data-icon="inline-start" />
-            Import JSON
+          <Button size="sm" variant="outline" asChild>
+            <Link href={assignUsersHref}>Assign users</Link>
           </Button>
-          <Button size="sm">Create role</Button>
         </div>
       </div>
 
@@ -119,14 +122,15 @@ export function Roles({
 
         <TabsContent value="roles">
           <div className="flex flex-col gap-4">
-            <Alert className="border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-50">
-              <AlertTriangle className="size-4" />
-              <AlertTitle>Review required</AlertTitle>
-              <AlertDescription>Some roles have unreviewed permission changes.</AlertDescription>
+            <Alert>
+              <AlertTitle>Fixed role catalogue</AlertTitle>
+              <AlertDescription>
+                You assign people to roles in this catalogue. You do not invent custom permissions. Owner-Operator
+                covers front desk and site admin for small teams. Assign people under Users.
+              </AlertDescription>
               <AlertAction>
-                <Button size="sm" variant="link">
-                  Review changes
-                  <ChevronRight data-icon="inline-end" />
+                <Button size="sm" variant="link" asChild>
+                  <Link href={assignUsersHref}>Go to Users</Link>
                 </Button>
               </AlertAction>
             </Alert>
@@ -163,9 +167,9 @@ export function Roles({
                     <SelectContent position="popper" align="start">
                       <SelectGroup>
                         <SelectItem value="All">All</SelectItem>
-                        <SelectItem value="Core">Checkpoint Core</SelectItem>
+                        <SelectItem value="Site">Site plan</SelectItem>
                         <SelectItem value="Release 1">Release 1</SelectItem>
-                        <SelectItem value="Professional+">Professional+</SelectItem>
+                        <SelectItem value="Network+">Network+</SelectItem>
                         <SelectItem value="Enterprise">Enterprise</SelectItem>
                       </SelectGroup>
                     </SelectContent>
@@ -199,8 +203,40 @@ export function Roles({
           </div>
         </TabsContent>
         <TabsContent value="permission-sets">
-          <div className="flex h-full items-center justify-center rounded-md border border-dashed text-muted-foreground text-sm">
-            Permission Sets Coming Soon
+          <div className="overflow-hidden rounded-xl border border-border/70 bg-background">
+            <div className="divide-y divide-border/70">
+              {roles.length === 0 ? (
+                <p className="px-4 py-8 text-center text-muted-foreground text-sm">No roles loaded.</p>
+              ) : (
+                roles.map((role) => (
+                  <div
+                    key={role.roleCode}
+                    className="flex flex-col gap-2 px-4 py-4 sm:flex-row sm:items-start sm:justify-between"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-sm">{role.roleLabel}</p>
+                      <p className="text-muted-foreground text-xs">
+                        {role.roleCode} · {role.release} · {role.scopeType} scope · {role.assignmentCount} assigned
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 sm:max-w-md sm:justify-end">
+                      {role.permittedActions.length === 0 ? (
+                        <span className="text-muted-foreground text-xs">No permissions listed</span>
+                      ) : (
+                        role.permittedActions.map((permission) => (
+                          <span
+                            key={`${role.roleCode}-${permission}`}
+                            className="rounded-md border border-border/70 bg-muted/40 px-2 py-0.5 font-mono text-[11px]"
+                          >
+                            {permission}
+                          </span>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </TabsContent>
         <TabsContent value="access-reviews">

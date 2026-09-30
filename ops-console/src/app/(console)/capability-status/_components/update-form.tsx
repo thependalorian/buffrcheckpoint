@@ -16,6 +16,7 @@ const CAPABILITIES = [
   "ussd",
   "qr_invitation_checkin",
   "sms_contact_confirmation",
+  "cimso_innterchange",
 ];
 
 const STATUSES = [

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Adaptive foreground: white C-frame + charcoal core on transparent.
+     Viewbox 108dp; safe zone ~66dp centered. Derived from branding/app-icon-mustard.svg -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Scale mark into safe zone: original 512 paths mapped to ~66dp centered -->
+    <group
+        android:translateX="21"
+        android:translateY="21"
+        android:scaleX="0.12890625"
+        android:scaleY="0.12890625">
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M128,96h224c26.5,0 48,21.5 48,48v56h-64v-40c0,-8.8 -7.2,-16 -16,-16H160c-17.7,0 -32,14.3 -32,32v192c0,17.7 14.3,32 32,32h160c8.8,0 16,-7.2 16,-16v-40h64v56c0,26.5 -21.5,48 -48,48H128c-26.5,0 -48,-21.5 -48,-48V144c0,-26.5 21.5,-48 48,-48z"/>
+        <path
+            android:fillColor="#111111"
+            android:pathData="M176,176h160c6.6,0 12,5.4 12,12v136c0,6.6 -5.4,12 -12,12H176c-6.6,0 -12,-5.4 -12,-12V188c0,-6.6 5.4,-12 12,-12z"/>
+    </group>
+</vector>

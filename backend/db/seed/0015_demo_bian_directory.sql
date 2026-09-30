@@ -1,5 +1,5 @@
 -- Demo BIAN organisation directory for Buffr Analytics kiosk org + host links.
--- Org:  47c8b69b-5d9c-499d-a759-debc33e87c5e
+-- Org:  b51f0704-12a7-45d4-8b0d-3642785b6e77
 -- Site: 74c72c99-93dc-4b33-934b-9b365e9924cf
 -- Other orgs default to custom mode and start empty until they seed or add units.
 -- Safe to re-run (upsert by id).
@@ -11,7 +11,7 @@ SET directory_taxonomy_mode_code = (
   LIMIT 1
 ),
 updated_at = NOW()
-WHERE organisation_id = '47c8b69b-5d9c-499d-a759-debc33e87c5e'
+WHERE organisation_id = 'b51f0704-12a7-45d4-8b0d-3642785b6e77'
   AND directory_taxonomy_mode_code IS DISTINCT FROM (
     SELECT id FROM type_definition
     WHERE domain = 'organisation_directory_mode' AND code = 'bian_aligned' AND deleted_at IS NULL
@@ -38,7 +38,7 @@ INSERT INTO organisation_units (
 )
 SELECT
   u.id,
-  '47c8b69b-5d9c-499d-a759-debc33e87c5e'::uuid,
+  'b51f0704-12a7-45d4-8b0d-3642785b6e77'::uuid,
   NULL,
   u.parent_id,
   (SELECT id FROM kinds WHERE code = u.kind),
@@ -131,7 +131,7 @@ SELECT
   NULL,
   'Seeded BIAN directory template'
 FROM organisation_units u
-WHERE u.organisation_id = '47c8b69b-5d9c-499d-a759-debc33e87c5e'
+WHERE u.organisation_id = 'b51f0704-12a7-45d4-8b0d-3642785b6e77'
   AND u.deleted_at IS NULL
   AND NOT EXISTS (
     SELECT 1 FROM organisation_unit_status_events e WHERE e.organisation_unit_id = u.id

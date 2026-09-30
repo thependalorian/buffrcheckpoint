@@ -1,10 +1,10 @@
 import Link from "next/link";
 
+import { BcStatRow, BcStatTile } from "@/components/bc-panel";
 import { TrendChart, type TrendPoint } from "@/components/charts/TrendChart";
 import { DashboardErrorState } from "@/components/dashboard-state";
 import { NamibiaMap } from "@/components/map/NamibiaMap";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, StatCard } from "@/components/ui/card";
 import { apiFetch, loadOrError } from "@/lib/api";
 
 interface OverviewKpis {
@@ -78,17 +78,26 @@ export default async function OverviewPage() {
         </div>
       </div>
 
-      <div className="mt-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
-        <StatCard label="Organisations" value={kpis.organisationCount} />
-        <StatCard label="Sites" value={kpis.siteCount} />
-        <StatCard label="Open incidents" value={kpis.openIncidentCount} />
-        <StatCard label="High churn risk" value={kpis.highChurnRiskOrgCount} />
+      <div className="mt-6">
+        <BcStatRow>
+          <BcStatTile label="Organisations" value={kpis.organisationCount} />
+          <BcStatTile label="Sites" value={kpis.siteCount} />
+          <BcStatTile label="Open incidents" value={kpis.openIncidentCount} flagged={kpis.openIncidentCount > 0} />
+          <BcStatTile
+            label="High churn risk"
+            value={kpis.highChurnRiskOrgCount}
+            flagged={kpis.highChurnRiskOrgCount > 0}
+          />
+        </BcStatRow>
       </div>
 
-      <div className="mt-4 grid grid-cols-2 gap-4">
-        <StatCard label="MTD visit volume" value={kpis.mtdVisitVolume} />
-        <StatCard label="Active devices" value={kpis.activeDeviceCount} />
-      </div>
+      <p className="mt-4 text-sm text-muted-foreground">
+        MTD visit volume:{" "}
+        <span className="font-medium tabular-nums text-foreground">{kpis.mtdVisitVolume}</span>
+        {" · "}
+        Active devices:{" "}
+        <span className="font-medium tabular-nums text-foreground">{kpis.activeDeviceCount}</span>
+      </p>
 
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
         <TrendChart
@@ -107,15 +116,15 @@ export default async function OverviewPage() {
         />
       </div>
 
-      <Card className="mt-8">
-        <CardHeader>
-          <CardTitle className="font-heading font-medium text-lg">Site density by region</CardTitle>
-          <CardDescription>Namibian administrative regions — hatched regions have no sites yet.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <NamibiaMap values={values} caption="Sites per Namibian administrative region." />
-        </CardContent>
-      </Card>
+      <div className="bc-panel mt-8">
+        <div className="bc-panel-header">
+          <p className="font-heading font-medium text-lg leading-none">Site density by region</p>
+          <p className="mt-1 text-muted-foreground text-sm font-normal">
+            Namibian administrative regions — hatched regions have no sites yet.
+          </p>
+        </div>
+        <NamibiaMap values={values} caption="Sites per Namibian administrative region." />
+      </div>
     </div>
   );
 }

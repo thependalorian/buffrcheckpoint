@@ -1,4 +1,4 @@
-import { index, integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { index, integer, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 import { organisations } from "./organisations";
 import { typeDefinition } from "./type-definitions";
@@ -28,6 +28,10 @@ export const notificationDeliveryInstructions = pgTable(
     subject: text("subject"),
     message: text("message").notNull().default(""),
     html: text("html"),
+    /** Resend attachments: [{ filename, contentBase64, contentType }] */
+    attachmentsJson: jsonb("attachments_json").$type<
+      Array<{ filename: string; contentBase64: string; contentType: string }>
+    >(),
     attemptCount: integer("attempt_count").notNull().default(0),
     nextAttemptAt: timestamp("next_attempt_at", { withTimezone: true }).notNull().defaultNow(),
     failureReason: text("failure_reason"),

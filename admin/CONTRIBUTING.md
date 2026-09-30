@@ -1,127 +1,58 @@
-# Contributing to Studio Admin
+# Contributing to Buffr Checkpoint Admin
 
-Thanks for showing interest in improving **Studio Admin** (repo: `next-shadcn-admin-dashboard`).  
-This guide will help you set up your environment and understand how to contribute.
+Internal contribution notes for the Buffr Checkpoint customer admin app
+(`buffrcheckpoint/admin`). Product requirements and architecture live in
+`../buffrcheckpoint.md` (DNS runbook: **§11.7.8**).
 
----
+## Stack
 
-## Overview
+Next.js 16, TypeScript, Tailwind CSS v4, shadcn/ui. Backend is NestJS in
+`../backend`.
 
-This project is built with **Next.js 16**, **TypeScript**, **Tailwind CSS v4**, and **Shadcn UI**.  
-The goal is to keep the codebase modular, scalable, and easy to extend.
+## Production hosts (`buffrcheckpoint.com`)
 
----
+Namecheap Advanced DNS (verified against live panel):
 
-## Project Layout
+| Role | Hostname | DNS | Platform |
+|---|---|---|---|
+| Marketing / public check-in | `buffrcheckpoint.com`, `www.buffrcheckpoint.com` | `@` A → `64.29.17.1` + `216.198.79.1`; `www` CNAME → Vercel | Vercel `buffrcheckpoint-website` |
+| **This admin app** | `https://admin.buffrcheckpoint.com` | `admin` CNAME → `5532354d6fa6cd3b.vercel-dns-017.com` | Vercel `buffrcheckpoint-admin` |
+| API | `https://api.buffrcheckpoint.com` | `api` CNAME → `yc9j25fm.up.railway.app` | Railway `buffrcheckpoint` / `api` |
+| Ops console | `https://ops.buffrcheckpoint.com` | `ops` CNAME → `d7a75fef5a47cd2c.vercel-dns-017.com` | Vercel ops project |
+| Transactional email | `mail.buffrcheckpoint.com` | `send.mail` / `rsend.mail` CNAMEs + `resend._domainkey.mail` TXT | Resend |
 
-We use a **colocation-based file system**. Each feature keeps its own pages, components, and logic.
+Admin env in Vercel (not local `.env`):
 
-```
-src
-├── app               # Next.js routes (App Router)
-│   ├── (auth)        # Auth layouts & screens
-│   ├── (main)        # Main dashboard routes
-│   │   └── (dashboard)
-│   │       ├── crm
-│   │       ├── finance
-│   │       ├── default
-│   │       └── ...
-│   └── layout.tsx
-├── components        # Shared UI components
-├── hooks             # Reusable hooks
-├── lib               # Config & utilities
-├── styles            # Tailwind / theme setup
-└── types             # TypeScript definitions
+```text
+BACKEND_API_URL=https://api.buffrcheckpoint.com
+API_URL=https://api.buffrcheckpoint.com
+NEXT_PUBLIC_WEBSITE_URL=https://buffrcheckpoint.com
 ```
 
-If you’d like a more detailed example of this setup, check out the [Next Colocation Template](https://github.com/arhamkhnz/next-colocation-template), where the full structure is explained with examples.
+Do not put `DATABASE_URL`, `RESEND_*`, or artifact-store secrets on the
+admin Vercel project — those belong on Railway `api`.
 
----
+## Local setup
 
-## Getting Started
+```bash
+cp .env.example .env.local
+npm install
+npm run dev
+```
 
-### Fork and Clone the Repository
+Point `BACKEND_API_URL` at a running API (`http://localhost:3001`).
+Local defaults: admin `:3000`, API `:3001`, website `:3002`.
 
-1. Fork the Repository
-   
-   Click [here](https://github.com/arhamkhnz/next-shadcn-admin-dashboard/fork) to fork the repository.
+## Conventions
 
-2. Clone the Repository  
-   ```bash
-   git clone https://github.com/YOUR_USERNAME/next-shadcn-admin-dashboard.git
-   ```
-   
-3. Navigate into the Project  
-   ```bash
-   cd next-shadcn-admin-dashboard
-   ```
+- Domain folders under `src/app/(main)/dashboard/` and
+  `src/components/features/<domain>/` — no template demo verticals.
+- Home route is `/dashboard/overview` (not `/dashboard/default`).
+- Account is `/dashboard/account` (not `/dashboard/profile`).
+- No emojis in UI copy. Prefer `lib/copy/` for user-facing strings.
+- Run `npm run check` and `npm run build` before merging.
 
-4. **Install dependencies**
-   ```bash
-   npm install
-   ```
+## Pull requests
 
-5. **Run the dev server**
-   ```bash
-   npm run dev
-   ```
-   App will be available at [http://localhost:3000](http://localhost:3000).
-
----
-
-## Contribution Flow
-
-- Always create a new branch before working on changes:
-  ```bash
-  git checkout -b feature/my-update
-  ```
-
-- Use clear commit messages:
-  ```bash
-  git commit -m "feat: add finance dashboard screen"
-  ```
-
-- Open a Pull Request once ready.
-- If your change adds a new UI screen or component, include a screenshot in your PR description.
-
----
-
-## Where to Contribute
-
-- **External Pages**: Landing pages or other non-dashboard routes → `src/app/(external)/`  
-- **Auth Screens**: Login, register, and authentication layouts → `src/app/(main)/auth/`  
-- **Dashboard Screens**: Feature dashboards like CRM, Finance, Analytics → `src/app/(main)/dashboard/`
-- **Components**: Reusable UI goes in `src/components/`  
-- **Hooks**: Custom logic goes in `src/hooks/`  
-- **Themes**: New presets under `src/styles/presets/`  
-
----
-
-## Guidelines
-
-- Prefer **TypeScript types** over `any`
-- Husky pre-commit hooks are enabled - linting and formatting run automatically when you commit, and if there are errors the commit will be blocked until they are fixed. 
-- Follow **Shadcn UI** style & Tailwind v4 conventions
-- Keep accessibility in mind (ARIA, keyboard nav)
-- Use clear commit messages with conventional prefixes (`feat:`, `fix:`, `chore:`, etc.)
-- Avoid unnecessary dependencies — prefer existing utilities where possible
-
----
-
-## Submitting PRs
-
-- Open a Pull Request once your changes are ready.  
-- Ensure your branch is up to date with `main` before submitting.  
-- Reference any related issue in your PR for context.
-
----
-
-## Questions & Support
-
-- Report bugs, suggestions, or issues via [GitHub Issues](https://github.com/arhamkhnz/next-shadcn-admin-dashboard/issues)
-
----
-
-Your contributions keep this project growing. 🚀
-
-**Happy Vibe Coding!**
+Keep PRs focused. Update `buffrcheckpoint.md` when routes, storage, DNS,
+or auth behaviour change.

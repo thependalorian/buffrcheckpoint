@@ -10,6 +10,7 @@ interface PublicCapabilityStatus {
   ussd: string;
   qrInvitationCheckIn: string;
   smsContactConfirmation: string;
+  cimsoInnterchange: string;
 }
 
 interface OrganisationEnablementRow {
@@ -24,6 +25,12 @@ const CAPABILITY_CATALOG = [
   { code: "national_eid_nfc", label: "National e-ID NFC", key: "nationalEidNfc" as const },
   { code: "ussd", label: "USSD feature-phone check-in", key: "ussd" as const },
   { code: "sms_contact_confirmation", label: "SMS contact confirmation", key: "smsContactConfirmation" as const },
+  {
+    code: "cimso_innterchange",
+    label: "CiMSO INNterchange (PMS)",
+    key: "cimsoInnterchange" as const,
+    configureHref: "/dashboard/site-experience/cimso",
+  },
 ];
 
 export default async function CapabilitiesPage() {
@@ -49,13 +56,14 @@ export default async function CapabilitiesPage() {
     label: item.label,
     platformStatus: platform?.[item.key] ?? "not_available",
     orgEnabled: orgEnabledByCode.get(item.code) ?? false,
+    configureHref: "configureHref" in item ? item.configureHref : undefined,
   }));
 
   return (
     <div className="space-y-6">
       <DashboardPageHeader
         title="Capability enablement"
-        description="Turn platform-live integrations on for your organisation. Platform status is managed by Buffr Checkpoint support."
+        description="Turn platform-available integrations on for your organisation. Platform status is managed by Buffr Checkpoint support. CiMSO can be enabled while platform status is targeted or live."
       />
       {error ? (
         <DashboardErrorState message={error} />

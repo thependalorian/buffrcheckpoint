@@ -13,6 +13,7 @@ import type { Database } from "../../db/client";
 import { DB } from "../../db/db.module";
 import {
   checkInFormDefinitions,
+  checkInFormFieldTranslations,
   checkInFormFields,
   checkInFormVersions,
   visitorCategories,
@@ -24,13 +25,17 @@ import {
   typeDefinition,
 } from "../../db/schema";
 import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.service";
+import { VisitorDataMinimisationService } from "./visitor-data-minimisation.service";
 
 export type EffectiveFormField = {
   fieldCode: string;
   fieldLabel: string;
+  helpText: string | null;
+  fieldTypeCode: string;
   required: boolean;
   displayOrder: number;
   dataClassificationCode: string;
+  visibilityRule: Record<string, unknown>;
   validationSchema: Record<string, unknown>;
 };
 
@@ -80,6 +85,7 @@ export class VisitorPolicyService {
   constructor(
     @Inject(DB) private readonly db: Database,
     private readonly typeDefs: TypeDefinitionLookupService,
+    private readonly dataMinimisation: VisitorDataMinimisationService,
   ) {}
 
   async create(input: CreateCheckInFormDefinitionInput, user: AuthenticatedUser) {
@@ -128,10 +134,18 @@ export class VisitorPolicyService {
 
   async listFormVersions(formDefinitionId: string, user: AuthenticatedUser) {
     await this.requireForm(formDefinitionId, user);
-    return this.db.query.checkInFormVersions.findMany({
+    const rows = await this.db.query.checkInFormVersions.findMany({
       where: and(eq(checkInFormVersions.formDefinitionId, formDefinitionId), isNull(checkInFormVersions.deletedAt)),
       orderBy: [desc(checkInFormVersions.versionNumber)],
     });
+    const statuses = await this.db.query.typeDefinition.findMany({
+      where: and(eq(typeDefinition.domain, "form_version_status"), isNull(typeDefinition.deletedAt)),
+    });
+    const byId = new Map(statuses.map((s) => [s.id, s.code]));
+    return rows.map((r) => ({
+      ...r,
+      status: byId.get(r.statusCode ?? "") ?? "unknown",
+    }));
   }
 
   async addFormField(
@@ -139,6 +153,8 @@ export class VisitorPolicyService {
     input: {
       fieldCode: string;
       fieldLabel?: string;
+      fieldTypeCode?: string;
+      helpText?: string;
       dataClassificationCode: string;
       required?: boolean;
       displayOrder?: number;
@@ -149,6 +165,7 @@ export class VisitorPolicyService {
   ) {
     const version = await this.requireDraftFormVersion(versionId, user);
     const dataClassificationCode = await this.typeDefs.id("field_class", input.dataClassificationCode);
+    const fieldTypeCode = await this.typeDefs.id("field_type", input.fieldTypeCode ?? "text");
     const [created] = await this.db
       .insert(checkInFormFields)
       .values({
@@ -156,6 +173,8 @@ export class VisitorPolicyService {
         formVersionId: version.id,
         fieldCode: input.fieldCode,
         fieldLabel: input.fieldLabel ?? null,
+        fieldTypeCode,
+        helpText: input.helpText ?? null,
         dataClassificationCode,
         required: input.required ?? false,
         displayOrder: input.displayOrder ?? 0,
@@ -170,6 +189,9 @@ export class VisitorPolicyService {
     fieldId: string,
     input: {
       fieldLabel?: string;
+      fieldTypeCode?: string;
+      helpText?: string;
+      dataClassificationCode?: string;
       required?: boolean;
       displayOrder?: number;
       visibilityRule?: Record<string, unknown>;
@@ -182,10 +204,21 @@ export class VisitorPolicyService {
     });
     if (!field) throw new NotFoundException("Form field not found");
     await this.requireDraftFormVersion(field.formVersionId, user);
+    const fieldTypeCode =
+      input.fieldTypeCode !== undefined
+        ? await this.typeDefs.id("field_type", input.fieldTypeCode)
+        : undefined;
+    const dataClassificationCode =
+      input.dataClassificationCode !== undefined
+        ? await this.typeDefs.id("field_class", input.dataClassificationCode)
+        : undefined;
     const [updated] = await this.db
       .update(checkInFormFields)
       .set({
         ...(input.fieldLabel !== undefined ? { fieldLabel: input.fieldLabel } : {}),
+        ...(input.helpText !== undefined ? { helpText: input.helpText } : {}),
+        ...(fieldTypeCode !== undefined ? { fieldTypeCode } : {}),
+        ...(dataClassificationCode !== undefined ? { dataClassificationCode } : {}),
         ...(input.required !== undefined ? { required: input.required } : {}),
         ...(input.displayOrder !== undefined ? { displayOrder: input.displayOrder } : {}),
         ...(input.visibilityRule !== undefined ? { visibilityRule: input.visibilityRule } : {}),
@@ -196,14 +229,206 @@ export class VisitorPolicyService {
     return updated;
   }
 
-  async publishFormVersion(versionId: string, user: AuthenticatedUser) {
+  async softDeleteFormField(fieldId: string, user: AuthenticatedUser) {
+    const field = await this.db.query.checkInFormFields.findFirst({
+      where: and(eq(checkInFormFields.id, fieldId), isNull(checkInFormFields.deletedAt)),
+    });
+    if (!field) throw new NotFoundException("Form field not found");
+    await this.requireDraftFormVersion(field.formVersionId, user);
+    const [updated] = await this.db
+      .update(checkInFormFields)
+      .set({ deletedAt: new Date() })
+      .where(eq(checkInFormFields.id, fieldId))
+      .returning();
+    return updated;
+  }
+
+  async reorderFormFields(
+    versionId: string,
+    fieldIdsInOrder: string[],
+    user: AuthenticatedUser,
+  ) {
+    await this.requireDraftFormVersion(versionId, user);
+    for (let i = 0; i < fieldIdsInOrder.length; i++) {
+      await this.db
+        .update(checkInFormFields)
+        .set({ displayOrder: i })
+        .where(
+          and(
+            eq(checkInFormFields.id, fieldIdsInOrder[i]),
+            eq(checkInFormFields.formVersionId, versionId),
+            isNull(checkInFormFields.deletedAt),
+          ),
+        );
+    }
+    return this.getFormVersionWithFields(versionId, user);
+  }
+
+  async cloneFormVersion(sourceVersionId: string, user: AuthenticatedUser) {
+    const source = await this.requireFormVersion(sourceVersionId, user);
+    const draft = await this.createFormVersion(source.formDefinitionId, user);
+    const fields = await this.db.query.checkInFormFields.findMany({
+      where: and(eq(checkInFormFields.formVersionId, source.id), isNull(checkInFormFields.deletedAt)),
+      orderBy: [asc(checkInFormFields.displayOrder)],
+    });
+    for (const field of fields) {
+      const newFieldId = randomUUID();
+      await this.db.insert(checkInFormFields).values({
+        id: newFieldId,
+        formVersionId: draft.id,
+        fieldCode: field.fieldCode,
+        fieldLabel: field.fieldLabel,
+        fieldTypeCode: field.fieldTypeCode,
+        helpText: field.helpText,
+        dataClassificationCode: field.dataClassificationCode,
+        required: field.required,
+        displayOrder: field.displayOrder,
+        visibilityRule: field.visibilityRule ?? {},
+        validationSchema: field.validationSchema ?? {},
+      });
+      const translations = await this.db.query.checkInFormFieldTranslations.findMany({
+        where: and(
+          eq(checkInFormFieldTranslations.fieldId, field.id),
+          isNull(checkInFormFieldTranslations.deletedAt),
+        ),
+      });
+      for (const tr of translations) {
+        await this.db.insert(checkInFormFieldTranslations).values({
+          id: randomUUID(),
+          fieldId: newFieldId,
+          languageCode: tr.languageCode,
+          fieldLabel: tr.fieldLabel,
+          helpText: tr.helpText,
+        });
+      }
+    }
+    if (source.approvalReference) {
+      await this.db
+        .update(checkInFormVersions)
+        .set({ approvalReference: source.approvalReference })
+        .where(eq(checkInFormVersions.id, draft.id));
+    }
+    return this.getFormVersionWithFields(draft.id, user);
+  }
+
+  async upsertFieldTranslation(
+    fieldId: string,
+    input: { languageCode: string; fieldLabel?: string; helpText?: string },
+    user: AuthenticatedUser,
+  ) {
+    const field = await this.db.query.checkInFormFields.findFirst({
+      where: and(eq(checkInFormFields.id, fieldId), isNull(checkInFormFields.deletedAt)),
+    });
+    if (!field) throw new NotFoundException("Form field not found");
+    await this.requireDraftFormVersion(field.formVersionId, user);
+    const languageCode = await this.typeDefs.id("language_code", input.languageCode);
+    const existing = await this.db.query.checkInFormFieldTranslations.findFirst({
+      where: and(
+        eq(checkInFormFieldTranslations.fieldId, fieldId),
+        eq(checkInFormFieldTranslations.languageCode, languageCode),
+        isNull(checkInFormFieldTranslations.deletedAt),
+      ),
+    });
+    if (existing) {
+      const [updated] = await this.db
+        .update(checkInFormFieldTranslations)
+        .set({
+          ...(input.fieldLabel !== undefined ? { fieldLabel: input.fieldLabel } : {}),
+          ...(input.helpText !== undefined ? { helpText: input.helpText } : {}),
+        })
+        .where(eq(checkInFormFieldTranslations.id, existing.id))
+        .returning();
+      return updated;
+    }
+    const [created] = await this.db
+      .insert(checkInFormFieldTranslations)
+      .values({
+        id: randomUUID(),
+        fieldId,
+        languageCode,
+        fieldLabel: input.fieldLabel ?? null,
+        helpText: input.helpText ?? null,
+      })
+      .returning();
+    return created;
+  }
+
+  async setFormVersionApprovalReference(
+    versionId: string,
+    approvalReference: string,
+    user: AuthenticatedUser,
+  ) {
+    await this.requireDraftFormVersion(versionId, user);
+    const [updated] = await this.db
+      .update(checkInFormVersions)
+      .set({ approvalReference: approvalReference.trim() || null })
+      .where(eq(checkInFormVersions.id, versionId))
+      .returning();
+    return updated;
+  }
+
+  async getFormDefinition(formDefinitionId: string, user: AuthenticatedUser) {
+    return this.requireForm(formDefinitionId, user);
+  }
+
+  async listFieldLibrary() {
+    const [fieldCodes, fieldTypes, fieldClasses, languages] = await Promise.all([
+      this.db.query.typeDefinition.findMany({
+        where: and(eq(typeDefinition.domain, "check_in_field_code"), isNull(typeDefinition.deletedAt)),
+        orderBy: [asc(typeDefinition.sortOrder)],
+      }),
+      this.db.query.typeDefinition.findMany({
+        where: and(eq(typeDefinition.domain, "field_type"), isNull(typeDefinition.deletedAt)),
+        orderBy: [asc(typeDefinition.sortOrder)],
+      }),
+      this.db.query.typeDefinition.findMany({
+        where: and(eq(typeDefinition.domain, "field_class"), isNull(typeDefinition.deletedAt)),
+        orderBy: [asc(typeDefinition.sortOrder)],
+      }),
+      this.db.query.typeDefinition.findMany({
+        where: and(eq(typeDefinition.domain, "language_code"), isNull(typeDefinition.deletedAt)),
+        orderBy: [asc(typeDefinition.sortOrder)],
+      }),
+    ]);
+    return {
+      fieldCodes: fieldCodes.map((r) => ({ code: r.code, label: r.label })),
+      fieldTypes: fieldTypes.map((r) => ({ code: r.code, label: r.label })),
+      fieldClasses: fieldClasses.map((r) => ({ code: r.code, label: r.label })),
+      languages: languages.map((r) => ({ code: r.code, label: r.label })),
+    };
+  }
+
+  async publishFormVersion(
+    versionId: string,
+    user: AuthenticatedUser,
+    options?: { approvalReference?: string },
+  ) {
     const version = await this.requireDraftFormVersion(versionId, user);
+    if (options?.approvalReference !== undefined) {
+      await this.db
+        .update(checkInFormVersions)
+        .set({ approvalReference: options.approvalReference.trim() || null })
+        .where(eq(checkInFormVersions.id, version.id));
+    }
+    const refreshed = await this.db.query.checkInFormVersions.findFirst({
+      where: eq(checkInFormVersions.id, version.id),
+    });
     const fields = await this.db.query.checkInFormFields.findMany({
       where: and(eq(checkInFormFields.formVersionId, version.id), isNull(checkInFormFields.deletedAt)),
     });
     if (fields.length === 0) {
       throw new BadRequestException("Publish requires at least one form field");
     }
+    const classRows = await this.db.query.typeDefinition.findMany({
+      where: and(eq(typeDefinition.domain, "field_class"), isNull(typeDefinition.deletedAt)),
+    });
+    const classById = new Map(classRows.map((r) => [r.id, r.code]));
+    this.dataMinimisation.assertPublishAllowed(
+      fields.map((f) => ({
+        dataClassificationCode: classById.get(f.dataClassificationCode) ?? "basic",
+      })),
+      refreshed?.approvalReference ?? version.approvalReference,
+    );
     const publishedStatus = await this.typeDefs.id("form_version_status", "published");
     const archivedStatus = await this.typeDefs.id("form_version_status", "archived");
     const siblings = await this.db.query.checkInFormVersions.findMany({
@@ -235,7 +460,38 @@ export class VisitorPolicyService {
       where: and(eq(checkInFormFields.formVersionId, version.id), isNull(checkInFormFields.deletedAt)),
       orderBy: [asc(checkInFormFields.displayOrder)],
     });
-    return { ...version, fields };
+    const fieldIds = fields.map((f) => f.id);
+    const translations =
+      fieldIds.length === 0
+        ? []
+        : await this.db.query.checkInFormFieldTranslations.findMany({
+            where: isNull(checkInFormFieldTranslations.deletedAt),
+          });
+    const typeRows = await this.db.query.typeDefinition.findMany({
+      where: isNull(typeDefinition.deletedAt),
+    });
+    const typeById = new Map(typeRows.map((r) => [r.id, r]));
+    const trByField = new Map<string, typeof translations>();
+    for (const tr of translations) {
+      if (!fieldIds.includes(tr.fieldId)) continue;
+      const list = trByField.get(tr.fieldId) ?? [];
+      list.push(tr);
+      trByField.set(tr.fieldId, list);
+    }
+    return {
+      ...version,
+      fields: fields.map((f) => ({
+        ...f,
+        fieldTypeCode: typeById.get(f.fieldTypeCode)?.code ?? "text",
+        dataClassificationCode: typeById.get(f.dataClassificationCode)?.code ?? "basic",
+        translations: (trByField.get(f.id) ?? []).map((tr) => ({
+          id: tr.id,
+          languageCode: typeById.get(tr.languageCode)?.code ?? "",
+          fieldLabel: tr.fieldLabel,
+          helpText: tr.helpText,
+        })),
+      })),
+    };
   }
 
   /**
@@ -247,6 +503,7 @@ export class VisitorPolicyService {
     organisationId: string,
     siteId: string | null | undefined,
     visitorTypeCode: string,
+    languageCode?: string | null,
   ): Promise<EffectiveCheckInForm | null> {
     const visitorType = await this.db.query.typeDefinition.findFirst({
       where: and(
@@ -287,27 +544,51 @@ export class VisitorPolicyService {
       orderBy: [asc(checkInFormFields.displayOrder)],
     });
 
-    const classIds = [...new Set(fields.map((f) => f.dataClassificationCode))];
-    const classRows = classIds.length
-      ? await this.db.query.typeDefinition.findMany({
-          where: and(eq(typeDefinition.domain, "field_class"), isNull(typeDefinition.deletedAt)),
-        })
-      : [];
-    const classById = new Map(classRows.map((r) => [r.id, r.code]));
+    const typeRows = await this.db.query.typeDefinition.findMany({
+      where: isNull(typeDefinition.deletedAt),
+    });
+    const typeById = new Map(typeRows.map((r) => [r.id, r]));
+
+    let languageId: string | null = null;
+    if (languageCode?.trim()) {
+      const lang = typeRows.find(
+        (r) => r.domain === "language_code" && r.code === languageCode.trim(),
+      );
+      languageId = lang?.id ?? null;
+    }
+
+    const translations =
+      languageId && fields.length
+        ? await this.db.query.checkInFormFieldTranslations.findMany({
+            where: and(
+              eq(checkInFormFieldTranslations.languageCode, languageId),
+              isNull(checkInFormFieldTranslations.deletedAt),
+            ),
+          })
+        : [];
+    const trByField = new Map(
+      translations.filter((t) => fields.some((f) => f.id === t.fieldId)).map((t) => [t.fieldId, t]),
+    );
 
     return {
       formDefinitionId: preferred.id,
       formVersionId: version.id,
       formName: preferred.formName,
       visitorTypeCode,
-      fields: fields.map((f) => ({
-        fieldCode: f.fieldCode,
-        fieldLabel: f.fieldLabel?.trim() || f.fieldCode,
-        required: f.required,
-        displayOrder: f.displayOrder,
-        dataClassificationCode: classById.get(f.dataClassificationCode) ?? "basic",
-        validationSchema: (f.validationSchema ?? {}) as Record<string, unknown>,
-      })),
+      fields: fields.map((f) => {
+        const tr = trByField.get(f.id);
+        return {
+          fieldCode: f.fieldCode,
+          fieldLabel: tr?.fieldLabel?.trim() || f.fieldLabel?.trim() || f.fieldCode,
+          helpText: tr?.helpText ?? f.helpText ?? null,
+          fieldTypeCode: typeById.get(f.fieldTypeCode)?.code ?? "text",
+          required: f.required,
+          displayOrder: f.displayOrder,
+          dataClassificationCode: typeById.get(f.dataClassificationCode)?.code ?? "basic",
+          visibilityRule: (f.visibilityRule ?? {}) as Record<string, unknown>,
+          validationSchema: (f.validationSchema ?? {}) as Record<string, unknown>,
+        };
+      }),
     };
   }
 
@@ -315,8 +596,14 @@ export class VisitorPolicyService {
     siteId: string | undefined,
     visitorTypeCode: string,
     user: AuthenticatedUser,
+    languageCode?: string,
   ): Promise<EffectiveCheckInForm | null> {
-    return this.resolveEffectiveForm(user.organisationId, siteId ?? user.siteId, visitorTypeCode);
+    return this.resolveEffectiveForm(
+      user.organisationId,
+      siteId ?? user.siteId,
+      visitorTypeCode,
+      languageCode,
+    );
   }
 
   async createVisitorCategory(

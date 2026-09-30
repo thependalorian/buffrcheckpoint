@@ -3,6 +3,7 @@ import { JwtModule } from "@nestjs/jwt";
 import { PassportModule } from "@nestjs/passport";
 
 import { NotificationsModule } from "../notifications/notifications.module";
+import { RbacModule } from "../rbac/rbac.module";
 import { AuthController } from "./auth.controller";
 import { AuthService } from "./auth.service";
 import { OnboardingEvidenceService } from "./onboarding-evidence.service";
@@ -16,6 +17,7 @@ import { JwtStrategy } from "./strategies/jwt.strategy";
       signOptions: { expiresIn: "8h" },
     }),
     NotificationsModule,
+    RbacModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, OnboardingEvidenceService],

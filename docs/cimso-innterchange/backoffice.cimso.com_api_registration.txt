@@ -1,0 +1,124 @@
+CIMSO - API Registration
+
+Home
+
+About
+
+Software
+
+Installations
+
+School
+
+News
+
+Support
+
+Home →
+
+Support →
+
+API Registration
+
+API Registration
+
+Application for Registration
+
+Africa Region: E: [email protected] T: +27 21 852 2388 UTC+2hrs
+Asia Region: E: [email protected] T: +65 6604 7245 UTC+8hrs
+
+CiMSO INNterchange provides data exchange between 3rd party applications or devices and the CiMSO ERP suite. The INNterchange application provider interface (API) is available free of charge to registered developers.
+
+Registration is a 4 step process:
+
+Complete your Application
+
+Sign the Non-disclosure Agreement
+
+Submit the Application for approval
+
+Download the API.
+
+Once an interface is completed you may submit it to CiMSO for testing and Certification. Certified interfaces are licensed by CiMSO and published in our Newsletters.
+
+Business Details
+
+What is the full official name of your business?
+What is the Trading Name of your Business?
+What is your business Website URL?
+Street address:
+State:
+Country:
+Postal Code:
+What is the nature of your business?
+How many years trading:
+
+Next
+
+Application for Registration
+
+Applicant Details
+
+First Name?
+Last Name?
+Applicant Job Title?
+Applicant Email? Ignore this text box. It is used to detect spammers. If you enter anything into this text box, your message will not be sent.
+Applicant Phone Number:
+
+In compliance with General Data Protection Regulations this number will only be used to contact you regarding this request. It will not be distributed or used for marketing purposes.
+
+Back Next
+
+Application for Registration
+
+End User Detail (Customer)
+Please name the organization or customer for whom you will develop this interface to CiMSO:
+Please provide a brief description of the program, device or process you will be interfacing:
+Please provide a product name of the program, device or process you will be interfacing:
+
+Interface Type Detail
+Customer data platform - provides access to customer profile and membership data
+Customer satisfaction - provides access to customer and services detail
+Lodging reservations - provides access to lodging rooms, rates and bookings detail
+Front desk services - provides access to check-in, check-out and billing detail
+Housekeeping services - provides access to lodging room service detail
+Workshop services - provides access to workshop service ticket detail
+Restaurant & Bar services - provides access to F&B service delivery detail
+Golf T-bookings - provides access to golf T-bookings and scoring detail
+Activity scheduling - provides access to activity scheduling detail
+Staff tasks and activities - provides access to internal staff task and activity management detail
+Business Intelligence - provides access to customer specified financial detail
+
+NOTE: The INNterchange interface that you develop will be limited to the Interface Type messages selected in this list. During development you may decide to use messages from another Interface Type. Should you do so you are required to register the further type.
+
+Non-Disclosure Agreement (NDA)
+Preview NDA
+Download NDA
+
+Upload signed NDA:
+
+Back
+
+Loading...This might take a few seconds.
+The file will open on the screen or auto download, depending on your browser settings. If you do not see it on the page you can open it from your downloads tab.
+
+Save
+
+© Copyright 1989 - 2026 CiMSO. All Rights Reserved.
+
+×
+Home
+
+About
+
+Software
+
+Installations
+
+School
+
+News
+
+Support
+
+Top

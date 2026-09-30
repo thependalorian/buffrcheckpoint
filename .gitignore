@@ -64,3 +64,8 @@ docs/cimso-innterchange/C-AGR-CND_*.pdf
 
 # E2E screenshots may contain visitor PII
 e2e-screenshots/
+
+# Python (social_media_team)
+.venv/
+__pycache__/
+.pytest_cache/

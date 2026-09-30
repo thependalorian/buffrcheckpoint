@@ -39,7 +39,7 @@ type ShellProps = {
 
 /**
  * Organisation owns hero + footer when published branding exists.
- * Buffr Checkpoint chrome is fallback only (no competing product mark in the hero).
+ * Checkpoint chrome is fallback only (no competing product mark in the hero).
  */
 export function CheckInBrandedShell({
   branding,
@@ -52,7 +52,7 @@ export function CheckInBrandedShell({
   const logoSrc = resolveOrgLogoSrc(branding?.logoUrl);
   const orgName = branding?.organisationDisplayName || null;
   const siteName = branding?.siteDisplayName || siteNameFallback;
-  const welcome = branding?.welcomeMessage || "Complete the visitor register details for this site.";
+  const welcome = branding?.welcomeMessage || "Tell us who you are and who you are here to see.";
   const fieldBg = branded ? "#FDEEF2" : "#FFFFFF";
   const ink = branded ? "#3D1152" : undefined;
   const muted = branded ? "#705C67" : undefined;
@@ -90,14 +90,18 @@ export function CheckInBrandedShell({
             <a href="/" className="flex items-center gap-2 text-sm text-muted-foreground">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/icon.png" alt="" width={28} height={28} className="rounded-md" />
-              <span className="sr-only">Buffr Checkpoint</span>
+              <span className="sr-only">Checkpoint</span>
             </a>
             <span className="text-xs text-muted-foreground">Visitor check-in</span>
           </div>
         </header>
       )}
 
-      <main className="mx-auto flex w-full max-w-lg flex-1 flex-col px-4 py-8">{children}</main>
+      <main className="mx-auto flex w-full max-w-lg flex-1 flex-col px-4 py-8">
+        <div className={branded ? "rounded-2xl border border-[#EDEBEC] bg-white p-5 sm:p-6" : "bc-surface p-5 sm:p-6"}>
+          {children}
+        </div>
+      </main>
 
       <footer className="mt-auto border-t border-[#EDEBEC] bg-white/80">
         <div className="mx-auto max-w-lg space-y-2 px-4 py-6 text-center text-xs" style={{ color: muted || "#675C62" }}>
@@ -132,13 +136,13 @@ export function CheckInBrandedShell({
               {privacyNoticeSummary ? (
                 <p className="text-[11px] leading-relaxed">{privacyNoticeSummary}</p>
               ) : null}
-              <p className="pt-1 text-[11px]">Secured by Buffr Checkpoint</p>
+              <p className="pt-1 text-[11px]">Secured by Checkpoint</p>
             </>
           ) : (
             <>
               <p>
                 <a href="/" className="underline underline-offset-2">
-                  Buffr Checkpoint
+                  Checkpoint
                 </a>
               </p>
               <p>Visitor check-in</p>

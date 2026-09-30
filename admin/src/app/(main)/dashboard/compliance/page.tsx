@@ -1,6 +1,6 @@
 import { DashboardPageHeader } from "@/components/dashboard-page-header";
 import { DashboardErrorState } from "@/components/dashboard-state";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { BcStatRow, BcStatTile } from "@/components/bc-panel";
 import { api } from "@/lib/api/client";
 
 interface ComplianceDashboard {
@@ -20,7 +20,8 @@ export default async function CompliancePage() {
     error = err instanceof Error ? err.message : "Failed to load the compliance dashboard.";
   }
 
-  const kpis = dashboard
+  /** Refero clarity: top 4 KPIs; role-changes stays secondary copy below. */
+  const primaryKpis = dashboard
     ? [
         {
           label: "Retention actions due",
@@ -42,12 +43,11 @@ export default async function CompliancePage() {
           value: dashboard.offlineSyncExceptions,
           flagged: dashboard.offlineSyncExceptions > 0,
         },
-        { label: "Role changes this month", value: dashboard.roleChangesThisMonth, flagged: false },
       ]
     : [];
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-6">
       <DashboardPageHeader
         title="Compliance Dashboard"
         description="Retention exceptions, DSARs, offline-sync exceptions, and privileged access."
@@ -62,19 +62,19 @@ export default async function CompliancePage() {
       {error ? (
         <DashboardErrorState message={error} />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          {kpis.map((kpi) => (
-            <Card key={kpi.label} className={kpi.flagged ? "border-amber-500/40" : undefined}>
-              <CardHeader>
-                <CardDescription>{kpi.label}</CardDescription>
-                <CardTitle className={kpi.flagged ? "text-3xl text-amber-600 dark:text-amber-400" : "text-3xl"}>
-                  {kpi.value}
-                </CardTitle>
-              </CardHeader>
-              <CardContent />
-            </Card>
-          ))}
-        </div>
+        <>
+          <BcStatRow>
+            {primaryKpis.map((kpi) => (
+              <BcStatTile key={kpi.label} label={kpi.label} value={kpi.value} flagged={kpi.flagged} />
+            ))}
+          </BcStatRow>
+          {dashboard ? (
+            <p className="text-sm text-muted-foreground">
+              Role changes this month:{" "}
+              <span className="font-medium tabular-nums text-foreground">{dashboard.roleChangesThisMonth}</span>
+            </p>
+          ) : null}
+        </>
       )}
     </div>
   );

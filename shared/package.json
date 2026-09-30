@@ -2,7 +2,7 @@
   "name": "@buffrcheckpoint/shared",
   "version": "0.1.0",
   "private": true,
-  "description": "Canonical cross-surface codes for Buffr Checkpoint (visit status, identity assurance).",
+  "description": "Canonical cross-surface codes for Buffr Checkpoint (visit status, identity assurance, form rules).",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -17,6 +17,10 @@
     "./identity-assurance-level": {
       "types": "./dist/identity-assurance-level.d.ts",
       "default": "./dist/identity-assurance-level.js"
+    },
+    "./form-rules": {
+      "types": "./dist/form-rules.d.ts",
+      "default": "./dist/form-rules.js"
     }
   },
   "scripts": {

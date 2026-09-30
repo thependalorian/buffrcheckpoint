@@ -9,7 +9,7 @@ export const authCopy = {
   },
   login: {
     title: "Sign in",
-    description: "Use your Buffr Checkpoint work email.",
+    description: "Use your work email.",
     submit: "Sign in",
     submitting: "Signing in...",
     noAccount: "No account yet?",
@@ -59,7 +59,7 @@ export const authCopy = {
     submitting: "Verifying...",
     useRecovery: "Use a recovery code instead",
     useTotp: "Use authenticator code instead",
-    missingToken: "No active sign-in challenge in this browser tab.",
+    missingToken: "Authenticator challenge continues via a secure cookie if this tab lost its sessionStorage copy.",
     backToSignIn: "Back to sign in",
   },
   forgotPassword: {

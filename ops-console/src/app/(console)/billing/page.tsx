@@ -1,6 +1,6 @@
+import { BcStatRow, BcStatTile } from "@/components/bc-panel";
 import { TrendChart } from "@/components/charts/TrendChart";
 import { DashboardErrorState, EmptyState } from "@/components/dashboard-state";
-import { StatCard } from "@/components/ui/card";
 import { apiFetch, loadOrError } from "@/lib/api";
 import { loadOrgLabelMap } from "@/lib/orgs";
 
@@ -56,10 +56,12 @@ export default async function BillingPage() {
         Manual EFT + Proof of Payment reconciliation — no PSP partnership yet.
       </p>
 
-      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <StatCard label="Active subscriptions" value={rollup.activeSubscriptionCount} />
-        <StatCard label="MRR" value={`NAD ${rollup.mrr.toFixed(2)}`} />
-        <StatCard label="ARR" value={`NAD ${rollup.arr.toFixed(2)}`} />
+      <div className="mt-6">
+        <BcStatRow>
+          <BcStatTile label="Active subscriptions" value={rollup.activeSubscriptionCount} />
+          <BcStatTile label="MRR" value={`NAD ${rollup.mrr.toFixed(2)}`} />
+          <BcStatTile label="ARR" value={`NAD ${rollup.arr.toFixed(2)}`} />
+        </BcStatRow>
       </div>
 
       {mrrTrend.length > 1 || revenueTrend.length > 1 ? (
@@ -82,7 +84,7 @@ export default async function BillingPage() {
       ) : null}
 
       <h2 className="mt-8 font-medium text-foreground text-sm">Proof-of-payment review queue</h2>
-      <div className="mt-3">
+      <div className="bc-panel mt-3">
         {pending.length === 0 ? (
           <EmptyState
             title="No POP submissions waiting"

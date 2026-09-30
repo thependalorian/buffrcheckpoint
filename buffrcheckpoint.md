@@ -1,6 +1,188 @@
 # Buffr Checkpoint
 ## Business Plan, Product Architecture & Operating Blueprint
-**Version 0.24.2 — Runtime grants + deploy path**
+**Version 0.31 — Sector-agnostic product; existing-system integrations**
+
+> **What changed in v0.31 (2026-09-24, integrations + market framing):**
+> 1. **Sector-agnostic product.** Buffr Checkpoint replaces paper visitor
+>    registers for **any** organisation that needs governed presence —
+>    banks, government, healthcare, critical infrastructure, corporate,
+>    hospitality, education, and other sectors via `organisation_sector`
+>    (20 + Other). Beachhead GTM priorities (§15.1) remain a *sales*
+>    sequence, not a product ceiling. This blueprint does **not** name
+>    individual pilot properties.
+> 2. **Existing-system integrations (series).** Where a site already runs
+>    an operational system of record (PMS, HR directory, access control,
+>    etc.), Checkpoint integrates at the boundary rather than replacing
+>    that system. **CiMSO INNterchange** (`cimso_innterchange`) is the
+>    **first** adapter in that series: multi-tenant `pms_*` schema,
+>    admin Connect/Sync shell, platform register **Targeted**, invitation
+>    persist path shipped; live TCP client still open. Further adapters
+>    follow the same pattern when applicable — not hospitality-only.
+> 3. **§4a.7 / §11.9.6 / Phase 3** updated for `cimso_innterchange` and
+>    the existing-system series. Brand kit tokens remain §11.5 (#E0B000 /
+>    #111111 / #F5F5F5); kit under `branding/`.
+
+> **What changed in v0.30 (2026-09-22, alpha + UAT plan):**
+> 1. **§17.4 Alpha testing and UAT plan** — executable acceptance ladder
+>    A0 internal alpha → A1 design-partner UAT → A2 paid pilot (§17.2) →
+>    A3 GA; entry/exit criteria, journey scripts, severity, RACI, sign-off
+>    form, calendar aligned to §17.3. Scope honesty: FULL Core surfaces
+>    only; DigiNam / USSD / SMS / retention-cron / badge hardware out of
+>    sellable UAT until capability register is live.
+> 2. **§11.8.10** — cross-references §17.4 so beta/launch gate does not
+>    invent a second programme.
+> 3. **Runnable gate** — `scripts/acceptance-gate.sh` +
+>    `scripts/acceptance/checklist.json` track A0–A3 marks/sign-offs;
+>    wraps `smoke-production.sh`, `journey-smoke.ts` (now includes
+>    staff check-out), and form-rules unit tests. Local state is
+>    gitignored (`scripts/acceptance/state.json`).
+
+> **What changed in v0.29 (2026-09-18, overview + Neon primitives):**
+> 1. **Admin home** — `/dashboard/default` renamed to `/dashboard/overview`
+>    with `OperationalMetricCards`, `VisitActivityOverview`,
+>    `OnSiteRosterPanel` (10-row preview + link to Front Desk). Legacy
+>    `/dashboard/default` redirects to overview. Sidebar adds Overview;
+>    Front Desk keeps the full live roster.
+> 2. **Shared roster** — `visit-roster-table` moved to
+>    `admin/src/components/features/visits/visit-roster-table/` (used by
+>    overview, front-desk, visitors, emergency).
+> 3. **Template residue removed** — `profile/`, `coming-soon/`,
+>    `theme-switcher.tsx`, admin+website `sentry-example-page/`. Renamed
+>    `events-data.ts` → `schedule-event.ts`, users/roles `data` → `types`.
+>    Account menu links to `/dashboard/account`.
+> 4. **Neon Object Storage + Frankfurt migration (complete)** —
+>    Primary project **`falling-frog-15538162`** (`aws-eu-central-1`, PG18,
+>    branch `br-blue-frog-b1sgfw94`). Oregon `bold-cloud-47505421` kept as
+>    rollback until **2026-09-25**, then delete. Railway production
+>    `DATABASE_URL` + local `.env` point at Frankfurt. Object Storage
+>    bucket `buffr-checkpoint-artifacts`; **`ARTIFACT_STORE=neon_s3`** is
+>    production primary. Blob→Neon copy ran (0 source objects). Preview
+>    branch `v029-preview-branch-validate` inherited DB (8 orgs) + bucket;
+>    upload probe succeeded; branch delete removed the branch (and objects).
+> 5. **Neon AI Gateway (admin-only)** — `FormAiService` +
+>    `POST /visitor-policy/forms/ai/suggest-fields` and
+>    `.../ai/translate-field` (gated by `FORM_AI_ENABLED`); FormBuilder
+>    “Suggest from description” panel. No visitor PII. Does **not**
+>    replace custom MFA/auth or NestJS workers.
+> 6. **Docs/assets** — admin README/AGENTS scrubbed of Studio Admin branding;
+>    §11.4.1a / §11.4.7 / stack notes updated below.
+
+> **What changed in v0.28 (2026-09-18, form builder full wire):**
+> Closes the four gaps between Part Three §5 architecture and a usable,
+> enforceable form product (Envoy/OfficeRnD-class admin tools + server-side
+> data minimisation).
+> 1. **Part Three §5 expanded** — field library + types, visibility /
+>    `requiredIf` JSON contracts, field translations, admin builder UX,
+>    publish and check-in minimisation gates (§5.2–§5.6).
+> 2. **Schema** — `field_type_code`, `help_text` on `check_in_form_fields`;
+>    `check_in_form_field_translations`; `field_type` + `check_in_field_code`
+>    type_definition domains (migration `0030_form_builder_v028.sql`).
+> 3. **`VisitorDataMinimisationService`** — publish blocked for
+>    `high_risk` / `verification_evidence` without `approval_reference`;
+>    check-in validates answers against published effective form
+>    (unknown codes rejected; required / `requiredIf` / validation_schema).
+> 4. **Admin** — `/dashboard/policies/forms/[definitionId]` drag-and-drop
+>    builder (`@dnd-kit`), field library, classification warnings,
+>    conditional rules, per-field translations; create stays draft until
+>    explicit publish.
+> 5. **Clients** — website + kiosk render from effective form when present
+>    (no hardcoded CORE override); evaluate visibility client-side; pass
+>    `languageCode` for resolved labels.
+> 6. **FR-K09 / NFR-P02** — enforcement FULL (resolve + server validate),
+>    not resolve-only.
+> 7. **Neon applied (2026-09-18)** — `0030_form_builder_v028.sql` on
+>    `bold-cloud-47505421` / `br-green-dawn-ardw1eme`; `0031_purpose_category_form_options.sql`
+>    seeds `meeting` / `vehicle` / `other` so form options match
+>    `purpose_category` type_definition (avoids 500 on check-in when purpose
+>    is vehicle). Demo form seed: vehicle `visibilityRule` + `requiredIf`,
+>    AF labels on name/phone/vehicle.
+> 8. **Local e2e (agent-browser + API)** — public check-in: purpose=Meeting
+>    hides Vehicle registration; purpose=Vehicle shows it required; submit
+>    succeeded (`53D060F1`). API: missing vehicle → `400 Required field
+>    missing: vehicle_registration`; with registration → 200. Admin FormBuilder
+>    lists published fields + visibility UI. Screenshots under
+>    `e2e-screenshots/{check-in,forms,responsive}/`. Unit:
+>    backend `form-rules.spec` 8/8, website `form-rules.test` 3/3.
+>    **Prod API/website still need redeploy** for live `visibilityRule` /
+>    `fieldTypeCode` on `api.buffrcheckpoint.com`.
+
+> **What changed in v0.27 (2026-09-16, demo tenancy + kiosk branding):**
+> Product rule: a kiosk belongs to the **same organisation** it serves.
+> The earlier split between a synthetic "Buffr Checkpoint Kiosk Demo" org
+> (`47c8b69b-…`) and the real Buffr Analytics customer org (`b51f0704-…`)
+> broke that rule and left the tablet able to sync experience under the
+> wrong tenancy JWT.
+> 1. **Seed `0018_unify_kiosk_demo_under_buffr_analytics.sql`** — re-points
+>    Demo Front Desk (`74c72c99-…`), `kiosk-demo@buffrcheckpoint.test`,
+>    hosts, forms, branding, kiosk experience, QR, directory units, and
+>    related demo rows onto Buffr Analytics (`b51f0704-…`); soft-deletes the
+>    retired kiosk-only org. Applied on prod Neon. Greenfield seeds
+>    `0009` / `0013` / `0015` / `0016` / `0017` now use `b51f0704` as well.
+> 2. **API smoke** — login as kiosk-demo →
+>    `GET /kiosk-experience/effective?siteId=74c72c99-…` returns Buffr
+>    Analytics, `#CF1161`, logo
+>    `https://buffrcheckpoint.com/org-assets/buffr-analytics/icon.png`.
+> 3. **Kiosk sync harden** — `ExperienceRepository.syncFromBackend` no
+>    longer swallows failures into product-default chrome; Welcome surfaces
+>    the error + retry; last-good cache kept when present. Re-provision
+>    clears experience prefs + `LogoDiskCache` + token.
+>    `ExperienceSyncWorker` uses `ExistingPeriodicWorkPolicy.UPDATE`.
+> 4. **Logo harden** — `LogoDiskCache` requires HTTP 2xx, follows redirects,
+>    drops bad cache files; prefetch after successful sync.
+> 5. **Org chrome** — shared `OrgBrandingHeader` on Welcome, self/assisted
+>    check-in, privacy notice, and success screens.
+> 6. **§11.7.7** — emulator/demo tables document one org only (Buffr
+>    Analytics). Debug APK install verified on Pixel_Tablet
+>    (`versionName=0.1.0`).
+
+> **What changed in v0.26 (2026-09-16, discovery-interview capability
+> audit):** this top banner had fallen behind the body — §11.9.1b's
+> "Gap-closure phases 1–8," "Live browser bug-hunt," and "UX pass" entries,
+> and §11.9.8.5's technician-escape entry, all landed without a matching
+> banner line here. Read §11.9.1b for that work's own detail; this entry
+> covers only the pass that follows it, prompted by checking BuffrCheckpoint
+> against a mom-test discovery-interview script drafted the same session
+> ("if you had to pull everyone who visited last Tuesday, how long would
+> that take you?", "has an auditor ever asked you a hard question about
+> your visitor records?") — the premise being that these questions should
+> be trivially answerable once a site is on the product instead of a paper
+> register. They mostly weren't. Full detail in §11.9.1b's new closing
+> entry; summary:
+> 1. **Kiosk "Staff" roster button had no authentication gate at all** —
+>    tapping it from the visitor-facing Welcome screen went straight to the
+>    full on-site roster (every visitor's name and host), reproducing the
+>    exact shared-visibility problem this product exists to fix. Fixed:
+>    forces a fresh `LoginScreen` credential challenge every time, not
+>    conditioned on the device's already-logged-in session state.
+> 2. **"Pull everyone who visited on date X" had no working answer.** The
+>    Visitors page's date-filter control was wired to the wrong option set
+>    (silently broken, not just unstyled), the backing endpoint had no
+>    date-range parameter at all, and results were capped at 200 rows with
+>    no server-side fallback — an older date could go silently missing.
+>    Added `GET /visits/roster/search` (real date range, keyset pagination)
+>    and `GET /visits/roster/export` (CSV), reusing the pattern
+>    `AuditService.listForOrganisation` already proved for this exact
+>    problem.
+> 3. **Audit log date-range UI** — the backend already supported `from`/`to`
+>    query params; no page exposed them. Added.
+> 4. **DSAR data export was over-disclosing** — `buildExportPackage` never
+>    actually filtered by the requester's `subjectReference`, so every
+>    visitor-data DSAR export returned every visitor's data. Fixed using the
+>    same phone-HMAC lookup already used elsewhere in the codebase.
+> 5. **Evidence packs wrote to the same ephemeral local disk already fixed
+>    once this session** for KYB/billing/DSAR documents, and had no way to
+>    answer "who accessed the premises in this period" or even a working
+>    download route. Moved to the existing `createArtifactStore()`
+>    abstraction, added an optional date-range visitor-access extract, and
+>    added the missing `GET /evidence/:id/download` route.
+>
+> Flagged, not built — each needs a decision this pass correctly didn't make
+> unilaterally: representing "visitor arrived, no host known" (needs
+> `visitor_visits.host_id` to become nullable, a core-schema change);
+> retention enforcement (already flagged elsewhere in this document as not
+> yet built — a cron/purge job, not a wiring gap); per-staff attribution on
+> the kiosk roster view (needs a new credential model, not this pass's
+> device-level re-login gate).
 
 > **What changed in v0.24.2:**
 > 1. **`0025`** — restored `UPDATE` on `emergency_roll_call_events` for
@@ -178,7 +360,9 @@
 >    (no UID trust; hide when capability absent); read-only device list;
 >    honest Keystore / notification status (§11.7.5 acceptance gate).
 
-### 11.9.0a Implementation status matrix (v0.22)
+### 11.9.0a Implementation status matrix (v0.29)
+
+**Packaging posture (QR-first Core):** Marketed Core claims must match FULL surfaces only — public site QR create/rotate/print + website `/check-in` + assisted front desk + RBAC/encrypted record/sign-out/reports. **Do not sell Core as including live USSD or SMS** while those adapters are NOT STARTED below. Dedicated kiosk/tablet, NFC fast lane, SMS, and USSD are optional Professional entitlements / catalog add-ons on the same encrypted visit record (Sections 5.1, 15.2, 16). Admin **Site Experience → Site QR Codes** is the Core CAPEX-reduction path (already FULL).
 
 | Surface | Status | Notes |
 |---|---|---|
@@ -189,16 +373,22 @@
 | Org profile / sites / hosts CRUD | FULL | create+edit+deactivate |
 | Regions / security zones | FULL | v0.20 |
 | Branding / kiosk experience / escalation | FULL | |
-| Site QR create/rotate + printable kit | FULL | v0.20 |
-| Forms (defs + versions + fields + publish) | FULL | v0.20 |
+| Site QR create/rotate + printable kit | FULL | v0.20 — **Core default channel** (admin public site QR → phone `/check-in`); tablet not required |
+| Forms (defs + versions + fields + publish) | FULL | v0.20; v0.28 admin builder + minimisation + i18n |
+| Form AI suggest/translate (admin) | FULL (gated) | `FormAiService` + §11.9.14; `FORM_AI_ENABLED`; never auto-publish |
+| Retention purge/archive job | NOT STARTED | Policies configurable; no cron/scheduler executes disposition yet |
 | Access / retention policies | FULL | v0.20 |
 | Privacy notice document lifecycle | FULL | v0.20 |
 | Devices MDM + credentials issue/revoke/validate | FULL | v0.20 |
 | Credential site entitlements CRUD | FULL | v0.22 `GET/POST /credentials/:id/entitlements` |
 | Front desk approve/reject/checkout | FULL | v0.20 |
 | Emergency trigger/resolve | FULL | v0.20 |
-| User invite + role assign | FULL | v0.20 |
+| User invite + role assign | FULL | v0.20; v0.29 invite with `roleCode`/`siteId`, change-role allowlist, live catalogue counts/permissions |
+| Roles catalogue (org assign, no invent) | FULL | v0.29 fixed customer-assignable catalogue; orgs assign/change only — no custom permission editor; marketing Platform/Pricing/About aligned |
 | Website marketing + `/check-in` | FULL | |
+| Public `/check-in` language UI | FULL | Language picker (en/af/pt) + `?lang=`; API `languageCode` resolves translated labels |
+| Neon Object Storage adapter | FULL | Frankfurt primary `falling-frog-15538162`; `ARTIFACT_STORE=neon_s3` on Railway; bucket `buffr-checkpoint-artifacts`; Blob bridge empty (0 objects copied) |
+| Neon Functions | DEFERRED | NestJS workers remain primary compute |
 | Website contact | FULL | v0.20 |
 | Kiosk Phases 0–3 (online check-in) | FULL | |
 | Kiosk Phase 4 offline (SQLCipher outbox) | FULL | v0.20 |
@@ -210,13 +400,13 @@
 | DigiNam relying-party adapter live | NOT STARTED | discovery → public not_available |
 | National e-ID NFC adapter live | NOT STARTED | targeted in register |
 | QR invitation check-in lifecycle | FULL | v0.21 token/revoke/resolve; register `live`; admin pickers/revoke v0.22 |
-| SMS contact confirmation gateway | NOT STARTED | v0.22 event scaffold + org gate; no live MT provider |
-| Live USSD aggregator webhook | NOT STARTED | v0.22 DB arrangement guard + session status log; menu flow not live |
+| SMS contact confirmation gateway | NOT STARTED | v0.22 event scaffold + org gate; no live MT provider — **not a Core sellable claim**; optional add-on when live |
+| Live USSD aggregator webhook | NOT STARTED | v0.22 DB arrangement guard + session status log; menu flow not live — **not a Core sellable claim**; optional add-on when live |
 | Kiosk visitor-session privacy wipe (FR-K10) | FULL | v0.22 outbox pending wipe + QR/NFC privacy gate + abandon |
 | Platform Ops Console app | FULL | v0.24 — schema, backend (`platform-control-plane` module), and `ops-console/` all built and live-verified end-to-end against the real dev DB: every console screen (Overview, Organisations + per-org detail with Rollup/CRM/Billing/KYB tabs, CRM, Billing + POP review, KYB, Capability Status with dual-approval, Support Access, Incidents, Tickets + comments, Analytics/churn queue, Audit) is real and wired to live endpoints, not stubbed. `admin/`'s support-session entry route (with live countdown banner) and customer-facing `/dashboard/billing` (invoice list + POP upload) are both built. The break-glass grant flow is customer-consent-gated (§11.9.1a) and was verified live end-to-end: request → inert → customer sees + approves/denies → session mint → grant revoke → 403. See Section 11.9.1a for the full build notes and one real bug this live testing caught and fixed before ship. |
 | Other QR product types (pre-reg, emergency, …) | NOT STARTED | |
 | Release 1.5 induction schema | NOT STARTED | |
-| Kiosk dynamic form from site form version (FR-K09) | FULL | effective form resolve + kiosk/website `formAnswers`; demo general form seeded |
+| Kiosk dynamic form from site form version (FR-K09) | FULL | v0.28: Android `ManualCheckInViewModel`/`ManualCheckInScreen` + `FormRules` on `effectiveForm`; website + kiosk |
 | Organisation directory (BIAN-optional) | FULL | `organisation_units` + modes custom / bian_aligned / hybrid; admin CRUD + optional seeds |
 | Host email (Resend) | FULL | HTML host notification; honest fail without `RESEND_API_KEY` |
 | Reception wait queue | FULL | `visitor_wait_queue_entries` on check-in; front-desk list; ticket on success |
@@ -225,6 +415,16 @@
 | Badge print hardware (FR-K12 hardware) | NOT STARTED | printer SDK / device path not built |
 | Server-side notification outbox + dispatcher worker | FULL | v0.23 real transactional outbox (`pending`→`sent`/`failed`, retry/backoff, `notification_delivery_status_events`); `visit.checked_in` domain event via `@nestjs/event-emitter` |
 | `website`/`admin` accessibility (Lighthouse + axe) | FULL (unauthenticated), PARTIAL (dashboard) | v0.23 — 100/100 on every unauthenticated page in both apps; dashboard-behind-MFA not independently re-verified, see Section 11.8.7 |
+
+#### v0.29 verification findings (2026-09-18)
+
+| Claim | Result | Evidence |
+|---|---|---|
+| Kiosk dynamic forms from site form version | **FULL** | Android `ManualCheckInViewModel` / `ManualCheckInScreen` bind `effectiveForm`; website check-in uses published fields when present |
+| Public `/check-in` language UX | **FULL** | Language picker (en/af/pt) + `?lang=`; form reload on language change |
+| Prod migrations through 0038 | **FULL** | Frankfurt: through 0037 live earlier; **0038** branded templates + `attachments_json` applied 2026-09-25; `scripts/smoke-production.sh` 6/6 PASS on Frankfurt-backed `api.buffrcheckpoint.com` |
+| Neon S3 primary | **FULL** | Local put/get/delete probe OK; Railway `ARTIFACT_STORE=neon_s3`; Blob→Neon copy: 0 source objects |
+| Preview branch DB+storage | **FULL** | Branch inherited 8 orgs + `buffr-checkpoint-artifacts`; probe upload OK; branch delete removed branch |
 
 > **What changed in v0.19.2 (MFA challenge "Invalid or expired"):**
 > 1. **Root cause** — that message means the *challenge token* failed lookup
@@ -918,16 +1118,11 @@ It exposes personal information — names, phone numbers, identification numbers
 - offline-first operation for low-connectivity sites;
 - role-based access control;
 - encrypted records, retention automation, and audit evidence;
-- a clear integration path to access-control, identity, notification, and emergency-management systems.
+- a clear integration path to access-control, identity, notification, emergency-management systems, and — **where applicable** — existing operational systems of record (first beachhead adapter: CiMSO INNterchange; further PMS/HR/access adapters in series, not a single vertical).
 
-The strategic choice is:
+The product is **sector-agnostic**: any organisation that today runs a paper visitor register (or needs governed presence) is in scope. GTM may sequence regulated beachheads first (§15.1); packaging and schema do not hard-code a hospitality-only or tourism-only product.
 
-> **NFC-forward, not NFC-exclusive.**  
-> Feature-phone users, visitors without e-ID, people without a phone, and people who cannot use a self-service kiosk must still be able to check in securely and with dignity.
-
-A platform that requires NFC, a smartphone, a national e-ID, or an app would exclude too many Namibians and undermine the user-centric and inclusive design goals reflected in Namibia’s broader digital public infrastructure and payments strategy. The product therefore uses **multiple channels feeding one secure record architecture**.
-
-Whether a visitor carries a smartphone, a feature phone, or no phone at all, Buffr Checkpoint has a secure channel for them. That sentence is the product's governing design constraint, not a marketing flourish, and every section below is written to keep it true.
+Whether a visitor carries a smartphone, a feature phone, or no phone at all, Buffr Checkpoint has a channel that fits. Inclusion is a design requirement; every section below is written to keep it true.
 
 ---
 
@@ -947,11 +1142,11 @@ The About page is rebuilt around a Namibia-first founding narrative with no refe
 
 ## 1a.3 Public website surfaces
 
-The public website is rebuilt as a standalone site — **Home, Platform, Pricing, About, Contact, Privacy Policy, Terms & Conditions, and a custom 404** (eight marketing pages/states, up from the original five: Privacy Policy, Terms & Conditions, and a branded 404 were gaps, closed here and detailed further in Section 11.8.8). **v0.18** adds a ninth operational surface, **`/check-in`**, which is **not** part of the marketing sitemap (noindex) but is the live destination for kiosk public-site QR codes (Section 11.7.8.1 / 11.9.8.1). Each marketing page is scrubbed of parent-brand badges, footer taglines, and testimonial or comparison language that references a separate payments product. The pages carry the following standing content requirements, which this blueprint treats as binding until superseded by a future version:
+The public website is rebuilt as a standalone site — **Home, Platform, Pricing, About, Contact, Privacy Policy, Terms & Conditions, and a custom 404** (eight marketing pages/states, up from the original five: Privacy Policy, Terms & Conditions, and a branded 404 were gaps, closed here and detailed further in Section 11.8.8). **v0.18** adds a ninth operational surface, **`/check-in`**, which is **not** part of the marketing sitemap (noindex) but is the live destination for admin-issued public site QR codes (Site Experience → Site QR Codes; Section 11.7.8.1 / 11.9.8.1) — Core CAPEX-reduction path, tablet optional. Each marketing page is scrubbed of parent-brand badges, footer taglines, and testimonial or comparison language that references a separate payments product. The pages carry the following standing content requirements, which this blueprint treats as binding until superseded by a future version:
 
-- **Home** *(corrected in v0.4 — this bullet previously specified a static "DigiNam Verified" badge and a "Live now" tag asserted as present-tense fact; both were wrong and were never actually built that way)*. The hero section renders a `CapabilityStatusBadge` (`website/src/components/capability-status-badge.tsx`) for `diginam_verification`, fetched live from the backend's public `GET /public/capability-status` endpoint (5-minute revalidation, degrades to "Not live" on any fetch failure — never assumes "live"). It shows one of three states — Not live / Targeted / Live — and only ever reads "Live" once `capability_status.status_code` for that capability is actually `live` in the database, which requires a role-gated, evidence-backed write per Section 4a.7. No step in the "How It Works" sequence may carry a "Live now" tag as fixed copy; any such tag must likewise read from the live register. Exactly **one** primary call to action above the fold (Section 11.8.9) — "Book a Paper Register Exposure Review" (Section 17.1) — competing CTAs are not permitted on this page.
-- **Platform** *(corrected in v0.4 — this bullet previously referenced a `platform_capability_status.public_display_status` field that was never implemented; the actual table and column names below match `backend/src/db/schema/capability-status.ts`)*. The architecture explanation renders the identity-verification layer's status live via the same `CapabilityStatusBadge` component, reading `capability_status.status_code` (resolved through `type_definition`) for `diginam_verification` and `national_eid_nfc` independently — never a hardcoded date string, and never a status value baked into page copy. This must never say DigiNam/NPKI itself shows "live" as a stand-in for Buffr Checkpoint's own integration — Namibia's DigiNam/NPKI national ecosystem being operational is a separate fact from Buffr Checkpoint's own adapter approval status, and only the latter is what this badge renders (built to support DigiNam/NPKI verification "where formally enabled" — see Section 4a.7's public-copy correction). National e-ID NFC smart-card verification shows whatever `capability_status` currently holds for `national_eid_nfc` (`targeted` by default as of this revision, since the Ministry of Home Affairs' target month has arrived but no confirmation/evidence row exists yet — see Section 4a.7). The Platform page also carries the full Role-Based Access Control table from Section 9, together with the enforcement note that access control is applied at the data and API layer, not only in the user interface. The Platform FAQ includes an entry titled "Does Buffr Checkpoint support DigiNam verification today?" answered honestly from the live register value, and a second entry driven by the same register that states the National e-ID smart card's actual current status rather than a fixed "future capability" claim.
-- **Pricing** *(corrected in v0.4 — the previous "fully available today — not a future feature" line asserted DigiNam verification as unconditionally live, which is not accurate to Section 4a.7's role-gated register)*. DigiNam verification appears from the Professional tier upward, described as available where Buffr Checkpoint's own adapter status is `live` for the customer's organisation — the same `CapabilityStatusBadge` used on Home and Platform, not page-specific copy claiming permanent availability, consistent with Section 15.2's product packaging. National e-ID NFC compatibility appears only in the Enterprise/Regulated tier, with its badge driven by the same register — so a status change never requires hunting down every page that mentions it. NFC phone-tap and NFC badge-tap check-in (genuinely live, no register lookup needed) are priced as standard features from the Professional tier upward, consistent with Section 15's revised unit economics in Section 15.4.
+- **Home** *(corrected in v0.4 — this bullet previously specified a static "DigiNam Verified" badge and a "Live now" tag asserted as present-tense fact; both were wrong and were never actually built that way)*. *(v2026-09-29: capability badges are removed from all marketing hero sections; they appear on `/status` and in the Platform Architecture section only. The rules below still govern those placements.)* The badge is a `CapabilityStatusBadge` (`website/src/components/capability-status-badge.tsx`) for `diginam_verification`, fetched live from the backend's public `GET /public/capability-status` endpoint (5-minute revalidation, degrades to "Not live" on any fetch failure — never assumes "live"). It shows one of three states — Not live / Targeted / Live — and only ever reads "Live" once `capability_status.status_code` for that capability is actually `live` in the database, which requires a role-gated, evidence-backed write per Section 4a.7. No step in the "How It Works" sequence may carry a "Live now" tag as fixed copy; any such tag must likewise read from the live register. Exactly **one** primary call to action above the fold (Section 11.8.9) — **Create account** → `https://admin.buffrcheckpoint.com/auth/register` (signup-first GTM). Secondary link **See pricing** → `/pricing` (v2026-09-29, replaces the retired **Need a review?** link); it must not compete as a second primary CTA.
+- **Platform** *(corrected in v0.4 — this bullet previously referenced a `platform_capability_status.public_display_status` field that was never implemented; the actual table and column names below match `backend/src/db/schema/capability-status.ts`)*. The architecture explanation renders the identity-verification layer's status live via the same `CapabilityStatusBadge` component, reading `capability_status.status_code` (resolved through `type_definition`) for `diginam_verification` and `national_eid_nfc` independently — never a hardcoded date string, and never a status value baked into page copy. This must never say DigiNam/NPKI itself shows "live" as a stand-in for Buffr Checkpoint's own integration — Namibia's DigiNam/NPKI national ecosystem being operational is a separate fact from Buffr Checkpoint's own adapter approval status, and only the latter is what this badge renders (built to support DigiNam/NPKI verification "where formally enabled" — see Section 4a.7's public-copy correction). National e-ID NFC smart-card verification shows whatever `capability_status` currently holds for `national_eid_nfc` (`targeted` by default as of this revision, since the Ministry of Home Affairs' target month has arrived but no confirmation/evidence row exists yet — see Section 4a.7). The Platform page carries the full Role-Based Access Control table from Section 9. Marketing intro copy is buyer-facing and derived from §9 (not a verbatim paste of rule language). The Platform FAQ accordion covers DigiNam status, National e-ID NFC status, offline operation, API/data-layer access control, the fixed role catalogue, Form AI (admin suggest/translate, never auto-publish), and public check-in languages (picker en/af/pt).
+- **Pricing** *(corrected in v0.4 — DigiNam live claims; QR-first packaging aligned with Section 15 / 16)*. **Core** story is print public site QR + phone web check-in + assisted front desk — **tablet purchase is not required**. DigiNam verification appears on **Verify** (and where adapter status is `live` for the customer's organisation) via `CapabilityStatusBadge`, not page-specific copy claiming permanent availability. National e-ID NFC compatibility appears on Verify / Enterprise-regulated packaging, badge-driven by the same register. NFC phone-tap and NFC badge-tap are **Professional entitlements / optional fast lanes** (capability-gated where the register applies), not Core defaults. USSD and SMS must not appear as Core "included today" features while §11.9.0a lists those adapters as NOT STARTED — show them as optional / Professional when live.
 - **About.** Carries the founding narrative described in Section 1a.2, with no reference to any other company or product.
 - **Contact.** Standard contact and sales-inquiry page; no parent-brand references. Form is validated and spam-protected per Section 11.8.9.
 - **Visitor check-in** *(v0.18 — operational, not marketing)*. `website/src/app/check-in/` opens from the kiosk QR payload `https://buffrcheckpoint.com/check-in?site={siteId}&ref={referenceId}`. Loads context from `GET /public/check-in/context`, submits via `POST /public/check-in`. Collects name, required phone, company, visitor type, host, purpose, optional email / ID / vehicle, and a required privacy acknowledgement. Extra profile fields are stored inside the encrypted `visitor_personal_data` payload (not plaintext columns). Context and success responses include published site branding (org/site display names, welcome message, accent colour, logo URL, help contact, `brandingScope`) so the phone journey matches kiosk personalisation. **Branding visibility:** when published branding exists the organisation owns hero, logo, and footer; Buffr Checkpoint appears only as a quiet “Secured by Buffr Checkpoint” footer line (or as full chrome when no branding is published). Host notification message includes visitor name, type, company, purpose, and contact. Must never appear in `sitemap.ts`; metadata sets `robots: { index: false }`. Missing/expired `site`+`ref` must fail closed with a clear “ask reception for a fresh QR” message — never invent a site.
@@ -1031,7 +1226,7 @@ It should say:
 
 ---
 
-# 4. The Strategic Choice: NFC-Forward, Inclusion-First
+# 4. The Strategic Choice: QR-First Default, Inclusion-Honest, NFC Optional
 
 ## 4.1 Why NFC matters
 
@@ -1050,7 +1245,7 @@ But NFC must never become the only access path.
 
 Feature phones remain significant in Namibia and across Africa, particularly outside urban centres. A product that assumes every visitor has a smartphone, NFC capability, mobile data, or digital identity will exclude people at the exact institutions that most need a secure check-in process: public offices, clinics, banks, and rural service points.
 
-The device-ownership data available to this blueprint makes the exclusion risk concrete rather than theoretical. Only **28.5% of Namibians own a smartphone**. In rural areas, the pattern inverts what an urban-built product would assume: **rural feature-phone ownership, at 25.4%, actually exceeds rural smartphone ownership, at 15.1%**. In other words, a strategy that treats NFC or QR as the primary channel — either of which requires a smartphone — would silently exclude roughly seven in ten Namibians nationally, and would exclude the *majority* device type in rural areas specifically, which is exactly where many of the regulated sites this product targets actually operate: bank branches, clinics, and government offices outside the main urban centres.
+The device-ownership data available to this blueprint makes the exclusion risk concrete rather than theoretical. Only **28.5% of Namibians own a smartphone**. In rural areas, the pattern inverts what an urban-built product would assume: **rural feature-phone ownership, at 25.4%, actually exceeds rural smartphone ownership, at 15.1%**. In other words, a strategy that treats NFC or QR as the *only* channel — either of which requires a smartphone — without assisted front desk (and eventually SMS/USSD) would silently exclude roughly seven in ten Namibians nationally, and would exclude the *majority* device type in rural areas specifically, which is exactly where many of the regulated sites this product targets actually operate: bank branches, clinics, and government offices outside the main urban centres.
 
 This is not a peripheral inclusion concern layered on top of the product; it is a direct constraint on the architecture. Buffr Checkpoint cannot be designed with NFC or QR as the default assumption and feature-phone channels as an afterthought, because doing so would fail the majority of the population the regulated buyers in Section 15.1 actually serve, and it would cut directly against the inclusion language the brand already carries in its public positioning. NFC remains a genuine, valuable differentiator — see Section 4a and Section 12 — but it is layered on top of a foundation that has to work for every visitor regardless of device, not the other way around.
 
@@ -1059,7 +1254,7 @@ This is not a peripheral inclusion concern layered on top of the product; it is 
 > Every visitor can check in.  
 > The channel changes; the data-protection standard does not.
 
-**Corrected strategic framing:** Buffr Checkpoint is **channel-agnostic by design, with NFC as the premium fast lane** — not "NFC-first" as a company-wide strategy. NFC, and the National e-ID smart card opportunity described in Section 4a, remain genuine, defensible differentiators for regulated, high-traffic sites. USSD and SMS, covered in Section 6, are the inclusion-critical, market-access channels without which Buffr Checkpoint cannot credibly serve rural clinics, smaller-town government offices, or any SME whose customer base skews toward feature phones. Both belong in the strategy; neither is presented as the strategy on its own.
+**Corrected strategic framing:** Buffr Checkpoint is **channel-agnostic by design**: **QR-first default self-service** (admin public site QR + phone web), **assisted front desk for inclusion**, and **NFC as an optional premium fast lane** — not "NFC-first" and not "tablet-required" as company-wide strategy. NFC and the National e-ID smart card opportunity (Section 4a) remain genuine differentiators for high-traffic regulated sites when enabled. USSD and SMS (Section 6) are inclusion-critical market-access **add-ons** — sell and market as live only when §11.9.0a / the capability register say so; until then assisted front desk carries the no-smartphone path. Neither NFC nor USSD/SMS is presented as the sole strategy.
 
 ---
 
@@ -1262,16 +1457,19 @@ capability is live.
 
 ## 5.1 Multi-modal check-in channels
 
+Channels share one encrypted visit record. **Recommended use** below is packaging posture (Section 15 / 16), not a claim that every channel is live — see §11.9.0a.
+
 | Channel | Who it serves | Identity assurance | Works offline? | Recommended use |
 |---|---|---:|---:|---|
-| **Self-service kiosk/tablet** | All visitors | Self-declared | Yes | Default universal channel |
-| **Assisted front-desk check-in** | Visitors with no phone, low literacy, disabilities, or special needs | Self-declared / staff-observed | Yes | Mandatory universal fallback |
-| **NFC badge / token** | Contractors, repeat visitors, staff | Credential possession | Yes | Fast lane for frequent users |
-| **NFC phone credential** | Smartphone users | Credential possession; stronger if wallet/secure element supported | Depends on configuration | Convenient fast lane |
-| **DigiNam credential verification** | Visitors with an enabled digital identity | Verified identity, subject to integration | Usually online or cached according to rules | Higher-risk or pre-registered visits |
-| **QR pre-registration** | Smartphone users | Link possession; can be combined with OTP | Limited | Events, appointments, scheduled visits |
-| **USSD** | Feature-phone users | SIM/session possession; not identity proof | Requires GSM network, not data | Inclusive remote or onsite check-in |
-| **SMS** | Feature-phone and smartphone users | SMS/OTP possession; not identity proof | Requires GSM network | Fallback, confirmation, sign-out |
+| **Public site QR (phone web)** | Smartphone users at the door | Link possession (`/check-in?site=&ref=`) | Limited (needs network for submit) | **Default Core self-service** — admin generates/rotates/prints QR (`Site Experience → Site QR Codes`); no tablet CAPEX |
+| **Assisted front-desk check-in** | Visitors with no phone, low literacy, disabilities, feature phones, or special needs | Self-declared / staff-observed | Yes | **Mandatory Core inclusion fallback** |
+| **Self-service kiosk/tablet** | All visitors | Self-declared | Yes | Optional add-on — dedicated device UX / MDM when volume or accessibility warrants |
+| **QR pre-registration / invitation** | Expected visitors (smartphone) | Link possession; can be combined with OTP | Limited | Professional — events, appointments, scheduled visits |
+| **NFC badge / token** | Contractors, repeat visitors, staff | Credential possession | Yes | Optional / Professional fast lane when entitlement + capability allow |
+| **NFC phone credential** | Smartphone users | Credential possession; stronger if wallet/secure element supported | Depends on configuration | Optional / Professional convenient fast lane |
+| **DigiNam credential verification** | Visitors with an enabled digital identity | Verified identity, subject to integration | Usually online or cached according to rules | Verify — higher-risk or pre-registered visits (sell only when register is live) |
+| **USSD** | Feature-phone users | SIM/session possession; not identity proof | Requires GSM network, not data | Optional add-on — inclusive remote/onsite when aggregator live (§11.9.0a) |
+| **SMS** | Feature-phone and smartphone users | SMS/OTP possession; not identity proof | Requires GSM network | Optional add-on — confirmation, sign-out, fallback when MT gateway live |
 | **Printed one-time code** | Anyone | Site presence only | Yes | Kiosk/guard fallback during outages |
 
 ## 5.2 Identity assurance levels
@@ -1770,6 +1968,41 @@ requirement for regulated, multi-site buyers.
    additionally require MFA at the API layer (`@RequireVerifiedEmail` +
    `@RequireMfa`). This replaces the earlier v0.4 posture where unverified
    accounts could sign in for "day-one access".
+9. **Organisations assign roles from a fixed catalogue; they do not invent
+   permissions** *(closed v0.29)*. Customer admins invite users with an
+   assignable `role_code`, change roles via audited
+   `POST /rbac/role-assignments/change` (no self-change), and review live
+   assignment counts + permission sets on `/dashboard/roles`. Permission
+   grants remain platform-owned config (`role_permission_grants` /
+   type_definition). Owner-Operator remains the SME permission union
+   (Section 9.1a); splitting into granular roles is a role change under
+   rule 7 as the organisation grows.
+
+## 9.2a Separate front doors for customers and platform staff *(v2026-09-29, approved by the product owner)*
+
+Customers and Buffr staff sign in through different endpoints and receive tokens that can only be
+used on their own surface. Customers never see or reach the ops console, and staff never act inside a
+customer tenant except through the grant-gated support session (rule 4).
+
+| Rule | Customer admin / kiosk | Platform Ops Console |
+|---|---|---|
+| Sign-in endpoint | `POST /auth/login`, `POST /auth/mfa/challenge/verify` | `POST /auth/platform/login`, `POST /auth/platform/mfa/challenge/verify` |
+| Who may sign in | Any role except `platform_support` | `platform_support` only |
+| Wrong kind of account | `401 Invalid email or password` (same as a bad password, no enumeration) | Same |
+| MFA | Per rule 8 (Owner-Operators enrol during onboarding) | **Mandatory.** No MFA means a 15-minute `ops_enroll` token that can only call `/auth/mfa/enroll/*` and `/auth/me`; confirming enrolment issues the ops session and 10 recovery codes |
+| Token `aud` claim | `admin` (support sessions are also `admin`) | `ops` |
+| Session length | 8 hours | 2 hours |
+| Attempt limit (per IP) | 10 per 5 minutes | 5 per 15 minutes, separate bucket |
+| Routes the token may call | Any customer route; never a `platform.*` permission | Only `/platform/*`, `/type-definitions`, `/capability-status`, `/public/*`, `/health`, `/auth/me`, `/auth/platform/*`, `/auth/mfa/enroll/*` |
+
+Enforcement lives in application code: `backend/src/common/auth/session-audience.ts` (rules, unit-tested
+in `session-audience.spec.ts`) and the global `SessionAudienceGuard`, which runs after `JwtAuthGuard`
+and before `TenantScopeGuard` / `RbacGuard`. Tokens issued before `aud` existed are classified by role
+(`platform_support` without a support session = `ops`), so the rollout logged nobody out.
+
+Verification: `backend/scripts/ops-auth-verify.ts` exercises every rule over HTTP. It passed 14/14 on a
+Neon branch of production and 13/13 against production on 2026-09-29 (the forged-token check needs the
+production signing key and is skipped there).
 
 ---
 
@@ -1965,6 +2198,78 @@ polling worker, swap the poller for `SELECT ... FOR UPDATE SKIP LOCKED` or a
 real queue — the outbox table shape doesn't need to change, only the
 dispatcher.
 
+### 11.1b Analytics and ETL (v2026-09-30)
+
+Customer reporting and platform statistics read from PII-free rollups, never
+from visitor rows. Migration: `backend/db/migrations/0041_analytics_etl.sql`
+(applied to production 2026-09-30).
+
+**Tables**
+
+| Table | What it holds |
+|---|---|
+| `visit_daily_fact` | Check-ins, check-outs, offline captures and dwell totals per organisation, site, local date, visitor type, arrival channel and purpose |
+| `visit_hourly_fact` | Check-ins per organisation, site, local date and local hour |
+| `analytics_etl_run` | One row per refresh: kind, window, counts, status |
+| `analytics_etl_run_status_log` | Append-only status transitions for each run (runtime role has no UPDATE/DELETE) |
+
+Statuses (`etl_run_status`: running, succeeded, failed) and kinds
+(`etl_run_kind`: incremental, backfill) are `type_definition` rows. Fact rows
+are derived, so the ETL recomputes them in place; run history is never edited
+after the run finishes.
+
+**Run lifecycle** (`backend/src/modules/analytics-etl/`)
+
+1. `AnalyticsEtlWorkerService` runs an incremental refresh 60 seconds after
+   boot, then every `ANALYTICS_ETL_INTERVAL_MS` (default 1 hour).
+2. Window: the last `ANALYTICS_ETL_LOOKBACK_DAYS` local days (default 3),
+   widened to cover any day touched by a visit accepted since the last
+   successful run (late offline tablet syncs).
+3. One neon-http batch (one transaction): zero the window's fact rows, then
+   upsert fresh aggregates. Local dates use each site's `sites.timezone`, so a
+   01:00 Windhoek check-in counts on that Windhoek day.
+4. Reconciliation: raw non-deleted visits in the window must equal
+   `sum(check_in_count)` in `visit_daily_fact`. Any difference fails the run
+   with both numbers in `error_message`.
+5. Ops can rebuild all history: `POST /platform/analytics/etl-runs/backfill`
+   (`platform.analytics.manage`), or the "Rebuild all history" button on the
+   ops Analytics page.
+
+**Endpoints**
+
+| Endpoint | Audience | Returns |
+|---|---|---|
+| `GET /analytics/summary`, `/daily`, `/busy-hours`, `/mix`, `/forecast`, `/export.csv` | Property admin (`visit.history.read`; site-scoped users pinned to their site) | KPIs with previous-period change, daily series, weekday-by-hour matrix, channel/visitor-type/purpose shares, forecast, aggregated CSV (audit-logged) |
+| `GET /platform/analytics/etl-runs` | Ops (`platform.dashboard.read`) | Recent runs with reconciliation counts |
+| `GET /platform/analytics/arrival-statistics` | Ops (`platform.dashboard.read`) | Check-ins by Namibian region and visitor type across organisations; cells under `ANALYTICS_MIN_CELL` (default 5) returned as null with `suppressed: true`, never 0 |
+
+**Forecast method** (`backend/src/modules/analytics/forecast.ts`): mean of the
+same weekday over the last 8 weeks, a band of +/- 1.96 standard deviations of
+the backtest residuals, and MASE on the last 28 days against a seasonal-naive
+baseline (same weekday last week). Below 28 days of history the endpoint
+returns `insufficient_history` instead of a number. History starts on the
+scope's first recorded day; days before it are never zero-filled.
+
+**Surfaces**
+
+- Admin `/dashboard/analytics`: four KPIs, arrivals trend with forecast band,
+  busy-hours heatmap, channel and visitor-type share bars, CSV download. Each
+  panel states its question, a finding computed from the data, why it
+  matters and the next step (copy in `admin/src/lib/copy/analytics.ts`).
+- Ops `/analytics`: ETL health (last run, reconciliation, rebuild) and the
+  anonymised arrival statistics, the feed offered to the Namibia Tourism Board.
+- Ops "Platform-wide visit volume" now reads `visit_daily_fact`, so every
+  surface counts from the same rows.
+
+**Environment**: `ANALYTICS_ETL_ENABLED` (default true), `ANALYTICS_ETL_INTERVAL_MS`,
+`ANALYTICS_ETL_LOOKBACK_DAYS`, `ANALYTICS_TIMEZONE` (window boundaries, default
+`Africa/Windhoek`), `ANALYTICS_MIN_CELL`.
+
+**Verified 2026-09-30** on a Neon branch of production: backfill, incremental
+and a repeat backfill all reconciled 18 source visits to 18 daily and 18
+hourly fact counts; suppression, forecast refusal below 28 days, CSV content
+and ops-only route guards confirmed.
+
 ## 11.2 Recommended stack
 
 | Layer | Recommendation | Reason |
@@ -1975,12 +2280,13 @@ dispatcher.
 | **Admin web app** | Next.js, scaffolded from the [Next Shadcn Admin Dashboard](https://github.com/arhamkhnz/next-shadcn-admin-dashboard) template (shadcn/ui + TanStack Table), installed at `admin/` | Responsive dashboards for operators, hosts, managers, and compliance teams. Template supplies routing, RBAC-gated layout, and data-table scaffolding only — the front-desk roster, compliance dashboard, and evidence-pack export in Section 10.4–10.5 are built as custom app code against the schema below, following the sibling `buffr-host/` project's structure for workspace consistency. |
 | **Backend** | NestJS/TypeScript modular monolith | Revised from an earlier FastAPI/Python recommendation. NestJS's module/provider/guard/interceptor system is the TS framework structurally closest to FastAPI+Pydantic for this app's shape (RBAC enforcement, audit-chain hooks, visit-lifecycle state machines) — `@nestjs/swagger` covers the OpenAPI generation FastAPI gave for free. Unifying the admin app and backend on one language is a concrete, not cosmetic, benefit for a small team where individuals cover multiple technical roles (see Section 9.1a). |
 | **Core database** | PostgreSQL + Drizzle ORM | Mature relational integrity, tenant/site scoping, row-level security, audit queries. Drizzle chosen over Prisma for its SQL-first fit with the hash-linked audit-chain and retention-timer queries (CTEs/window functions), and for consistency with `buffr-host/`'s existing Drizzle+Neon pattern in this workspace. |
-| **Object storage** | S3-compatible encrypted storage | Only for photos, signed documents, or attachments where genuinely required. |
-| **Identity / SSO** | OIDC/SAML with MFA; Keycloak or enterprise identity provider | Separation of authentication from business permissions. |
+| **Object storage** | S3-compatible encrypted storage — **Neon Object Storage** (`ARTIFACT_STORE=neon_s3`) as production primary on Frankfurt project `falling-frog-15538162` (`aws-eu-central-1`); **Vercel Blob** only as explicit degrade | Evidence packs, KYB, billing POP, DSAR. Storage branches with DB on Frankfurt. |
+| **Admin form AI (optional)** | Neon AI Gateway (`FORM_AI_ENABLED`, OpenAI-compatible) behind NestJS `FormAiService` | Suggest/translate form field definitions only — never visitor PII; human review before publish. Does not replace NestJS workers or custom MFA. |
+| **Identity / SSO** | Custom NestJS auth (TOTP MFA, lockout, challenge tokens); OIDC/SAML later via enterprise IdP | Managed Better Auth deferred — managed plugin set lacks TOTP MFA + lockout parity. |
 | **Audit** | Append-only audit-event service, hash-linked event chain, immutable export storage | Better evidence without blockchain complexity. |
 | **Messaging** | Adapter layer for MTC/direct provider or local aggregator; email as fallback | Avoid hard-wiring the product to one telecom provider. |
 | **Observability** | OpenTelemetry, structured logs, uptime monitoring, SIEM forwarding | Required for operations, incident response, and assurance. |
-| **Infrastructure** | Namibia-hosted private cloud, client private cloud, or on-premise for regulated deployments | Supports residency and client control requirements. |
+| **Infrastructure** | Namibia-hosted private cloud, client private cloud, or on-premise for regulated deployments | Supports residency and client control requirements. Neon Object Storage / AI Gateway / Functions are currently Frankfurt/Ohio only — do not claim Namibia hosting from these primitives. |
 
 ## 11.3 Data model
 
@@ -2074,13 +2380,18 @@ with Buffr Checkpoint product models or API-backed placeholders:
 
 | Template demo asset | Action taken | Buffr Checkpoint replacement |
 |---|---|---|
-| `demoEvents` calendar events | Removed from `calendar/_components/events-data.ts` | `CheckpointScheduleEvent` interface; calendar calls `GET /schedule?siteId=&from=&to=` |
-| `recentCustomersSchema` | Replaced in `default/_components/recent-customers-table/schema.ts` | `VisitRosterRow` schema with privacy-first fields |
-| `profile.ts` (employee/contractor) | Removed; profile sub-components deleted | `MyAccount` interface backed by `GET /auth/me` |
-| Static `roles` array | Replaced in `roles/_components/roles-table/data.ts` | `BuffrRole` type; page fetches from `GET /roles` |
-| Static `users.ts` | Removed from `users/_components/data.tsx` | `UserRow` type; page fetches from `GET /users` |
+| `demoEvents` calendar events | Removed; file renamed `schedule-event.ts` | `CheckpointScheduleEvent` interface; calendar calls `GET /schedule?siteId=&from=&to=` |
+| `recentCustomersSchema` / `recent-customers-table` | Replaced; moved to `components/features/visits/visit-roster-table/` | `VisitRosterRow` schema with privacy-first fields |
+| `/dashboard/default` | Renamed to `/dashboard/overview` | Operational metrics + visit activity + roster preview |
+| `performance-overview` / `subscriber-overview` / `metric-cards` | Renamed | `visit-activity-overview`, `on-site-roster-panel`, `operational-metric-cards` |
+| `profile/` + `profile-data.ts` | Deleted (v0.29) | `/dashboard/account` via `GET /auth/me` |
+| `coming-soon/` | Deleted (v0.29) | No placeholder product routes |
+| `theme-switcher.tsx` | Deleted (v0.29) | Light-only Buffr Checkpoint preset |
+| admin + website `sentry-example-page/` | Deleted (v0.29) | Verify Sentry via wizard / Route Handler test exception |
+| Static `roles` array | Replaced; file renamed `types.ts` | `BuffrRole` type; page fetches from `GET /roles` |
+| Static `users.ts` | Removed; file renamed `types.ts` | `UserRow` type; page fetches from `GET /users` |
 | `data.json` demo fixture | Deleted | No static fixture; data comes from backend |
-| Demo profile sub-components | Deleted (`profile-header.tsx`, `profile-overview.tsx`, etc.) | Profile page renders inline from `MyAccount` |
+| Demo profile sub-components | Deleted (`profile-header.tsx`, `profile-overview.tsx`, etc.) | Account page renders from `MyAccount` |
 | Calendar demo routes | `calendar/` page retained but stripped of demo events | Operational schedule calendar; no fake events |
 | Finance/CRM/ecommerce demo routes | Not present in current tree (already absent) | N/A |
 
@@ -2101,7 +2412,7 @@ scaffolding, not a shortcut past the backend.
 
 ### 11.4.2 Monorepo structure — as built, verified against the real tree
 
-Re-verified **2026-09-14** against the live filesystem under `buffrcheckpoint/`
+Re-verified **2026-09-18** against the live filesystem under `buffrcheckpoint/`
 (**full depth**, not `maxdepth 4`). Generated with directories pruned:
 `node_modules`, `.next`, `.git`, `dist`, `build`, `.gradle`, `.vercel`,
 `.turbo`, `coverage`, and `*.tsbuildinfo` / binary build artefacts. Local
@@ -2126,1285 +2437,1455 @@ Full project tree (max depth, pruned as above):
 
 ```text
 buffrcheckpoint/
-├── .claude/
-│   ├── skills/
-│   │   └── data-warehouse-source-setup/
-│   │       ├── references/
-│   │       │   ├── bigquery.md
-│   │       │   ├── COMMANDMENTS.md
-│   │       │   ├── mysql.md
-│   │       │   ├── postgres.md
-│   │       │   ├── shopify.md
-│   │       │   ├── snowflake.md
-│   │       │   ├── sources.md
-│   │       │   ├── stripe.md
-│   │       │   ├── woocommerce.md
-│   │       │   └── wordpress.md
-│   │       ├── .posthog-wizard
-│   │       └── SKILL.md
-│   ├── dokumen.pub_kotlin-for-android-developers-learn-kotlin-the-easy-way-while-developing-an-android-app.pdf
-│   ├── kotlin-reference.pdf
-│   ├── scheduled_tasks.lock
-│   └── settings.local.json
-├── admin/
-│   ├── .husky/
-│   │   └── pre-commit
-│   ├── media/
-│   │   └── dashboard.png
-│   ├── public/
-│   │   ├── icon.png
-│   │   └── logo.png
-│   ├── scripts/
-│   │   └── verify-onboarding-copy.mjs
-│   ├── src/
-│   │   ├── app/
-│   │   │   ├── (main)/
-│   │   │   │   ├── auth/
-│   │   │   │   │   ├── _components/
-│   │   │   │   │   │   ├── auth-layout.tsx
-│   │   │   │   │   │   ├── check-email-form.tsx
-│   │   │   │   │   │   ├── forgot-password-form.tsx
-│   │   │   │   │   │   ├── login-form.tsx
-│   │   │   │   │   │   ├── mfa-challenge-form.tsx
-│   │   │   │   │   │   ├── mfa-setup-form.tsx
-│   │   │   │   │   │   ├── register-form.tsx
-│   │   │   │   │   │   ├── reset-password-form.tsx
-│   │   │   │   │   │   └── verify-email-client.tsx
-│   │   │   │   │   ├── check-email/
-│   │   │   │   │   │   └── page.tsx
-│   │   │   │   │   ├── forgot-password/
-│   │   │   │   │   │   └── page.tsx
-│   │   │   │   │   ├── login/
-│   │   │   │   │   │   └── page.tsx
-│   │   │   │   │   ├── mfa/
-│   │   │   │   │   │   ├── challenge/
-│   │   │   │   │   │   │   └── page.tsx
-│   │   │   │   │   │   └── setup/
-│   │   │   │   │   │       └── page.tsx
-│   │   │   │   │   ├── register/
-│   │   │   │   │   │   └── page.tsx
-│   │   │   │   │   ├── reset-password/
-│   │   │   │   │   │   └── page.tsx
-│   │   │   │   │   └── verify-email/
-│   │   │   │   │       └── page.tsx
-│   │   │   │   ├── dashboard/
-│   │   │   │   │   ├── [...not-found]/
-│   │   │   │   │   │   └── page.tsx
-│   │   │   │   │   ├── _actions/
-│   │   │   │   │   │   ├── policy-device-actions.ts
-│   │   │   │   │   │   └── visit-ops.ts
-│   │   │   │   │   ├── _components/
-│   │   │   │   │   │   ├── header/
-│   │   │   │   │   │   │   ├── account-menu.tsx
-│   │   │   │   │   │   │   ├── layout-controls.tsx
-│   │   │   │   │   │   │   ├── search-dialog.tsx
-│   │   │   │   │   │   │   └── theme-switcher.tsx
-│   │   │   │   │   │   ├── sidebar/
-│   │   │   │   │   │   │   ├── app-sidebar.tsx
-│   │   │   │   │   │   │   └── nav-main.tsx
-│   │   │   │   │   │   └── policy-create-sheets.tsx
-│   │   │   │   │   ├── account/
-│   │   │   │   │   │   ├── loading.tsx
-│   │   │   │   │   │   └── page.tsx
-│   │   │   │   │   ├── audit/
-│   │   │   │   │   │   ├── _components/
-│   │   │   │   │   │   │   ├── actions.ts
-│   │   │   │   │   │   │   ├── audit-log-table.tsx
-│   │   │   │   │   │   │   └── types.ts
-│   │   │   │   │   │   ├── loading.tsx
-│   │   │   │   │   │   └── page.tsx
-│   │   │   │   │   ├── billing/
-│   │   │   │   │   │   ├── _components/
-│   │   │   │   │   │   │   └── pop-upload-form.tsx
-│   │   │   │   │   │   ├── actions.ts
-│   │   │   │   │   │   └── page.tsx
-│   │   │   │   │   ├── calendar/
-│   │   │   │   │   │   ├── _components/
-│   │   │   │   │   │   │   ├── calendar.tsx
-│   │   │   │   │   │   │   └── events-data.ts
-│   │   │   │   │   │   ├── loading.tsx
-│   │   │   │   │   │   └── page.tsx
-│   │   │   │   │   ├── coming-soon/
-│   │   │   │   │   │   └── page.tsx
-│   │   │   │   │   ├── compliance/
-│   │   │   │   │   │   ├── loading.tsx
-│   │   │   │   │   │   └── page.tsx
-│   │   │   │   │   ├── credentials/
-│   │   │   │   │   │   ├── loading.tsx
-│   │   │   │   │   │   └── page.tsx
-│   │   │   │   │   ├── default/
-│   │   │   │   │   │   ├── _components/
-│   │   │   │   │   │   │   ├── recent-customers-table/
-│   │   │   │   │   │   │   │   ├── columns.tsx
-│   │   │   │   │   │   │   │   ├── schema.ts
-│   │   │   │   │   │   │   │   ├── table.tsx
-│   │   │   │   │   │   │   │   └── visit-ops-actions.tsx
-│   │   │   │   │   │   │   ├── metric-cards.tsx
-│   │   │   │   │   │   │   ├── performance-overview.tsx
-│   │   │   │   │   │   │   └── subscriber-overview.tsx
-│   │   │   │   │   │   ├── loading.tsx
-│   │   │   │   │   │   └── page.tsx
-│   │   │   │   │   ├── devices/
-│   │   │   │   │   │   ├── _components/
-│   │   │   │   │   │   │   └── activate-device-button.tsx
-│   │   │   │   │   │   ├── compliance/
-│   │   │   │   │   │   │   ├── loading.tsx
-│   │   │   │   │   │   │   └── page.tsx
-│   │   │   │   │   │   ├── loading.tsx
-│   │   │   │   │   │   └── page.tsx
-│   │   │   │   │   ├── emergency/
-│   │   │   │   │   │   ├── _components/
-│   │   │   │   │   │   │   └── emergency-trigger-panel.tsx
-│   │   │   │   │   │   ├── loading.tsx
-│   │   │   │   │   │   └── page.tsx
-│   │   │   │   │   ├── evidence/
-│   │   │   │   │   │   ├── _components/
-│   │   │   │   │   │   │   ├── actions.ts
-│   │   │   │   │   │   │   └── generate-evidence-pack-button.tsx
-│   │   │   │   │   │   ├── loading.tsx
-│   │   │   │   │   │   └── page.tsx
-│   │   │   │   │   ├── front-desk/
-│   │   │   │   │   │   ├── loading.tsx
-│   │   │   │   │   │   └── page.tsx
-│   │   │   │   │   ├── hosts/
-│   │   │   │   │   │   ├── _components/
-│   │   │   │   │   │   │   ├── create-host-sheet.tsx
-│   │   │   │   │   │   │   └── protection-note.tsx
-│   │   │   │   │   │   ├── actions.ts
-│   │   │   │   │   │   └── page.tsx
-│   │   │   │   │   ├── organisation/
-│   │   │   │   │   │   ├── _components/
-│   │   │   │   │   │   │   └── organisation-profile-form.tsx
-│   │   │   │   │   │   ├── actions.ts
-│   │   │   │   │   │   └── page.tsx
-│   │   │   │   │   ├── organisation-directory/
-│   │   │   │   │   │   ├── _components/
-│   │   │   │   │   │   │   └── directory-controls.tsx
-│   │   │   │   │   │   ├── actions.ts
-│   │   │   │   │   │   └── page.tsx
-│   │   │   │   │   ├── policies/
-│   │   │   │   │   │   ├── access/
-│   │   │   │   │   │   │   ├── loading.tsx
-│   │   │   │   │   │   │   └── page.tsx
-│   │   │   │   │   │   ├── forms/
-│   │   │   │   │   │   │   ├── loading.tsx
-│   │   │   │   │   │   │   └── page.tsx
-│   │   │   │   │   │   └── retention/
-│   │   │   │   │   │       ├── loading.tsx
-│   │   │   │   │   │       └── page.tsx
-│   │   │   │   │   ├── profile/
-│   │   │   │   │   │   ├── _components/
-│   │   │   │   │   │   │   └── profile-data.ts
-│   │   │   │   │   │   └── page.tsx
-│   │   │   │   │   ├── roles/
-│   │   │   │   │   │   ├── _components/
-│   │   │   │   │   │   │   ├── roles-table/
-│   │   │   │   │   │   │   │   ├── columns.tsx
-│   │   │   │   │   │   │   │   ├── data.ts
-│   │   │   │   │   │   │   │   └── table.tsx
-│   │   │   │   │   │   │   └── roles.tsx
-│   │   │   │   │   │   ├── loading.tsx
-│   │   │   │   │   │   └── page.tsx
-│   │   │   │   │   ├── schedule/
-│   │   │   │   │   │   ├── _components/
-│   │   │   │   │   │   │   ├── create-invitation-sheet.tsx
-│   │   │   │   │   │   │   └── invitation-list.tsx
-│   │   │   │   │   │   ├── actions.ts
-│   │   │   │   │   │   ├── loading.tsx
-│   │   │   │   │   │   └── page.tsx
-│   │   │   │   │   ├── site-experience/
-│   │   │   │   │   │   ├── _components/
-│   │   │   │   │   │   │   ├── actions.ts
-│   │   │   │   │   │   │   ├── branding-actions.tsx
-│   │   │   │   │   │   │   ├── escalation-actions.tsx
-│   │   │   │   │   │   │   ├── kiosk-actions.tsx
-│   │   │   │   │   │   │   ├── printable-qr-panel.tsx
-│   │   │   │   │   │   │   ├── qr-actions.tsx
-│   │   │   │   │   │   │   └── site-experience-form-sheet.tsx
-│   │   │   │   │   │   ├── branding/
-│   │   │   │   │   │   │   ├── loading.tsx
-│   │   │   │   │   │   │   └── page.tsx
-│   │   │   │   │   │   ├── capabilities/
-│   │   │   │   │   │   │   ├── _components/
-│   │   │   │   │   │   │   │   └── capability-enablement-panel.tsx
-│   │   │   │   │   │   │   ├── actions.ts
-│   │   │   │   │   │   │   └── page.tsx
-│   │   │   │   │   │   ├── escalation/
-│   │   │   │   │   │   │   ├── loading.tsx
-│   │   │   │   │   │   │   └── page.tsx
-│   │   │   │   │   │   ├── kiosk/
-│   │   │   │   │   │   │   ├── loading.tsx
-│   │   │   │   │   │   │   └── page.tsx
-│   │   │   │   │   │   └── qr/
-│   │   │   │   │   │       ├── loading.tsx
-│   │   │   │   │   │       └── page.tsx
-│   │   │   │   │   ├── sites/
-│   │   │   │   │   │   ├── _components/
-│   │   │   │   │   │   │   └── create-site-sheet.tsx
-│   │   │   │   │   │   ├── actions.ts
-│   │   │   │   │   │   ├── loading.tsx
-│   │   │   │   │   │   └── page.tsx
-│   │   │   │   │   ├── support-access/
-│   │   │   │   │   │   ├── _components/
-│   │   │   │   │   │   │   └── pending-grant-card.tsx
-│   │   │   │   │   │   ├── actions.ts
-│   │   │   │   │   │   └── page.tsx
-│   │   │   │   │   ├── users/
-│   │   │   │   │   │   ├── _components/
-│   │   │   │   │   │   │   ├── data.tsx
-│   │   │   │   │   │   │   ├── users-columns.tsx
-│   │   │   │   │   │   │   ├── users-table.tsx
-│   │   │   │   │   │   │   └── users.tsx
-│   │   │   │   │   │   ├── loading.tsx
-│   │   │   │   │   │   └── page.tsx
-│   │   │   │   │   ├── visitors/
-│   │   │   │   │   │   ├── loading.tsx
-│   │   │   │   │   │   └── page.tsx
-│   │   │   │   │   ├── layout.tsx
-│   │   │   │   │   └── page.tsx
-│   │   │   │   ├── onboarding/
-│   │   │   │   │   ├── [step]/
-│   │   │   │   │   │   └── page.tsx
-│   │   │   │   │   ├── _components/
-│   │   │   │   │   │   ├── progress.tsx
-│   │   │   │   │   │   └── step-actions.tsx
-│   │   │   │   │   ├── layout.tsx
-│   │   │   │   │   └── page.tsx
-│   │   │   │   └── unauthorized/
-│   │   │   │       └── page.tsx
-│   │   │   ├── api/
-│   │   │   │   ├── auth/
-│   │   │   │   │   ├── login/
-│   │   │   │   │   │   └── route.ts
-│   │   │   │   │   ├── logout/
-│   │   │   │   │   │   └── route.ts
-│   │   │   │   │   ├── mfa/
-│   │   │   │   │   │   ├── challenge/
-│   │   │   │   │   │   │   └── route.ts
-│   │   │   │   │   │   └── enroll/
-│   │   │   │   │   │       ├── confirm/
-│   │   │   │   │   │       │   └── route.ts
-│   │   │   │   │   │       └── start/
-│   │   │   │   │   │           └── route.ts
-│   │   │   │   │   ├── password-reset/
-│   │   │   │   │   │   ├── confirm/
-│   │   │   │   │   │   │   └── route.ts
-│   │   │   │   │   │   └── request/
-│   │   │   │   │   │       └── route.ts
-│   │   │   │   │   ├── register/
-│   │   │   │   │   │   └── route.ts
-│   │   │   │   │   ├── resend-verification/
-│   │   │   │   │   │   └── route.ts
-│   │   │   │   │   └── verify-email/
-│   │   │   │   │       └── route.ts
-│   │   │   │   └── onboarding/
-│   │   │   │       ├── complete-step/
-│   │   │   │       │   └── route.ts
-│   │   │   │       └── evidence/
-│   │   │   │           └── route.ts
-│   │   │   ├── sentry-example-page/
-│   │   │   │   └── page.tsx
-│   │   │   ├── support-session/
-│   │   │   │   └── page.tsx
-│   │   │   ├── favicon.ico
-│   │   │   ├── global-error.tsx
-│   │   │   ├── globals.css
-│   │   │   ├── icon.png
-│   │   │   ├── layout.tsx
-│   │   │   ├── logo.png
-│   │   │   ├── not-found.tsx
-│   │   │   └── page.tsx
-│   │   ├── components/
-│   │   │   ├── analytics/
-│   │   │   │   └── AnalyticsProviders.tsx
-│   │   │   ├── calendar/
-│   │   │   │   └── event-calendar-views.tsx
-│   │   │   ├── ui/
-│   │   │   │   ├── accordion.tsx
-│   │   │   │   ├── alert-dialog.tsx
-│   │   │   │   ├── alert.tsx
-│   │   │   │   ├── aspect-ratio.tsx
-│   │   │   │   ├── attachment.tsx
-│   │   │   │   ├── avatar.tsx
-│   │   │   │   ├── badge.tsx
-│   │   │   │   ├── breadcrumb.tsx
-│   │   │   │   ├── bubble.tsx
-│   │   │   │   ├── button-group.tsx
-│   │   │   │   ├── button.tsx
-│   │   │   │   ├── calendar.tsx
-│   │   │   │   ├── card.tsx
-│   │   │   │   ├── carousel.tsx
-│   │   │   │   ├── chart.tsx
-│   │   │   │   ├── checkbox.tsx
-│   │   │   │   ├── collapsible.tsx
-│   │   │   │   ├── combobox.tsx
-│   │   │   │   ├── command.tsx
-│   │   │   │   ├── context-menu.tsx
-│   │   │   │   ├── dialog.tsx
-│   │   │   │   ├── direction.tsx
-│   │   │   │   ├── drawer.tsx
-│   │   │   │   ├── dropdown-menu.tsx
-│   │   │   │   ├── empty.tsx
-│   │   │   │   ├── field.tsx
-│   │   │   │   ├── hover-card.tsx
-│   │   │   │   ├── input-group.tsx
-│   │   │   │   ├── input-otp.tsx
-│   │   │   │   ├── input.tsx
-│   │   │   │   ├── item.tsx
-│   │   │   │   ├── kbd.tsx
-│   │   │   │   ├── label.tsx
-│   │   │   │   ├── marker.tsx
-│   │   │   │   ├── menubar.tsx
-│   │   │   │   ├── message-scroller.tsx
-│   │   │   │   ├── message.tsx
-│   │   │   │   ├── native-select.tsx
-│   │   │   │   ├── navigation-menu.tsx
-│   │   │   │   ├── pagination.tsx
-│   │   │   │   ├── popover.tsx
-│   │   │   │   ├── progress.tsx
-│   │   │   │   ├── questionnaire.tsx
-│   │   │   │   ├── radio-group.tsx
-│   │   │   │   ├── resizable.tsx
-│   │   │   │   ├── scroll-area.tsx
-│   │   │   │   ├── select.tsx
-│   │   │   │   ├── separator.tsx
-│   │   │   │   ├── sheet.tsx
-│   │   │   │   ├── sidebar.tsx
-│   │   │   │   ├── skeleton.tsx
-│   │   │   │   ├── slider.tsx
-│   │   │   │   ├── sonner.tsx
-│   │   │   │   ├── spinner.tsx
-│   │   │   │   ├── switch.tsx
-│   │   │   │   ├── table.tsx
-│   │   │   │   ├── tabs.tsx
-│   │   │   │   ├── textarea.tsx
-│   │   │   │   ├── toggle-group.tsx
-│   │   │   │   ├── toggle.tsx
-│   │   │   │   └── tooltip.tsx
-│   │   │   ├── dashboard-list-skeleton.tsx
-│   │   │   ├── dashboard-page-header.tsx
-│   │   │   ├── dashboard-state.tsx
-│   │   │   ├── date-range-picker.tsx
-│   │   │   ├── onboarding-config-banner.tsx
-│   │   │   ├── qr-code-image.tsx
-│   │   │   ├── simple-icon.tsx
-│   │   │   ├── support-session-banner.tsx
-│   │   │   └── support-session-countdown.tsx
-│   │   ├── config/
-│   │   │   └── app-config.ts
-│   │   ├── hooks/
-│   │   │   ├── use-lg.ts
-│   │   │   └── use-mobile.ts
-│   │   ├── lib/
-│   │   │   ├── api/
-│   │   │   │   └── client.ts
-│   │   │   ├── auth/
-│   │   │   │   ├── backend-url.ts
-│   │   │   │   ├── csrf.ts
-│   │   │   │   ├── me.ts
-│   │   │   │   └── session.ts
-│   │   │   ├── copy/
-│   │   │   │   ├── auth.ts
-│   │   │   │   └── onboarding.ts
-│   │   │   ├── fonts/
-│   │   │   │   └── registry.ts
-│   │   │   ├── observability/
-│   │   │   │   ├── analytics-consent.test.ts
-│   │   │   │   ├── analytics-consent.ts
-│   │   │   │   ├── scrub-pii.test.ts
-│   │   │   │   ├── scrub-pii.ts
-│   │   │   │   └── track.ts
-│   │   │   ├── preferences/
-│   │   │   │   ├── layout.ts
-│   │   │   │   ├── preference-runtime.ts
-│   │   │   │   ├── preferences-config.ts
-│   │   │   │   ├── preferences-storage.ts
-│   │   │   │   ├── theme-utils.ts
-│   │   │   │   └── theme.ts
-│   │   │   ├── cookie.client.ts
-│   │   │   ├── data-table-features.ts
-│   │   │   ├── local-storage.client.ts
-│   │   │   └── utils.ts
-│   │   ├── navigation/
-│   │   │   └── sidebar/
-│   │   │       └── sidebar-items.ts
-│   │   ├── scripts/
-│   │   │   ├── generate-theme-presets.ts
-│   │   │   └── theme-boot.tsx
-│   │   ├── server/
-│   │   │   └── server-actions.ts
-│   │   ├── stores/
-│   │   │   └── preferences/
-│   │   │       ├── preferences-provider.tsx
-│   │   │       └── preferences-store.ts
-│   │   ├── styles/
-│   │   │   ├── flag-icons/
-│   │   │   │   └── flags.css
-│   │   │   └── presets/
-│   │   │       └── buffr-checkpoint.css
-│   │   ├── data
-│   │   ├── instrumentation-client.ts
-│   │   ├── instrumentation.ts
-│   │   └── proxy.ts
-│   ├── .gitignore
-│   ├── AGENTS.md
-│   ├── biome.json
-│   ├── components.json
-│   ├── CONTRIBUTING.md
-│   ├── LICENSE
-│   ├── next-env.d.ts
-│   ├── next.config.mjs
-│   ├── package-lock.json
-│   ├── package.json
-│   ├── postcss.config.mjs
-│   ├── README.md
-│   ├── sentry.edge.config.ts
-│   ├── sentry.server.config.ts
-│   ├── tsconfig.json
-│   ├── tsconfig.scripts.json
-│   └── vitest.config.mts
-├── backend/
-│   ├── db/
-│   │   ├── migrations/
-│   │   │   ├── 0001_release1_init.sql
-│   │   │   ├── 0002_auth_extensions.sql
-│   │   │   ├── 0003_password_hash.sql
-│   │   │   ├── 0004_capability_status.sql
-│   │   │   ├── 0005_capability_status_split.sql
-│   │   │   ├── 0006_release1_5_schema.sql
-│   │   │   ├── 0007_audit_append_only.sql
-│   │   │   ├── 0008_canonical_rename.sql
-│   │   │   ├── 0009_canonical_rename_cleanup.sql
-│   │   │   ├── 0010_site_visitor_experience_schema.sql
-│   │   │   ├── 0011_host_notification_escalation_events.sql
-│   │   │   ├── 0012_pre_checkin_ack_and_visit_statuses.sql
-│   │   │   ├── 0013_secure_customer_onboarding.sql
-│   │   │   ├── 0014_full_stack_v020.sql
-│   │   │   ├── 0015_cran_pki_v021.sql
-│   │   │   ├── 0016_qr_invitation_capability_live.sql
-│   │   │   ├── 0017_v022_completion.sql
-│   │   │   ├── 0018_assurance_level_labels.sql
-│   │   │   ├── 0019_organisation_directory_and_wait_queue.sql
-│   │   │   ├── 0020_login_lockout.sql
-│   │   │   ├── 0021_notification_outbox_and_domain_events.sql
-│   │   │   ├── 0022_platform_ops_console.sql
-│   │   │   └── 0023_support_access_customer_consent.sql
-│   │   └── seed/
-│   │       ├── 0001_type_definitions.sql
-│   │       ├── 0002_capability_status.sql
-│   │       ├── 0003_legal_basis_and_form_types.sql
-│   │       ├── 0004_canonical_permissions.sql
-│   │       ├── 0005_organisation_sector_expansion.sql
-│   │       ├── 0006_kiosk_permissions.sql
-│   │       ├── 0007_visitor_policy_acknowledgement_domains.sql
-│   │       ├── 0008_site_visitor_experience_domains.sql
-│   │       ├── 0009_demo_site_visitor_experience.sql
-│   │       ├── 0010_capability_v021.sql
-│   │       ├── 0011_kiosk_demo_email_verified.sql
-│   │       ├── 0012_demo_branding_buffr_analytics.sql
-│   │       ├── 0013_demo_front_desk_hosts.sql
-│   │       ├── 0014_organisation_unit_kinds.sql
-│   │       ├── 0015_demo_bian_directory.sql
-│   │       ├── 0016_demo_check_in_form.sql
-│   │       └── 0017_platform_support_demo.sql
-│   ├── src/
-│   │   ├── common/
-│   │   │   ├── access-control/
-│   │   │   │   ├── access-control.module.ts
-│   │   │   │   └── scoped-permission-evaluation.service.ts
-│   │   │   ├── artifacts/
-│   │   │   │   └── artifact-store.ts
-│   │   │   ├── assets/
-│   │   │   │   └── public-asset-url.ts
-│   │   │   ├── crypto/
-│   │   │   │   └── secret-crypto.ts
-│   │   │   ├── data-protection/
-│   │   │   │   ├── data-protection.module.ts
-│   │   │   │   └── personal-data-protection.service.ts
-│   │   │   ├── decorators/
-│   │   │   │   ├── audit-log.decorator.ts
-│   │   │   │   ├── current-user.decorator.ts
-│   │   │   │   ├── platform-scoped.decorator.ts
-│   │   │   │   ├── public.decorator.ts
-│   │   │   │   ├── require-mfa.decorator.ts
-│   │   │   │   ├── require-permission.decorator.ts
-│   │   │   │   └── require-verified-email.decorator.ts
-│   │   │   ├── domain-events/
-│   │   │   │   └── visit-checked-in.event.ts
-│   │   │   ├── guards/
-│   │   │   │   ├── rbac.guard.ts
-│   │   │   │   └── tenant-scope.guard.ts
-│   │   │   ├── interceptors/
-│   │   │   │   └── audit.interceptor.ts
-│   │   │   ├── observability/
-│   │   │   │   ├── scrub-pii.spec.ts
-│   │   │   │   └── scrub-pii.ts
-│   │   │   └── rbac/
-│   │   │       └── permissions.ts
-│   │   ├── db/
-│   │   │   ├── schema/
-│   │   │   │   ├── audit.ts
-│   │   │   │   ├── billing.ts
-│   │   │   │   ├── capability-status.ts
-│   │   │   │   ├── consent.ts
-│   │   │   │   ├── contact-enquiries.ts
-│   │   │   │   ├── credential-validation.ts
-│   │   │   │   ├── credentials.ts
-│   │   │   │   ├── crm.ts
-│   │   │   │   ├── dsar.ts
-│   │   │   │   ├── emergency.ts
-│   │   │   │   ├── evidence.ts
-│   │   │   │   ├── form-templates.ts
-│   │   │   │   ├── host-notification-escalation-events.ts
-│   │   │   │   ├── host-notification-escalation.ts
-│   │   │   │   ├── hosts.ts
-│   │   │   │   ├── identity-verification.ts
-│   │   │   │   ├── index.ts
-│   │   │   │   ├── invitations.ts
-│   │   │   │   ├── kiosk-experience.ts
-│   │   │   │   ├── kiosk-privacy-pre-checkin-acknowledgements.ts
-│   │   │   │   ├── kyb.ts
-│   │   │   │   ├── legal-holds.ts
-│   │   │   │   ├── managed-kiosk-devices.ts
-│   │   │   │   ├── notifications.ts
-│   │   │   │   ├── organisation-units.ts
-│   │   │   │   ├── organisations.ts
-│   │   │   │   ├── platform-ops.ts
-│   │   │   │   ├── rbac.ts
-│   │   │   │   ├── secure-onboarding.ts
-│   │   │   │   ├── site-branding.ts
-│   │   │   │   ├── site-qr-references.ts
-│   │   │   │   ├── sites.ts
-│   │   │   │   ├── sms-contact-confirmation.ts
-│   │   │   │   ├── telecom-integrations.ts
-│   │   │   │   ├── type-definitions.ts
-│   │   │   │   ├── visit-form-answers.ts
-│   │   │   │   ├── visitor-wait-queue.ts
-│   │   │   │   ├── visitors.ts
-│   │   │   │   └── visits.ts
-│   │   │   ├── client.ts
-│   │   │   ├── db.module.ts
-│   │   │   ├── db.token.ts
-│   │   │   └── type-definition-lookup.service.ts
-│   │   ├── modules/
-│   │   │   ├── access-policies/
-│   │   │   │   ├── dto/
-│   │   │   │   │   └── access-policy.dto.ts
-│   │   │   │   ├── access-policies.controller.ts
-│   │   │   │   ├── access-policies.module.ts
-│   │   │   │   └── access-policies.service.ts
-│   │   │   ├── analytics/
-│   │   │   │   ├── analytics.controller.ts
-│   │   │   │   ├── analytics.module.ts
-│   │   │   │   └── analytics.service.ts
-│   │   │   ├── audit/
-│   │   │   │   ├── audit.controller.ts
-│   │   │   │   ├── audit.module.ts
-│   │   │   │   └── audit.service.ts
-│   │   │   ├── auth/
-│   │   │   │   ├── dto/
-│   │   │   │   │   ├── login.dto.ts
-│   │   │   │   │   ├── password-reset.dto.ts
-│   │   │   │   │   └── register.dto.ts
-│   │   │   │   ├── guards/
-│   │   │   │   │   └── jwt-auth.guard.ts
-│   │   │   │   ├── strategies/
-│   │   │   │   │   └── jwt.strategy.ts
-│   │   │   │   ├── auth.controller.ts
-│   │   │   │   ├── auth.module.ts
-│   │   │   │   ├── auth.service.ts
-│   │   │   │   ├── mfa-authenticator.spec.ts
-│   │   │   │   └── onboarding-evidence.service.ts
-│   │   │   ├── billing/
-│   │   │   │   ├── billing.controller.ts
-│   │   │   │   ├── billing.module.ts
-│   │   │   │   └── billing.service.ts
-│   │   │   ├── capability-status/
-│   │   │   │   ├── dto/
-│   │   │   │   │   ├── organisation-capability-enablement.dto.ts
-│   │   │   │   │   └── update-capability-status.dto.ts
-│   │   │   │   ├── capability-status.controller.ts
-│   │   │   │   ├── capability-status.module.ts
-│   │   │   │   ├── capability-status.service.spec.ts
-│   │   │   │   └── capability-status.service.ts
-│   │   │   ├── compliance/
-│   │   │   │   ├── compliance.controller.ts
-│   │   │   │   ├── compliance.module.ts
-│   │   │   │   └── compliance.service.ts
-│   │   │   ├── contact/
-│   │   │   │   ├── contact.controller.ts
-│   │   │   │   ├── contact.module.ts
-│   │   │   │   └── contact.service.ts
-│   │   │   ├── credentials/
-│   │   │   │   ├── dto/
-│   │   │   │   │   ├── credential-entitlement.dto.ts
-│   │   │   │   │   ├── issue-credential.dto.ts
-│   │   │   │   │   └── validate-credential.dto.ts
-│   │   │   │   ├── credentials.controller.ts
-│   │   │   │   ├── credentials.module.ts
-│   │   │   │   └── credentials.service.ts
-│   │   │   ├── crm/
-│   │   │   │   ├── crm.controller.ts
-│   │   │   │   ├── crm.module.ts
-│   │   │   │   └── crm.service.ts
-│   │   │   ├── devices/
-│   │   │   │   ├── dto/
-│   │   │   │   │   ├── create-device.dto.ts
-│   │   │   │   │   └── update-device-status.dto.ts
-│   │   │   │   ├── devices.controller.ts
-│   │   │   │   ├── devices.module.ts
-│   │   │   │   └── devices.service.ts
-│   │   │   ├── dsar/
-│   │   │   │   ├── dto/
-│   │   │   │   │   └── create-dsar.dto.ts
-│   │   │   │   ├── dsar.controller.ts
-│   │   │   │   ├── dsar.module.ts
-│   │   │   │   └── dsar.service.ts
-│   │   │   ├── emergency/
-│   │   │   │   ├── dto/
-│   │   │   │   │   └── trigger-emergency.dto.ts
-│   │   │   │   ├── emergency.controller.ts
-│   │   │   │   ├── emergency.module.ts
-│   │   │   │   └── emergency.service.ts
-│   │   │   ├── evidence/
-│   │   │   │   ├── evidence.controller.ts
-│   │   │   │   ├── evidence.module.ts
-│   │   │   │   └── evidence.service.ts
-│   │   │   ├── host-notification-escalation/
-│   │   │   │   ├── dto/
-│   │   │   │   │   └── host-notification-escalation.dto.ts
-│   │   │   │   ├── host-notification-escalation-evaluation.service.ts
-│   │   │   │   ├── host-notification-escalation.controller.ts
-│   │   │   │   ├── host-notification-escalation.module.ts
-│   │   │   │   └── host-notification-escalation.service.ts
-│   │   │   ├── hosts/
-│   │   │   │   ├── dto/
-│   │   │   │   │   └── create-host.dto.ts
-│   │   │   │   ├── hosts.controller.ts
-│   │   │   │   ├── hosts.module.ts
-│   │   │   │   └── hosts.service.ts
-│   │   │   ├── identity-verification/
-│   │   │   │   ├── dto/
-│   │   │   │   │   ├── record-verification.dto.ts
-│   │   │   │   │   └── verify-identity.dto.ts
-│   │   │   │   ├── providers/
-│   │   │   │   │   ├── diginam-relying-party-verification.provider.ts
-│   │   │   │   │   ├── digital-identity-verification.provider.ts
-│   │   │   │   │   └── discovery-identity-verification.provider.ts
-│   │   │   │   ├── identity-verification-orchestrator.service.ts
-│   │   │   │   ├── identity-verification.controller.ts
-│   │   │   │   ├── identity-verification.module.ts
-│   │   │   │   └── identity-verification.service.ts
-│   │   │   ├── integrations/
-│   │   │   │   └── telecoms/
-│   │   │   │       ├── dto/
-│   │   │   │       │   └── ussd-session.dto.ts
-│   │   │   │       ├── feature-phone-check-in-session.service.ts
-│   │   │   │       ├── sms-contact-confirmation.service.spec.ts
-│   │   │   │       ├── sms-contact-confirmation.service.ts
-│   │   │   │       ├── telecom-webhook.guard.ts
-│   │   │   │       ├── telecoms.controller.ts
-│   │   │   │       └── telecoms.module.ts
-│   │   │   ├── invitations/
-│   │   │   │   ├── dto/
-│   │   │   │   │   ├── create-invitation.dto.ts
-│   │   │   │   │   └── public-invitation-check-in.dto.ts
-│   │   │   │   ├── invitation-token.util.spec.ts
-│   │   │   │   ├── invitation-token.util.ts
-│   │   │   │   ├── invitations.controller.ts
-│   │   │   │   ├── invitations.module.ts
-│   │   │   │   ├── invitations.service.spec.ts
-│   │   │   │   ├── invitations.service.ts
-│   │   │   │   └── public-invitations.controller.ts
-│   │   │   ├── kiosk-experience/
-│   │   │   │   ├── dto/
-│   │   │   │   │   └── kiosk-experience.dto.ts
-│   │   │   │   ├── kiosk-experience.controller.ts
-│   │   │   │   ├── kiosk-experience.module.ts
-│   │   │   │   └── kiosk-experience.service.ts
-│   │   │   ├── kyb/
-│   │   │   │   ├── kyb.controller.ts
-│   │   │   │   ├── kyb.module.ts
-│   │   │   │   └── kyb.service.ts
-│   │   │   ├── legal-holds/
-│   │   │   │   ├── dto/
-│   │   │   │   │   └── create-legal-hold.dto.ts
-│   │   │   │   ├── legal-holds.controller.ts
-│   │   │   │   ├── legal-holds.module.ts
-│   │   │   │   └── legal-holds.service.ts
-│   │   │   ├── notifications/
-│   │   │   │   ├── dto/
-│   │   │   │   │   └── send-notification.dto.ts
-│   │   │   │   ├── email.adapter.ts
-│   │   │   │   ├── host-notification-email.ts
-│   │   │   │   ├── notification-dispatch-worker.service.ts
-│   │   │   │   ├── notifications.controller.ts
-│   │   │   │   ├── notifications.module.ts
-│   │   │   │   ├── notifications.service.ts
-│   │   │   │   └── visit-checked-in.listener.ts
-│   │   │   ├── onboarding/
-│   │   │   │   ├── dto/
-│   │   │   │   │   └── create-organisation-admin.dto.ts
-│   │   │   │   ├── onboarding-steps.spec.ts
-│   │   │   │   ├── onboarding-steps.ts
-│   │   │   │   ├── onboarding.controller.ts
-│   │   │   │   ├── onboarding.module.ts
-│   │   │   │   └── onboarding.service.ts
-│   │   │   ├── organisation-directory/
-│   │   │   │   ├── organisation-directory.controller.ts
-│   │   │   │   ├── organisation-directory.module.ts
-│   │   │   │   └── organisation-directory.service.ts
-│   │   │   ├── organisation-health/
-│   │   │   │   ├── organisation-health-worker.service.ts
-│   │   │   │   ├── organisation-health.module.ts
-│   │   │   │   └── organisation-health.service.ts
-│   │   │   ├── organisations/
-│   │   │   │   ├── dto/
-│   │   │   │   │   ├── create-organisation.dto.ts
-│   │   │   │   │   └── update-organisation.dto.ts
-│   │   │   │   ├── organisations.controller.ts
-│   │   │   │   ├── organisations.module.ts
-│   │   │   │   └── organisations.service.ts
-│   │   │   ├── platform-dashboard/
-│   │   │   │   ├── platform-dashboard.controller.ts
-│   │   │   │   ├── platform-dashboard.module.ts
-│   │   │   │   └── platform-dashboard.service.ts
-│   │   │   ├── platform-incidents/
-│   │   │   │   ├── platform-incidents.controller.ts
-│   │   │   │   ├── platform-incidents.module.ts
-│   │   │   │   └── platform-incidents.service.ts
-│   │   │   ├── rbac/
-│   │   │   │   ├── dto/
-│   │   │   │   │   └── change-role.dto.ts
-│   │   │   │   ├── rbac.controller.ts
-│   │   │   │   ├── rbac.module.ts
-│   │   │   │   └── rbac.service.ts
-│   │   │   ├── regions/
-│   │   │   │   ├── regions.controller.ts
-│   │   │   │   ├── regions.module.ts
-│   │   │   │   └── regions.service.ts
-│   │   │   ├── retention-policy/
-│   │   │   │   ├── dto/
-│   │   │   │   │   └── retention-policy.dto.ts
-│   │   │   │   ├── retention-policy.controller.ts
-│   │   │   │   ├── retention-policy.module.ts
-│   │   │   │   └── retention-policy.service.ts
-│   │   │   ├── schedule/
-│   │   │   │   ├── schedule.controller.ts
-│   │   │   │   └── schedule.module.ts
-│   │   │   ├── security-zones/
-│   │   │   │   ├── security-zones.controller.ts
-│   │   │   │   ├── security-zones.module.ts
-│   │   │   │   └── security-zones.service.ts
-│   │   │   ├── site-branding/
-│   │   │   │   ├── dto/
-│   │   │   │   │   └── site-branding.dto.ts
-│   │   │   │   ├── site-branding.controller.ts
-│   │   │   │   ├── site-branding.module.ts
-│   │   │   │   └── site-branding.service.ts
-│   │   │   ├── site-qr-references/
-│   │   │   │   ├── dto/
-│   │   │   │   │   └── site-qr-references.dto.ts
-│   │   │   │   ├── site-qr-references.controller.ts
-│   │   │   │   ├── site-qr-references.module.ts
-│   │   │   │   └── site-qr-references.service.ts
-│   │   │   ├── sites/
-│   │   │   │   ├── dto/
-│   │   │   │   │   └── create-site.dto.ts
-│   │   │   │   ├── sites.controller.ts
-│   │   │   │   ├── sites.module.ts
-│   │   │   │   └── sites.service.ts
-│   │   │   ├── support-sessions/
-│   │   │   │   ├── support-sessions.controller.ts
-│   │   │   │   ├── support-sessions.module.ts
-│   │   │   │   └── support-sessions.service.ts
-│   │   │   ├── support-tickets/
-│   │   │   │   ├── support-tickets.controller.ts
-│   │   │   │   ├── support-tickets.module.ts
-│   │   │   │   └── support-tickets.service.ts
-│   │   │   ├── type-definitions/
-│   │   │   │   ├── type-definitions.controller.ts
-│   │   │   │   ├── type-definitions.module.ts
-│   │   │   │   └── type-definitions.service.ts
-│   │   │   ├── visitor-policy/
-│   │   │   │   ├── dto/
-│   │   │   │   │   ├── acknowledge-policy.dto.ts
-│   │   │   │   │   ├── check-in-form.dto.ts
-│   │   │   │   │   └── pre-checkin-acknowledge.dto.ts
-│   │   │   │   ├── visitor-policy.controller.ts
-│   │   │   │   ├── visitor-policy.module.ts
-│   │   │   │   └── visitor-policy.service.ts
-│   │   │   ├── visitor-wait-queue/
-│   │   │   │   ├── visitor-wait-queue.controller.ts
-│   │   │   │   ├── visitor-wait-queue.module.ts
-│   │   │   │   └── visitor-wait-queue.service.ts
-│   │   │   ├── visitors/
-│   │   │   │   ├── dto/
-│   │   │   │   │   └── create-visitor.dto.ts
-│   │   │   │   ├── visitors.controller.ts
-│   │   │   │   ├── visitors.module.ts
-│   │   │   │   └── visitors.service.ts
-│   │   │   ├── visits/
-│   │   │   │   ├── dto/
-│   │   │   │   │   ├── check-in.dto.ts
-│   │   │   │   │   ├── public-check-in.dto.ts
-│   │   │   │   │   └── visit-access-decision.dto.ts
-│   │   │   │   ├── public-check-in.controller.ts
-│   │   │   │   ├── visitor-next-steps.ts
-│   │   │   │   ├── visits.controller.ts
-│   │   │   │   ├── visits.module.ts
-│   │   │   │   └── visits.service.ts
-│   │   │   └── rename-map.tsv
-│   │   ├── test/
-│   │   │   └── setup-env.ts
-│   │   ├── app.controller.ts
-│   │   ├── app.module.ts
-│   │   ├── instrument.ts
-│   │   └── main.ts
-│   ├── test/
-│   │   ├── app.e2e-spec.ts
-│   │   ├── auth.e2e-spec.ts
-│   │   └── jest-e2e.json
-│   ├── .gitignore
-│   ├── biome.json
-│   ├── drizzle.config.ts
-│   ├── generated-evidence-packs
-│   ├── nest-cli.json
-│   ├── package-lock.json
-│   ├── package.json
-│   ├── railway.toml
-│   ├── README.md
-│   ├── scripts
-│   ├── tsconfig.build.json
-│   └── tsconfig.json
-├── kiosk/
-│   ├── .claude/
-│   │   └── settings.local.json
-│   ├── .idea/
-│   │   ├── caches/
-│   │   │   └── deviceStreaming.xml
-│   │   ├── codeStyles/
-│   │   │   ├── codeStyleConfig.xml
-│   │   │   └── Project.xml
-│   │   ├── .gitignore
-│   │   ├── .name
-│   │   ├── AndroidProjectSystem.xml
-│   │   ├── compiler.xml
-│   │   ├── deploymentTargetSelector.xml
-│   │   ├── deviceManager.xml
-│   │   ├── gradle.xml
-│   │   ├── migrations.xml
-│   │   ├── misc.xml
-│   │   ├── runConfigurations.xml
-│   │   └── workspace.xml
-│   ├── .kotlin/
-│   │   ├── errors
-│   │   └── sessions
-│   ├── app/
-│   │   ├── src/
-│   │   │   ├── debug/
-│   │   │   │   └── AndroidManifest.xml
-│   │   │   ├── main/
-│   │   │   │   ├── java/
-│   │   │   │   │   └── com/
-│   │   │   │   │       └── buffrcheckpoint/
-│   │   │   │   │           └── kiosk/
-│   │   │   │   │               ├── about/
-│   │   │   │   │               │   └── ui/
-│   │   │   │   │               │       └── AboutDebugScreen.kt
-│   │   │   │   │               ├── auth/
-│   │   │   │   │               │   ├── ui/
-│   │   │   │   │               │   │   ├── KioskSetupScreen.kt
-│   │   │   │   │               │   │   └── LoginScreen.kt
-│   │   │   │   │               │   ├── AuthRepository.kt
-│   │   │   │   │               │   ├── KioskSetupViewModel.kt
-│   │   │   │   │               │   └── LoginViewModel.kt
-│   │   │   │   │               ├── checkin/
-│   │   │   │   │               │   ├── assisted/
-│   │   │   │   │               │   │   └── ui/
-│   │   │   │   │               │   │       └── AssistedCheckInScreen.kt
-│   │   │   │   │               │   ├── manual/
-│   │   │   │   │               │   │   ├── ui/
-│   │   │   │   │               │   │   │   └── ManualCheckInScreen.kt
-│   │   │   │   │               │   │   └── ManualCheckInViewModel.kt
-│   │   │   │   │               │   ├── nfc/
-│   │   │   │   │               │   │   └── ui
-│   │   │   │   │               │   ├── policy/
-│   │   │   │   │               │   │   └── ui
-│   │   │   │   │               │   ├── qr/
-│   │   │   │   │               │   │   ├── ui/
-│   │   │   │   │               │   │   │   └── QrScanScreen.kt
-│   │   │   │   │               │   │   └── QrCheckInViewModel.kt
-│   │   │   │   │               │   ├── ui/
-│   │   │   │   │               │   │   ├── CheckInSuccessScreen.kt
-│   │   │   │   │               │   │   └── CheckInSuccessViewModel.kt
-│   │   │   │   │               │   ├── CheckInMapper.kt
-│   │   │   │   │               │   └── CheckInRepository.kt
-│   │   │   │   │               ├── checkout/
-│   │   │   │   │               │   ├── ui/
-│   │   │   │   │               │   │   └── VisitorSignOutScreen.kt
-│   │   │   │   │               │   ├── CheckOutViewModel.kt
-│   │   │   │   │               │   └── VisitorSignOutViewModel.kt
-│   │   │   │   │               ├── core/
-│   │   │   │   │               │   ├── db/
-│   │   │   │   │               │   │   ├── DatabasePassphraseProvider.kt
-│   │   │   │   │               │   │   ├── KioskDatabase.kt
-│   │   │   │   │               │   │   ├── OutboxDao.kt
-│   │   │   │   │               │   │   └── OutboxEntity.kt
-│   │   │   │   │               │   ├── domain/
-│   │   │   │   │               │   │   ├── model/
-│   │   │   │   │               │   │   │   └── Enums.kt
-│   │   │   │   │               │   │   └── CheckInDraft.kt
-│   │   │   │   │               │   ├── network/
-│   │   │   │   │               │   │   ├── dto/
-│   │   │   │   │               │   │   │   ├── AuthDto.kt
-│   │   │   │   │               │   │   │   ├── CapabilityStatusDto.kt
-│   │   │   │   │               │   │   │   ├── CredentialDto.kt
-│   │   │   │   │               │   │   │   ├── KioskExperienceDto.kt
-│   │   │   │   │               │   │   │   ├── VisitDto.kt
-│   │   │   │   │               │   │   │   └── VisitorPolicyDto.kt
-│   │   │   │   │               │   │   ├── ApiClient.kt
-│   │   │   │   │               │   │   ├── ApiService.kt
-│   │   │   │   │               │   │   ├── ApiServiceProvider.kt
-│   │   │   │   │               │   │   ├── AuthAuthenticator.kt
-│   │   │   │   │               │   │   └── AuthInterceptor.kt
-│   │   │   │   │               │   ├── security/
-│   │   │   │   │               │   │   └── CredentialStore.kt
-│   │   │   │   │               │   └── governance
-│   │   │   │   │               ├── devices/
-│   │   │   │   │               │   ├── ui/
-│   │   │   │   │               │   │   └── DeviceListScreen.kt
-│   │   │   │   │               │   └── DeviceListViewModel.kt
-│   │   │   │   │               ├── di/
-│   │   │   │   │               │   ├── DatabaseModule.kt
-│   │   │   │   │               │   └── NetworkModule.kt
-│   │   │   │   │               ├── experience/
-│   │   │   │   │               │   ├── CapabilityRepository.kt
-│   │   │   │   │               │   ├── ExperienceRepository.kt
-│   │   │   │   │               │   ├── ExperienceSyncWorker.kt
-│   │   │   │   │               │   └── KioskExperienceState.kt
-│   │   │   │   │               ├── maintenance/
-│   │   │   │   │               │   └── ui/
-│   │   │   │   │               │       └── MaintenanceScreen.kt
-│   │   │   │   │               ├── navigation/
-│   │   │   │   │               │   ├── KioskDestinations.kt
-│   │   │   │   │               │   └── KioskNavGraph.kt
-│   │   │   │   │               ├── nfc/
-│   │   │   │   │               │   ├── ui/
-│   │   │   │   │               │   │   └── NfcCheckInScreen.kt
-│   │   │   │   │               │   ├── NfcCheckInViewModel.kt
-│   │   │   │   │               │   └── NfcCredentialParser.kt
-│   │   │   │   │               ├── notifications/
-│   │   │   │   │               │   └── ui
-│   │   │   │   │               ├── offline/
-│   │   │   │   │               │   ├── db/
-│   │   │   │   │               │   │   ├── dao
-│   │   │   │   │               │   │   └── entity
-│   │   │   │   │               │   └── sync
-│   │   │   │   │               ├── privacy/
-│   │   │   │   │               │   ├── ui/
-│   │   │   │   │               │   │   └── PrivacyNoticeScreen.kt
-│   │   │   │   │               │   └── PrivacyNoticeViewModel.kt
-│   │   │   │   │               ├── roster/
-│   │   │   │   │               │   ├── ui/
-│   │   │   │   │               │   │   └── RosterScreen.kt
-│   │   │   │   │               │   ├── RosterRepository.kt
-│   │   │   │   │               │   └── RosterViewModel.kt
-│   │   │   │   │               ├── session/
-│   │   │   │   │               │   ├── AbandonVisitorCheckInUseCase.kt
-│   │   │   │   │               │   ├── KioskIdleHandler.kt
-│   │   │   │   │               │   ├── ProtectedDraftClearanceService.kt
-│   │   │   │   │               │   └── VisitorSessionTimeoutController.kt
-│   │   │   │   │               ├── sync/
-│   │   │   │   │               │   ├── ui/
-│   │   │   │   │               │   │   └── SyncStatusBanner.kt
-│   │   │   │   │               │   ├── OutboxDrainWorker.kt
-│   │   │   │   │               │   ├── OutboxRepository.kt
-│   │   │   │   │               │   └── SyncStatusViewModel.kt
-│   │   │   │   │               ├── ui/
-│   │   │   │   │               │   ├── theme/
-│   │   │   │   │               │   │   ├── Color.kt
-│   │   │   │   │               │   │   ├── Theme.kt
-│   │   │   │   │               │   │   └── Type.kt
-│   │   │   │   │               │   ├── KioskOnboardingScaffold.kt
-│   │   │   │   │               │   ├── LogoDiskCache.kt
-│   │   │   │   │               │   ├── QrCodeImage.kt
-│   │   │   │   │               │   └── RemoteLogoImage.kt
-│   │   │   │   │               ├── ussd/
-│   │   │   │   │               │   ├── ui/
-│   │   │   │   │               │   │   └── UssdInstructionsScreen.kt
-│   │   │   │   │               │   └── UssdInstructionsViewModel.kt
-│   │   │   │   │               ├── welcome/
-│   │   │   │   │               │   ├── ui/
-│   │   │   │   │               │   │   └── WelcomeScreen.kt
-│   │   │   │   │               │   └── WelcomeViewModel.kt
-│   │   │   │   │               ├── BuffrCheckpointApp.kt
-│   │   │   │   │               ├── capability
-│   │   │   │   │               └── MainActivity.kt
-│   │   │   │   ├── res/
-│   │   │   │   │   ├── mipmap-anydpi-v26/
-│   │   │   │   │   │   ├── ic_launcher.xml
-│   │   │   │   │   │   └── ic_launcher_round.xml
-│   │   │   │   │   └── values/
-│   │   │   │   │       ├── colors.xml
-│   │   │   │   │       ├── strings.xml
-│   │   │   │   │       └── themes.xml
-│   │   │   │   └── AndroidManifest.xml
-│   │   │   └── test/
-│   │   │       └── java/
-│   │   │           └── com/
-│   │   │               └── buffrcheckpoint/
-│   │   │                   └── kiosk/
-│   │   │                       ├── checkin/
-│   │   │                       │   └── CheckInMapperTest.kt
-│   │   │                       ├── core/
-│   │   │                       │   └── domain/
-│   │   │                       │       └── model/
-│   │   │                       │           └── VisitStatusTest.kt
-│   │   │                       ├── nfc/
-│   │   │                       │   └── NfcCredentialParserTest.kt
-│   │   │                       ├── session/
-│   │   │                       │   ├── AbandonVisitorCheckInUseCaseTest.kt
-│   │   │                       │   └── ProtectedDraftClearanceServiceTest.kt
-│   │   │                       └── sync/
-│   │   │                           └── SyncBannerMappingTest.kt
-│   │   ├── build.gradle.kts
-│   │   └── proguard-rules.pro
-│   ├── gradle/
-│   │   ├── wrapper/
-│   │   │   └── gradle-wrapper.properties
-│   │   ├── gradle-daemon-jvm.properties
-│   │   └── libs.versions.toml
-│   ├── scripts/
-│   │   └── rebuild-and-run.sh
-│   ├── .gitignore
-│   ├── build.gradle.kts
-│   ├── gradle.properties
-│   ├── gradlew
-│   ├── gradlew.bat
-│   ├── local.properties
-│   └── settings.gradle.kts
-├── ops-console/
-│   ├── public/
-│   │   └── icon.png
-│   ├── src/
-│   │   ├── app/
-│   │   │   ├── (console)/
-│   │   │   │   ├── analytics/
-│   │   │   │   │   └── page.tsx
-│   │   │   │   ├── audit/
-│   │   │   │   │   └── page.tsx
-│   │   │   │   ├── billing/
-│   │   │   │   │   ├── _components/
-│   │   │   │   │   │   └── review-buttons.tsx
-│   │   │   │   │   ├── actions.ts
-│   │   │   │   │   └── page.tsx
-│   │   │   │   ├── capability-status/
-│   │   │   │   │   ├── _components/
-│   │   │   │   │   │   └── update-form.tsx
-│   │   │   │   │   ├── actions.ts
-│   │   │   │   │   └── page.tsx
-│   │   │   │   ├── crm/
-│   │   │   │   │   ├── _components/
-│   │   │   │   │   │   └── deal-controls.tsx
-│   │   │   │   │   ├── actions.ts
-│   │   │   │   │   └── page.tsx
-│   │   │   │   ├── incidents/
-│   │   │   │   │   ├── _components/
-│   │   │   │   │   │   └── incident-controls.tsx
-│   │   │   │   │   ├── actions.ts
-│   │   │   │   │   └── page.tsx
-│   │   │   │   ├── kyb/
-│   │   │   │   │   ├── _components/
-│   │   │   │   │   │   └── decision-buttons.tsx
-│   │   │   │   │   ├── actions.ts
-│   │   │   │   │   └── page.tsx
-│   │   │   │   ├── organisations/
-│   │   │   │   │   ├── [id]/
-│   │   │   │   │   │   ├── _components/
-│   │   │   │   │   │   │   └── tabs.tsx
-│   │   │   │   │   │   └── page.tsx
-│   │   │   │   │   ├── _components/
-│   │   │   │   │   │   └── request-grant-form.tsx
-│   │   │   │   │   ├── actions.ts
-│   │   │   │   │   └── page.tsx
-│   │   │   │   ├── support-access/
-│   │   │   │   │   ├── _components/
-│   │   │   │   │   │   ├── grant-row.tsx
-│   │   │   │   │   │   └── new-grant-form.tsx
-│   │   │   │   │   ├── actions.ts
-│   │   │   │   │   └── page.tsx
-│   │   │   │   ├── tickets/
-│   │   │   │   │   ├── _components/
-│   │   │   │   │   │   ├── ticket-comments.tsx
-│   │   │   │   │   │   └── ticket-controls.tsx
-│   │   │   │   │   ├── actions.ts
-│   │   │   │   │   └── page.tsx
-│   │   │   │   ├── actions.ts
-│   │   │   │   ├── error.tsx
-│   │   │   │   ├── layout.tsx
-│   │   │   │   ├── loading.tsx
-│   │   │   │   └── page.tsx
-│   │   │   ├── login/
-│   │   │   │   ├── mfa/
-│   │   │   │   │   └── page.tsx
-│   │   │   │   ├── actions.ts
-│   │   │   │   └── page.tsx
-│   │   │   ├── globals.css
-│   │   │   └── layout.tsx
-│   │   ├── components/
-│   │   │   ├── analytics/
-│   │   │   │   └── AnalyticsProviders.tsx
-│   │   │   ├── map/
-│   │   │   │   ├── chart-tokens.ts
-│   │   │   │   ├── NamibiaMap.tsx
-│   │   │   │   └── namibiaRegions.ts
-│   │   │   ├── ui/
-│   │   │   │   ├── alert.tsx
-│   │   │   │   ├── avatar.tsx
-│   │   │   │   ├── badge.tsx
-│   │   │   │   ├── button.tsx
-│   │   │   │   ├── card.tsx
-│   │   │   │   ├── dropdown-menu.tsx
-│   │   │   │   ├── input.tsx
-│   │   │   │   ├── label.tsx
-│   │   │   │   ├── native-select.tsx
-│   │   │   │   ├── select.tsx
-│   │   │   │   ├── separator.tsx
-│   │   │   │   ├── sheet.tsx
-│   │   │   │   ├── sidebar.tsx
-│   │   │   │   ├── skeleton.tsx
-│   │   │   │   ├── sonner.tsx
-│   │   │   │   ├── table.tsx
-│   │   │   │   ├── textarea.tsx
-│   │   │   │   └── tooltip.tsx
-│   │   │   ├── app-sidebar.tsx
-│   │   │   ├── dashboard-state.tsx
-│   │   │   └── logout-button.tsx
-│   │   ├── hooks/
-│   │   │   └── use-mobile.ts
-│   │   ├── lib/
-│   │   │   ├── auth/
-│   │   │   │   └── session.ts
-│   │   │   ├── observability/
-│   │   │   │   ├── analytics-consent.ts
-│   │   │   │   ├── scrub-pii.ts
-│   │   │   │   └── track.ts
-│   │   │   └── api.ts
-│   │   ├── navigation/
-│   │   │   └── sidebar-items.ts
-│   │   └── styles/
-│   │       └── presets/
-│   │           └── buffr-checkpoint.css
-│   ├── .gitignore
-│   ├── biome.json
-│   ├── next-env.d.ts
-│   ├── next.config.ts
-│   ├── package-lock.json
-│   ├── package.json
-│   ├── postcss.config.mjs
-│   ├── README.md
-│   └── tsconfig.json
-├── scripts/
-│   ├── run-all-tests.sh
-│   └── smoke-production.sh
-├── website/
-│   ├── public/
-│   │   ├── org-assets/
-│   │   │   └── buffr-analytics/
-│   │   │       ├── icon.png
-│   │   │       └── wordmark.png
-│   │   ├── screenshots/
-│   │   │   ├── compliance-dashboard.png
-│   │   │   ├── device-compliance.png
-│   │   │   └── front-desk.png
-│   │   ├── icon.png
-│   │   └── logo.png
-│   ├── src/
-│   │   ├── app/
-│   │   │   ├── about/
-│   │   │   │   └── page.tsx
-│   │   │   ├── check-in/
-│   │   │   │   ├── check-in-branded-shell.tsx
-│   │   │   │   ├── check-in-form.tsx
-│   │   │   │   ├── invitation-check-in-form.tsx
-│   │   │   │   └── page.tsx
-│   │   │   ├── check-out/
-│   │   │   │   ├── check-out-client.tsx
-│   │   │   │   └── page.tsx
-│   │   │   ├── contact/
-│   │   │   │   ├── contact-form.tsx
-│   │   │   │   └── page.tsx
-│   │   │   ├── platform/
-│   │   │   │   └── page.tsx
-│   │   │   ├── pricing/
-│   │   │   │   └── page.tsx
-│   │   │   ├── privacy/
-│   │   │   │   └── page.tsx
-│   │   │   ├── sentry-example-page/
-│   │   │   │   └── page.tsx
-│   │   │   ├── terms/
-│   │   │   │   └── page.tsx
-│   │   │   ├── favicon.ico
-│   │   │   ├── global-error.tsx
-│   │   │   ├── globals.css
-│   │   │   ├── icon.png
-│   │   │   ├── layout.tsx
-│   │   │   ├── logo.png
-│   │   │   ├── not-found.tsx
-│   │   │   ├── page.tsx
-│   │   │   ├── robots.ts
-│   │   │   └── sitemap.ts
-│   │   ├── components/
-│   │   │   ├── analytics/
-│   │   │   │   └── AnalyticsProviders.tsx
-│   │   │   ├── ui/
-│   │   │   │   ├── accordion.tsx
-│   │   │   │   ├── badge.tsx
-│   │   │   │   ├── button.tsx
-│   │   │   │   ├── card.tsx
-│   │   │   │   ├── input.tsx
-│   │   │   │   ├── label.tsx
-│   │   │   │   ├── separator.tsx
-│   │   │   │   ├── sonner.tsx
-│   │   │   │   ├── textarea.tsx
-│   │   │   │   └── tooltip.tsx
-│   │   │   ├── capability-status-badge.tsx
-│   │   │   └── site-header.tsx
-│   │   ├── lib/
-│   │   │   ├── observability/
-│   │   │   │   ├── analytics-consent.test.ts
-│   │   │   │   ├── analytics-consent.ts
-│   │   │   │   ├── scrub-pii.test.ts
-│   │   │   │   ├── scrub-pii.ts
-│   │   │   │   └── track.ts
-│   │   │   ├── api.ts
-│   │   │   └── utils.ts
-│   │   ├── styles/
-│   │   │   └── presets/
-│   │   │       └── buffr-checkpoint.css
-│   │   ├── instrumentation-client.ts
-│   │   └── instrumentation.ts
-│   ├── .gitignore
-│   ├── AGENTS.md
-│   ├── biome.json
-│   ├── CLAUDE.md
-│   ├── next-env.d.ts
-│   ├── next.config.ts
-│   ├── package-lock.json
-│   ├── package.json
-│   ├── postcss.config.mjs
-│   ├── README.md
-│   ├── sentry.edge.config.ts
-│   ├── sentry.server.config.ts
-│   ├── tsconfig.json
-│   └── vitest.config.mts
-├── 3355B536-3F10-472C-BF5E-BE5BAE32EC41.PNG
-├── 9DEA346D-58CE-41C9-B4AC-F40124941AFF.PNG
-└── buffrcheckpoint.md
+|-- .claude
+|   |-- scheduled_tasks.lock
+|   |-- settings.local.json
+|   `-- skills
+|       `-- data-warehouse-source-setup
+|           |-- .posthog-wizard
+|           |-- SKILL.md
+|           `-- references
+|               |-- COMMANDMENTS.md
+|               |-- bigquery.md
+|               |-- mysql.md
+|               |-- postgres.md
+|               |-- shopify.md
+|               |-- snowflake.md
+|               |-- sources.md
+|               |-- stripe.md
+|               |-- woocommerce.md
+|               `-- wordpress.md
+|-- .gitignore
+|-- README.md
+|-- admin
+|   |-- .gitignore
+|   |-- .husky
+|   |   `-- pre-commit
+|   |-- AGENTS.md
+|   |-- CONTRIBUTING.md
+|   |-- LICENSE
+|   |-- README.md
+|   |-- biome.json
+|   |-- components.json
+|   |-- media
+|   |-- next-env.d.ts
+|   |-- next.config.mjs
+|   |-- package-lock.json
+|   |-- package.json
+|   |-- postcss.config.mjs
+|   |-- public
+|   |-- scripts
+|   |   `-- verify-onboarding-copy.mjs
+|   |-- sentry.edge.config.ts
+|   |-- sentry.server.config.ts
+|   |-- src
+|   |   |-- app
+|   |   |   |-- (main)
+|   |   |   |   |-- auth
+|   |   |   |   |   |-- _components
+|   |   |   |   |   |   |-- auth-layout.tsx
+|   |   |   |   |   |   |-- check-email-form.tsx
+|   |   |   |   |   |   |-- forgot-password-form.tsx
+|   |   |   |   |   |   |-- login-form.tsx
+|   |   |   |   |   |   |-- mfa-challenge-form.tsx
+|   |   |   |   |   |   |-- mfa-setup-form.tsx
+|   |   |   |   |   |   |-- register-form.tsx
+|   |   |   |   |   |   |-- reset-password-form.tsx
+|   |   |   |   |   |   `-- verify-email-client.tsx
+|   |   |   |   |   |-- check-email
+|   |   |   |   |   |   `-- page.tsx
+|   |   |   |   |   |-- forgot-password
+|   |   |   |   |   |   `-- page.tsx
+|   |   |   |   |   |-- login
+|   |   |   |   |   |   `-- page.tsx
+|   |   |   |   |   |-- mfa
+|   |   |   |   |   |   |-- challenge
+|   |   |   |   |   |   |   `-- page.tsx
+|   |   |   |   |   |   `-- setup
+|   |   |   |   |   |       `-- page.tsx
+|   |   |   |   |   |-- register
+|   |   |   |   |   |   `-- page.tsx
+|   |   |   |   |   |-- reset-password
+|   |   |   |   |   |   `-- page.tsx
+|   |   |   |   |   `-- verify-email
+|   |   |   |   |       `-- page.tsx
+|   |   |   |   |-- dashboard
+|   |   |   |   |   |-- [...not-found]
+|   |   |   |   |   |   `-- page.tsx
+|   |   |   |   |   |-- _actions
+|   |   |   |   |   |   |-- policy-device-actions.ts
+|   |   |   |   |   |   `-- visit-ops.ts
+|   |   |   |   |   |-- _components
+|   |   |   |   |   |   |-- header
+|   |   |   |   |   |   |   |-- account-menu.tsx
+|   |   |   |   |   |   |   |-- layout-controls.tsx
+|   |   |   |   |   |   |   `-- search-dialog.tsx
+|   |   |   |   |   |   |-- policy-create-sheets.tsx
+|   |   |   |   |   |   `-- sidebar
+|   |   |   |   |   |       |-- app-sidebar.tsx
+|   |   |   |   |   |       `-- nav-main.tsx
+|   |   |   |   |   |-- account
+|   |   |   |   |   |   |-- loading.tsx
+|   |   |   |   |   |   `-- page.tsx
+|   |   |   |   |   |-- audit
+|   |   |   |   |   |   |-- _components
+|   |   |   |   |   |   |   |-- actions.ts
+|   |   |   |   |   |   |   |-- audit-log-table.tsx
+|   |   |   |   |   |   |   `-- types.ts
+|   |   |   |   |   |   |-- loading.tsx
+|   |   |   |   |   |   `-- page.tsx
+|   |   |   |   |   |-- billing
+|   |   |   |   |   |   |-- [id]
+|   |   |   |   |   |   |   `-- page.tsx
+|   |   |   |   |   |   |-- _components
+|   |   |   |   |   |   |   `-- pop-upload-form.tsx
+|   |   |   |   |   |   |-- actions.ts
+|   |   |   |   |   |   `-- page.tsx
+|   |   |   |   |   |-- calendar
+|   |   |   |   |   |   |-- _components
+|   |   |   |   |   |   |   |-- calendar.tsx
+|   |   |   |   |   |   |   `-- schedule-event.ts
+|   |   |   |   |   |   |-- loading.tsx
+|   |   |   |   |   |   `-- page.tsx
+|   |   |   |   |   |-- compliance
+|   |   |   |   |   |   |-- legal-holds
+|   |   |   |   |   |   |   |-- _components
+|   |   |   |   |   |   |   |   `-- legal-hold-controls.tsx
+|   |   |   |   |   |   |   |-- actions.ts
+|   |   |   |   |   |   |   `-- page.tsx
+|   |   |   |   |   |   |-- loading.tsx
+|   |   |   |   |   |   |-- page.tsx
+|   |   |   |   |   |   `-- privacy-requests
+|   |   |   |   |   |       |-- _components
+|   |   |   |   |   |       |   `-- dsar-controls.tsx
+|   |   |   |   |   |       |-- actions.ts
+|   |   |   |   |   |       `-- page.tsx
+|   |   |   |   |   |-- credentials
+|   |   |   |   |   |   |-- loading.tsx
+|   |   |   |   |   |   `-- page.tsx
+|   |   |   |   |   |-- devices
+|   |   |   |   |   |   |-- _components
+|   |   |   |   |   |   |   `-- activate-device-button.tsx
+|   |   |   |   |   |   |-- compliance
+|   |   |   |   |   |   |   |-- loading.tsx
+|   |   |   |   |   |   |   `-- page.tsx
+|   |   |   |   |   |   |-- loading.tsx
+|   |   |   |   |   |   `-- page.tsx
+|   |   |   |   |   |-- emergency
+|   |   |   |   |   |   |-- _components
+|   |   |   |   |   |   |   `-- emergency-trigger-panel.tsx
+|   |   |   |   |   |   |-- loading.tsx
+|   |   |   |   |   |   `-- page.tsx
+|   |   |   |   |   |-- evidence
+|   |   |   |   |   |   |-- _components
+|   |   |   |   |   |   |   |-- actions.ts
+|   |   |   |   |   |   |   `-- generate-evidence-pack-button.tsx
+|   |   |   |   |   |   |-- loading.tsx
+|   |   |   |   |   |   `-- page.tsx
+|   |   |   |   |   |-- front-desk
+|   |   |   |   |   |   |-- loading.tsx
+|   |   |   |   |   |   `-- page.tsx
+|   |   |   |   |   |-- hosts
+|   |   |   |   |   |   |-- _components
+|   |   |   |   |   |   |   |-- create-host-sheet.tsx
+|   |   |   |   |   |   |   `-- protection-note.tsx
+|   |   |   |   |   |   |-- actions.ts
+|   |   |   |   |   |   `-- page.tsx
+|   |   |   |   |   |-- kyb
+|   |   |   |   |   |   |-- _components
+|   |   |   |   |   |   |   `-- kyb-submission-form.tsx
+|   |   |   |   |   |   |-- actions.ts
+|   |   |   |   |   |   `-- page.tsx
+|   |   |   |   |   |-- layout.tsx
+|   |   |   |   |   |-- organisation
+|   |   |   |   |   |   |-- _components
+|   |   |   |   |   |   |   `-- organisation-profile-form.tsx
+|   |   |   |   |   |   |-- actions.ts
+|   |   |   |   |   |   `-- page.tsx
+|   |   |   |   |   |-- organisation-directory
+|   |   |   |   |   |   |-- _components
+|   |   |   |   |   |   |   `-- directory-controls.tsx
+|   |   |   |   |   |   |-- actions.ts
+|   |   |   |   |   |   `-- page.tsx
+|   |   |   |   |   |-- overview
+|   |   |   |   |   |   |-- _components
+|   |   |   |   |   |   |   |-- on-site-roster-panel.tsx
+|   |   |   |   |   |   |   |-- operational-metric-cards.tsx
+|   |   |   |   |   |   |   `-- visit-activity-overview.tsx
+|   |   |   |   |   |   |-- loading.tsx
+|   |   |   |   |   |   `-- page.tsx
+|   |   |   |   |   |-- page.tsx
+|   |   |   |   |   |-- policies
+|   |   |   |   |   |   |-- access
+|   |   |   |   |   |   |   |-- loading.tsx
+|   |   |   |   |   |   |   `-- page.tsx
+|   |   |   |   |   |   |-- forms
+|   |   |   |   |   |   |   |-- [definitionId]
+|   |   |   |   |   |   |   |   |-- _actions.ts
+|   |   |   |   |   |   |   |   |-- _components
+|   |   |   |   |   |   |   |   |   `-- form-builder.tsx
+|   |   |   |   |   |   |   |   `-- page.tsx
+|   |   |   |   |   |   |   |-- loading.tsx
+|   |   |   |   |   |   |   `-- page.tsx
+|   |   |   |   |   |   `-- retention
+|   |   |   |   |   |       |-- loading.tsx
+|   |   |   |   |   |       `-- page.tsx
+|   |   |   |   |   |-- roles
+|   |   |   |   |   |   |-- _components
+|   |   |   |   |   |   |   |-- access-review-actions.ts
+|   |   |   |   |   |   |   |-- access-reviews-tab.tsx
+|   |   |   |   |   |   |   |-- record-access-review-form.tsx
+|   |   |   |   |   |   |   |-- roles-table
+|   |   |   |   |   |   |   |   |-- columns.tsx
+|   |   |   |   |   |   |   |   |-- table.tsx
+|   |   |   |   |   |   |   |   `-- types.ts
+|   |   |   |   |   |   |   `-- roles.tsx
+|   |   |   |   |   |   |-- loading.tsx
+|   |   |   |   |   |   `-- page.tsx
+|   |   |   |   |   |-- schedule
+|   |   |   |   |   |   |-- _components
+|   |   |   |   |   |   |   |-- create-invitation-sheet.tsx
+|   |   |   |   |   |   |   `-- invitation-list.tsx
+|   |   |   |   |   |   |-- actions.ts
+|   |   |   |   |   |   |-- loading.tsx
+|   |   |   |   |   |   `-- page.tsx
+|   |   |   |   |   |-- site-experience
+|   |   |   |   |   |   |-- _components
+|   |   |   |   |   |   |   |-- actions.ts
+|   |   |   |   |   |   |   |-- branding-actions.tsx
+|   |   |   |   |   |   |   |-- escalation-actions.tsx
+|   |   |   |   |   |   |   |-- kiosk-actions.tsx
+|   |   |   |   |   |   |   |-- printable-qr-panel.tsx
+|   |   |   |   |   |   |   |-- qr-actions.tsx
+|   |   |   |   |   |   |   `-- site-experience-form-sheet.tsx
+|   |   |   |   |   |   |-- branding
+|   |   |   |   |   |   |   |-- loading.tsx
+|   |   |   |   |   |   |   `-- page.tsx
+|   |   |   |   |   |   |-- capabilities
+|   |   |   |   |   |   |   |-- _components
+|   |   |   |   |   |   |   |   `-- capability-enablement-panel.tsx
+|   |   |   |   |   |   |   |-- actions.ts
+|   |   |   |   |   |   |   `-- page.tsx
+|   |   |   |   |   |   |-- escalation
+|   |   |   |   |   |   |   |-- loading.tsx
+|   |   |   |   |   |   |   `-- page.tsx
+|   |   |   |   |   |   |-- kiosk
+|   |   |   |   |   |   |   |-- loading.tsx
+|   |   |   |   |   |   |   `-- page.tsx
+|   |   |   |   |   |   `-- qr
+|   |   |   |   |   |       |-- loading.tsx
+|   |   |   |   |   |       `-- page.tsx
+|   |   |   |   |   |-- sites
+|   |   |   |   |   |   |-- _components
+|   |   |   |   |   |   |   `-- create-site-sheet.tsx
+|   |   |   |   |   |   |-- actions.ts
+|   |   |   |   |   |   |-- loading.tsx
+|   |   |   |   |   |   `-- page.tsx
+|   |   |   |   |   |-- support
+|   |   |   |   |   |   |-- [id]
+|   |   |   |   |   |   |   |-- _components
+|   |   |   |   |   |   |   |   `-- reply-form.tsx
+|   |   |   |   |   |   |   `-- page.tsx
+|   |   |   |   |   |   |-- _components
+|   |   |   |   |   |   |   `-- create-ticket-form.tsx
+|   |   |   |   |   |   |-- actions.ts
+|   |   |   |   |   |   `-- page.tsx
+|   |   |   |   |   |-- support-access
+|   |   |   |   |   |   |-- _components
+|   |   |   |   |   |   |   |-- grant-history.tsx
+|   |   |   |   |   |   |   `-- pending-grant-card.tsx
+|   |   |   |   |   |   |-- actions.ts
+|   |   |   |   |   |   `-- page.tsx
+|   |   |   |   |   |-- users
+|   |   |   |   |   |   |-- _components
+|   |   |   |   |   |   |   |-- types.ts
+|   |   |   |   |   |   |   |-- users-columns.tsx
+|   |   |   |   |   |   |   |-- users-table.tsx
+|   |   |   |   |   |   |   `-- users.tsx
+|   |   |   |   |   |   |-- loading.tsx
+|   |   |   |   |   |   `-- page.tsx
+|   |   |   |   |   `-- visitors
+|   |   |   |   |       |-- loading.tsx
+|   |   |   |   |       `-- page.tsx
+|   |   |   |   |-- onboarding
+|   |   |   |   |   |-- [step]
+|   |   |   |   |   |   `-- page.tsx
+|   |   |   |   |   |-- _components
+|   |   |   |   |   |   |-- progress.tsx
+|   |   |   |   |   |   `-- step-actions.tsx
+|   |   |   |   |   |-- layout.tsx
+|   |   |   |   |   `-- page.tsx
+|   |   |   |   `-- unauthorized
+|   |   |   |       `-- page.tsx
+|   |   |   |-- api
+|   |   |   |   |-- auth
+|   |   |   |   |   |-- login
+|   |   |   |   |   |   `-- route.ts
+|   |   |   |   |   |-- logout
+|   |   |   |   |   |   `-- route.ts
+|   |   |   |   |   |-- mfa
+|   |   |   |   |   |   |-- challenge
+|   |   |   |   |   |   |   `-- route.ts
+|   |   |   |   |   |   `-- enroll
+|   |   |   |   |   |       |-- confirm
+|   |   |   |   |   |       |   `-- route.ts
+|   |   |   |   |   |       `-- start
+|   |   |   |   |   |           `-- route.ts
+|   |   |   |   |   |-- password-reset
+|   |   |   |   |   |   |-- confirm
+|   |   |   |   |   |   |   `-- route.ts
+|   |   |   |   |   |   `-- request
+|   |   |   |   |   |       `-- route.ts
+|   |   |   |   |   |-- register
+|   |   |   |   |   |   `-- route.ts
+|   |   |   |   |   |-- resend-verification
+|   |   |   |   |   |   `-- route.ts
+|   |   |   |   |   `-- verify-email
+|   |   |   |   |       `-- route.ts
+|   |   |   |   |-- evidence
+|   |   |   |   |   `-- [id]
+|   |   |   |   |       `-- download
+|   |   |   |   |           `-- route.ts
+|   |   |   |   |-- onboarding
+|   |   |   |   |   |-- complete-step
+|   |   |   |   |   |   `-- route.ts
+|   |   |   |   |   `-- evidence
+|   |   |   |   |       `-- route.ts
+|   |   |   |   `-- visits
+|   |   |   |       `-- roster
+|   |   |   |           `-- export
+|   |   |   |               `-- route.ts
+|   |   |   |-- global-error.tsx
+|   |   |   |-- globals.css
+|   |   |   |-- layout.tsx
+|   |   |   |-- not-found.tsx
+|   |   |   |-- page.tsx
+|   |   |   `-- support-session
+|   |   |       `-- page.tsx
+|   |   |-- components
+|   |   |   |-- analytics
+|   |   |   |   `-- AnalyticsProviders.tsx
+|   |   |   |-- bc-panel.tsx
+|   |   |   |-- calendar
+|   |   |   |   `-- event-calendar-views.tsx
+|   |   |   |-- dashboard-list-skeleton.tsx
+|   |   |   |-- dashboard-page-header.tsx
+|   |   |   |-- dashboard-state.tsx
+|   |   |   |-- date-range-picker.tsx
+|   |   |   |-- features
+|   |   |   |   `-- visits
+|   |   |   |       `-- visit-roster-table
+|   |   |   |           |-- columns.tsx
+|   |   |   |           |-- schema.ts
+|   |   |   |           |-- table.tsx
+|   |   |   |           `-- visit-ops-actions.tsx
+|   |   |   |-- onboarding-config-banner.tsx
+|   |   |   |-- qr-code-image.tsx
+|   |   |   |-- simple-icon.tsx
+|   |   |   |-- support-session-banner.tsx
+|   |   |   |-- support-session-countdown.tsx
+|   |   |   `-- ui
+|   |   |       |-- accordion.tsx
+|   |   |       |-- alert-dialog.tsx
+|   |   |       |-- alert.tsx
+|   |   |       |-- aspect-ratio.tsx
+|   |   |       |-- attachment.tsx
+|   |   |       |-- avatar.tsx
+|   |   |       |-- badge.tsx
+|   |   |       |-- breadcrumb.tsx
+|   |   |       |-- bubble.tsx
+|   |   |       |-- button-group.tsx
+|   |   |       |-- button.tsx
+|   |   |       |-- calendar.tsx
+|   |   |       |-- card.tsx
+|   |   |       |-- carousel.tsx
+|   |   |       |-- chart.tsx
+|   |   |       |-- checkbox.tsx
+|   |   |       |-- collapsible.tsx
+|   |   |       |-- combobox.tsx
+|   |   |       |-- command.tsx
+|   |   |       |-- context-menu.tsx
+|   |   |       |-- dialog.tsx
+|   |   |       |-- direction.tsx
+|   |   |       |-- drawer.tsx
+|   |   |       |-- dropdown-menu.tsx
+|   |   |       |-- empty.tsx
+|   |   |       |-- field.tsx
+|   |   |       |-- hover-card.tsx
+|   |   |       |-- input-group.tsx
+|   |   |       |-- input-otp.tsx
+|   |   |       |-- input.tsx
+|   |   |       |-- item.tsx
+|   |   |       |-- kbd.tsx
+|   |   |       |-- label.tsx
+|   |   |       |-- list.tsx
+|   |   |       |-- marker.tsx
+|   |   |       |-- menubar.tsx
+|   |   |       |-- message-scroller.tsx
+|   |   |       |-- message.tsx
+|   |   |       |-- native-select.tsx
+|   |   |       |-- navigation-menu.tsx
+|   |   |       |-- pagination.tsx
+|   |   |       |-- popover.tsx
+|   |   |       |-- progress.tsx
+|   |   |       |-- questionnaire.tsx
+|   |   |       |-- radio-group.tsx
+|   |   |       |-- resizable.tsx
+|   |   |       |-- scroll-area.tsx
+|   |   |       |-- select.tsx
+|   |   |       |-- separator.tsx
+|   |   |       |-- sheet.tsx
+|   |   |       |-- sidebar.tsx
+|   |   |       |-- skeleton.tsx
+|   |   |       |-- slider.tsx
+|   |   |       |-- sonner.tsx
+|   |   |       |-- spinner.tsx
+|   |   |       |-- switch.tsx
+|   |   |       |-- table.tsx
+|   |   |       |-- tabs.tsx
+|   |   |       |-- textarea.tsx
+|   |   |       |-- toggle-group.tsx
+|   |   |       |-- toggle.tsx
+|   |   |       `-- tooltip.tsx
+|   |   |-- config
+|   |   |   `-- app-config.ts
+|   |   |-- data
+|   |   |-- hooks
+|   |   |   |-- use-lg.ts
+|   |   |   `-- use-mobile.ts
+|   |   |-- instrumentation-client.ts
+|   |   |-- instrumentation.ts
+|   |   |-- lib
+|   |   |   |-- api
+|   |   |   |   `-- client.ts
+|   |   |   |-- auth
+|   |   |   |   |-- backend-url.ts
+|   |   |   |   |-- csrf.ts
+|   |   |   |   |-- me.ts
+|   |   |   |   `-- session.ts
+|   |   |   |-- canonical-codes.ts
+|   |   |   |-- cookie.client.ts
+|   |   |   |-- copy
+|   |   |   |   |-- auth.ts
+|   |   |   |   `-- onboarding.ts
+|   |   |   |-- data-table-features.ts
+|   |   |   |-- fonts
+|   |   |   |   `-- registry.ts
+|   |   |   |-- local-storage.client.ts
+|   |   |   |-- observability
+|   |   |   |   |-- analytics-consent.test.ts
+|   |   |   |   |-- analytics-consent.ts
+|   |   |   |   |-- scrub-pii.test.ts
+|   |   |   |   |-- scrub-pii.ts
+|   |   |   |   `-- track.ts
+|   |   |   |-- preferences
+|   |   |   |   |-- layout.ts
+|   |   |   |   |-- preference-runtime.ts
+|   |   |   |   |-- preferences-config.ts
+|   |   |   |   |-- preferences-storage.ts
+|   |   |   |   |-- theme-utils.ts
+|   |   |   |   `-- theme.ts
+|   |   |   `-- utils.ts
+|   |   |-- navigation
+|   |   |   `-- sidebar
+|   |   |       `-- sidebar-items.ts
+|   |   |-- proxy.ts
+|   |   |-- scripts
+|   |   |   |-- generate-theme-presets.ts
+|   |   |   `-- theme-boot.tsx
+|   |   |-- server
+|   |   |   `-- server-actions.ts
+|   |   |-- stores
+|   |   |   `-- preferences
+|   |   |       |-- preferences-provider.tsx
+|   |   |       `-- preferences-store.ts
+|   |   `-- styles
+|   |       |-- flag-icons
+|   |       |   `-- flags.css
+|   |       `-- presets
+|   |           `-- buffr-checkpoint.css
+|   |-- tsconfig.json
+|   |-- tsconfig.scripts.json
+|   `-- vitest.config.mts
+|-- backend
+|   |-- .gitignore
+|   |-- README.md
+|   |-- biome.json
+|   |-- db
+|   |   |-- migrations
+|   |   |   |-- 0001_release1_init.sql
+|   |   |   |-- 0002_auth_extensions.sql
+|   |   |   |-- 0003_password_hash.sql
+|   |   |   |-- 0004_capability_status.sql
+|   |   |   |-- 0005_capability_status_split.sql
+|   |   |   |-- 0006_release1_5_schema.sql
+|   |   |   |-- 0007_audit_append_only.sql
+|   |   |   |-- 0008_canonical_rename.sql
+|   |   |   |-- 0009_canonical_rename_cleanup.sql
+|   |   |   |-- 0010_site_visitor_experience_schema.sql
+|   |   |   |-- 0011_host_notification_escalation_events.sql
+|   |   |   |-- 0012_pre_checkin_ack_and_visit_statuses.sql
+|   |   |   |-- 0013_secure_customer_onboarding.sql
+|   |   |   |-- 0014_full_stack_v020.sql
+|   |   |   |-- 0015_cran_pki_v021.sql
+|   |   |   |-- 0016_qr_invitation_capability_live.sql
+|   |   |   |-- 0017_v022_completion.sql
+|   |   |   |-- 0018_assurance_level_labels.sql
+|   |   |   |-- 0019_organisation_directory_and_wait_queue.sql
+|   |   |   |-- 0020_login_lockout.sql
+|   |   |   |-- 0021_notification_outbox_and_domain_events.sql
+|   |   |   |-- 0022_platform_ops_console.sql
+|   |   |   |-- 0023_support_access_customer_consent.sql
+|   |   |   |-- 0024_app_role_append_only_enforcement.sql
+|   |   |   |-- 0025_emergency_events_update_grant.sql
+|   |   |   |-- 0026_owner_host_approve_grant.sql
+|   |   |   |-- 0027_team_buffranalytics_platform_support.sql
+|   |   |   |-- 0028_support_ticket_bidirectional.sql
+|   |   |   |-- 0029_gap_closure_phase2_8.sql
+|   |   |   |-- 0030_form_builder_v028.sql
+|   |   |   |-- 0031_purpose_category_form_options.sql
+|   |   |   |-- 0032_subscription_catalog.sql
+|   |   |   |-- 0033_addon_display_labels.sql
+|   |   |   `-- 0034_core_plan_owner_operator_copy.sql
+|   |   `-- seed
+|   |       |-- 0001_type_definitions.sql
+|   |       |-- 0002_capability_status.sql
+|   |       |-- 0003_legal_basis_and_form_types.sql
+|   |       |-- 0004_canonical_permissions.sql
+|   |       |-- 0005_organisation_sector_expansion.sql
+|   |       |-- 0006_kiosk_permissions.sql
+|   |       |-- 0007_visitor_policy_acknowledgement_domains.sql
+|   |       |-- 0008_site_visitor_experience_domains.sql
+|   |       |-- 0009_demo_site_visitor_experience.sql
+|   |       |-- 0010_capability_v021.sql
+|   |       |-- 0011_kiosk_demo_email_verified.sql
+|   |       |-- 0012_demo_branding_buffr_analytics.sql
+|   |       |-- 0013_demo_front_desk_hosts.sql
+|   |       |-- 0014_organisation_unit_kinds.sql
+|   |       |-- 0015_demo_bian_directory.sql
+|   |       |-- 0016_demo_check_in_form.sql
+|   |       |-- 0017_platform_support_demo.sql
+|   |       |-- 0018_unify_kiosk_demo_under_buffr_analytics.sql
+|   |       `-- 0019_demo_device_compliance_register.sql
+|   |-- drizzle.config.ts
+|   |-- nest-cli.json
+|   |-- package-lock.json
+|   |-- package.json
+|   |-- railway.toml
+|   |-- scripts
+|   |   `-- journey-smoke.ts
+|   |-- src
+|   |   |-- app.controller.ts
+|   |   |-- app.module.ts
+|   |   |-- common
+|   |   |   |-- access-control
+|   |   |   |   |-- access-control.module.ts
+|   |   |   |   `-- scoped-permission-evaluation.service.ts
+|   |   |   |-- artifacts
+|   |   |   |   |-- artifact-store.spec.ts
+|   |   |   |   `-- artifact-store.ts
+|   |   |   |-- assets
+|   |   |   |   `-- public-asset-url.ts
+|   |   |   |-- canonical-codes.ts
+|   |   |   |-- crypto
+|   |   |   |   `-- secret-crypto.ts
+|   |   |   |-- data-protection
+|   |   |   |   |-- data-protection.module.ts
+|   |   |   |   `-- personal-data-protection.service.ts
+|   |   |   |-- decorators
+|   |   |   |   |-- audit-log.decorator.ts
+|   |   |   |   |-- current-user.decorator.ts
+|   |   |   |   |-- platform-scoped.decorator.ts
+|   |   |   |   |-- public.decorator.ts
+|   |   |   |   |-- require-mfa.decorator.ts
+|   |   |   |   |-- require-permission.decorator.ts
+|   |   |   |   `-- require-verified-email.decorator.ts
+|   |   |   |-- domain-events
+|   |   |   |   `-- visit-checked-in.event.ts
+|   |   |   |-- guards
+|   |   |   |   |-- rbac.guard.ts
+|   |   |   |   `-- tenant-scope.guard.ts
+|   |   |   |-- interceptors
+|   |   |   |   `-- audit.interceptor.ts
+|   |   |   |-- observability
+|   |   |   |   |-- scrub-pii.spec.ts
+|   |   |   |   `-- scrub-pii.ts
+|   |   |   `-- rbac
+|   |   |       `-- permissions.ts
+|   |   |-- db
+|   |   |   |-- client.ts
+|   |   |   |-- db.module.ts
+|   |   |   |-- db.token.ts
+|   |   |   |-- schema
+|   |   |   |   |-- audit.ts
+|   |   |   |   |-- billing.ts
+|   |   |   |   |-- capability-status.ts
+|   |   |   |   |-- consent.ts
+|   |   |   |   |-- contact-enquiries.ts
+|   |   |   |   |-- credential-validation.ts
+|   |   |   |   |-- credentials.ts
+|   |   |   |   |-- crm.ts
+|   |   |   |   |-- dsar.ts
+|   |   |   |   |-- emergency.ts
+|   |   |   |   |-- evidence.ts
+|   |   |   |   |-- form-templates.ts
+|   |   |   |   |-- host-notification-escalation-events.ts
+|   |   |   |   |-- host-notification-escalation.ts
+|   |   |   |   |-- hosts.ts
+|   |   |   |   |-- identity-verification.ts
+|   |   |   |   |-- index.ts
+|   |   |   |   |-- invitations.ts
+|   |   |   |   |-- kiosk-experience.ts
+|   |   |   |   |-- kiosk-privacy-pre-checkin-acknowledgements.ts
+|   |   |   |   |-- kyb.ts
+|   |   |   |   |-- legal-holds.ts
+|   |   |   |   |-- managed-kiosk-devices.ts
+|   |   |   |   |-- notifications.ts
+|   |   |   |   |-- organisation-units.ts
+|   |   |   |   |-- organisations.ts
+|   |   |   |   |-- platform-configuration.ts
+|   |   |   |   |-- platform-ops.ts
+|   |   |   |   |-- rbac.ts
+|   |   |   |   |-- secure-onboarding.ts
+|   |   |   |   |-- site-branding.ts
+|   |   |   |   |-- site-qr-references.ts
+|   |   |   |   |-- sites.ts
+|   |   |   |   |-- sms-contact-confirmation.ts
+|   |   |   |   |-- telecom-integrations.ts
+|   |   |   |   |-- type-definitions.ts
+|   |   |   |   |-- visit-form-answers.ts
+|   |   |   |   |-- visitor-wait-queue.ts
+|   |   |   |   |-- visitors.ts
+|   |   |   |   `-- visits.ts
+|   |   |   `-- type-definition-lookup.service.ts
+|   |   |-- instrument.ts
+|   |   |-- main.ts
+|   |   |-- modules
+|   |   |   |-- access-policies
+|   |   |   |   |-- access-policies.controller.ts
+|   |   |   |   |-- access-policies.module.ts
+|   |   |   |   |-- access-policies.service.ts
+|   |   |   |   `-- dto
+|   |   |   |       `-- access-policy.dto.ts
+|   |   |   |-- access-reviews
+|   |   |   |   |-- access-reviews.controller.ts
+|   |   |   |   |-- access-reviews.module.ts
+|   |   |   |   `-- access-reviews.service.ts
+|   |   |   |-- analytics
+|   |   |   |   |-- analytics.controller.ts
+|   |   |   |   |-- analytics.module.ts
+|   |   |   |   `-- analytics.service.ts
+|   |   |   |-- audit
+|   |   |   |   |-- audit.controller.ts
+|   |   |   |   |-- audit.module.ts
+|   |   |   |   `-- audit.service.ts
+|   |   |   |-- auth
+|   |   |   |   |-- auth.controller.ts
+|   |   |   |   |-- auth.module.ts
+|   |   |   |   |-- auth.service.ts
+|   |   |   |   |-- dto
+|   |   |   |   |   |-- login.dto.ts
+|   |   |   |   |   |-- password-reset.dto.ts
+|   |   |   |   |   `-- register.dto.ts
+|   |   |   |   |-- guards
+|   |   |   |   |   `-- jwt-auth.guard.ts
+|   |   |   |   |-- mfa-authenticator.spec.ts
+|   |   |   |   |-- onboarding-evidence.service.ts
+|   |   |   |   `-- strategies
+|   |   |   |       `-- jwt.strategy.ts
+|   |   |   |-- billing
+|   |   |   |   |-- billing.controller.ts
+|   |   |   |   |-- billing.module.ts
+|   |   |   |   `-- billing.service.ts
+|   |   |   |-- capability-status
+|   |   |   |   |-- capability-status.controller.ts
+|   |   |   |   |-- capability-status.module.ts
+|   |   |   |   |-- capability-status.service.spec.ts
+|   |   |   |   |-- capability-status.service.ts
+|   |   |   |   `-- dto
+|   |   |   |       |-- organisation-capability-enablement.dto.ts
+|   |   |   |       `-- update-capability-status.dto.ts
+|   |   |   |-- compliance
+|   |   |   |   |-- compliance.controller.ts
+|   |   |   |   |-- compliance.module.ts
+|   |   |   |   `-- compliance.service.ts
+|   |   |   |-- contact
+|   |   |   |   |-- contact.controller.ts
+|   |   |   |   |-- contact.module.ts
+|   |   |   |   `-- contact.service.ts
+|   |   |   |-- credentials
+|   |   |   |   |-- credentials.controller.ts
+|   |   |   |   |-- credentials.module.ts
+|   |   |   |   |-- credentials.service.ts
+|   |   |   |   `-- dto
+|   |   |   |       |-- credential-entitlement.dto.ts
+|   |   |   |       |-- issue-credential.dto.ts
+|   |   |   |       `-- validate-credential.dto.ts
+|   |   |   |-- crm
+|   |   |   |   |-- crm.controller.ts
+|   |   |   |   |-- crm.module.ts
+|   |   |   |   `-- crm.service.ts
+|   |   |   |-- devices
+|   |   |   |   |-- devices.controller.ts
+|   |   |   |   |-- devices.module.ts
+|   |   |   |   |-- devices.service.ts
+|   |   |   |   `-- dto
+|   |   |   |       |-- create-device.dto.ts
+|   |   |   |       `-- update-device-status.dto.ts
+|   |   |   |-- dsar
+|   |   |   |   |-- dsar.controller.ts
+|   |   |   |   |-- dsar.module.ts
+|   |   |   |   |-- dsar.service.ts
+|   |   |   |   `-- dto
+|   |   |   |       `-- create-dsar.dto.ts
+|   |   |   |-- emergency
+|   |   |   |   |-- dto
+|   |   |   |   |   `-- trigger-emergency.dto.ts
+|   |   |   |   |-- emergency.controller.ts
+|   |   |   |   |-- emergency.module.ts
+|   |   |   |   `-- emergency.service.ts
+|   |   |   |-- evidence
+|   |   |   |   |-- evidence.controller.ts
+|   |   |   |   |-- evidence.module.ts
+|   |   |   |   `-- evidence.service.ts
+|   |   |   |-- host-notification-escalation
+|   |   |   |   |-- dto
+|   |   |   |   |   `-- host-notification-escalation.dto.ts
+|   |   |   |   |-- host-notification-escalation-evaluation.service.ts
+|   |   |   |   |-- host-notification-escalation.controller.ts
+|   |   |   |   |-- host-notification-escalation.module.ts
+|   |   |   |   `-- host-notification-escalation.service.ts
+|   |   |   |-- hosts
+|   |   |   |   |-- dto
+|   |   |   |   |   `-- create-host.dto.ts
+|   |   |   |   |-- hosts.controller.ts
+|   |   |   |   |-- hosts.module.ts
+|   |   |   |   `-- hosts.service.ts
+|   |   |   |-- identity-verification
+|   |   |   |   |-- dto
+|   |   |   |   |   |-- record-verification.dto.ts
+|   |   |   |   |   `-- verify-identity.dto.ts
+|   |   |   |   |-- identity-verification-orchestrator.service.ts
+|   |   |   |   |-- identity-verification.controller.ts
+|   |   |   |   |-- identity-verification.module.ts
+|   |   |   |   |-- identity-verification.service.ts
+|   |   |   |   `-- providers
+|   |   |   |       |-- diginam-relying-party-verification.provider.ts
+|   |   |   |       |-- digital-identity-verification.provider.ts
+|   |   |   |       |-- discovery-identity-verification.provider.ts
+|   |   |   |       `-- identity-providers.fail-closed.spec.ts
+|   |   |   |-- integrations
+|   |   |   |   `-- telecoms
+|   |   |   |       |-- dto
+|   |   |   |       |   `-- ussd-session.dto.ts
+|   |   |   |       |-- feature-phone-check-in-session.service.ts
+|   |   |   |       |-- sms-contact-confirmation.service.spec.ts
+|   |   |   |       |-- sms-contact-confirmation.service.ts
+|   |   |   |       |-- telecom-webhook.guard.ts
+|   |   |   |       |-- telecoms.controller.ts
+|   |   |   |       `-- telecoms.module.ts
+|   |   |   |-- invitations
+|   |   |   |   |-- dto
+|   |   |   |   |   |-- create-invitation.dto.ts
+|   |   |   |   |   `-- public-invitation-check-in.dto.ts
+|   |   |   |   |-- invitation-token.util.spec.ts
+|   |   |   |   |-- invitation-token.util.ts
+|   |   |   |   |-- invitations.controller.ts
+|   |   |   |   |-- invitations.module.ts
+|   |   |   |   |-- invitations.service.spec.ts
+|   |   |   |   |-- invitations.service.ts
+|   |   |   |   `-- public-invitations.controller.ts
+|   |   |   |-- kiosk-experience
+|   |   |   |   |-- dto
+|   |   |   |   |   `-- kiosk-experience.dto.ts
+|   |   |   |   |-- kiosk-experience.controller.ts
+|   |   |   |   |-- kiosk-experience.module.ts
+|   |   |   |   `-- kiosk-experience.service.ts
+|   |   |   |-- kyb
+|   |   |   |   |-- kyb.controller.ts
+|   |   |   |   |-- kyb.module.ts
+|   |   |   |   `-- kyb.service.ts
+|   |   |   |-- legal-holds
+|   |   |   |   |-- dto
+|   |   |   |   |   `-- create-legal-hold.dto.ts
+|   |   |   |   |-- legal-holds.controller.ts
+|   |   |   |   |-- legal-holds.module.ts
+|   |   |   |   `-- legal-holds.service.ts
+|   |   |   |-- notifications
+|   |   |   |   |-- dto
+|   |   |   |   |   `-- send-notification.dto.ts
+|   |   |   |   |-- email.adapter.ts
+|   |   |   |   |-- host-notification-email.ts
+|   |   |   |   |-- notification-dispatch-worker.service.ts
+|   |   |   |   |-- notifications.controller.ts
+|   |   |   |   |-- notifications.module.ts
+|   |   |   |   |-- notifications.service.ts
+|   |   |   |   `-- visit-checked-in.listener.ts
+|   |   |   |-- onboarding
+|   |   |   |   |-- dto
+|   |   |   |   |   `-- create-organisation-admin.dto.ts
+|   |   |   |   |-- onboarding-steps.spec.ts
+|   |   |   |   |-- onboarding-steps.ts
+|   |   |   |   |-- onboarding.controller.ts
+|   |   |   |   |-- onboarding.module.ts
+|   |   |   |   `-- onboarding.service.ts
+|   |   |   |-- organisation-directory
+|   |   |   |   |-- organisation-directory.controller.ts
+|   |   |   |   |-- organisation-directory.module.ts
+|   |   |   |   `-- organisation-directory.service.ts
+|   |   |   |-- organisation-health
+|   |   |   |   |-- organisation-health-worker.service.ts
+|   |   |   |   |-- organisation-health.module.ts
+|   |   |   |   `-- organisation-health.service.ts
+|   |   |   |-- organisations
+|   |   |   |   |-- dto
+|   |   |   |   |   |-- create-organisation.dto.ts
+|   |   |   |   |   `-- update-organisation.dto.ts
+|   |   |   |   |-- organisations.controller.ts
+|   |   |   |   |-- organisations.module.ts
+|   |   |   |   `-- organisations.service.ts
+|   |   |   |-- platform-configuration
+|   |   |   |   |-- platform-configuration.controller.ts
+|   |   |   |   |-- platform-configuration.module.ts
+|   |   |   |   |-- platform-configuration.service.ts
+|   |   |   |   `-- platform-notification-template.service.ts
+|   |   |   |-- platform-dashboard
+|   |   |   |   |-- platform-dashboard.controller.ts
+|   |   |   |   |-- platform-dashboard.module.ts
+|   |   |   |   `-- platform-dashboard.service.ts
+|   |   |   |-- platform-incidents
+|   |   |   |   |-- platform-incidents.controller.ts
+|   |   |   |   |-- platform-incidents.module.ts
+|   |   |   |   `-- platform-incidents.service.ts
+|   |   |   |-- platform-search
+|   |   |   |   |-- platform-search.controller.ts
+|   |   |   |   |-- platform-search.module.ts
+|   |   |   |   `-- platform-search.service.ts
+|   |   |   |-- platform-staff
+|   |   |   |   |-- platform-staff.controller.ts
+|   |   |   |   |-- platform-staff.module.ts
+|   |   |   |   `-- platform-staff.service.ts
+|   |   |   |-- rbac
+|   |   |   |   |-- dto
+|   |   |   |   |   `-- change-role.dto.ts
+|   |   |   |   |-- rbac.controller.ts
+|   |   |   |   |-- rbac.module.ts
+|   |   |   |   `-- rbac.service.ts
+|   |   |   |-- regions
+|   |   |   |   |-- regions.controller.ts
+|   |   |   |   |-- regions.module.ts
+|   |   |   |   `-- regions.service.ts
+|   |   |   |-- rename-map.tsv
+|   |   |   |-- retention-policy
+|   |   |   |   |-- dto
+|   |   |   |   |   `-- retention-policy.dto.ts
+|   |   |   |   |-- retention-policy.controller.ts
+|   |   |   |   |-- retention-policy.module.ts
+|   |   |   |   `-- retention-policy.service.ts
+|   |   |   |-- schedule
+|   |   |   |   |-- schedule.controller.ts
+|   |   |   |   `-- schedule.module.ts
+|   |   |   |-- security-zones
+|   |   |   |   |-- security-zones.controller.ts
+|   |   |   |   |-- security-zones.module.ts
+|   |   |   |   `-- security-zones.service.ts
+|   |   |   |-- site-branding
+|   |   |   |   |-- dto
+|   |   |   |   |   `-- site-branding.dto.ts
+|   |   |   |   |-- site-branding.controller.ts
+|   |   |   |   |-- site-branding.module.ts
+|   |   |   |   `-- site-branding.service.ts
+|   |   |   |-- site-qr-references
+|   |   |   |   |-- dto
+|   |   |   |   |   `-- site-qr-references.dto.ts
+|   |   |   |   |-- site-qr-references.controller.ts
+|   |   |   |   |-- site-qr-references.module.ts
+|   |   |   |   `-- site-qr-references.service.ts
+|   |   |   |-- sites
+|   |   |   |   |-- dto
+|   |   |   |   |   `-- create-site.dto.ts
+|   |   |   |   |-- sites.controller.ts
+|   |   |   |   |-- sites.module.ts
+|   |   |   |   `-- sites.service.ts
+|   |   |   |-- support-sessions
+|   |   |   |   |-- support-sessions.controller.ts
+|   |   |   |   |-- support-sessions.module.ts
+|   |   |   |   `-- support-sessions.service.ts
+|   |   |   |-- support-tickets
+|   |   |   |   |-- support-tickets-customer.controller.ts
+|   |   |   |   |-- support-tickets.controller.ts
+|   |   |   |   |-- support-tickets.module.ts
+|   |   |   |   `-- support-tickets.service.ts
+|   |   |   |-- type-definitions
+|   |   |   |   |-- type-definitions.controller.ts
+|   |   |   |   |-- type-definitions.module.ts
+|   |   |   |   `-- type-definitions.service.ts
+|   |   |   |-- visitor-policy
+|   |   |   |   |-- dto
+|   |   |   |   |   |-- acknowledge-policy.dto.ts
+|   |   |   |   |   |-- check-in-form.dto.ts
+|   |   |   |   |   `-- pre-checkin-acknowledge.dto.ts
+|   |   |   |   |-- form-ai.service.spec.ts
+|   |   |   |   |-- form-ai.service.ts
+|   |   |   |   |-- form-rules.spec.ts
+|   |   |   |   |-- form-rules.ts
+|   |   |   |   |-- visitor-data-minimisation.service.ts
+|   |   |   |   |-- visitor-policy.controller.ts
+|   |   |   |   |-- visitor-policy.module.ts
+|   |   |   |   `-- visitor-policy.service.ts
+|   |   |   |-- visitor-wait-queue
+|   |   |   |   |-- visitor-wait-queue.controller.ts
+|   |   |   |   |-- visitor-wait-queue.module.ts
+|   |   |   |   `-- visitor-wait-queue.service.ts
+|   |   |   |-- visitors
+|   |   |   |   |-- dto
+|   |   |   |   |   `-- create-visitor.dto.ts
+|   |   |   |   |-- visitors.controller.ts
+|   |   |   |   |-- visitors.module.ts
+|   |   |   |   `-- visitors.service.ts
+|   |   |   `-- visits
+|   |   |       |-- dto
+|   |   |       |   |-- check-in.dto.ts
+|   |   |       |   |-- public-check-in.dto.ts
+|   |   |       |   `-- visit-access-decision.dto.ts
+|   |   |       |-- public-check-in.controller.ts
+|   |   |       |-- visitor-next-steps.ts
+|   |   |       |-- visits.controller.ts
+|   |   |       |-- visits.module.ts
+|   |   |       `-- visits.service.ts
+|   |   `-- test
+|   |       `-- setup-env.ts
+|   |-- test
+|   |   |-- app.e2e-spec.ts
+|   |   |-- auth.e2e-spec.ts
+|   |   `-- jest-e2e.json
+|   |-- tsconfig.build.json
+|   `-- tsconfig.json
+|-- buffrcheckpoint.md
+|-- kiosk
+|   |-- .claude
+|   |   `-- settings.local.json
+|   |-- .gitignore
+|   |-- .idea
+|   |   |-- .gitignore
+|   |   |-- .name
+|   |   |-- AndroidProjectSystem.xml
+|   |   |-- caches
+|   |   |   `-- deviceStreaming.xml
+|   |   |-- codeStyles
+|   |   |   |-- Project.xml
+|   |   |   `-- codeStyleConfig.xml
+|   |   |-- compiler.xml
+|   |   |-- deploymentTargetSelector.xml
+|   |   |-- deviceManager.xml
+|   |   |-- gradle.xml
+|   |   |-- migrations.xml
+|   |   |-- misc.xml
+|   |   |-- runConfigurations.xml
+|   |   `-- workspace.xml
+|   |-- .kotlin
+|   |   |-- errors
+|   |   |   |-- errors-1789377846065.log
+|   |   |   |-- errors-1789377848419.log
+|   |   |   `-- errors-1789719808004.log
+|   |   `-- sessions
+|   |-- app
+|   |   |-- build.gradle.kts
+|   |   |-- proguard-rules.pro
+|   |   `-- src
+|   |       |-- debug
+|   |       |   `-- AndroidManifest.xml
+|   |       |-- main
+|   |       |   |-- AndroidManifest.xml
+|   |       |   |-- java
+|   |       |   |   `-- com
+|   |       |   |       `-- buffrcheckpoint
+|   |       |   |           `-- kiosk
+|   |       |   |               |-- BuffrCheckpointApp.kt
+|   |       |   |               |-- MainActivity.kt
+|   |       |   |               |-- about
+|   |       |   |               |   `-- ui
+|   |       |   |               |       `-- AboutDebugScreen.kt
+|   |       |   |               |-- auth
+|   |       |   |               |   |-- AuthRepository.kt
+|   |       |   |               |   |-- KioskSetupViewModel.kt
+|   |       |   |               |   |-- LoginViewModel.kt
+|   |       |   |               |   `-- ui
+|   |       |   |               |       |-- KioskSetupScreen.kt
+|   |       |   |               |       `-- LoginScreen.kt
+|   |       |   |               |-- capability
+|   |       |   |               |-- checkin
+|   |       |   |               |   |-- CheckInMapper.kt
+|   |       |   |               |   |-- CheckInRepository.kt
+|   |       |   |               |   |-- assisted
+|   |       |   |               |   |   `-- ui
+|   |       |   |               |   |       `-- AssistedCheckInScreen.kt
+|   |       |   |               |   |-- manual
+|   |       |   |               |   |   |-- FormRules.kt
+|   |       |   |               |   |   |-- ManualCheckInViewModel.kt
+|   |       |   |               |   |   `-- ui
+|   |       |   |               |   |       `-- ManualCheckInScreen.kt
+|   |       |   |               |   |-- nfc
+|   |       |   |               |   |   `-- ui
+|   |       |   |               |   |-- policy
+|   |       |   |               |   |   `-- ui
+|   |       |   |               |   |-- qr
+|   |       |   |               |   |   |-- QrCheckInViewModel.kt
+|   |       |   |               |   |   `-- ui
+|   |       |   |               |   |       `-- QrScanScreen.kt
+|   |       |   |               |   `-- ui
+|   |       |   |               |       |-- CheckInSuccessScreen.kt
+|   |       |   |               |       `-- CheckInSuccessViewModel.kt
+|   |       |   |               |-- checkout
+|   |       |   |               |   |-- CheckOutViewModel.kt
+|   |       |   |               |   |-- VisitorSignOutViewModel.kt
+|   |       |   |               |   `-- ui
+|   |       |   |               |       `-- VisitorSignOutScreen.kt
+|   |       |   |               |-- core
+|   |       |   |               |   |-- db
+|   |       |   |               |   |   |-- DatabasePassphraseProvider.kt
+|   |       |   |               |   |   |-- KioskDatabase.kt
+|   |       |   |               |   |   |-- OutboxDao.kt
+|   |       |   |               |   |   `-- OutboxEntity.kt
+|   |       |   |               |   |-- domain
+|   |       |   |               |   |   |-- CheckInDraft.kt
+|   |       |   |               |   |   `-- model
+|   |       |   |               |   |       `-- Enums.kt
+|   |       |   |               |   |-- governance
+|   |       |   |               |   |-- network
+|   |       |   |               |   |   |-- ApiClient.kt
+|   |       |   |               |   |   |-- ApiService.kt
+|   |       |   |               |   |   |-- ApiServiceProvider.kt
+|   |       |   |               |   |   |-- AuthAuthenticator.kt
+|   |       |   |               |   |   |-- AuthInterceptor.kt
+|   |       |   |               |   |   `-- dto
+|   |       |   |               |   |       |-- AuthDto.kt
+|   |       |   |               |   |       |-- CapabilityStatusDto.kt
+|   |       |   |               |   |       |-- CredentialDto.kt
+|   |       |   |               |   |       |-- KioskExperienceDto.kt
+|   |       |   |               |   |       |-- VisitDto.kt
+|   |       |   |               |   |       `-- VisitorPolicyDto.kt
+|   |       |   |               |   `-- security
+|   |       |   |               |       `-- CredentialStore.kt
+|   |       |   |               |-- devices
+|   |       |   |               |   |-- DeviceListViewModel.kt
+|   |       |   |               |   `-- ui
+|   |       |   |               |       `-- DeviceListScreen.kt
+|   |       |   |               |-- di
+|   |       |   |               |   |-- DatabaseModule.kt
+|   |       |   |               |   `-- NetworkModule.kt
+|   |       |   |               |-- experience
+|   |       |   |               |   |-- CapabilityRepository.kt
+|   |       |   |               |   |-- ExperienceRepository.kt
+|   |       |   |               |   |-- ExperienceSyncWorker.kt
+|   |       |   |               |   `-- KioskExperienceState.kt
+|   |       |   |               |-- maintenance
+|   |       |   |               |   `-- ui
+|   |       |   |               |       `-- MaintenanceScreen.kt
+|   |       |   |               |-- navigation
+|   |       |   |               |   |-- KioskDestinations.kt
+|   |       |   |               |   `-- KioskNavGraph.kt
+|   |       |   |               |-- nfc
+|   |       |   |               |   |-- NfcCheckInViewModel.kt
+|   |       |   |               |   |-- NfcCredentialParser.kt
+|   |       |   |               |   `-- ui
+|   |       |   |               |       `-- NfcCheckInScreen.kt
+|   |       |   |               |-- notifications
+|   |       |   |               |   `-- ui
+|   |       |   |               |-- offline
+|   |       |   |               |   |-- db
+|   |       |   |               |   |   |-- dao
+|   |       |   |               |   |   `-- entity
+|   |       |   |               |   `-- sync
+|   |       |   |               |-- privacy
+|   |       |   |               |   |-- PrivacyNoticeViewModel.kt
+|   |       |   |               |   `-- ui
+|   |       |   |               |       `-- PrivacyNoticeScreen.kt
+|   |       |   |               |-- roster
+|   |       |   |               |   |-- RosterRepository.kt
+|   |       |   |               |   |-- RosterViewModel.kt
+|   |       |   |               |   `-- ui
+|   |       |   |               |       `-- RosterScreen.kt
+|   |       |   |               |-- session
+|   |       |   |               |   |-- AbandonVisitorCheckInUseCase.kt
+|   |       |   |               |   |-- KioskIdleHandler.kt
+|   |       |   |               |   |-- ProtectedDraftClearanceService.kt
+|   |       |   |               |   `-- VisitorSessionTimeoutController.kt
+|   |       |   |               |-- sync
+|   |       |   |               |   |-- OutboxDrainWorker.kt
+|   |       |   |               |   |-- OutboxRepository.kt
+|   |       |   |               |   |-- SyncStatusViewModel.kt
+|   |       |   |               |   `-- ui
+|   |       |   |               |       `-- SyncStatusBanner.kt
+|   |       |   |               |-- ui
+|   |       |   |               |   |-- KioskOnboardingScaffold.kt
+|   |       |   |               |   |-- LogoDiskCache.kt
+|   |       |   |               |   |-- OrgBrandingHeader.kt
+|   |       |   |               |   |-- QrCodeImage.kt
+|   |       |   |               |   |-- RemoteLogoImage.kt
+|   |       |   |               |   `-- theme
+|   |       |   |               |       |-- Color.kt
+|   |       |   |               |       |-- Theme.kt
+|   |       |   |               |       `-- Type.kt
+|   |       |   |               |-- ussd
+|   |       |   |               |   |-- UssdInstructionsViewModel.kt
+|   |       |   |               |   `-- ui
+|   |       |   |               |       `-- UssdInstructionsScreen.kt
+|   |       |   |               `-- welcome
+|   |       |   |                   |-- WelcomeViewModel.kt
+|   |       |   |                   `-- ui
+|   |       |   |                       `-- WelcomeScreen.kt
+|   |       |   `-- res
+|   |       |       |-- mipmap-anydpi-v26
+|   |       |       |   |-- ic_launcher.xml
+|   |       |       |   `-- ic_launcher_round.xml
+|   |       |       `-- values
+|   |       |           |-- colors.xml
+|   |       |           |-- strings.xml
+|   |       |           `-- themes.xml
+|   |       `-- test
+|   |           `-- java
+|   |               `-- com
+|   |                   `-- buffrcheckpoint
+|   |                       `-- kiosk
+|   |                           |-- checkin
+|   |                           |   |-- CheckInMapperTest.kt
+|   |                           |   `-- manual
+|   |                           |       `-- FormRulesTest.kt
+|   |                           |-- core
+|   |                           |   `-- domain
+|   |                           |       `-- model
+|   |                           |           `-- VisitStatusTest.kt
+|   |                           |-- nfc
+|   |                           |   `-- NfcCredentialParserTest.kt
+|   |                           |-- session
+|   |                           |   |-- AbandonVisitorCheckInUseCaseTest.kt
+|   |                           |   `-- ProtectedDraftClearanceServiceTest.kt
+|   |                           `-- sync
+|   |                               `-- SyncBannerMappingTest.kt
+|   |-- build.gradle.kts
+|   |-- gradle
+|   |   |-- gradle-daemon-jvm.properties
+|   |   |-- libs.versions.toml
+|   |   `-- wrapper
+|   |       `-- gradle-wrapper.properties
+|   |-- gradle.properties
+|   |-- gradlew
+|   |-- gradlew.bat
+|   |-- local.properties
+|   |-- scripts
+|   |   `-- rebuild-and-run.sh
+|   `-- settings.gradle.kts
+|-- ops-console
+|   |-- .gitignore
+|   |-- README.md
+|   |-- biome.json
+|   |-- next-env.d.ts
+|   |-- next.config.ts
+|   |-- package-lock.json
+|   |-- package.json
+|   |-- postcss.config.mjs
+|   |-- public
+|   |-- src
+|   |   |-- app
+|   |   |   |-- (console)
+|   |   |   |   |-- actions.ts
+|   |   |   |   |-- analytics
+|   |   |   |   |   `-- page.tsx
+|   |   |   |   |-- audit
+|   |   |   |   |   |-- [id]
+|   |   |   |   |   |   `-- page.tsx
+|   |   |   |   |   `-- page.tsx
+|   |   |   |   |-- billing
+|   |   |   |   |   |-- [id]
+|   |   |   |   |   |   `-- page.tsx
+|   |   |   |   |   |-- _components
+|   |   |   |   |   |   |-- billing-bulk-queue.tsx
+|   |   |   |   |   |   `-- review-buttons.tsx
+|   |   |   |   |   |-- actions.ts
+|   |   |   |   |   `-- page.tsx
+|   |   |   |   |-- capability-status
+|   |   |   |   |   |-- _components
+|   |   |   |   |   |   `-- update-form.tsx
+|   |   |   |   |   |-- actions.ts
+|   |   |   |   |   `-- page.tsx
+|   |   |   |   |-- configuration
+|   |   |   |   |   |-- _components
+|   |   |   |   |   |   `-- configuration-forms.tsx
+|   |   |   |   |   |-- actions.ts
+|   |   |   |   |   `-- page.tsx
+|   |   |   |   |-- crm
+|   |   |   |   |   |-- [dealId]
+|   |   |   |   |   |   `-- page.tsx
+|   |   |   |   |   |-- _components
+|   |   |   |   |   |   `-- deal-controls.tsx
+|   |   |   |   |   |-- actions.ts
+|   |   |   |   |   |-- contacts
+|   |   |   |   |   |   |-- [id]
+|   |   |   |   |   |   |   |-- _components
+|   |   |   |   |   |   |   |   `-- contact-edit-form.tsx
+|   |   |   |   |   |   |   |-- loading.tsx
+|   |   |   |   |   |   |   `-- page.tsx
+|   |   |   |   |   |   `-- actions.ts
+|   |   |   |   |   `-- page.tsx
+|   |   |   |   |-- devices
+|   |   |   |   |   |-- [id]
+|   |   |   |   |   |   |-- loading.tsx
+|   |   |   |   |   |   `-- page.tsx
+|   |   |   |   |   |-- _components
+|   |   |   |   |   |   `-- device-status-controls.tsx
+|   |   |   |   |   |-- actions.ts
+|   |   |   |   |   `-- page.tsx
+|   |   |   |   |-- error.tsx
+|   |   |   |   |-- incidents
+|   |   |   |   |   |-- [id]
+|   |   |   |   |   |   `-- page.tsx
+|   |   |   |   |   |-- _components
+|   |   |   |   |   |   `-- incident-controls.tsx
+|   |   |   |   |   |-- actions.ts
+|   |   |   |   |   `-- page.tsx
+|   |   |   |   |-- kyb
+|   |   |   |   |   |-- _components
+|   |   |   |   |   |   |-- decision-buttons.tsx
+|   |   |   |   |   |   `-- kyb-bulk-queue.tsx
+|   |   |   |   |   |-- actions.ts
+|   |   |   |   |   `-- page.tsx
+|   |   |   |   |-- layout.tsx
+|   |   |   |   |-- loading.tsx
+|   |   |   |   |-- organisations
+|   |   |   |   |   |-- [id]
+|   |   |   |   |   |   |-- _components
+|   |   |   |   |   |   |   |-- subscription-actions.ts
+|   |   |   |   |   |   |   |-- subscription-panel.tsx
+|   |   |   |   |   |   |   `-- tabs.tsx
+|   |   |   |   |   |   `-- page.tsx
+|   |   |   |   |   |-- _components
+|   |   |   |   |   |   `-- request-grant-form.tsx
+|   |   |   |   |   |-- actions.ts
+|   |   |   |   |   `-- page.tsx
+|   |   |   |   |-- page.tsx
+|   |   |   |   |-- search
+|   |   |   |   |   `-- page.tsx
+|   |   |   |   |-- sites
+|   |   |   |   |   |-- [id]
+|   |   |   |   |   |   |-- loading.tsx
+|   |   |   |   |   |   `-- page.tsx
+|   |   |   |   |   |-- _components
+|   |   |   |   |   |   `-- site-status-controls.tsx
+|   |   |   |   |   |-- actions.ts
+|   |   |   |   |   `-- page.tsx
+|   |   |   |   |-- staff
+|   |   |   |   |   |-- _components
+|   |   |   |   |   |   `-- staff-controls.tsx
+|   |   |   |   |   |-- actions.ts
+|   |   |   |   |   `-- page.tsx
+|   |   |   |   |-- support-access
+|   |   |   |   |   |-- _components
+|   |   |   |   |   |   |-- grant-row.tsx
+|   |   |   |   |   |   `-- new-grant-form.tsx
+|   |   |   |   |   |-- actions.ts
+|   |   |   |   |   `-- page.tsx
+|   |   |   |   `-- tickets
+|   |   |   |       |-- [id]
+|   |   |   |       |   `-- page.tsx
+|   |   |   |       |-- _components
+|   |   |   |       |   |-- ticket-comments.tsx
+|   |   |   |       |   `-- ticket-controls.tsx
+|   |   |   |       |-- actions.ts
+|   |   |   |       `-- page.tsx
+|   |   |   |-- api
+|   |   |   |   |-- kyb-documents
+|   |   |   |   |   `-- [kybVerificationId]
+|   |   |   |   |       `-- route.ts
+|   |   |   |   `-- pop-documents
+|   |   |   |       `-- [paymentTransactionId]
+|   |   |   |           `-- route.ts
+|   |   |   |-- globals.css
+|   |   |   |-- layout.tsx
+|   |   |   `-- login
+|   |   |       |-- actions.ts
+|   |   |       |-- mfa
+|   |   |       |   `-- page.tsx
+|   |   |       `-- page.tsx
+|   |   |-- components
+|   |   |   |-- analytics
+|   |   |   |   `-- AnalyticsProviders.tsx
+|   |   |   |-- app-sidebar.tsx
+|   |   |   |-- bc-panel.tsx
+|   |   |   |-- bulk-queue-list.tsx
+|   |   |   |-- charts
+|   |   |   |   |-- ScoreScatter.tsx
+|   |   |   |   |-- ShareBars.tsx
+|   |   |   |   `-- TrendChart.tsx
+|   |   |   |-- dashboard-state.tsx
+|   |   |   |-- logout-button.tsx
+|   |   |   |-- map
+|   |   |   |   |-- NamibiaMap.tsx
+|   |   |   |   |-- chart-tokens.ts
+|   |   |   |   `-- namibiaRegions.ts
+|   |   |   |-- org-filter.tsx
+|   |   |   |-- org-select.tsx
+|   |   |   `-- ui
+|   |   |       |-- alert.tsx
+|   |   |       |-- avatar.tsx
+|   |   |       |-- badge.tsx
+|   |   |       |-- button.tsx
+|   |   |       |-- card.tsx
+|   |   |       |-- dropdown-menu.tsx
+|   |   |       |-- input.tsx
+|   |   |       |-- label.tsx
+|   |   |       |-- list.tsx
+|   |   |       |-- native-select.tsx
+|   |   |       |-- select.tsx
+|   |   |       |-- separator.tsx
+|   |   |       |-- sheet.tsx
+|   |   |       |-- sidebar.tsx
+|   |   |       |-- skeleton.tsx
+|   |   |       |-- sonner.tsx
+|   |   |       |-- status-select.tsx
+|   |   |       |-- table.tsx
+|   |   |       |-- textarea.tsx
+|   |   |       `-- tooltip.tsx
+|   |   |-- hooks
+|   |   |   `-- use-mobile.ts
+|   |   |-- lib
+|   |   |   |-- api.ts
+|   |   |   |-- auth
+|   |   |   |   `-- session.ts
+|   |   |   |-- bulk-status-actions.ts
+|   |   |   |-- chartTokens.ts
+|   |   |   |-- observability
+|   |   |   |   |-- analytics-consent.ts
+|   |   |   |   |-- scrub-pii.ts
+|   |   |   |   `-- track.ts
+|   |   |   `-- orgs.ts
+|   |   |-- navigation
+|   |   |   `-- sidebar-items.ts
+|   |   `-- styles
+|   |       `-- presets
+|   |           `-- buffr-checkpoint.css
+|   `-- tsconfig.json
+|-- scripts
+|   |-- capture-marketing-screenshots.mjs
+|   |-- run-all-tests.sh
+|   `-- smoke-production.sh
+|-- shared
+|   |-- package-lock.json
+|   |-- package.json
+|   |-- src
+|   |   |-- form-rules.ts
+|   |   |-- identity-assurance-level.ts
+|   |   |-- index.ts
+|   |   `-- visit-status.ts
+|   |-- tsconfig.build.json
+|   `-- tsconfig.json
+`-- website
+    |-- .gitignore
+    |-- AGENTS.md
+    |-- CLAUDE.md
+    |-- README.md
+    |-- biome.json
+    |-- next-env.d.ts
+    |-- next.config.ts
+    |-- package-lock.json
+    |-- package.json
+    |-- postcss.config.mjs
+    |-- public
+    |   |-- marketing
+    |   |-- org-assets
+    |   |   `-- buffr-analytics
+    |   `-- screenshots
+    |-- sentry.edge.config.ts
+    |-- sentry.server.config.ts
+    |-- src
+    |   |-- app
+    |   |   |-- (marketing)
+    |   |   |   |-- about
+    |   |   |   |   `-- page.tsx
+    |   |   |   |-- contact
+    |   |   |   |   |-- contact-form.tsx
+    |   |   |   |   `-- page.tsx
+    |   |   |   |-- developers
+    |   |   |   |   `-- page.tsx
+    |   |   |   |-- layout.tsx
+    |   |   |   |-- page.tsx
+    |   |   |   |-- platform
+    |   |   |   |   `-- page.tsx
+    |   |   |   |-- pricing
+    |   |   |   |   |-- page.tsx
+    |   |   |   |   `-- pricing-tiers.tsx
+    |   |   |   |-- privacy
+    |   |   |   |   `-- page.tsx
+    |   |   |   |-- status
+    |   |   |   |   `-- page.tsx
+    |   |   |   `-- terms
+    |   |   |       `-- page.tsx
+    |   |   |-- check-in
+    |   |   |   |-- check-in-branded-shell.tsx
+    |   |   |   |-- check-in-form.tsx
+    |   |   |   |-- invitation-check-in-form.tsx
+    |   |   |   `-- page.tsx
+    |   |   |-- check-out
+    |   |   |   |-- check-out-client.tsx
+    |   |   |   `-- page.tsx
+    |   |   |-- global-error.tsx
+    |   |   |-- globals.css
+    |   |   |-- layout.tsx
+    |   |   |-- not-found.tsx
+    |   |   |-- robots.ts
+    |   |   `-- sitemap.ts
+    |   |-- components
+    |   |   |-- analytics
+    |   |   |   `-- AnalyticsProviders.tsx
+    |   |   |-- capability-status-badge.tsx
+    |   |   |-- json-ld.tsx
+    |   |   |-- marketing
+    |   |   |   |-- channel-convergence-visual.tsx
+    |   |   |   |-- kiosk-product-frame.tsx
+    |   |   |   |-- marketing-bottom-cta.tsx
+    |   |   |   |-- marketing-closing-visual.tsx
+    |   |   |   |-- marketing-hero.tsx
+    |   |   |   |-- marketing-page-close.tsx
+    |   |   |   `-- marketing-product-screenshot.tsx
+    |   |   |-- site-footer.tsx
+    |   |   |-- site-header.tsx
+    |   |   `-- ui
+    |   |       |-- accordion.tsx
+    |   |       |-- badge.tsx
+    |   |       |-- button.tsx
+    |   |       |-- card.tsx
+    |   |       |-- input.tsx
+    |   |       |-- label.tsx
+    |   |       |-- separator.tsx
+    |   |       |-- sonner.tsx
+    |   |       |-- textarea.tsx
+    |   |       `-- tooltip.tsx
+    |   |-- instrumentation-client.ts
+    |   |-- instrumentation.ts
+    |   |-- lib
+    |   |   |-- api.ts
+    |   |   |-- copy
+    |   |   |   |-- contact.ts
+    |   |   |   `-- identity-assurance.ts
+    |   |   |-- form-rules.test.ts
+    |   |   |-- form-rules.ts
+    |   |   |-- marketing-layout.ts
+    |   |   |-- marketing-visuals.ts
+    |   |   |-- observability
+    |   |   |   |-- analytics-consent.test.ts
+    |   |   |   |-- analytics-consent.ts
+    |   |   |   |-- scrub-pii.test.ts
+    |   |   |   |-- scrub-pii.ts
+    |   |   |   `-- track.ts
+    |   |   `-- utils.ts
+    |   `-- styles
+    |       `-- presets
+    |           `-- buffr-checkpoint.css
+    |-- tsconfig.json
+    `-- vitest.config.mts
 ```
 
-**Surfaces present in the tree (2026-09-14 re-verify):**
+**Surfaces present in the tree (2026-09-18 re-verify):**
 
 | Path | Role | Notes |
 |---|---|---|
@@ -3413,7 +3894,7 @@ buffrcheckpoint/
 | `website/` | Public marketing + `/check-in` | Same brand preset as admin |
 | `ops-console/` | Internal Platform Ops Console | Separate host `ops.buffrcheckpoint.com`; shadcn shell parity pass |
 | `kiosk/` | Android/Kotlin visitor tablet | Native app; no DNS host of its own |
-| `scripts/` | Prod smoke + test harness | `smoke-production.sh`, `run-all-tests.sh` |
+| `scripts/` | Prod smoke + acceptance + harness | `smoke-production.sh`, `acceptance-gate.sh`, `acceptance/checklist.json`, `run-all-tests.sh` |
 | `shared/` | `shared/` | **Scaffolded v0.24.1** — `@buffrcheckpoint/shared` with visit_status + identity_assurance_level codes; consumed by backend (`file:../shared`) and mirrored in kiosk `Enums.kt` |
 
 **Still-open structural gap:**
@@ -3466,11 +3947,11 @@ untyped `ReturnType<typeof useTable>` that didn't carry the real
 `TableFeatures`/`RowData` generics. `admin/` now builds and lints clean —
 `npm run build && npm run check` — for the first time.
 
-**The dashboard home page (`/dashboard/default` — what `proxy.ts` already
-redirected a signed-in visitor's bare `/dashboard` hit to) was the last
+**The dashboard home page (`/dashboard/overview` — previously `/dashboard/default`;
+`proxy.ts` redirects bare `/dashboard` here) was the last
 piece still rendering the template's stripped-but-unwired placeholders**
 ("--", "Awaiting backend data," an empty chart, an empty roster) — closed
-in a follow-up pass the same day:
+in a follow-up pass the same day (v0.29 renames the route to Overview):
 
 - A new `backend/src/modules/analytics/` module (`GET
   /analytics/visit-activity?days=`) aggregates real `visitor_visits`/
@@ -3497,7 +3978,7 @@ in a follow-up pass the same day:
 - `/dashboard/page.tsx` (the bare route) previously did a bare `return;`,
   rendering nothing for any request that reached it directly rather than
   through `proxy.ts`'s redirect; it now redirects explicitly to
-  `/dashboard/default` as a defensive fallback.
+  `/dashboard/overview` as a defensive fallback.
 
 Verified live end-to-end: logged into the admin app through its real
 cookie-session flow and confirmed the dashboard home renders actual
@@ -3531,8 +4012,9 @@ below (`crm`, `finance`, `analytics`, `ecommerce`, `academy`, `logistics`,
 
 ```text
 Next.js admin app (admin/)
-    │  fetch, via lib/api/ typed client generated from backend OpenAPI/Swagger doc
-    │  ← NOT YET BUILT (Section 11.4.2 gap 2) — this arrow is still aspirational
+    │  server-side fetch via admin/src/lib/api/client.ts
+    │  (session cookie → Authorization: Bearer → NestJS)
+    │  admin/src/proxy.ts gates /dashboard/* and onboarding redirects
     ▼
 NestJS backend (backend/)  ← BUILT, running, tested (Section 11.4.7)
     │  Guards: RbacGuard reads role/site claims from session;
@@ -3541,18 +4023,19 @@ NestJS backend (backend/)  ← BUILT, running, tested (Section 11.4.7)
 Drizzle ORM → PostgreSQL (Neon, matching buffr-host's pattern per Section 11.2)
 ```
 
-- **Login:** `POST /auth/login` on the backend is **built, tested, and
-  working** (Section 11.4.6/11.4.7 smoke tests) — it validates credentials
-  and issues a JWT with role/permission claims. What's specified but
-  **not yet done** is the admin-app side of this wiring: `admin/src/proxy.ts`
-  should exist (renamed from `proxy.disabled.ts`) and check a session
-  cookie on every `/dashboard/*` request, redirecting to `/auth/v1/login`
-  when absent — as of this revision, `proxy.disabled.ts` is still disabled
-  and the admin app has no API client calling `/auth/login` at all (Section
-  11.4.2's gap 2/3). MFA (Section 13.1, `user_account.mfa_enabled`) is
-  specified as a second step in the same endpoint, not a separate optional
-  flow, for administrators and privileged roles — not yet implemented in
-  `AuthService.login` either; flagged here rather than assumed done.
+> **Historical (pre-2026-09-09):** earlier revisions of this section claimed the
+> OpenAPI-generated client, `proxy.disabled.ts`, and MFA in `AuthService.login`
+> were still aspirational. Those gaps closed in the 2026-09-09 wiring pass
+> (see §11.4.2 historical gap notes). The bullets below describe the **current**
+> stack.
+
+- **Login:** `POST /auth/login` validates credentials and issues a JWT with
+  role/permission claims. The admin app calls it through `admin/src/app/api/auth/*`
+  route handlers; `admin/src/proxy.ts` requires a session cookie on
+  `/dashboard/*` and redirects unauthenticated users to login. MFA (Section 13.1)
+  is a second step in the same login path for enrolled users: login may return
+  an MFA challenge token; `AuthService` completes the session only after TOTP
+  (or recovery code) succeeds.
 - **Email verification:** `application_users.email_verified_at` stays null until
   the confirmation link is consumed (`POST /auth/email-verification/verify`).
   Signup never returns an access token. Login returns
@@ -3586,11 +4069,11 @@ Drizzle ORM → PostgreSQL (Neon, matching buffr-host's pattern per Section 11.2
 - **Audit events:** `AuditInterceptor` on the backend writes an `audit_event`
   row for every sensitive read, export, correction, or deletion (Section 9.2
   rule 3), independent of which admin-app page triggered it.
-- **Typed contracts:** `shared/` holds zod schemas (identity assurance levels
-  V0–V4, visit status, role codes, risk tiers) imported by both `admin/` and
-  `backend/`, so the admin app's forms/tables and the backend's DTOs can't
-  drift — this is the concrete language-unification benefit noted in the
-  Section 11.2 backend-language decision.
+- **Typed contracts:** `shared/` holds shared TypeScript modules (identity
+  assurance levels V0–V4, visit status, form-rules evaluator) imported by
+  `admin/`, `website/`, and `backend/`, so UI forms and API DTOs stay aligned —
+  the concrete language-unification benefit noted in the Section 11.2
+  backend-language decision.
 - **Kiosk (`kiosk/`)** talks to the same NestJS backend over its own
   API surface (offline-sync endpoints, idempotent-write-by-UUID per Section
   8.5) — it does not go through the admin app at all.
@@ -3665,7 +4148,12 @@ schema/
 │       language, organisation_sector (bank/government/healthcare/
 │         critical_infrastructure/sme — Addendum §7.1 "Public-Sector Tenant
 │         Policy"), invitation_status, evidence_pack_status,
-│       support_access_reason.
+│       support_access_reason,
+│       field_class (Part Three §5.1 — core/basic/sensitive/high_risk/
+│         verification_evidence/operational),
+│       field_type (text/textarea/single_choice/multiple_choice/date/
+│         boolean/phone/email — migration `0030`),
+│       check_in_field_code (system field library codes — migration `0030`).
 │       Adding a value is an INSERT, never a migration.
 │
 ├── organisations.ts
@@ -4046,23 +4534,36 @@ A Neon Postgres project exists for Release 1, and every migration through
 
 | | |
 |---|---|
-| Project name | `buffr-checkpoint` |
-| Project ID | `bold-cloud-47505421` |
-| Region | `aws-us-west-2` |
+| Project name | **`buffr-checkpoint-eu` (Frankfurt primary)** |
+| Project ID | Frankfurt primary: **`falling-frog-15538162`**. Oregon rollback `bold-cloud-47505421` **deleted 2026-09-25** after Frankfurt smoke 6/6 + migration 0038 |
+| Region | Frankfurt primary: **`aws-eu-central-1`** (not Namibia-hosted) |
 | Postgres version | 18 |
 | Database | `neondb` |
-| Migrations applied | `0001_release1_init.sql` through **`0012_pre_checkin_ack_and_visit_statuses.sql`** (v0.14) — **62 tables** on `neondb` |
-| Seed applied with `0010` | `0008_site_visitor_experience_domains.sql` — `configuration_version_status` (3), `site_qr_type` (6), `host_notification_escalation_action` (5) |
+| Default branch (Frankfurt) | `br-blue-frog-b1sgfw94` — Object Storage **enabled** (`https://br-blue-frog-b1sgfw94.storage.c-5.eu-central-1.aws.neon.tech`, region `eu-central-1`, `force_path_style`) |
+| Object Storage / AI Gateway / Functions | **Cut over (v0.29).** Railway + local `ARTIFACT_STORE=neon_s3` with bucket `buffr-checkpoint-artifacts`. Credential `buffr-checkpoint-runtime-v029` (secrets in env only). Functions + Managed Better Auth remain **deferred**. Oregon rollback **deleted 2026-09-25**. Vercel Blob is explicit degrade only (source listing had 0 objects at cutover). |
+| Migrations applied | `0001_release1_init.sql` through **`0038_branded_notification_templates.sql`**. Frankfurt restore (2026-09-18) verified through form-builder domains; **0035–0037** (QR-first catalog, CiMSO PMS shell + TCP columns) live; **0038** applied 2026-09-25 (`notification_template_code` = 28, `platform_notification_template` = 28, `attachments_json` on outbox). Production smoke `scripts/smoke-production.sh` → 6/6 PASS against Frankfurt-backed API. |
+| Seed / domain coverage | Seeds `0001`–`0019` under `backend/db/seed/`. Form-builder domains also land via migrations `0030`/`0031`. Experience domains from `0008_site_visitor_experience_domains.sql`: `configuration_version_status` (3), `site_qr_type` (6), `host_notification_escalation_action` (5). |
 | Pre-rename rollback point | Neon snapshot `snap-mute-shadow-arde2xqb` |
 | Connection string | **Not in this document.** Lives in `backend/.env` (gitignored) and Railway. **Least-privilege role live (2026-09-14):** `buffr_checkpoint_runtime` (SQL-created, **not** `neon_superuser`). Verified `has_table_privilege(…, audit_events, UPDATE) = false` while INSERT remains true; outbox `notification_delivery_instructions` keeps UPDATE. Local `.env` **and Railway production `DATABASE_URL`** pointed at this role (redeployed). Prefer deleting any leftover Neon-API role `buffr_checkpoint_app` that is still in `neon_superuser`. |
 
+#### Platform primitive adoption decisions (recorded v0.29; Object Storage revised same day)
+
+| Primitive | Decision |
+|---|---|
+| **Neon Functions** | **Deferred.** NestJS keeps evidence packs, DSAR export, bulk import, and AI-assisted form translation until a concrete scale need appears. Do not adopt Functions as a second compute plane in Release 1. |
+| **Managed Better Auth** | **Deferred.** Custom NestJS auth retains TOTP MFA + login lockout parity the managed plugin set lacks (cross-link §11.2 Identity / SSO row). |
+| **Object Storage / AI Gateway region** | **Done (pre-pilot).** Primary Neon project `falling-frog-15538162` in `aws-eu-central-1` (Postgres 18). **`ARTIFACT_STORE=neon_s3` is production primary** via `NeonS3ArtifactStore` / `createArtifactStore()`. Vercel Blob is **explicit degrade only**. AI Gateway co-locates with Frankfurt when `FORM_AI_ENABLED=true`. Preview-branch validation (2026-09-18): inherited 8 orgs + `buffr-checkpoint-artifacts`; probe object uploaded; branch delete cleaned the branch. |
+
+**Neon Object Storage limits vs Vercel Blob (honest):** buckets are `private` or `public_read` only (no fine-grained per-path IAM); no upload event notifications; no Glacier/storage classes; no cross-region replication; no per-operation fees (storage billed per GB-month). Max object size during beta is 5 GiB — sufficient for evidence packs, KYB, POP, DSAR. Requests may return `503 SlowDown` under load — reuse outbox-style backoff.
+
 `type_definition` is seeded (`backend/db/seed/0001_type_definitions.sql`
-through `0008_site_visitor_experience_domains.sql`) — every domain a `*_code`
-foreign key in the schema points at has real rows, including
-`cran_compliance_status`'s 7-value sequence (§14.3a), the
-`permission_definitions`/`role_permission_grants` catalogue (§11.4.5c), and the
-Section 11.9.8 domains (`configuration_version_status`, `site_qr_type`,
-`host_notification_escalation_action`).
+through `0019_demo_device_compliance_register.sql`, plus domains inserted by
+migrations `0030`/`0031`) — every domain a `*_code` foreign key in the schema
+points at has real rows, including `cran_compliance_status`'s 7-value sequence
+(§14.3a), the `permission_definitions`/`role_permission_grants` catalogue
+(§11.4.5c), Section 11.9.8 domains (`configuration_version_status`,
+`site_qr_type`, `host_notification_escalation_action`), and form-builder
+domains `field_class`, `field_type`, `check_in_field_code` (Part Three §5.1).
 
 ## 11.5 Visual Design System — light theme, adopted for the admin app
 
@@ -4093,24 +4594,24 @@ asset files at the workspace root
 backwards: both real assets are light-canvas — black type/marks and a single
 gold accent on a white or near-white ground — not dark-canvas. The dark
 theme clashed with the real logo instead of complementing it. The Sodium
-Yellow accent value itself (`#e2a603`) was already correctly sampled from
-the logo and is unchanged; every other token below was re-derived for a
+Yellow accent value itself was re-aligned to identity-sheet mustard `#E0B000`
+(CSS variable name `--color-sodium-yellow` unchanged); every other token below was re-derived for a
 light ground. Section 11.5.1's table reflects the corrected, currently-built
 values; the table immediately below documents the before/after mapping for
 anyone diffing against the pre-v0.5 build.
 
 | Token | v0.4 (dark canvas) value / role | v0.5 (light canvas) value / role |
 |---|---|---|
-| `--color-sodium-yellow` | `#e2a603` — primary CTA fills, active nav state | **Unchanged.** `#e2a603` — same role |
+| `--color-sodium-yellow` | `#e2a603` — primary CTA fills, active nav state | `#E0B000` — identity-sheet mustard (CSS name unchanged) |
 | `--color-lime-pulse` | `#00ff1a` — editorial/status accent only | **Unchanged.** `#00ff1a` — same role |
 | `--color-carbon` | `#1f1d01` — page canvas (dark) | `#171717` — **repurposed**: primary text/ink color (near-black, not pure `#000000`, matching the same "not harsh" principle the dark canvas used) |
 | `--color-graphite` | `#282828` — card surfaces (dark) | `#e9e7e0` — **repurposed**: light warm-gray secondary surface/muted fill |
 | `--color-slate` | `#707070` — secondary borders/dividers | `#6b6b6b` — **repurposed**: muted/secondary text (passes 4.5:1 on white) |
 | `--color-frost` | `#d7d7d7` — primary body text on dark surfaces | `#d9d9d4` — **repurposed**: borders/dividers on light surfaces |
-| `--color-cloud` | `#f2f2f2` — headline text, a step brighter than Frost | `#f5f4ef` — **repurposed**: page background / off-white ground |
+| `--color-cloud` | `#f2f2f2` — headline text, a step brighter than Frost | `#F5F5F5` — identity-sheet Light (page background) |
 | `--color-pure-white` | `#ffffff` — text on yellow fills only | `#ffffff` — **unchanged value, repurposed role**: elevated card/sidebar surface and literal white, no longer used as text-on-yellow |
 | `--color-ash` | `#8d8d8d` — muted helper text | `#9a9a94` — **repurposed**: tertiary/disabled text |
-| `--color-charcoal` | `#333333` — depth accents within dark panels | `#2a2a28` — **repurposed**: reserved for intentionally-inverted (dark) chips/fills; rarely used |
+| `--color-charcoal` | `#333333` — depth accents within dark panels | `#111111` — identity-sheet charcoal (inverted chips/fills; mark core) |
 | `--color-status-live` | `#22c55e` (~2.3:1 contrast on white — already failed AA before the flip) | `#15803d` — darkened to clear 4.5:1 on the light ground |
 
 Primary/accent-foreground text on Sodium Yellow fills also changed: the
@@ -4123,16 +4624,17 @@ black-on-gold "checkpoint" lockup.
 
 | Token | Value | Role |
 |---|---|---|
-| `--color-sodium-yellow` | `#e2a603` | Primary CTA fills, active nav state, accent cards — the only saturated action color in the system. Calibrated by sampling the actual logo files (`buffrcheckpoint/9DEA346D-...PNG` wordmark and `3355B536-...PNG` app-icon mark): the dominant flat fill on the accent stripe and "checkpoint" wordtype is RGB(226,166,3), i.e. `#e2a603` — a deeper golden-amber. Unchanged since first calibrated; the v0.5 correction only changed the canvas polarity around it. |
+| `--color-sodium-yellow` | `#E0B000` | Primary CTA fills, active nav state, accent cards — the only saturated action color in the system. Canon from the identity sheet (mustard). Vector/PNG kit lives in `buffrcheckpoint/branding/` (`exports/` for sized PNGs). Wordmark ff-bar weave: mustard bar behind the first `f` stem, in front of the second. |
+| `--color-sodium-yellow-ink` | `#8A6B00` | Text-safe sodium variant (accessibility). Use for sodium-tinted labels and links on light surfaces where `#E0B000` fails contrast; never for primary CTA fills. |
 | `--color-lime-pulse` | `#00ff1a` | Editorial/status accent only — e.g. a "synced" or "V3 verified" badge. Rationed to one or two occurrences per screen; never a second CTA color. |
 | `--color-carbon` | `#171717` | Primary text/ink color. Never pure `#000000` — the same "not harsh" principle the pre-v0.5 dark canvas used, now applied to text instead of background. |
 | `--color-graphite` | `#e9e7e0` | Secondary/muted surface fill (light warm-gray). |
 | `--color-slate` | `#6b6b6b` | Muted/secondary text — passes 4.5:1 contrast on white. |
 | `--color-frost` | `#d9d9d4` | Borders, dividers, hairlines on light surfaces. |
-| `--color-cloud` | `#f5f4ef` | Page background — the off-white ground. |
+| `--color-cloud` | `#F5F5F5` | Page background — identity-sheet Light. |
 | `--color-pure-white` | `#ffffff` | Elevated card/sidebar/popover surfaces; literal white. |
 | `--color-ash` | `#9a9a94` | Tertiary/disabled helper text, metadata. |
-| `--color-charcoal` | `#2a2a28` | Reserved for deliberately-inverted (dark) chips/fills within an otherwise-light panel; rarely used. |
+| `--color-charcoal` | `#111111` | Identity-sheet charcoal — mark core, inverted chips/fills within an otherwise-light panel. |
 
 **Do not** use `--color-lime-pulse` for anything status-critical (e.g. an
 error state) — Buffr Checkpoint already uses green/red semantically nowhere
@@ -4328,9 +4830,9 @@ Section 4a.7).
 
 | Page | Sections (top to bottom) | Key components used |
 |---|---|---|
-| **Home** | Sticky top nav (adapted from the Adnaut bottom-nav pattern — a marketing site reads better with a conventional top nav; the bottom-nav treatment is reserved for the kiosk app's persistent physical-device chrome, Section 11.7) → Hero Headline Block ("Built for Africa's Compliance.", v0.6 shortened tagline — see §11.6.4a) with Capability Status Badge for DigiNam → 3D Isometric Vignette band → "How It Works" step sequence (each step tagged "Live now" or via the Capability Status Badge, never a bare label) → Paper-Register-Risk demo panel (Section 16.3, Large Content Card) → Accent Card CTA ("Book a Paper Register Exposure Review," Section 17.1) → Contact Info Block footer | Hero Headline Block, Capability Status Badge, Large Content Card, Accent Card |
+| **Home** | Sticky top nav (adapted from the Adnaut bottom-nav pattern — a marketing site reads better with a conventional top nav; the bottom-nav treatment is reserved for the kiosk app's persistent physical-device chrome, Section 11.7) → Hero Headline Block ("Built for Africa's Compliance.", v0.6 shortened tagline — see §11.6.4a) with Capability Status Badge for DigiNam → 3D Isometric Vignette band → "How It Works" step sequence (each step tagged "Live now" or via the Capability Status Badge, never a bare label) → Paper-Register-Risk demo panel (Section 16.3, Large Content Card) → Accent Card CTA ("Create account," Section 17.1) + secondary See pricing → /pricing → Contact Info Block footer | Hero Headline Block, Capability Status Badge, Large Content Card, Accent Card |
 | **Platform** | Architecture explanation (Digital Identity Layer, two states via Capability Status Badge) → full RBAC table from Section 9 (rendered as a real table, not a screenshot, so it stays in sync with this document) → FAQ accordion (two required entries per Section 1a.3) | Large Content Card, Capability Status Badge |
-| **Pricing** | Tier comparison (Checkpoint Core/Professional/Verify/Access/Assurance, Section 15.2) → per-channel marginal-cost callouts (Section 15.4) → NFC/e-ID row with Capability Status Badge | Large Content Card grid, Capability Status Badge |
+| **Pricing** | Tier comparison (Core / Professional / Verify + catalog add-ons, Section 15.2) → monthly/annual → per-channel marginal-cost callouts (Section 15.4) → NFC/e-ID Capability Status Badge | Large Content Card grid, Capability Status Badge |
 | **About** | Founding narrative (Section 1a.2) → team credibility section — no reference to any other Buffr product per Section 1a.1's standalone rule | Hero Headline Block (smaller variant), Keyword Emphasis Text |
 | **Contact** | Contact Info Block → sales-inquiry form (posts to the backend's public contact endpoint, not a third-party form embed, to avoid an undocumented subprocessor per Section 3.1's data-flow-mapping rule) | Contact Info Block |
 
@@ -4358,7 +4860,7 @@ Home and About hero headlines, and the admin app's auth hero panel —
 (pricing tiers, RBAC rows, legal clause bodies) is intentionally not
 reproduced verbatim below — headings and prose copy only.
 
-**Home** (`website/src/app/page.tsx`)
+**Home** (`website/src/app/(marketing)/page.tsx`)
 
 | Section | Copy |
 |---|---|
@@ -4372,7 +4874,7 @@ reproduced verbatim below — headings and prose copy only.
 | **Final CTA** (new in v0.7, previously buried inside the Paper Register card) | Sodium-Yellow high-contrast panel: "Replace your paper register before it becomes your next privacy incident." |
 | Footer tagline | "Built for Africa's Compliance." |
 
-**Platform** (`website/src/app/platform/page.tsx`)
+**Platform** (`website/src/app/(marketing)/platform/page.tsx`)
 
 | Section | Copy |
 |---|---|
@@ -4380,37 +4882,38 @@ reproduced verbatim below — headings and prose copy only.
 | Hero | H1: "One secure visitor-record service. Multiple inclusion channels." — Sub: "Buffr Checkpoint's architecture is built around a single principle: every visitor can check in. The channel changes. The data-protection standard doesn't." |
 | Architecture (H2) | 6 layer cards (Check-in Channels, Site Edge, API & Identity Gateway, Core Application, Identity Adapters, Data & Evidence) — each a label list, no prose — followed by the two Capability Status Badges (DigiNam/NPKI, National e-ID NFC) |
 | RBAC table (H2) | Section 9's 9-role table, rendered live from `rbacRows` |
-| FAQ (H2) | 4 questions: DigiNam verification status, National e-ID NFC status, offline operation, UI-only vs. API/data-layer access control (full answers in the file — the National e-ID answer was rewritten in v0.6 to drop its em dashes) |
+| FAQ (H2) | 7 questions: DigiNam status, National e-ID NFC status, offline operation, API/data-layer access control, fixed role catalogue, Form AI (admin suggest/translate, never auto-publish), public check-in languages (picker en/af/pt + `?lang=`) |
 | Footer tagline | "Built for Africa's Compliance." |
 
-**Pricing** (`website/src/app/pricing/page.tsx`)
+**Pricing** (`website/src/app/(marketing)/pricing/page.tsx`)
 
 | Section | Copy |
 |---|---|
 | `<title>` | "Pricing: Buffr Checkpoint" |
-| Hero | H1: "Simple, channel-inclusive pricing." — Sub: "NFC capability is a standard feature from the Professional tier upward. USSD and SMS come standard from the Starter tier, because inclusion isn't a premium add-on." |
-| Tier cards | 5 tiers (Core, Professional, Verify, Access, Assurance) — name, tagline, price, feature list, CTA — data only, unchanged in v0.6 |
-| Per-channel marginal cost (H2) | "Every channel produces the same isolated, encrypted record downstream, but the channels carry materially different marginal costs." — 7-row cost table |
-| CTA | "Need a custom deployment plan?" — "Every site is different. Tell us about your visitor volumes, connectivity, and risk profile, and we'll recommend the right tier and channel mix." |
+| Hero | H1: "Simple, channel-inclusive pricing." — Sub: three plans, monthly or annual; NFC from Professional; USSD/SMS from Core |
+| Tier cards | **3 subscription tiers** (Core, Professional, Verify) with monthly/annual toggle (annual = 10× monthly) — Professional featured |
+| Add-ons | **Hidden on marketing** (ops/sales catalog only via `GET /platform/billing/catalog`) — public `GET /public/pricing` returns plans only |
+| Per-channel marginal cost (H2) | "Every channel produces the same isolated, encrypted record downstream…" — 7-row cost table |
+| CTA | "Need a custom deployment plan?" — volumes, connectivity, risk profile → tier and channel mix |
 | Footer tagline | "Built for Africa's Compliance." |
 
-**About** (`website/src/app/about/page.tsx`)
+**About** (`website/src/app/(marketing)/about/page.tsx`)
 
 | Section | Copy |
 |---|---|
 | `<title>` | "About: Buffr Checkpoint" |
 | Hero | H1: "Built for Africa's Compliance." — Sub: "We started with a simple observation: the paper visitor register is an everyday privacy and governance failure. Buffr Checkpoint fixes that for every visitor, at every site, regardless of the device in their pocket." |
-| Our Mission (H2) | 4 paragraphs — the paper-register-harm paragraph, the Buffr Checkpoint response, the "NFC-forward, not NFC-exclusive" strategic-choice paragraph, and the closing "governing design constraint" paragraph (all rewritten in v0.6 to drop em dashes and parenthesize the harm list) |
+| Our Mission (H2) | 4 paragraphs — paper-register harm, Buffr Checkpoint response, NFC-plus-multi-channel inclusion paragraph, and closing design-requirement paragraph (public site About page aligned in 2026-09) |
 | What We Stand For (H2) | 6 value cards: Privacy by design, Inclusion first, Evidence-led, Offline-resilient, Risk-based, Namibia-ready (one-sentence description each, three rewritten in v0.6) |
-| CTA | "See the paper-register risk for yourself." — "Book a free Paper Register Exposure Review. We'll show you exactly where your current process exposes personal information, and what a governed alternative looks like." |
+| CTA | "See the paper-register risk for yourself." — primary **Create account**; secondary review via Contact. |
 | Footer tagline | "Built for Africa's Compliance." |
 
-**Contact** (`website/src/app/contact/page.tsx`)
+**Contact** (`website/src/app/(marketing)/contact/page.tsx`)
 
 | Section | Copy |
 |---|---|
 | `<title>` | "Contact: Buffr Checkpoint" |
-| Hero | H1: "Let's talk about your visitor process." — Sub: "Whether you want a Paper Register Exposure Review, a pricing conversation, or a technical question answered, we're here." |
+| Hero | H1: "Questions before you sign up?" — Sub: self-serve signup is the default path; contact covers multi-site rollouts, hardware, integrations, partnerships; link to Create account. (v2026-09-29: review offer retired.) |
 | Direct contact | Email/Phone/Address block — data only |
 | What happens next? | 3-step numbered process (review enquiry → schedule call → deliver review/proposal) — kept as parallel numbered steps deliberately (a scannable ordered process, not filler repetition) |
 | Sales and partnership | "For reseller, hardware, or integration partnerships, use the same form above and mention the partnership type in your message." |
@@ -4428,7 +4931,7 @@ reproduced verbatim below — headings and prose copy only.
 | Success | H1 from `nextSteps.headline` (e.g. "{FirstName}, wait for {Host}") — meeting line with host + department; instruction to wait at reception while host is notified / called; badge/pass callout when visitor category usually requires one (contractor, temporary staff, restricted). |
 | API | Browser calls `NEXT_PUBLIC_API_URL` → `GET /public/check-in/context`, `POST /public/check-in` (returns `hostDisplayName`, `hostDepartment`, `nextSteps`) |
 
-**Privacy** (`website/src/app/privacy/page.tsx`) / **Terms** (`website/src/app/terms/page.tsx`)
+**Privacy** (`website/src/app/(marketing)/privacy/page.tsx`) / **Terms** (`website/src/app/(marketing)/terms/page.tsx`)
 
 Only the `<title>` had an em dash (fixed: "Privacy Policy: Buffr Checkpoint",
 "Terms & Conditions: Buffr Checkpoint") and Terms' 5 subscription-tier label
@@ -4571,7 +5074,7 @@ than a generic multi-hue chart scheme.
 |---|---|---|---|
 | **Product UI screenshots** | Demonstrate the actual system | Home, Platform, Pricing, sales deck | Highest priority. Real data only from a controlled demo tenant — never a customer's. |
 | **System diagrams** | Explain data flow, controls, channels, roles | Platform, tender packs, compliance pages | Prefer diagrams over stock images for technical buyers. |
-| **Contextual photography** | Create human relevance and Namibia/Africa context | Home, About, sector pages | Only real, consented, non-sensitive settings. |
+| **Contextual photography** | Create human relevance and Namibia/Africa context | Hero (`hero-*.png`) and closing band (`closing-*.png`) on primary marketing routes | Only real, consented, non-sensitive settings. Closing bands use dedicated files — never the hero asset for that route. |
 | **Hardware photography** | Make the kiosk, NFC reader, badge printer, and privacy-screen setup tangible | Platform, product sheets, government tenders | Use the actual approved hardware, or a clearly labelled concept render. |
 | **Data visualisations** | Prove control operation | Admin dashboard, assurance packs, case studies | Never invented metrics, fake "live" records, or decorative charts. |
 
@@ -4579,13 +5082,53 @@ Don't use images decoratively just because a marketing site "needs
 imagery." Every image must explain an operational reality, lower
 uncertainty, or demonstrate a real product outcome.
 
+### 11.6.5.2a Refero Styles layout primitives (CSS)
+
+[Refero Styles](https://styles.refero.design) publishes AI-readable
+`DESIGN.md` extracts from product UIs (hierarchy, spacing, flat panels).
+Buffr Checkpoint adapts those **patterns**, not third-party palettes:
+
+- **Scope:** `website/src/styles/presets/buffr-checkpoint.css` is the
+  **canonical** brand + `bc-*` file. After any edit, sync byte-identical copies
+  to `admin/src/styles/presets/buffr-checkpoint.css` and
+  `ops-console/src/styles/presets/buffr-checkpoint.css`
+  (`cp website/src/styles/presets/buffr-checkpoint.css admin/src/styles/presets/`
+  then the same for ops-console).
+- **Not in scope:** `refero-buffr-design-uplift` skill targets
+  `buffrsandbox/` (sharp 2px, blue tokens). Do not import that token set here.
+- **Local research:** `LifeCompass/crawl4AI-agent-v2/refero_sitemap_crawl/`
+  (dashboard + UX principle articles); skill reference at
+  `.claude/skills/refero-buffr-design-uplift/reference.md`.
+- **Rules carried over:** flat panels (hairline `--color-frost` border, no
+  coloured KPI top-strips, no drop-shadow elevation), soft active nav fill
+  (`bc-active-soft`), marketing eyebrow/lead typography, optional 12-column
+  grid helpers (`bc-grid-marketing`, `bc-span-*`), ≤4 primary stat tiles
+  (`bc-stat-row`).
+- **Usage:** prefer `marketing-layout.ts` exports (`marketingSurface`,
+  `marketingFeatureCard`, …) on public pages; use `bc-panel` / `bc-stat-tile`
+  (or admin `BcPanel` / `BcStatRow` wrappers) in dashboards; ops-console uses
+  the same `bc-*` classes after preset sync.
+
 ### 11.6.5.3 Home page placement strategy
 
-**Hero — product proof, not a generic office photo.**
+**Hero — product proof with atmospheric backdrop, not readable register photos.**
+
+Full-bleed contextual photography or abstract flow art lives under a light
+cloud scrim (`website/public/marketing/*.png`, `MarketingHero` component).
+Copy stays readable; backgrounds must not show names, ID numbers, or paper
+registers.
+
+**Page close (all primary marketing routes)** — wide closing photography
+(`MarketingClosingVisual`, `website/public/marketing/closing-*.png`) sits
+**above** the sodium-yellow bottom CTA (`MarketingBottomCta` via
+`MarketingPageClose`), not above the footer. Order: main content → closing band
+(photography only, no overlay copy) → final CTA → site footer. Closing files
+are separate from `hero-*.png` for the same route. Registry:
+`website/src/lib/marketing-visuals.ts`.
 
 ```text
 Left:  headline, two-sentence problem statement, one primary CTA
-       ("Book a Paper Register Exposure Review")
+       ("Create account")
 Right: a real product UI composition inside a tablet/kiosk frame,
        one synthetic isolated visitor record, a small privacy line:
        "Record protected. Visible only to authorised staff."
@@ -4664,16 +5207,16 @@ Low-image, high-clarity — no generic smiling-office photography between
 pricing cards; it distracts from the buyer's decision and can make a
 regulated product feel lightweight. Use: plan cards, a channel-inclusion
 matrix, a hardware placement diagram, a "what's included" visual, live
-capability-status badges, and one small NFC badge/reader product photograph
-under Professional or Access.
+capability-status badges, and (only under Professional / add-ons) optional NFC or kiosk hardware photography — never as the Core hero.
 
 | Tier | Visual focus |
 |---|---|
-| Checkpoint Core | Tablet kiosk and assisted check-in |
-| Checkpoint Professional | NFC badge tap, host notification, multi-site dashboard |
+| Checkpoint Core | Printed public site QR + phone web check-in; assisted front desk (no tablet required) |
+| Checkpoint Professional | Multi-site dashboard, host notification, optional NFC / kiosk / messaging when enabled |
 | Checkpoint Verify | Identity assurance ladder and DigiNam capability status |
-| Checkpoint Access | Zone map, credential lifecycle, escorted-entry flow |
-| Checkpoint Assurance | Evidence pack and control-test dashboard |
+| Add-on: physical access control | Zone map, credential lifecycle, escorted-entry flow |
+| Add-on: controls review and evidence | Evidence pack and control-test dashboard |
+| Optional: kiosk / SMS / USSD / NFC | Device or messaging only when sold as add-on — never implied as Core CAPEX |
 
 ### 11.6.5.6 About page placement strategy
 
@@ -5021,15 +5564,15 @@ contract, not a redesign of it):
 
 ### 11.7.6 Kiosk implementation status — Phases 0–5 delivered (reconciled v0.22)
 
-> **STATUS (v0.22 reconciliation):** Phases **0–3** (online check-in) were
+> **STATUS (v0.29 reconciliation):** Phases **0–3** (online check-in) were
 > verified 2026-09-10. Phases **4–5** (SQLCipher outbox offline sync; NFC
 > reader-mode validate → check-in) landed in **v0.20** and remain FULL in
 > §11.9.0a. **v0.21–v0.22** added session timeout, abandon, outbox draft wipe
 > (FR-K10), privacy gate on QR/NFC, and effective org capability flags.
-> Remaining open: live DigiNam/e-ID adapters, live USSD/SMS gateways, badge
-> print (FR-K12), dynamic form sync (FR-K09), and any later Phase 6+ device
-> ops console work. Do not read older “Phases 4–9 remain open” notes as
-> current — they are superseded by this block and §11.9.0a.
+> **v0.28** closed dynamic form sync (FR-K09): Android
+> `ManualCheckInViewModel` / `ManualCheckInScreen` render `effectiveForm`
+> fields with shared `FormRules` visibility. Remaining open is **Phases 6+**
+> below. Do not read older “Phases 4–9 remain open” notes as current.
 
 **Phase 0 — Backend additions (landed, verified via `nest build`):**
 
@@ -5093,21 +5636,26 @@ verified with a real compile and a real APK):**
   uses a plain host-ID text field instead of pretending to have a picker
   that silently leaked ciphertext or that the review process never saw.
 
-**Phases 4-9 — not built this pass** (offline queue/sync via
-Room+SQLCipher+WorkManager+Keystore; the NFC reader-mode + validate-call
-fast lane; the read-only device-provisioning screen; capability-status-
-gated feature flags; the honest notification-pending banner beyond the
-static copy already in `CheckInSuccessScreen`; and the policy-
-acknowledgement UI against the new Phase 0 endpoints). Section 11.7.5's
-checklist is the release gate for these phases as they land.
+**Phases 6+ backlog** (not built; track in §11.9.0a):
+
+- Badge print hardware path (FR-K12) — soft confirmation exists; printer SDK does not.
+- Live USSD aggregator menu flow (kiosk shows instructions only today).
+- Live SMS MT provider (OTP scaffold exists; no live gateway).
+- DigiNam relying-party adapter (register correctly reads `not_available`).
+- National e-ID NFC adapter (register correctly reads `targeted`).
+- Richer host-search picker for manual check-in (decrypted host list projection still open — see gap note above).
+
+Section 11.7.5's checklist remains the release gate as these land.
 
 ### 11.7.7 First physical-device install — demo deployment record (2026-09-10)
 
 > **Local/demo credentials below — sandbox data only, not a production
-> tenant.** `kiosk-demo@buffrcheckpoint.test` is a synthetic
-> `owner_operator` admin account created purely to exercise the kiosk end
-> to end on a real phone; it carries full org-admin permissions (broader
-> than the least-privilege kiosk service-account role Section 11.7.6/
+> tenant.** From v0.27 the demo site and `kiosk-demo@buffrcheckpoint.test`
+> live on the **same** Buffr Analytics organisation (`b51f0704-…`) as the
+> registered customer row — there is no separate kiosk-only org. The account
+> is still a synthetic `owner_operator` created to exercise the kiosk end to
+> end; it carries full org-admin permissions (broader than the
+> least-privilege kiosk service-account role Section 11.7.6 /
 > `AuthRepository`'s design assumes), so it should be rotated or deleted —
 > not reused as a real site's kiosk credential — before any non-test
 > deployment. This mirrors the same synthetic-tenant discipline Section
@@ -5142,7 +5690,7 @@ wasn't the first time this pass touched the contract:
 | Kiosk setup screen — Site ID | `74c72c99-93dc-4b33-934b-9b365e9924cf` ("Demo Front Desk") |
 | Login — email | `kiosk-demo@buffrcheckpoint.test` |
 | Login — password | `KioskDemo!2026` |
-| Organisation | Legal: "Buffr Checkpoint Kiosk Demo" (`47c8b69b-…`); visitor-facing branding: **Buffr Analytics** with `brand_colour_token` `#CF1161` (buffr-intelligence `brand-magenta-aa`), help `team@buffranalytics.com` (seed `0012`). Registered customer org: "Buffr Financial Services CC" / trading **Buffr Analytics** (`b51f0704-…`, CC/2024/09322). |
+| Organisation | **Buffr Analytics** — legal "Buffr Financial Services CC" / trading "Buffr Analytics" (`b51f0704-12a7-45d4-8b0d-3642785b6e77`, CC/2024/09322). Demo Front Desk site, kiosk-demo user, hosts, forms, and published branding all live on this org (seed `0018_unify_kiosk_demo_under_buffr_analytics.sql`). Visitor chrome: `brand_colour_token` `#CF1161`, help `team@buffranalytics.com`, logo `/org-assets/buffr-analytics/icon.png`. |
 | Demo host | Prefer a person/department (Finance, Engineering, People, IT). Reception Desk remains for deliveries. Seed `0013_demo_front_desk_hosts.sql`. |
 
 Both the phone and the Mac must be on the same Wi-Fi network for the LAN
@@ -5157,11 +5705,18 @@ or **emulator smoke tests** without a local backend, use
 | Backend base URL | `https://api.buffrcheckpoint.com/` |
 | Site ID | `74c72c99-93dc-4b33-934b-9b365e9924cf` |
 | Login | `kiosk-demo@buffrcheckpoint.test` / `KioskDemo!2026` |
+| Organisation | Same as above — `b51f0704-…` (Buffr Analytics). Do not provision against a separate kiosk-only org. |
 | Email verified | Required — seed `0011_kiosk_demo_email_verified.sql` (or `email_verified_at` set). Unverified login returns `emailVerificationRequired` and blocks experience sync, leaving a stale QR payload. |
 
 Build/install: `cd kiosk && ./gradlew assembleDebug && adb install -r app/build/outputs/apk/debug/app-debug.apk`
 then launch `com.buffrcheckpoint.kiosk/.MainActivity` (or tap the app icon).
 Local backend alternative: `http://10.0.2.2:3001/` with NestJS on the host.
+
+After login, Welcome must show **Buffr Analytics** (not product-default
+"Buffr Checkpoint" chrome): magenta accent `#CF1161`, logo from
+`/org-assets/buffr-analytics/icon.png`, and the public check-in QR for
+site `74c72c99-…`. If branding is missing, use Welcome's retry control —
+sync failures no longer fail silently (v0.27).
 
 ### 11.7.8 DNS and public hostnames — `buffrcheckpoint.com`
 
@@ -5171,8 +5726,8 @@ Local backend alternative: `http://10.0.2.2:3001/` with NestJS on the host.
 > Namecheap (or other registrar) DNS records, Vercel custom domains,
 > deploy-time env vars, and smoke tests. **As of v0.16, production is live**
 > on website / admin / api (verified 2026-09-11). **Ops console**
-> (`ops.buffrcheckpoint.com`) was attached on Vercel 2026-09-14 — Namecheap
-> `ops` CNAME must still be applied for the custom hostname to resolve.
+> (`ops.buffrcheckpoint.com`) CNAME is live in Namecheap Advanced DNS
+> (`ops` → `d7a75fef5a47cd2c.vercel-dns-017.com`, confirmed 2026-09-18).
 >
 > **Historical note:** v0.10 documented a `buffrconnect.com` subdomain tree
 > (`checkpoint.buffrconnect.com`, …) assuming shared registrar space with
@@ -5185,7 +5740,7 @@ Local backend alternative: `http://10.0.2.2:3001/` with NestJS on the host.
 |---|---|---|---|
 | Marketing site | `buffrcheckpoint.com` (+ `www`) | `website/` (Next.js) | Vercel `buffrcheckpoint-website` |
 | Admin dashboard | `admin.buffrcheckpoint.com` | `admin/` (Next.js) | Vercel `buffrcheckpoint-admin` |
-| Platform ops console | `ops.buffrcheckpoint.com` | `ops-console/` (Next.js) | Vercel `buffrcheckpoint-ops-console` (custom DNS pending Namecheap) |
+| Platform ops console | `ops.buffrcheckpoint.com` | `ops-console/` (Next.js) | Vercel `buffrcheckpoint-ops-console` |
 | API (kiosk + admin + ops server-side) | `api.buffrcheckpoint.com` | `backend/` (NestJS) | Railway `buffrcheckpoint` / `api` |
 
 The **`kiosk/`** Android app has no DNS record of its own — field tablets
@@ -5220,14 +5775,14 @@ Create these records in the DNS panel for **`buffrcheckpoint.com`**.
 Replace **Target** placeholders with the exact values Vercel or your API
 host prints when you attach each custom domain.
 
-| Host / name | Type | Target (verified 2026-09-11; `ops` 2026-09-14) | Serves |
+| Host / name | Type | Target (verified 2026-09-18 Namecheap Advanced DNS) | Serves |
 |---|---|---|---|
-| `@` | `A` | `216.198.79.1`, `64.29.17.1` | `website/` apex |
+| `@` | `A` | `64.29.17.1`, `216.198.79.1` | `website/` apex |
 | `www` | `CNAME` | `3174b31ac9c2defc.vercel-dns-017.com` | `website/` |
 | `admin` | `CNAME` | `5532354d6fa6cd3b.vercel-dns-017.com` | `admin/` |
-| `ops` | `CNAME` | `d7a75fef5a47cd2c.vercel-dns-017.com` | `ops-console/` (apply in Namecheap — not yet resolving) |
+| `ops` | `CNAME` | `d7a75fef5a47cd2c.vercel-dns-017.com` | `ops-console/` |
 | `api` | `CNAME` | `yc9j25fm.up.railway.app` | `backend/` |
-| `_railway-verify.api` | `TXT` | `railway-verify=<token from Railway dashboard>` | Railway domain verify |
+| `_railway-verify.api` | `TXT` | `railway-verify=…` (exact token from Railway; keep as issued) | Railway domain verify |
 | `send.mail` | `CNAME` | `send.forge.rmta.net` | Resend return-path / SPF for `mail.buffrcheckpoint.com` |
 | `rsend.mail` | `CNAME` | `rsend-euw1.forge.rmta.net` | Resend SPF alias (eu-west-1) |
 | `resend._domainkey.mail` | `TXT` | `p=MIGf…` (exact value from Resend Domains → Records) | Resend DKIM for `mail.buffrcheckpoint.com` |
@@ -5311,11 +5866,14 @@ commented production block).
 PORT=3001
 DATABASE_URL=<Neon connection string — Section 11.4.7>
 JWT_SECRET=<random hex — backend/.env.example>
-CORS_ORIGIN=https://buffrcheckpoint.com,https://admin.buffrcheckpoint.com,https://ops.buffrcheckpoint.com
+CORS_ORIGIN=https://buffrcheckpoint.com,https://www.buffrcheckpoint.com,https://admin.buffrcheckpoint.com,https://ops.buffrcheckpoint.com
 PUBLIC_ASSET_BASE_URL=https://admin.buffrcheckpoint.com
 PUBLIC_WEB_BASE_URL=https://buffrcheckpoint.com
 VISITOR_CHECKIN_BASE_URL=https://buffrcheckpoint.com
 PUBLIC_ADMIN_BASE_URL=https://admin.buffrcheckpoint.com
+PUBLIC_OPS_BASE_URL=https://ops.buffrcheckpoint.com
+PUBLIC_WEBSITE_BASE_URL=https://buffrcheckpoint.com
+PUBLIC_BRAND_LOGO_URL=https://buffrcheckpoint.com/branding/logo-horizontal.png
 EMAIL_VERIFICATION_PEPPER=<random hex>
 MFA_CHALLENGE_PEPPER=<random hex>
 MFA_SECRET_ENCRYPTION_KEY=<at least 32 random chars>
@@ -5405,9 +5963,11 @@ Once these hostnames are live, update the **Privacy Policy** subprocessors
 /hosting list (Section 1a.3, Section 11.8.6) to name the actual edge host
 (Vercel region, API platform region) and confirm Section 4a.7's Namibia
 hosting claim still matches where Neon and the API compute actually run —
-the current Neon project is `aws-us-west-2` (Section 11.4.7); a pilot that
-claims "data hosted in Namibia" must not go live on this stack without an
-explicit infrastructure decision recorded elsewhere in this document.
+the current primary Neon project is `aws-eu-central-1` (Frankfurt;
+Section 11.4.7) — closer to Namibia than Oregon, still not Namibia-hosted;
+a pilot that claims "data hosted in Namibia" must not go live on this stack
+without an explicit infrastructure decision recorded elsewhere in this
+document.
 
 ## 11.8 Pre-Launch Engineering, QA & Compliance Checklist
 
@@ -5464,6 +6024,15 @@ unavailable, SMS lock-screen exposure, short-code dependency) — test against
 a real aggregator sandbox before the Phase 1.5 USSD rollout (Section 18),
 not just against a mocked provider.
 
+**Branded templates (v1):** Copy lives in `platform_notification_template`
+(ops-editable under Ops → Configuration). Migration `0038` seeds the full
+catalog (auth, ops intake, billing EFT+POP, KYB, host notify, plus dormant
+stubs). `TemplatedEmailService` renders `{{tokens}}`, wraps plain text in the
+mustard/charcoal shell (`branded-email-layout.ts`), and enqueues via the
+notification outbox → Resend. Invoice/receipt PDFs attach on
+`invoice_issued` / `receipt_issued`. Ops **Send test to ops inbox** hits
+`POST /platform/configuration/notification-templates/:id/test-send`.
+
 ### 11.8.5 Observability: analytics, crash reporting
 
 **Status (instrumented):** Sentry Next.js setup follows
@@ -5471,8 +6040,9 @@ not just against a mocked provider.
 for `admin/` + `website/`: `instrumentation-client.ts` (errors + tracing +
 Session Replay with `maskAllText`/`blockAllMedia`), `sentry.server.config.ts`,
 `sentry.edge.config.ts`, `instrumentation.ts` (`onRequestError`),
-`global-error.tsx`, `withSentryConfig` + `tunnelRoute: "/monitoring"`, and a
-temporary `/sentry-example-page` for verification. Nest API uses
+`global-error.tsx`, `withSentryConfig` + `tunnelRoute: "/monitoring"`.
+Verify via staging errors or the Sentry wizard (no public test route on
+`website/`). Nest API uses
 `@sentry/nestjs`; kiosk uses `sentry-android` (DSN via Gradle
 `SENTRY_DSN` / `BuildConfig`). PostHog US
 (`NEXT_PUBLIC_POSTHOG_HOST=https://us.i.posthog.com`, `defaults: '2026-05-30'`)
@@ -5705,6 +6275,10 @@ live, since Section 17.2's pilot is measuring the *product*, and a pilot run
 against known-broken error states or unverified data-integrity would
 contaminate the pilot's own results.
 
+**Operational detail:** Stage gates, scripts, entry/exit criteria, and
+sign-off forms for **Alpha → UAT → Pilot → GA** live in **Section 17.4**.
+Do not invent a parallel beta programme outside that ladder.
+
 ---
 
 ## 11.9 Three-Surface Product Operating Model — Visitor Kiosk · Admin Platform · Core API
@@ -5743,7 +6317,7 @@ risk-based controls (Sections 4–8, 13).
 
 | 11.9 topic | Built today (repo) | Partial | Not yet built |
 |---|---|---|---|
-| Three-surface wiring (kiosk ↔ API ↔ admin) | ✓ Branding sync + offline cache + **logo disk cache** (`LogoDiskCache`) | CDN artifact store | — |
+| Three-surface wiring (kiosk ↔ API ↔ admin) | ✓ Branding sync + offline cache + **logo disk cache** (`LogoDiskCache`) + **org chrome** (`OrgBrandingHeader`); demo tenancy unified under Buffr Analytics (`0018`) | CDN artifact store | — |
 | Admin configures sites, hosts, forms, devices, RBAC | ✓ Site Experience nav + create/publish/rotate sheet forms | Per-field version editor | Workflow-builder UI |
 | Site branding / kiosk experience / QR / escalation | ✓ Schema `0010`–`0012` + API + admin UI + escalation worker + **status transitions** | — | — |
 | Host approve/reject | ✓ `POST /visits/:id/approve` · `POST /visits/:id/reject` | Admin UI buttons on roster | — |
@@ -5924,6 +6498,7 @@ earlier in the same working session but never actually applied to this dev
 DB until this pass found the gap) — all applied to the real dev database
 and confirmed idempotent on a second run each. A seeded
 `platform_support` demo account (`db/seed/0017_platform_support_demo.sql`,
+home org Buffr Analytics `b51f0704-…` after `0018`,
 `platform-ops-demo@buffrcheckpoint.test`) plus a real customer
 `owner_operator` test account made the *entire* consent-gated flow
 exercisable live, end to end, against production code paths — not just
@@ -6269,6 +6844,157 @@ result reads as one object per screen, not a stack of boxes, and every
 status-change interaction still fires the same server actions as before
 (no behavior change, structure and density only).
 
+**Discovery-interview capability audit (2026-09-16).** A mom-test-style
+discovery-interview script for BuffrCheckpoint's actual buyer (front-desk
+lead, site manager, compliance officer) was drafted the same session —
+questions like "if you had to pull everyone who visited last Tuesday right
+now, how long would that take you?", "when's the last time you had to look
+back and figure out who was in the building on a specific day?", and "has
+an auditor, client, or regulator ever asked you a question about your
+visitor records that was hard to answer?" The whole premise of replacing a
+paper register is that these questions become trivially answerable once a
+site is live on the product. Reading the actual code against that premise
+— not assuming it, per George's explicit "no assumptions" instruction —
+found several places where it wasn't true yet, closed here in priority
+order.
+
+*Tier 1 — security-critical, directly interview-mapped.*
+
+- **Kiosk "Staff" roster button had no authentication gate.** Confirmed by
+  reading `kiosk/.../navigation/KioskNavGraph.kt`:
+  `onStaffRoster = { navController.navigate(KioskDestinations.HOME) }` —
+  a bare navigation call, no check of any kind, straight to `RosterScreen`
+  (every currently-checked-in visitor's real name and host,
+  `GET /visits/roster` under the device's own stored credentials, never a
+  per-staff login). Any visitor standing at the kiosk — including "the next
+  visitor" — could tap "Staff" and see exactly what a shared paper register
+  exposes. Checking whether `authRepository.isLoggedIn()` (the pattern
+  `MaintenanceScreen`'s technician-escape path already uses,
+  §11.9.8.5) would have helped: no — kiosk devices stay logged in
+  persistently for a whole shift via `CredentialStore`, so that check would
+  almost never actually fire. Fixed by forcing a *fresh* `LoginScreen`
+  credential challenge every time "Staff" is tapped, regardless of session
+  state — a `staffRosterPending` flag mirroring the existing
+  `technicianEscapePending` pattern in `KioskNavGraph.kt`, so `LoginScreen`'s
+  `onLoggedIn` callback routes to `HOME` instead of `WELCOME`/`MAINTENANCE`
+  afterward. Uses only existing infrastructure — no new schema, no new
+  endpoint. Verified with a real `gradle assembleDebug`/`compileDebugKotlin`
+  build (`BUILD SUCCESSFUL`), not just a code read.
+- **"Pull everyone who visited last Tuesday" had no working answer.**
+  `visits.service.ts`'s `listRoster` took only `siteId`/`open` — no
+  date/date-range parameter existed at all — always `orderBy checkedInAt
+  desc, limit 200`, so an older date could go silently missing once an org
+  passed 200 more-recent visits, with no error to say so. The Visitors
+  page's own "Check-in date" control (`table.tsx`) was separately, silently
+  broken: it rendered the *action-filter* options ("All"/"Action
+  required"/"No action") but wrote those values into the `checkedInWindow`
+  column filter, whose `filterFn` expected `"1"`/`"7"` — the values never
+  matched, so this control had never actually filtered anything, and there
+  was no UI at all for the real "Action required" filter its labels implied.
+  No CSV/export existed anywhere on the page either. Fixed by adding
+  `VisitsService.searchRoster()` (backend/src/modules/visits/visits.service.ts)
+  and `exportRosterCsv()`, exposed as `GET /visits/roster/search` and
+  `GET /visits/roster/export` — reusing, field-for-field, the keyset-
+  pagination shape `AuditService.listForOrganisation()` already proved for
+  this identical problem (`gte`/`lte` on the timestamp, `orderBy [desc(ts),
+  desc(id)]`, `${ts}_${id}` cursor) — and deliberately **not** changing the
+  existing `/visits/roster` endpoint's shape or behavior, since four other
+  callers (front-desk, emergency roster, dashboard home, the kiosk's own
+  on-site roster) depend on its current flat-array response for a
+  genuinely different question ("who's here right now," not "search
+  history"). Fixed the Visitors page's date control (`table.tsx`,
+  `columns.tsx`) to a real two-input date range wired to the new search
+  endpoint, gave "Action required" its own correctly-wired dropdown, and
+  added a "Download CSV" link. A Next.js Route Handler
+  (`admin/src/app/api/visits/roster/export/route.ts`) relays the download
+  with the session's Bearer token, since the browser only holds an httpOnly
+  cookie and can't call the backend directly.
+- **Audit log date-range UI was missing, not the backend.** Read
+  `audit.service.ts`/`audit.controller.ts`: `from`/`to` were already fully
+  implemented and working (`GET /audit/events?from=&to=`) — the admin page
+  (`dashboard/audit/page.tsx`, `audit-log-table.tsx`) never exposed date
+  inputs at all, only a cursor-driven "Load more." Added the date-range
+  inputs, threaded through to `loadMoreAuditEvents` so pagination keeps the
+  same range. No backend change needed — confirmed by reading the code
+  before assuming a gap existed.
+- **DSAR data export was over-disclosing.** Read `dsar.service.ts`'s
+  `buildExportPackage(subjectReference, user)`: it queried
+  `visitorSubjects`/`visitorVisits` filtered only by `organisationId` —
+  `subjectReference`, the actual identifier the requester supplied, was
+  never used to filter anything. Every DSAR visitor-data export returned
+  **every visitor's** data for the organisation, not the one person's.
+  Fixed by hashing `subjectReference` via the same
+  `this.dataProtection.lookupHmac(value, "PHONE_HASH_PEPPER")` pattern
+  already used for phone-based returning-visitor lookup
+  (`visitors.service.ts`'s `findByPhone`, `visits.service.ts`'s
+  `signOutByPhone`), matching against `visitorPersonalData.phoneLookupHmac`
+  to resolve the one visitor, then scoping every query to that id. Left a
+  code comment, not a schema change, flagging that `subjectReference` is
+  genuinely overloaded today — an email for the staff account-deletion path
+  a few lines above (`applicationUsers.email`), a phone number for this
+  visitor-data path — since that's a real pre-existing product-data-model
+  question this fix doesn't get to decide.
+- **Evidence packs wrote to the same ephemeral local disk already fixed
+  once this session** for KYB/billing/DSAR documents — `evidence.service.ts`
+  used raw `mkdir`/`writeFile` against `generated-evidence-packs/` on
+  Railway's per-deploy-ephemeral filesystem, with the code's own comment
+  already flagging this as an interim state. Confirmed via `run_sql`
+  against the live Neon database that the one existing `evidence_pack` row
+  in production points at a local dev filesystem path — already
+  unrecoverable before this fix, so nothing regressed by fixing it now.
+  Moved to the existing `createArtifactStore()` abstraction
+  (`backend/src/common/artifacts/artifact-store.ts`), the same one already
+  in production use for the other three modules — no new abstraction, a
+  fourth wiring of the one that exists. Separately, `generate()` took no
+  date range and bundled only the RBAC matrix, retention-policy report, and
+  the most recent 500 admin-action `auditEvents` rows — nothing about who
+  physically visited the premises, which is what "produce evidence of
+  access for this period" actually asks for. Added an optional `from`/`to`
+  that includes a `visitorAccessExtract` built via the same
+  `VisitsService.searchRoster()` added above (`EvidenceModule` now imports
+  `VisitsModule`). Also added the download route that never existed —
+  `GET /evidence/:id/download` — and fixed the admin Evidence Packs page,
+  which was printing the raw internal storage reference as visible text
+  (the same class of leak already fixed for KYB documents earlier this
+  session) with no way to actually retrieve the file; it now shows a scope
+  column and a real "Download" link, proxied the same way the visit-roster
+  CSV export is (`admin/src/app/api/evidence/[id]/download/route.ts`).
+
+*Flagged, not built — each needs a decision this pass correctly doesn't make
+unilaterally:*
+
+- **"Unplanned visitor, no host known" (the "someone showed up reception
+  wasn't expecting" interview question).** `visitorVisits.hostId` is a
+  `NOT NULL` foreign key and `CheckInDto.hostId` is required — there is no
+  way today to represent a check-in with no known host. Making this
+  representable needs a nullable `hostId` or a sentinel "unassigned" host
+  row plus a front-desk triage queue — a core-schema decision, correctly
+  out of scope for this pass per this document's own standing rule that
+  core schema is designed by a human or Fable, never the executing model.
+- **Retention enforcement.** Already documented elsewhere in this section's
+  own gap list as configuration-only with no purge/archival job — restated
+  here only because it's the same class of gap this audit was looking for,
+  not because it's new information.
+- **Per-staff attribution on the kiosk roster view.** The fix above closes
+  "anyone can see it" using the device's own existing credentials; knowing
+  *which* staff member looked would need a per-staff PIN or login system on
+  the kiosk — a new credential model, not a wiring fix.
+
+Verified: `backend`'s full build (`npm run build`) clean after each change;
+`admin`'s `npx tsc --noEmit` and `npm run build` clean; the kiosk change
+compiled with a real `gradle assembleDebug`
+(`BUILD SUCCESSFUL`). Backend redeployed to Railway, `admin` redeployed to
+Vercel, both confirmed live — `curl` against the three new/changed
+endpoints (`/visits/roster/search`, `/visits/roster/export`,
+`/evidence/:id/download`) each returned `401 Unauthorized` unauthenticated,
+confirming the permission gates carried over correctly. The Vercel Blob
+round-trip for evidence packs was verified directly against the production
+token (write → read → correct bytes back) the same way the earlier
+KYB-document storage fix was verified. The kiosk build was **not**
+deployed to any device — an Android release build and device distribution
+is a separate process this pass has no tooling for; the fix is compiled
+and correct, not yet in front of a real kiosk.
+
 ### 11.9.2 Site branding and customisation model
 
 #### Branding hierarchy
@@ -6511,7 +7237,7 @@ in the customer admin sidebar.
 | FR-K06 | Never show a public directory of existing visitors. | ✓ By design — roster is staff-only |
 | FR-K07 | Render privacy notice before collecting personal information. | FULL — `PrivacyNoticeScreen`; QR/NFC also gated (v0.22) |
 | FR-K08 | Enforce required acknowledgement before workflow proceeds. | FULL — pre-check-in ack API + kiosk; `capture_channel_code` recorded |
-| FR-K09 | Collect only fields permitted by active site/visitor-category form version. | FULL — effective form resolve; kiosk/website dynamic fields + `formAnswers` |
+| FR-K09 | Collect only fields permitted by active site/visitor-category form version. | FULL — v0.28: effective resolve + `VisitorDataMinimisationService` on check-in; form-driven kiosk/website |
 | FR-K10 | Clear visitor session data after completion, cancellation, or timeout. | FULL — idle timeout + abandon clears drafts, experience session, and pending outbox rows |
 | FR-K11 | Display honest status: "notification pending" when offline, not "host notified." | FULL — offline copy |
 | FR-K12 | Support temporary badge printing where configured. | PARTIAL — soft confirmation pass FULL (no dead Print Badge control); hardware printer SDK NOT STARTED |
@@ -6551,7 +7277,7 @@ in the customer admin sidebar.
 | ID | Requirement | Alignment |
 |---|---|---|
 | NFR-P01 | No shared visitor-record directory on any public or visitor-facing screen. | §3, §11.3, kiosk design — non-negotiable |
-| NFR-P02 | Collect only fields permitted by the active form version and site policy. | FR-K09; retention/access policies |
+| NFR-P02 | Collect only fields permitted by the active form version and site policy. | FULL — v0.28 `VisitorDataMinimisationService` on check-in; FR-K09 |
 | NFR-P03 | Encrypt personal data at rest (server envelopes; kiosk SQLCipher). | §11.3, §11.7 Phase 4 |
 | NFR-P04 | Lookup hashes for phone/name must use keyed HMAC, never reversible plaintext indexes. | Data-protection service |
 | NFR-P05 | Retention timers and soft-delete must follow the policy version in force at check-in. | §8.9 |
@@ -6624,6 +7350,12 @@ PNG via `PrintableQrPanel` (copy URL / download / print). **Issuable types
 gated:** admin UI + API allow only `public_site_checkin` until other
 journeys ship (pre-registration / sign-out / contractor / emergency /
 device-support remain schema-only).
+
+**Core packaging (docs):** **Site Experience → Site QR Codes** is the Core
+CAPEX-reduction path — generate, rotate, and print a public site QR; visitors
+check in on their phone. Assisted front-desk check-in is the inclusion path
+for feature phones / no phones. A dedicated tablet/kiosk is optional hardware
+(§15.3), not a Core prerequisite.
 
 Every site should have narrowly scoped QR types:
 
@@ -6918,6 +7650,33 @@ The visitor sees a welcoming, branded, simple check-in experience. The
 organisation receives a private, secure, configurable, measurable, and
 auditable control system.
 
+### 11.9.14 Form AI safety rules (v0.29)
+
+Admin-only assist via Neon AI Gateway (`FormAiService`), gated by
+`FORM_AI_ENABLED=true` plus gateway URL/key. Endpoints:
+`POST …/ai/suggest-fields`, `POST …/ai/translate-field`. Never visitor
+check-in traffic.
+
+1. **Classification ownership.** AI may suggest `dataClassificationCode`
+   values (including `high_risk` / `verification_evidence`) with warnings in
+   the response. Suggestions are **never auto-published**. Admins own the
+   final classification on each field. Publish still requires a non-empty
+   `approval_reference` when any high-risk class is present
+   (`VisitorDataMinimisationService` — Part Three §5.6). An under-classified
+   suggestion is a review failure for the admin, not a bypass of the publish
+   gate.
+2. **Logging.** Audit actions `check_in_form.ai_suggest_fields` and
+   `check_in_form.ai_translate_field` only. This release does **not** retain
+   raw prompt/response free text. Form descriptions are admin configuration,
+   not visitor PII; pasting visitor data into the suggest panel is an
+   operator policy violation.
+3. **Cost.** AI Gateway uses prepaid credits. Release 1 has no per-org
+   metering or budget UI. Operators use `FORM_AI_ENABLED` as the kill-switch.
+
+Follow-up (not blocking): optional hard reject when a suggestion returns
+`high_risk` without a warning flag, and optional redaction of intent text in
+audit metadata.
+
 ---
 
 # 12. NFC Design Standard
@@ -7160,13 +7919,32 @@ Start narrow in Namibia before expanding regionally.
 
 ## 15.2 Product packaging
 
-| Offer | What it includes | Best customer |
-|---|---|---|
-| **Checkpoint Core** | Tablet/kiosk check-in, assisted entry, RBAC, encrypted visitor record, sign-out, reports, offline capability | Single-site SME or office |
-| **Checkpoint Professional** | Multi-site dashboard, host notification, pre-registration, QR, SMS, audit export, site manager reporting | Banks, clinics, corporate networks |
-| **Checkpoint Verify** | DigiNam verifier workflow where approved, NFC badges, visitor assurance levels, high-risk visit policies | Government, regulated institutions |
-| **Checkpoint Access** | Physical access-control integration, contractor credentials, zones, escort rules, emergency roster | Critical infrastructure and large enterprises |
-| **Checkpoint Assurance** | Annual controls review, retention test, RBAC review, recovery test, evidence pack | Regulated and assurance-led customers |
+Public pricing follows a **three-tier + add-ons** rule (monthly or annual billing). Optional capabilities are sold as
+catalog **add-ons** (not named peer products like “Access” or “Assurance”) and attach to a Core / Professional / Verify
+plan.
+
+**Source of truth:** `subscription_catalog_item` (migration `0032_subscription_catalog.sql`). Plans and add-ons share
+one catalog list; `kind_code` is `plan` or `addon`; each row has its own `monthly_amount`. Ops reads the full catalog
+(`GET /platform/billing/catalog`). **Marketing does not show add-ons** — `GET /public/pricing` returns plans only so
+the public grid stays three clear tiers. Creating a subscription accepts `planCode` + `addonCodes[]` and computes MRR
+in application code — never trust client-supplied amounts.
+
+**Core CAPEX-reduction path (already FULL):** Site Experience → Site QR Codes is the default Core channel — print the public site QR; visitors use phone `/check-in`. Assisted check-in covers feature phones / no phones. Dedicated tablets are optional hardware (§15.3), not a Core prerequisite.
+
+| Offer | Kind | What it includes | Best customer | List price (NAD/mo) |
+|---|---|---|---|---|
+| **Checkpoint Site** *(was Core; 1 site, no extra sites)* | Subscription | **Public site QR** (admin create/rotate/print) + phone web check-in, **assisted front-desk entry**, RBAC, encrypted visitor record, sign-out, reports. **Tablet not required.** Offline-capable software architecture. Does **not** include live USSD/SMS until adapters are live (§11.9.0a). | One office, branch, or clinic | 1,500 |
+| **Checkpoint Network** *(was Professional; 3 sites included, N$950 per extra site)* | Subscription | Everything in Site, plus multi-site dashboard, host notification, pre-registration / invitation QR, audit export, site-manager reporting. **Entitlement** to enable **NFC phone/badge**, **SMS**, **USSD**, and **dedicated kiosk/tablet experience** when platform capability register + org enablement allow (priced in-plan and/or as catalog add-ons — never marketed live ahead of the register). | Branch networks, clinic groups, corporate offices | 4,500 |
+| **Checkpoint Assure** *(was Verify; 3 sites included, N$1,500 per extra site)* | Subscription | Everything in Network, DigiNam verifier workflow where approved, visitor assurance levels, high-risk visit policies, compliance dashboard | Government, regulated institutions | 9,500 |
+| **Physical access control** | Add-on | Physical access-control integration, contractor credentials, zones, escort rules, emergency roster | Critical infrastructure and large enterprises | 5,000 |
+| **Controls review and evidence** | Add-on | Annual controls review, retention test, RBAC review, recovery test, evidence pack | Regulated and assurance-led customers | 4,500 |
+| **Kiosk / tablet license** *(optional)* | Add-on or Professional entitlement | Dedicated Android/offline kiosk UX and MDM — hardware CAPEX stays §15.3 | High-volume doors, accessibility-led sites | Sales-quoted |
+| **SMS / USSD messaging** *(optional)* | Add-on or Professional entitlement | Telco MT / USSD aggregator — sell only when §11.9.0a is FULL/live | Feature-phone-heavy catchments | Pass-through or packaged |
+| **NFC fast lane** *(optional)* | Professional entitlement | Phone-NFC and badge-NFC on the same encrypted visit record | Regulated high-traffic sites | In Professional when enabled |
+
+Annual billing is priced as **ten months for twelve** (two months free) relative to the published monthly from-price.
+Attached add-ons are stored on `organisation_subscription_addon` with a price snapshot; MRR on
+`organisation_subscription.mrr_amount` is recomputed whenever add-ons attach or detach.
 
 ## 15.3 Revenue model
 
@@ -7203,23 +7981,29 @@ Every channel in Section 5.1 and Section 6 produces the same isolated, encrypted
 
 | Channel | Marginal cost | Positioning |
 |---|---|---|
-| Manual / kiosk entry | $0 | Included in every tier, baseline. |
-| USSD | Telco integration cost, session-based; no per-visitor cost passed to the client | Standard from the Starter tier — this is the inclusion-critical channel described in Section 4.2. |
-| SMS | Per-message telco cost, typically fractions of a cent | Standard from the Starter tier. |
-| QR (visitor's own smartphone) | $0 marginal | Standard from the Starter tier. |
-| NFC (phone-tap) | $0 marginal | Standard from the Professional tier upward. |
-| NFC (physical badge, NTAG213/215) | ~$0.20–$0.40 per unit landed | Optional add-on for frequent visitors and contractors only — most visitors will not need a physical badge if phone-NFC is available. |
-| National e-ID NFC (future) | Near-zero marginal cost at launch; the cost is the R&D and interoperability testing incurred now, ahead of the September 2026 rollout described in Section 4a | Enterprise/Regulated tier, activation targeted for national rollout. |
+| Public site QR + phone web | $0 | **Core default** — admin QR lifecycle already FULL; zero marginal software cost. |
+| Assisted front-desk entry | $0 | **Core mandatory inclusion** — covers no phone / feature phone until SMS/USSD are live. |
+| Dedicated kiosk / tablet | $0 software; hardware CAPEX separate (§15.3) | Optional add-on / Professional entitlement — not required for Core. |
+| USSD | Telco integration cost, session-based | Optional add-on when live (§11.9.0a NOT STARTED today) — **not** a Core sellable claim. |
+| SMS | Per-message telco cost | Optional add-on when live (§11.9.0a NOT STARTED today) — **not** a Core sellable claim. |
+| QR pre-registration / invitation | $0 marginal | Professional. |
+| NFC (phone-tap) | $0 marginal | Professional entitlement when enabled — optional fast lane, not Core default. |
+| NFC (physical badge, NTAG213/215) | ~$0.20–$0.40 per unit landed | Optional hardware for frequent visitors/contractors. |
+| National e-ID NFC (future) | Near-zero marginal at launch; cost is R&D / interoperability testing | Verify / Enterprise activation when register is live (Section 4a). |
 
-**Strategic reframing for pricing:** because the marginal cost of phone-NFC and badge-NFC is low, NFC capability should be a **standard feature across the Professional and Enterprise tiers, not a premium add-on**. Positioning it as standard materially strengthens the "why Buffr Checkpoint over a generic QR-only SaaS product" argument described in Section 16.3, at negligible cost to the unit-economics model above.
+**Strategic reframing for pricing:** Core wins on **governance-grade evidence without tablet CAPEX** (public site QR + assisted). Professional wins on multi-site operations plus **optional** NFC / kiosk / messaging entitlements. Do **not** claim live USSD/SMS on Core while adapters remain NOT STARTED. NFC remains a strong differentiator versus generic QR-only SaaS when enabled — priced from Professional upward, not buried as mandatory Core hardware.
 
 ---
 
 # 16. Play-to-Win Strategy
 
+**Three-sentence strategy:** We win by governance-grade visitor evidence on one encrypted record, with **public site QR as the default self-service path**. We play for regulated and multi-site organisations in Namibia that must replace paper registers **without buying tablets first**. We win via admin-issued public site QR plus assisted front desk, with **kiosk, SMS, USSD, and NFC as optional add-ons** on the same architecture — not parallel apps.
+
 ## 16.1 Winning aspiration
 
-> Become the trusted digital check-in and visitor-evidence standard for regulated, multi-site, and inclusion-conscious organisations in Namibia — then expand into Southern and East African markets with the same offline-first, risk-based model.
+> Become the trusted digital check-in and visitor-evidence standard for regulated, multi-site, and inclusion-conscious organisations in Namibia — then expand into Southern and East African markets with the same offline-first, risk-based model — **without forcing hardware CAPEX as the price of entry**.
+
+Measurable wedge for Core: a site can print a public check-in QR from admin, run phone web check-in, and cover no-phone / feature-phone visitors through assisted front desk, on one encrypted visit record.
 
 ## 16.2 Where to play
 
@@ -7228,16 +8012,21 @@ Every channel in Section 5.1 and Section 6 produces the same isolated, encrypted
 - public-facing locations;
 - organisations with multi-site operations;
 - sites with intermittent connectivity;
-- clients that need to show evidence to boards, auditors, partners, or regulators.
+- clients that need to show evidence to boards, auditors, partners, or regulators;
+- **beachhead:** sites where smartphone share plus a staffed front desk can cover inclusion without live USSD/SMS on day one;
+- **expand with add-ons:** high-volume doors (kiosk/NFC), feature-phone-heavy catchments (SMS/USSD when live).
+
+**Will not play (initially):** selling six equal "products," requiring tablet purchase for Core, or marketing USSD/SMS as live Core inclusions while adapters remain NOT STARTED (§11.9.0a).
 
 ## 16.3 How to win
 
 | Strategic choice | What it means in practice |
 |---|---|
-| **Lead with the paper-register risk** | Show the exposure safely in a live demo: one page, multiple people’s data, no audit trail. |
-| **Sell governance, not tablets** | Position the kiosk as one component of a privacy, access, retention, and evidence control. |
-| **Be inclusion-first** | Feature phone, no-phone, NFC, QR, DigiNam, and assisted options all work. |
-| **Be NFC-forward** | Make tap-to-check-in the best fast lane for contractors, frequent visitors, and future official credentials. |
+| **Lead with the paper-register risk** | Show the exposure safely in a live demo: one page, multiple people's data, no audit trail. |
+| **Sell governance, not tablets** | Core is software: admin QR + phone web check-in + assisted entry. Tablets and readers are optional CAPEX / add-ons (Section 15.3). |
+| **Be QR-first by default** | Admin generates a public site check-in QR (`Site Experience → Site QR Codes`); visitors use `/check-in?site=&ref=` on their phone. Zero device CAPEX for the site. |
+| **Be inclusion-honest** | Assisted front-desk check-in is the mandatory path for no phone, low literacy, disabilities, and feature-phone visitors until SMS/USSD are live and enabled. |
+| **Treat kiosk / SMS / USSD / NFC as optional add-ons** | Same encrypted visit record; not separate products. Enable when platform capability register + org enablement allow. |
 | **Own the offline problem** | Most foreign SaaS is cloud-first; Buffr Checkpoint should be operationally credible when connectivity fails. |
 | **Use risk-based configuration** | Each customer receives a tailored site/visit/zone policy, not a generic registration form. |
 | **Make assurance recurring** | Sell a quarterly or annual control review, not only software and hardware. |
@@ -7249,28 +8038,119 @@ This table should anchor the competitive-positioning section of every pitch deck
 
 | Capability | Paper register | Generic foreign SaaS (QR-only) | Buffr Checkpoint |
 |---|---|---|---|
-| Isolated, private visitor records | ✕ — every visitor reads the prior visitor's data | ✓ | ✓ |
-| Works with no smartphone (USSD/SMS/assisted) | ✓ (manual only, no privacy or audit trail) | ✕ (rarely supported, and never as a first-class channel) | ✓ — standard from the Starter tier, per Section 15.4 |
-| Offline-first operation | ✓ (paper never goes offline, but has none of the other properties below) | ✕ (most foreign SaaS is cloud-first and degrades or fails without connectivity) | ✓ — encrypted local cache and sync queue, per Section 8.5 |
-| Tap-to-check-in (NFC) | ✕ | ✕ (rare, usually enterprise-only where present at all) | ✓ — phone-NFC and badge-NFC, standard from the Professional tier |
-| Government e-ID readiness | ✕ | ✕ | ✓ — architected ahead of the September 2026 national rollout, per Section 4a |
-| DigiNam/NPKI verification pathway | ✕ | ✕ | Architected; Buffr RP integration **not live** until approved (§4a.7 register) |
-| CRAN-aware connected-device governance | ✕ | ✕ (foreign vendors rarely track Namibian type-approval status) | ✓ — Device Compliance Register, per Section 2.2 of the Regulatory Addendum |
-| Retention, audit, and evidence-pack generation | ✕ | Partial, rarely tuned to Namibian legal requirements | ✓ — per Section 20.2 |
-| Local support and public-sector procurement readiness | N/A | ✕ (typically no local presence) | ✓ — per Section 10.3 of the Regulatory Addendum |
+| Isolated, private visitor records | No — every visitor reads the prior visitor's data | Yes | Yes |
+| Start without buying a tablet | Yes (paper) | Often yes (QR only) | Yes — Core = admin public site QR + phone web + assisted front desk |
+| Works with no smartphone | Yes (manual only, no privacy or audit trail) | Rarely | Yes — assisted front desk on Core; SMS/USSD as optional add-ons when live (§11.9.0a) |
+| Offline-first operation | Yes (paper never goes offline, but has none of the other properties below) | No (most foreign SaaS is cloud-first) | Yes — encrypted local cache and sync queue when kiosk add-on is deployed (§8.5) |
+| Tap-to-check-in (NFC) | No | Rare / enterprise-only | Optional / Professional entitlement — phone-NFC and badge-NFC |
+| Government e-ID readiness | No | No | Architected ahead of national rollout (§4a); not sold as live until register says so |
+| DigiNam/NPKI verification pathway | No | No | Architected; Buffr RP integration **not live** until approved (§4a.7 register) |
+| CRAN-aware connected-device governance | No | No | Yes — Device Compliance Register when devices are deployed |
+| Retention, audit, and evidence-pack generation | No | Partial, rarely tuned to Namibian legal requirements | Yes — per Section 20.2 |
+| Local support and public-sector procurement readiness | N/A | Typically no local presence | Yes — per Regulatory Addendum |
+
+## 16.4a Competitor pricing and plan naming (2026-09-29, decided)
+
+*Status: decided 2026-09-29 by the product owner. Names Set A (Site / Network / Assure) with per-site pricing, implemented in migration `0039_site_network_assure_per_site.sql` (codes `site` / `network` / `assure`; `included_sites`, `extra_site_monthly_amount`, `organisation_subscription.site_quantity`, `organisation_subscription_site_quantity_log`). Site creation is refused once active sites reach the licensed quantity; before the first subscription there is no cap. Figures below were read from each vendor's public pricing page on 2026-09-29. NAD conversions use approximately N$20.5/EUR and N$17.5/USD; re-check the rate before quoting a customer.*
+
+### NamEvents (nam-events.com)
+
+NamEvents is Namibia's event ticketing and cashless-payments platform, not a visitor-management product. It overlaps with Buffr Checkpoint only at the door: QR tickets scanned at the gate on a phone, RSVP forms with custom data fields, attendee exports.
+
+| Item | NamEvents offer |
+|---|---|
+| Products | Event listing and ticketing (online plus retail outlets), free RSVP events, gate scanning app, door sales, cashless QR wallets for vendors and bars, club and association memberships, tournaments |
+| Customers | Concert, festival, sports, expo, and conference organisers; clubs and associations. Hosts include corporates and regulators running events (NAMFISA has a host page). |
+| Pricing model | No monthly, setup, or contract fees. Free events and RSVPs cost nothing. Paid tickets carry a commission on total sales: under N$100k 5%, N$100k to 250k 4.5%, N$250k to 500k 4%, N$500k to 1m 3.5%, above N$1m quoted. The whole amount is charged at one rate. A booking fee on paid orders, absorbed or passed on per event. Comps free. Rates exclude VAT. |
+| Plans | Essential (self-serve, same-day go-live after review) and Complete (same rate, assisted setup with an account manager for seating, multi-day, memberships, cashless). |
+| Cashless | N$15 one-time guest activation, free top-ups, unspent credit refundable within 30 days. |
+| Sales motion | Self-serve Business Hub signup, local phone and WhatsApp care line, a public fee calculator. |
+
+**Threat:** low today. NamEvents sells event access, where one visitor buys a ticket once. It has no audit trail, retention control, RBAC, host approval, or emergency roster for everyday reception. The adjacent risk is corporate events and expos at our customers' own venues.
+
+**What to copy:**
+1. A public calculator. NamEvents lets a buyer see their cost before talking to anyone. Buffr Checkpoint should show the price for N sites.
+2. One price, two ways to set up. Essential and Complete share one rate and differ only in who does the setup. That matches our self-serve signup, with assisted rollout via `/contact`.
+3. Plain-language fee tables with every threshold published.
+
+**What not to copy:** commission-on-throughput pricing. Our customers don't sell visits. A per-site subscription stays the right model.
+
+### Visitor-management benchmarks
+
+| Vendor | Plan | Public price | Approx. NAD per location per month | Notes |
+|---|---|---|---|---|
+| Vizito | Standard | EUR 29.95 / location / month, billed yearly | ~615 | 100 visits/month, SMS up to 100 |
+| Vizito | Pro | EUR 59.95 | ~1,230 | 300 visits/month, phone support, onboarding |
+| Vizito | Enterprise | EUR 99.95 | ~2,050 | Unlimited visits, SSO, Entra/Google sync, webhooks |
+| Envoy Visitors | Basic | Free | 0 | 100 entries/month |
+| Envoy Visitors | Premium | USD 362 / location / month, billed annually | ~6,300 | Branding, badges, analytics, SSO, emergency notifications |
+| Envoy Visitors | Enterprise | Custom | n/a | ID scanning, access-control integrations, blocklist |
+| **Buffr Checkpoint (live)** | Core / Professional / Verify | NAD 1,200 / 3,500 / 7,000 per **organisation** per month | Professional with 10 sites = 350 per site | Flat per organisation. No site count in the catalog. |
+
+### Where we undersell
+
+1. **Multi-site is free.** Professional and Verify charge one flat fee for any number of sites. A 20-branch bank pays N$3,500 a month today. The same bank would pay about N$41,000 on Vizito Enterprise and about N$126,000 on Envoy Premium.
+2. **Verify includes what competitors keep for Enterprise.** Compliance dashboard, evidence packs, audit export, high-risk visit policies, and the DigiNam pathway sit behind custom Enterprise pricing at Envoy.
+3. **The names describe features, not the buyer.** "Core" and "Professional" read like generic SaaS. They say nothing about a front desk, a branch network, or a regulated institution.
+
+### Proposed plan names (choose one set)
+
+| Set | Single site | Multi-site | Regulated | Rationale |
+|---|---|---|---|---|
+| **A (recommended)** | Checkpoint Site | Checkpoint Network | Checkpoint Assure | Names the buyer's world: one site, a branch network, an institution that answers to an auditor. |
+| B | Front Desk | Branch Network | Regulated | Most literal. Easiest for a procurement officer to map to a tender line. |
+| C | Checkpoint | Checkpoint Enterprise | Checkpoint Sovereign | Premium tone. "Sovereign" signals government-grade identity but may over-promise before DigiNam is live. |
+
+### Proposed pricing (per-site model)
+
+| Plan | Included | Monthly (NAD) | Each extra site | 20-site example |
+|---|---|---|---|---|
+| Site | 1 site | 1,500 | n/a (upgrade to Network) | n/a |
+| Network | 3 sites | 4,500 | 950 | 4,500 + 17 x 950 = 20,650 |
+| Assure | 3 sites | 9,500 | 1,500 | 9,500 + 17 x 1,500 = 35,000 |
+
+Why these numbers:
+
+- **Per extra site stays below Vizito Enterprise** (~N$2,050). We compete on local EFT billing, assisted entry, offline operation, and Namibian support without being the expensive option per branch.
+- **A single Assure site still costs less than one Envoy Premium location** (~N$6,300 x 3 sites = ~N$18,900 against our N$9,500), while carrying the compliance and identity features Envoy prices as Enterprise.
+- **Site at N$1,500** sits between Vizito Pro and Enterprise and includes unlimited visits (Vizito caps Standard and Pro at 100 and 300).
+- **Annual stays ten months for twelve.** Vizito's yearly discount is 16%, and ours (two months free) is about 17%, so it stays comparable.
+- **The payment gate stays.** No free tier (Envoy Basic) or card-free trial (Vizito). Self-serve setup before payment already removes the need for a trial.
+- **Existing customers** keep their current price until renewal (grandfathering). Record the old price in the add-on/plan price snapshot so MRR stays honest.
+
+### Implementation dependency (needs a human/Fable schema decision)
+
+Per-site pricing needs a site quantity on the subscription (or an `additional_site` catalog add-on with a quantity), plus MRR recomputation from quantity. Today `subscription_catalog_item` and `organisation_subscription_addon` carry no quantity. Per workspace rule §2, billing and ledger structure is designed by a human or Fable, not the executing model. Renaming plans only is a catalog row update (label and tagline) plus website copy and JSON-LD. It needs no schema change and can ship first.
 
 ## 16.5 Required capabilities
 
-1. Secure Android/offline engineering.
-2. NFC and secure credential design.
-3. Local telco/USSD/SMS partnerships.
-4. Identity-verifier/DigiNam integration capability.
-5. Privacy and data-lifecycle design.
-6. Enterprise RBAC, audit, and reporting.
-7. Government and regulated-enterprise sales.
-8. IT audit, third-party risk, and assurance delivery.
-9. Hardware procurement, MDM, repair, and replacement processes.
-10. Customer-success and training capability.
+**Core (must ship / already the activity-system spine):**
+
+1. Public site QR lifecycle (create / rotate / printable kit) and `/check-in` web journey.
+2. Assisted front-desk check-in on the same encrypted visit record.
+3. Privacy and data-lifecycle design; enterprise RBAC, audit, and reporting.
+4. Capability/register-driven truth for marketed features (`CapabilityStatusBadge`).
+5. Sign-out, reports, and offline-capable architecture (software).
+
+**Optional add-on capabilities (extend how-to-win on the same record):**
+
+6. Secure Android/offline kiosk engineering and MDM.
+7. NFC and secure credential design.
+8. Local telco/USSD/SMS partnerships (sell only when live).
+9. Identity-verifier/DigiNam integration capability (Verify).
+10. Hardware procurement, repair, and replacement processes.
+11. Government and regulated-enterprise sales; IT audit and assurance delivery.
+12. Customer-success and training capability.
+
+## 16.6 Management systems
+
+| System | Role |
+|---|---|
+| **Subscription catalog** | `subscription_catalog_item` plans vs add-ons (§15.2); Core features must match shippable FULL surfaces. |
+| **Capability status register** | DigiNam, e-ID NFC, USSD, SMS, NFC badge check-in — public badges and org enablement; never market "live" ahead of the register (§4a.7). |
+| **Pilot metrics (§17.2)** | Completion rate and duration **by channel**; paper-register fallbacks; offline-sync success when kiosk deployed. |
+| **CAPEX discipline (§15.3)** | Tablets, NFC readers, mounts sold/leased separately — never buried in Core MRR. |
+| **Sales / packaging cadence** | Revisit tier copy when USSD or SMS adapters go live; until then assisted front desk carries inclusion claims. |
 
 ---
 
@@ -7278,25 +8158,24 @@ This table should anchor the competitive-positioning section of every pitch deck
 
 ## 17.1 Entry offer
 
-**Free or low-cost “Paper Register Exposure Review.”**
+**Self-serve signup, gated by payment.** *(v2026-09-29: the public Paper Register Exposure
+Review offer is retired. The website no longer sells a review; `/contact` handles
+pre-signup questions, multi-site/hardware rollouts, integrations, and partnerships.)*
 
-Deliverable:
+Primary public CTA is **Create account** (`https://admin.buffrcheckpoint.com/auth/register`);
+secondary is **See pricing** (`/pricing`). Organisations self-serve end to end:
+verify email → 13-step onboarding (sites, hosts, staff, QR) → choose plan under
+Billing → EFT + POP → ops confirms payment → subscription `active`.
+Go-live and operational dashboard use require `active` (`trial` stays an ops-set
+status for design partners and is not offered on the public site).
 
-- one-site walkthrough;
-- current-state visitor-process map;
-- personal-data exposure assessment;
-- basic risk rating;
-- gap list;
-- proposed target workflow;
-- deployment and control plan.
-
-This creates a natural sales motion:
+Sales motion:
 
 ```text
-Exposure Review
-→ Risk-Based Design Workshop
-→ Paid Pilot
-→ Multi-site Deployment
+Create account (self-serve)
+→ Onboarding (no payment needed to configure)
+→ EFT + POP → ops confirms → subscription active → go-live
+→ Multi-site expansion / hardware add-ons via /contact
 → Annual Assurance Retainer
 ```
 
@@ -7334,6 +8213,250 @@ These should be treated as planning hypotheses, not forecasts:
 | Months 7–9 | Commercial launch; NFC badges; pre-registration; audit packs |
 | Months 10–12 | 15–30 active sites; at least one regulated reference customer; annual assurance offering |
 | Year 2 | DigiNam verifier capability where formally enabled; USSD rollout; access-control integration; regional entry assessment |
+
+## 17.4 Alpha testing and UAT plan
+
+This section turns Sections 17.2–17.3 and 11.8.10 into an executable
+acceptance ladder. It does **not** replace the three-site pilot — it is the
+work that must pass *before* and *during* that pilot so pilot metrics measure
+product value, not known breakage.
+
+Industry mapping (names only; Checkpoint owns the gates):
+
+| Industry label | Checkpoint stage | Who runs it | Environment |
+|---|---|---|---|
+| Alpha | **A0 Internal alpha** | Buffr eng + ops | Staging / demo org |
+| UAT | **A1 Design-partner UAT** | Named site operators (2 partners) | Staging → dedicated pilot tenant |
+| Pilot / limited beta | **A2 Paid pilot** (§17.2) | 3–5 real sites, 60–90 days | Production-like; paper parallel week 1 |
+| GA | **A3 Commercial launch** (§17.3 M7–9) | Sales + assurance | Production |
+
+### 17.4.1 Honesty rules (non-negotiable)
+
+1. **UAT scope = FULL Core surfaces only** (status table at top of this
+   blueprint). Public site QR + phone `/check-in`, assisted front desk,
+   RBAC, encrypted record, sign-out, reports, host email when Resend is
+   configured, emergency roster, audit/DSAR paths that claim FULL.
+2. **Out of UAT sell claims** until the capability register is `live` and
+   a separate gate passes: DigiNam adapter, National e-ID NFC, live
+   USSD, live SMS MT, retention purge cron, badge-print hardware.
+3. **No silent paper return.** If a scenario forces paper, log it as a
+   pilot KPI failure (`paper-register fallbacks`), not as “workaround.”
+4. **Decision, not a bug dump.** Each stage ends with
+   **accept / accept-with-conditions / reject** by a named authority
+   (see §17.4.8). Bug lists without a decision are late system testing.
+5. **Engineering smokes are entry criteria, not UAT.**
+   `scripts/smoke-production.sh`, `backend/scripts/journey-smoke.ts`,
+   and local e2e under `e2e-screenshots/` must be green before A1 starts.
+   **Runnable tracker:** `./scripts/acceptance-gate.sh run a0` (or
+   `a0-a3`) executes autos, prints remaining manual IDs, and records
+   marks/sign-offs into gitignored `scripts/acceptance/state.json`.
+   See `scripts/acceptance/checklist.json` for the canonical item list
+   matching this section.
+
+### 17.4.2 Stage A0 — Internal alpha (Buffr team)
+
+**Purpose:** Prove every critical journey works end-to-end on staging
+with the Buffr Analytics demo tenancy before any external operator
+touches the product.
+
+**Duration:** 5–10 working days (repeatable after major releases).
+
+**Entry criteria**
+
+- [ ] Prod/staging smoke `scripts/smoke-production.sh` → all PASS
+- [ ] Journey smoke `backend/scripts/journey-smoke.ts` → PASS
+- [ ] Sections 11.8.1–11.8.9 checklist items closed or explicitly deferred
+      with owner + date (marketing/error/a11y honesty)
+- [ ] Demo org = single tenancy rule (Buffr Analytics); kiosk JWT matches
+- [ ] MFA enrolled for all alpha operator accounts
+- [ ] Resend (or documented “host email degrade”) configured on staging
+- [ ] Known blockers triage board empty of Sev-1/Sev-2 (definitions below)
+
+**Alpha scripts (must all pass once each)**
+
+| ID | Journey (§8) | Script (happy path) | Pass rule |
+|---|---|---|---|
+| A0-01 | 8.1 Walk-in | Print site QR → phone `/check-in` → privacy ack → submit → confirmation reference | Visit row created; roster shows visitor; no other visitor PII visible on success |
+| A0-02 | 8.1 Assisted | Front desk assisted check-in for “no phone” visitor → host notify attempt | Record encrypted; screen clear / no shared register leak |
+| A0-03 | 8.1 + forms | Published form with `visibilityRule` / `requiredIf` (e.g. vehicle) | Hidden fields not submitted; required-if enforced server-side (400 if missing) |
+| A0-04 | 8.2 Pre-reg | Create invitation → revoke → resolve token → check-in | Revoked token rejected; live token matches visit |
+| A0-05 | 8.5 Offline | Kiosk offline capture → reconnect → outbox drain | Idempotent sync; no duplicate visits; never claims “host notified” while offline |
+| A0-06 | 8.6 Emergency | Trigger emergency → roster → resolve | Roster limited to on-site; audit events written |
+| A0-07 | 8.7 Sign-out | Public `/check-out` or staff checkout | Exactly one open visit closed; emergency roster updates |
+| A0-08 | 8.8 Host notify | Check-in with host that has email | Outbox `sent` or honest `failed` (never silent success) |
+| A0-09 | 8.8 Approval | Zone with `host_approval_required` | Visit held until approve/reject; reject audited |
+| A0-10 | 8.10 Admin | Role-scoped user: front desk vs site manager vs owner | No cross-site leak; invite/role change from fixed catalogue only |
+| A0-11 | Privacy | Staff roster from kiosk Welcome | Requires fresh login challenge every time |
+| A0-12 | i18n | `/check-in?lang=af` (and `pt`) | Labels resolve; submit still succeeds |
+| A0-13 | NFC (if Professional alpha) | Badge validate → check-in; revoked badge | Live badge OK; revoked rejected |
+| A0-14 | DSAR / audit | Export evidence pack for a visit window | Pack generates; sensitive reads audited |
+
+**Exit criteria (A0)**
+
+- [ ] All in-scope A0 scripts PASS on staging
+- [ ] Sev-1 = 0; Sev-2 = 0 open (or written accept-with-conditions)
+- [ ] Alpha sign-off by engineering lead + product owner
+- [ ] Design-partner UAT pack ready (scripts below + credentials + runbook)
+
+### 17.4.3 Stage A1 — Design-partner UAT
+
+**Purpose:** Business users validate that the *right* system was built for
+their day-to-day reception, not that QA specs pass. Aligns with §17.3
+Months 0–3 “two design partners.”
+
+**Participants (minimum)**
+
+| Role | Count | Why |
+|---|---|---|
+| Front desk / receptionist | 2 (one per partner) | Assisted + roster + checkout |
+| Site / facilities manager | 1–2 | Policies, QR print, emergency |
+| Host (employee) | 2+ | Notification + approval |
+| Visitor stand-ins | 5+ per site day | Phone QR + no-phone assisted |
+| Buffr facilitator | 1 | Observes; does not drive the UI for them |
+
+**Duration:** 10–15 working days calendar (2–3 site visits each partner).
+
+**Entry criteria**
+
+- [ ] A0 accepted
+- [ ] Written UAT charter: scope, out-of-scope, data handling, NDA
+- [ ] Partner sites classified on RBA tiers (§7.2) — at least one Tier 1–2
+      and one Tier 2–3 if available
+- [ ] Paper register retained in parallel for UAT week 1 only
+- [ ] Feedback channel: shared tracker (issue = severity + journey ID +
+      screenshot/reference, no visitor PII in tickets)
+
+**UAT scenarios (operator-run; map to §17.2 KPIs)**
+
+| ID | Operator action | KPI / acceptance |
+|---|---|---|
+| U-01 | Open day with printed site QR; 10 walk-ins on phone | Completion rate ≥ 90%; median check-in ≤ 2 min (Tier 1–2) |
+| U-02 | 5 assisted check-ins (no phone / low literacy) | Zero shared-screen PII leaks; completion ≥ 95% |
+| U-03 | Host receives email; responds when approval required | Host-notification success ≥ 95% when provider up; degrade is honest |
+| U-04 | Peak hour: 3 visitors waiting | Wait-queue tickets usable; queue length recorded |
+| U-05 | Sign-out at end of visit (visitor or desk) | Open visits at close-of-day ≤ 5% unexplained |
+| U-06 | Drill: emergency roster for “all on site” | Roster usable in ≤ 60s; matches on-site reality |
+| U-07 | Manager exports audit / visit list for “last Tuesday” | Time-to-evidence ≤ 15 min (mom-test bar) |
+| U-08 | Wrong-site / wrong-role attempt | Access denied; no cross-tenant data |
+| U-09 | Offline window (kiosk site only) | Check-in continues; sync succeeds; paper fallbacks counted |
+| U-10 | Language switch (af/pt) for one visitor | Visitor completes without English |
+
+**Exit criteria (A1)**
+
+- [ ] Critical scenarios U-01–U-08 executed at both partners
+- [ ] Sev-1 = 0; Sev-2 fixed or formally accepted with conditions
+- [ ] Partner written decision: accept / accept-with-conditions / reject
+- [ ] Conditions (if any) have owners and dates before A2
+- [ ] Go/no-go for paid pilot recommended to product owner
+
+### 17.4.4 Stage A2 — Paid pilot (executes §17.2)
+
+**Purpose:** Measure operational value under real load for 60–90 days at
+three intentionally different sites (urban corporate; high-footfall
+regulated; low-connectivity / rural).
+
+**Entry criteria**
+
+- [ ] A1 accepted (or accept-with-conditions closed)
+- [ ] Commercial pilot agreement + DPA / controller-processor clarity
+- [ ] Site access policy approved (RBA document)
+- [ ] Training complete for front desk + one backup operator per site
+- [ ] Monitoring: API errors, outbox failures, sync lag, auth lockouts
+- [ ] Rollback: paper parallel authorised for first 7 calendar days only
+
+**Measure weekly (canonical §17.2 list)**
+
+- visitor completion rate (by channel);
+- average check-in duration by channel;
+- queue length;
+- host-notification success;
+- offline-sync success (kiosk sites);
+- operator workload (subjective 1–5 + time-on-task samples);
+- data-minimisation compliance (form publish / over-collection flags);
+- visitor satisfaction (optional micro-survey on sign-out);
+- paper-register fallbacks (count + reason);
+- audit-evidence generation time.
+
+**Mid-pilot gate (day 30)**
+
+- [ ] No Sev-1 open > 5 business days
+- [ ] Paper fallbacks trending down week-over-week
+- [ ] At least one emergency drill completed per site
+- [ ] Continue / remediate / stop decision recorded
+
+**Exit criteria (A2 → A3)**
+
+- [ ] 60–90 days complete at ≥ 3 sites (or documented early stop)
+- [ ] KPI pack reviewed; hypotheses in §17.3 updated with actuals
+- [ ] Reference-call permission (optional) from ≥ 1 site
+- [ ] Accept / accept-with-conditions / reject for commercial GA
+
+### 17.4.5 Defect severity (shared across A0–A2)
+
+| Severity | Definition | Pilot impact |
+|---|---|---|
+| **Sev-1** | Data leak across visitors/tenants; auth bypass; cannot check in on primary Core channel; false “host notified”; emergency roster wrong/empty when people are on site | Blocks entry/exit; stop pilot traffic if in production |
+| **Sev-2** | Major journey broken with workaround (e.g. assisted works, phone QR fails); sync duplicates; role catalogue wrong; audit export fails | Must fix or formal accept-with-conditions before next stage |
+| **Sev-3** | UX friction, copy, non-blocking i18n gaps, cosmetic | Fix in backlog; does not block accept |
+| **Sev-4** | Nice-to-have / enhancement | Out of UAT; product backlog |
+
+Change requests are **not** bugs — log separately so UAT does not become
+a redesign workshop.
+
+### 17.4.6 Environments and data
+
+| Env | Use | Data rule |
+|---|---|---|
+| Local / CI | Eng unit + journey smoke | Synthetic only |
+| Staging | A0 + early A1 rehearsal | Synthetic + partner-consented fake visitors |
+| Pilot tenant (prod project, isolated org) | A1 late + A2 | Real operational data under DPA; retention policy set day 0 |
+| Marketing prod | Not for UAT | No test PII on public pages |
+
+Never copy production visitor payloads into tickets, screenshots shared
+outside Buffr, or model prompts.
+
+### 17.4.7 RACI (stage decisions)
+
+| Decision | Responsible | Accountable | Consulted | Informed |
+|---|---|---|---|---|
+| A0 exit | Eng lead | Product owner | Ops | Design partners (optional) |
+| A1 exit | Partner site champion | Product owner | Legal / privacy | Eng |
+| A2 mid / final | Pilot site champions | Product owner + commercial | Assurance | Board / advisors as needed |
+| Scope carve-outs (SMS/USSD/DigiNam) | Eng | Product owner | Capability register owner | Sales (must not oversell) |
+
+### 17.4.8 Sign-off form (copy per stage)
+
+```text
+Stage: A0 / A1 / A2
+Date:
+Environment:
+Build / deploy IDs (API, admin, website, kiosk APK):
+Scripts / scenarios executed:
+Open Sev-1:
+Open Sev-2 (with disposition):
+Decision: ACCEPT | ACCEPT WITH CONDITIONS | REJECT
+Conditions (owner, date):
+Signed (name, role):
+```
+
+Store completed forms with the pilot commercial file — not as a new
+root markdown report. Prefer recording via
+`./scripts/acceptance-gate.sh signoff a0 --decision ACCEPT --signer "…"`.
+Extend this section or the pilot folder under `buffrcheckpoint/` ops
+notes if a durable home beyond the local state file is needed later.
+
+### 17.4.9 Suggested calendar (fits §17.3)
+
+| Window | Stage | Outcome |
+|---|---|---|
+| Weeks 1–2 | A0 internal alpha | Staging green; UAT pack ready |
+| Weeks 3–5 | A1 design-partner UAT | Two partner decisions |
+| Months 4–6 | A2 paid pilot (§17.2) | KPI pack + GA recommendation |
+| Months 7–9 | A3 commercial launch | Only FULL surfaces in Core sell sheet |
+
+Professional NFC / kiosk-heavy sites may run a **parallel A0-P** alpha on
+those entitlements without blocking Core UAT — same severity and
+sign-off rules, separate decision line.
 
 ---
 
@@ -7414,7 +8537,7 @@ These should be treated as planning hypotheses, not forecasts:
 | Product becomes an access-control system too early | Safety/security complexity and liability | Start as a visitor-evidence platform; phase physical door control after formal threat modelling. |
 | Paper fallback reintroduces exposure | Control failure during outages | Use secure, single-use, sealed contingency cards — never a shared open register. |
 | National e-ID smart-card rollout (targeted September 2026) slips or changes scope | Marketing built around a fixed date becomes inaccurate; engineering effort invested ahead of schedule sits idle longer than planned | Never state e-ID NFC support is live until the Ministry of Home Affairs confirms cards are in national circulation and Buffr Checkpoint has completed its own interoperability testing, per Section 4a.6; keep the "live" vs. "targeted" language in Section 4a.4 in every public surface. |
-| "NFC-first" positioning silently excludes the majority of Namibians, particularly rural feature-phone users | Alienates exactly the public-sector and healthcare buyers most likely to serve rural, feature-phone-dominant populations, and contradicts the brand's own inclusion language | Present the capture layer as multi-modal and risk-based, with NFC as an accelerant, not an entry requirement, per Section 4.2 and Section 4a.5; treat USSD and SMS as inclusion-critical, standard-tier channels, per Section 15.4. |
+| "NFC-first" positioning silently excludes the majority of Namibians, particularly rural feature-phone users | Alienates exactly the public-sector and healthcare buyers most likely to serve rural, feature-phone-dominant populations, and contradicts the brand's own inclusion language | Present the capture layer as multi-modal and risk-based, with NFC as an accelerant, not an entry requirement, per Section 4.2 and Section 4a.5; treat USSD and SMS as inclusion-critical optional add-ons when live, with assisted front desk as Core inclusion, per Sections 5.1 and 15.4. |
 | Residual parent-brand association after the standalone rebrand (Section 1a) | Regulated buyers' procurement or compliance teams pause a deal to resolve an implied affiliation with a separate payments product | Audit every customer-facing surface — website, pitch deck, contracts, support material — for "By Buffr" badges, footer taglines, or comparative references, and remove them before any regulated-sector pitch. |
 
 ---
@@ -8715,6 +9838,10 @@ The platform should not let each client build unlimited data-harvesting forms.
 
 Instead, the form builder should be **risk-based and data-minimised**.
 
+Admin surface: `/dashboard/policies/forms` (list) and
+`/dashboard/policies/forms/[definitionId]` (builder). Create produces a
+**draft** version only; publish is explicit after fields and rules are set.
+
 ## 5.1 Field classification
 
 | Field class | Examples | Default position |
@@ -8726,7 +9853,108 @@ Instead, the form builder should be **risk-based and data-minimised**.
 | **Identity-verification evidence** | DigiNam verification result, credential reference | Store result/reference only; minimise raw data |
 | **Free-text notes** | Reason for visit, staff notes | Restricted; avoid as a default because users may enter sensitive data |
 
-## 5.2 Agreement and acknowledgement record
+Codes live in `type_definition` domain `field_class`: `core`, `basic`,
+`sensitive`, `high_risk`, `verification_evidence`, `free_text`.
+
+## 5.2 Field library and types
+
+System field codes are seeded in `type_definition` domain
+`check_in_field_code` (aligned with demo seed 0016). Admins pick from the
+library or create `custom_<slug>` fields.
+
+Field input types (`type_definition` domain `field_type`):
+
+| Code | UI |
+|---|---|
+| `text` | Single-line text |
+| `textarea` | Multi-line text |
+| `single_choice` | Select / radio; options in `validation_schema.options` |
+| `multiple_choice` | Multi-select; options in `validation_schema.options` |
+| `date` | Date picker |
+| `boolean` | Checkbox / yes-no |
+| `phone` | Phone input |
+| `email` | Email input |
+
+Columns on `check_in_form_fields`: `field_type_code`, `help_text` (default
+language), plus existing `field_code`, `field_label`, classification,
+`required`, `visibility_rule`, `validation_schema`, `display_order`.
+
+## 5.3 Conditional visibility and requiredIf
+
+Keep JSONB on the field row (do not resurrect `form_field_rule` /
+`workflow_policy` tables).
+
+**`visibility_rule`** — empty `{}` means always visible:
+
+```json
+{
+  "op": "and",
+  "conditions": [
+    { "fieldCode": "purpose_category", "equals": "vehicle" }
+  ]
+}
+```
+
+Condition operators: `equals` (string), `in` (string array), `notEmpty`
+(boolean true). Top-level `op` is `and` or `or` (default `and`).
+
+**`validation_schema.requiredIf`** — same condition shape; field may be
+visible but only required when the condition matches. Also supports
+`maxLength`, `pattern`, `options` (choice lists).
+
+Evaluator is shared (`@buffrcheckpoint/shared` form-rules). Server is
+authoritative on check-in; website and kiosk evaluate for UX.
+
+## 5.4 Field translations
+
+Table `check_in_form_field_translations`: `field_id`, `language_code`
+(FK `type_definition` domain `language_code`), `field_label`, `help_text`.
+Default label/help stay on the field row (org default language).
+
+Effective form APIs accept `languageCode` and return the resolved label
+and help text for that language (fallback to field default, then
+`field_code`). **Public website `/check-in` (v0.29+):** language picker
+(English / Afrikaans / Portuguese) and optional `?lang=` query; changing
+language reloads the effective form. Status **FULL**. Kiosk welcome
+language selection remains separate and feeds kiosk form requests.
+
+## 5.5 Admin builder UX
+
+| Capability | Behaviour |
+|---|---|
+| Drag-and-drop reorder | `@dnd-kit` on draft fields; persists `display_order` |
+| Add from library | Pick `check_in_field_code` or create `custom_*` |
+| Required toggle | Per-field boolean |
+| Field type / options | Type select; options editor for choice types |
+| Classification | Picker with warning for `high_risk` / `verification_evidence` |
+| Conditional rules | Visual if/then builder writing `visibility_rule` / `requiredIf` |
+| Translations | Per-field label/help for org-supported languages |
+| Publish | Draft only until publish; high-risk fields require justification |
+
+## 5.6 Data minimisation gates
+
+`VisitorDataMinimisationService` (Constitution service inventory):
+
+**On publish**
+
+- At least one field required.
+- Any field with class `high_risk` or `verification_evidence` requires
+  non-empty `check_in_form_versions.approval_reference` (documented
+  justification). Admin UI prompts before publish.
+
+**On check-in** (authenticated and public)
+
+- Resolve effective published form for org + site + visitor type.
+- Reject answers whose `fieldCode` is not on that form version.
+- Reject mismatched `formVersionId`.
+- Enforce `required` and `requiredIf` for **visible** fields only.
+- Apply `validation_schema` (`maxLength`, `pattern`, `options`).
+- Persist only validated answers (unknown codes never written).
+
+When no published form exists, clients keep a static fallback form; the
+server does not invent field allow-lists.
+
+## 5.7 Agreement and acknowledgement record
 
 When a visitor accepts a policy, the system should retain:
 
@@ -9113,7 +10341,7 @@ with this structure.
 | Navigation item | Route | Core data |
 |---|---|---|
 | Users | `/dashboard/users` | Authenticated customer-side users only |
-| Roles & Access | `/dashboard/roles` | Role catalogue, assignments, permission scopes, review status |
+| Roles & Access | `/dashboard/roles` | Fixed role catalogue with live assignment counts and permission sets; assign/invite under Users |
 | My Account | `/dashboard/account` | Current identity, MFA, verified email, session management |
 
 **Do not put Platform Support or global Capability Status in the customer tenant sidebar.** Those are Buffr Checkpoint internal control-plane functions, not customer-admin functions.
@@ -10285,7 +11513,8 @@ Never include:
 | `visitor_categories` | `id`, `organisation_id`, `category_code`, `label`, `default_risk_tier`, `active` | General visitor, contractor, delivery, interview, VIP, restricted-site visitor. |
 | `check_in_form_definitions` | `id`, `organisation_id`, `visitor_category_id`, `site_id nullable`, `form_name`, `status` | Logical form. |
 | `check_in_form_versions` | `id`, `form_definition_id`, `version_number`, `effective_from`, `effective_until`, `approval_reference`, `status` | Immutable approved form version. |
-| `check_in_form_fields` | `id`, `form_version_id`, `field_code`, `field_label`, `data_classification`, `required`, `visibility_rule`, `validation_schema`, `display_order` | Field configuration subject to data minimisation. |
+| `check_in_form_fields` | `id`, `form_version_id`, `field_code`, `field_label`, `field_type_code`, `help_text`, `data_classification`, `required`, `visibility_rule`, `validation_schema`, `display_order` | Field configuration subject to data minimisation. |
+| `check_in_form_field_translations` | `id`, `field_id`, `language_code`, `field_label`, `help_text` | Per-language label and help for custom and system fields. |
 | `visitor_policy_documents` | `id`, `organisation_id`, `policy_code`, `policy_name`, `category` | Privacy notice, safety policy, NDA, contractor induction policy. |
 | `visitor_policy_versions` | `id`, `policy_document_id`, `version_number`, `content_artifact_id`, `content_hash`, `language_code`, `effective_from`, `status` | Versioned legal/policy content. |
 | `visitor_policy_acknowledgements` | `id`, `visit_id`, `policy_version_id`, `acknowledgement_method`, `acknowledged_at`, `device_id`, `content_hash`, `signature_artifact_id nullable` | Evidence of acknowledgement. |
@@ -10877,7 +12106,7 @@ Do not use images decoratively just because a SaaS website “needs imagery.” 
 |---|---|---|---|
 | **Product UI screenshots** | Demonstrate the actual system | Home, Platform, Pricing, sales deck | Highest priority. Use real data only in controlled demo tenant. |
 | **System diagrams** | Explain data flow, controls, channels, and roles | Platform, tender packs, compliance pages | Prefer diagrams over stock images for technical buyers. |
-| **Contextual photography** | Create human relevance and Namibia/Africa context | Home, About, sector pages | Only real, consented, non-sensitive settings. |
+| **Contextual photography** | Create human relevance and Namibia/Africa context | Hero (`hero-*.png`) and closing band (`closing-*.png`) on primary marketing routes | Only real, consented, non-sensitive settings. Closing bands use dedicated files — never the hero asset for that route. |
 | **Hardware photography** | Make kiosk, NFC reader, badge printer, and privacy-screen setup tangible | Platform, product sheets, government tenders | Use actual approved hardware or labelled concept render. |
 | **Data visualisations** | Prove control operation | Admin dashboard, assurance packs, case studies | Never use invented metrics, fake “live” records, or decorative charts. |
 
@@ -10894,7 +12123,7 @@ Left:
 - Headline
 - Two-sentence problem statement
 - One primary CTA:
-  Book a Paper Register Exposure Review
+  Create account
 
 Right:
 - Real Buffr Checkpoint kiosk/product interface
@@ -10984,7 +12213,7 @@ No image is necessary. Use a clean, high-contrast yellow panel:
 ```text
 Replace your paper register before it becomes your next privacy incident.
 
-[ Book a Paper Register Exposure Review ]
+[ Create account ]
 ```
 
 One action. No competing buttons.

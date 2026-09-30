@@ -34,8 +34,16 @@ class AuthRepository @Inject constructor(
         credentialStore.serviceAccountEmail?.trim()?.takeIf { it.isNotEmpty() }
 
     fun provision(baseUrl: String, siteId: String) {
-        credentialStore.baseUrl = baseUrl
-        credentialStore.siteId = siteId
+        val normalizedUrl = baseUrl.trim().trimEnd('/') + "/"
+        val normalizedSite = siteId.trim()
+        val urlChanged = credentialStore.baseUrl?.trim()?.trimEnd('/')?.plus("/") != normalizedUrl
+        val siteChanged = credentialStore.siteId?.trim() != normalizedSite
+        credentialStore.baseUrl = normalizedUrl
+        credentialStore.siteId = normalizedSite
+        if (urlChanged || siteChanged) {
+            experienceRepository.clearCachedExperience()
+            credentialStore.clearToken()
+        }
     }
 
     suspend fun login(email: String, password: String): LoginResult {
@@ -44,7 +52,11 @@ class AuthRepository @Inject constructor(
             credentialStore.serviceAccountEmail = email
             credentialStore.serviceAccountPassword = password
             credentialStore.accessToken = response.accessToken
-            runCatching { experienceRepository.syncFromBackend() }
+            // One-shot sync on login so first empty KEEP work cannot stick.
+            experienceRepository.syncFromBackend()
+            LoginResult.Success
+        } catch (e: com.buffrcheckpoint.kiosk.experience.ExperienceSyncException) {
+            // Auth succeeded; branding will retry on Welcome with last-good cache.
             LoginResult.Success
         } catch (e: retrofit2.HttpException) {
             val message = when (e.code()) {

@@ -58,6 +58,8 @@ export default function CheckOutClient() {
         confirmationCode: string;
         siteName?: string;
         checkedOutAt: string;
+        remainingOpenVisits?: number;
+        message?: string;
       };
       setDone({
         confirmationCode: data.confirmationCode,
@@ -65,7 +67,7 @@ export default function CheckOutClient() {
         checkedOutAt: data.checkedOutAt,
       });
       track(AnalyticsEvents.checkOutCompleted);
-      toast.success("Signed out.");
+      toast.success(data.message || "Signed out.");
     } catch (error) {
       track(AnalyticsEvents.checkOutFailed);
       toast.error(error instanceof Error ? error.message : "Sign-out failed.");

@@ -36,6 +36,7 @@ export class SmsContactConfirmationService {
       permissions: [],
       emailVerified: true,
       mfaEnabled: true,
+      audience: "admin",
     });
     if (effective.smsContactConfirmation !== "live") {
       return this.recordOutcome(input, "capability_not_live", null);

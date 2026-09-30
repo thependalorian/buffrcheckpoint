@@ -10,8 +10,8 @@ import {
   notificationDeliveryInstructions,
   organisationHealthSnapshot,
   organisationKybStatusEvents,
-  organisations,
   organisationSubscription,
+  organisations,
   platformIncident,
   sites,
   supportTicket,
@@ -29,7 +29,10 @@ function monthSeries(from: Date): { label: string; endsBefore: Date }[] {
   const months: { label: string; endsBefore: Date }[] = [];
   while (cursor <= last && months.length < 60) {
     const next = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
-    months.push({ label: `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, "0")}`, endsBefore: next });
+    months.push({
+      label: `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, "0")}`,
+      endsBefore: next,
+    });
     cursor.setMonth(cursor.getMonth() + 1);
   }
   return months;
@@ -69,10 +72,7 @@ export class PlatformDashboardService {
     const [orgCount, siteCount, mtdVisits, activeDevices, openIncidents, highRiskOrgs] = await Promise.all([
       this.db.select({ value: count() }).from(organisations).where(isNull(organisations.deletedAt)),
       this.db.select({ value: count() }).from(sites).where(isNull(sites.deletedAt)),
-      this.db
-        .select({ value: count() })
-        .from(visitorVisits)
-        .where(gte(visitorVisits.checkedInAt, monthStart)),
+      this.db.select({ value: count() }).from(visitorVisits).where(gte(visitorVisits.checkedInAt, monthStart)),
       this.db.select({ value: count() }).from(managedKioskDevices).where(isNull(managedKioskDevices.deletedAt)),
       this.openIncidentCount(),
       this.highChurnRiskOrgCount(),
@@ -104,7 +104,10 @@ export class PlatformDashboardService {
     // latest snapshot (by computed_at) is 'high'. Good enough at this scale;
     // revisit with a window function if the org count grows large.
     const latest = await this.db
-      .select({ organisationId: organisationHealthSnapshot.organisationId, band: organisationHealthSnapshot.churnRiskBandCode })
+      .select({
+        organisationId: organisationHealthSnapshot.organisationId,
+        band: organisationHealthSnapshot.churnRiskBandCode,
+      })
       .from(organisationHealthSnapshot)
       .orderBy(desc(organisationHealthSnapshot.computedAt));
     const seen = new Set<string>();
@@ -137,17 +140,15 @@ export class PlatformDashboardService {
   async listOrganisations() {
     const orgs = await this.db.query.organisations.findMany({ where: isNull(organisations.deletedAt) });
     const [snapshots, subs, stageDefs, bandDefs] = await Promise.all([
-      this.db
-        .select()
-        .from(organisationHealthSnapshot)
-        .orderBy(desc(organisationHealthSnapshot.computedAt)),
+      this.db.select().from(organisationHealthSnapshot).orderBy(desc(organisationHealthSnapshot.computedAt)),
       this.db.query.organisationSubscription.findMany({ where: isNull(organisationSubscription.deletedAt) }),
       this.db.query.typeDefinition.findMany({ where: eq(typeDefinition.domain, "crm_lifecycle_stage") }),
       this.db.query.typeDefinition.findMany({ where: eq(typeDefinition.domain, "churn_risk_band") }),
     ]);
 
     const latestSnapshotByOrg = new Map<string, (typeof snapshots)[number]>();
-    for (const s of snapshots) if (!latestSnapshotByOrg.has(s.organisationId)) latestSnapshotByOrg.set(s.organisationId, s);
+    for (const s of snapshots)
+      if (!latestSnapshotByOrg.has(s.organisationId)) latestSnapshotByOrg.set(s.organisationId, s);
     const mrrByOrg = new Map(subs.map((s) => [s.organisationId, Number(s.mrrAmount)]));
     const stageLabel = new Map(stageDefs.map((d) => [d.id, d.label]));
     const bandLabel = new Map(bandDefs.map((d) => [d.id, d.code]));
@@ -349,7 +350,10 @@ export class PlatformDashboardService {
       })
       .from(notificationDeliveryInstructions)
       .where(isNull(notificationDeliveryInstructions.deletedAt))
-      .groupBy(sql`date_trunc('week', ${notificationDeliveryInstructions.nextAttemptAt})`, notificationDeliveryInstructions.statusCode)
+      .groupBy(
+        sql`date_trunc('week', ${notificationDeliveryInstructions.nextAttemptAt})`,
+        notificationDeliveryInstructions.statusCode,
+      )
       .orderBy(sql`date_trunc('week', ${notificationDeliveryInstructions.nextAttemptAt})`);
 
     const byWeek = new Map<string, { total: number; sent: number; failed: number }>();
@@ -371,14 +375,17 @@ export class PlatformDashboardService {
   }
 
   /** Weekly platform-wide check-in volume — the product's own usage curve. */
+  // Reads the ETL rollup so this chart, the admin analytics page and the
+  // arrival statistics all count from the same visit_daily_fact rows.
   async visitVolumeTrend() {
-    const rows = await this.db
-      .select({ week: sql<string>`date_trunc('week', ${visitorVisits.checkedInAt})`.as("week"), value: count() })
-      .from(visitorVisits)
-      .where(isNull(visitorVisits.deletedAt))
-      .groupBy(sql`date_trunc('week', ${visitorVisits.checkedInAt})`)
-      .orderBy(sql`date_trunc('week', ${visitorVisits.checkedInAt})`);
-    return rows.map((r) => ({ period: r.week, count: r.value }));
+    const result = await this.db.execute(sql`
+      SELECT date_trunc('week', local_date)::date::text AS week, sum(check_in_count)::int AS value
+      FROM visit_daily_fact
+      GROUP BY 1
+      HAVING sum(check_in_count) > 0
+      ORDER BY 1
+    `);
+    return (result.rows as { week: string; value: number }[]).map((r) => ({ period: r.week, count: Number(r.value) }));
   }
 
   /**
@@ -467,7 +474,10 @@ export class PlatformDashboardService {
       : [];
     const pendingByOrg = new Map(pendingNotifications.map((r) => [r.organisationId, r.value]));
 
-    const byOrg = new Map<string, { deviceCount: number; offlineDeviceCount: number; pendingNotificationCount: number }>();
+    const byOrg = new Map<
+      string,
+      { deviceCount: number; offlineDeviceCount: number; pendingNotificationCount: number }
+    >();
     for (const device of devices) {
       const bucket = byOrg.get(device.organisationId) ?? {
         deviceCount: 0,
@@ -489,7 +499,8 @@ export class PlatformDashboardService {
       offlineDeviceCount: orgRows.reduce((sum, o) => sum + o.offlineDeviceCount, 0),
       pendingNotificationCount: orgRows.reduce((sum, o) => sum + o.pendingNotificationCount, 0),
       organisations: orgRows.sort(
-        (a, b) => b.offlineDeviceCount - a.offlineDeviceCount || b.pendingNotificationCount - a.pendingNotificationCount,
+        (a, b) =>
+          b.offlineDeviceCount - a.offlineDeviceCount || b.pendingNotificationCount - a.pendingNotificationCount,
       ),
     };
   }

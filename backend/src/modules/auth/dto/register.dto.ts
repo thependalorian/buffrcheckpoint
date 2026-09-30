@@ -1,4 +1,4 @@
-import { IsEmail, IsString, MinLength } from "class-validator";
+import { IsEmail, IsOptional, IsString, IsUUID, MinLength } from "class-validator";
 
 // No organisationId here — the controller always uses the authenticated
 // caller's own organisationId (auth.controller.ts), never a client-supplied
@@ -14,4 +14,14 @@ export class RegisterDto {
   @IsString()
   @MinLength(8)
   password!: string;
+
+  /** Customer-assignable role_code (defaults to owner_operator if omitted). */
+  @IsOptional()
+  @IsString()
+  roleCode?: string;
+
+  /** Optional site scope for site-bound roles (front desk, host, site manager). */
+  @IsOptional()
+  @IsUUID()
+  siteId?: string;
 }

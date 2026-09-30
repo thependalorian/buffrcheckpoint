@@ -3,7 +3,7 @@
 -- Names/contacts use LOCAL_DEV_STUB envelopes (base64 plaintext) so decrypt
 -- works without the live AES key in SQL seeds.
 -- Site: 74c72c99-93dc-4b33-934b-9b365e9924cf
--- Org:  47c8b69b-5d9c-499d-a759-debc33e87c5e
+-- Org:  b51f0704-12a7-45d4-8b0d-3642785b6e77
 -- Safe to re-run (upsert by id).
 
 INSERT INTO site_hosts (
@@ -12,7 +12,7 @@ INSERT INTO site_hosts (
 ) VALUES
 (
   'd2bc3287-689b-436b-97d5-c84d0734c7ff',
-  '47c8b69b-5d9c-499d-a759-debc33e87c5e',
+  'b51f0704-12a7-45d4-8b0d-3642785b6e77',
   '74c72c99-93dc-4b33-934b-9b365e9924cf',
   '{"encryptionAlgorithm":"LOCAL_DEV_STUB","keyManagementReference":"local-dev-stub","keyVersion":1,"ciphertext":"UmVjZXB0aW9uIERlc2s="}'::jsonb,
   'Reception',
@@ -21,7 +21,7 @@ INSERT INTO site_hosts (
 ),
 (
   'a1111111-1111-4111-8111-111111111101',
-  '47c8b69b-5d9c-499d-a759-debc33e87c5e',
+  'b51f0704-12a7-45d4-8b0d-3642785b6e77',
   '74c72c99-93dc-4b33-934b-9b365e9924cf',
   '{"encryptionAlgorithm":"LOCAL_DEV_STUB","keyManagementReference":"local-dev-stub","keyVersion":1,"ciphertext":"VGhhbmRpIE5hbmdvbG8="}'::jsonb,
   'Finance',
@@ -30,7 +30,7 @@ INSERT INTO site_hosts (
 ),
 (
   'a1111111-1111-4111-8111-111111111102',
-  '47c8b69b-5d9c-499d-a759-debc33e87c5e',
+  'b51f0704-12a7-45d4-8b0d-3642785b6e77',
   '74c72c99-93dc-4b33-934b-9b365e9924cf',
   '{"encryptionAlgorithm":"LOCAL_DEV_STUB","keyManagementReference":"local-dev-stub","keyVersion":1,"ciphertext":"RGF2aWQgU2hpa29uZ28="}'::jsonb,
   'Engineering',
@@ -39,7 +39,7 @@ INSERT INTO site_hosts (
 ),
 (
   'a1111111-1111-4111-8111-111111111103',
-  '47c8b69b-5d9c-499d-a759-debc33e87c5e',
+  'b51f0704-12a7-45d4-8b0d-3642785b6e77',
   '74c72c99-93dc-4b33-934b-9b365e9924cf',
   '{"encryptionAlgorithm":"LOCAL_DEV_STUB","keyManagementReference":"local-dev-stub","keyVersion":1,"ciphertext":"QW1hbGlhIFZyaWVz"}'::jsonb,
   'People',
@@ -48,7 +48,7 @@ INSERT INTO site_hosts (
 ),
 (
   'a1111111-1111-4111-8111-111111111104',
-  '47c8b69b-5d9c-499d-a759-debc33e87c5e',
+  'b51f0704-12a7-45d4-8b0d-3642785b6e77',
   '74c72c99-93dc-4b33-934b-9b365e9924cf',
   '{"encryptionAlgorithm":"LOCAL_DEV_STUB","keyManagementReference":"local-dev-stub","keyVersion":1,"ciphertext":"SVQgSGVscGRlc2s="}'::jsonb,
   'IT',

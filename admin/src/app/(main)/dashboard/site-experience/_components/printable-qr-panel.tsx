@@ -45,11 +45,11 @@ export function PrintableQrPanel({
           Copy URL
         </Button>
         {dataUrl ? (
-          <a className="btn btn-sm" href={dataUrl} download={`buffr-qr-${referenceId}.png`}>
-            <Button size="sm" variant="secondary" type="button">
+          <Button size="sm" variant="secondary" type="button" asChild>
+            <a href={dataUrl} download={`buffr-qr-${referenceId}.png`}>
               Download PNG
-            </Button>
-          </a>
+            </a>
+          </Button>
         ) : null}
         <Button size="sm" type="button" onClick={() => window.print()}>
           Print

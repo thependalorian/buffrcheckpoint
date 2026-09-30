@@ -1,0 +1,762 @@
+
+<!doctype html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7" lang=""> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8" lang=""> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9" lang=""> <![endif]-->
+<!--[if gt IE 8]><!-->
+<html class="no-js" lang="">
+<!--<![endif]-->
+<head>
+<meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+<title>CIMSO - API Registration</title>
+<meta name="description" content="CiMSO CiMSO INNterchange provides data exchange between 3rd party applications or devices and the CiMSO ERP suite. The INNterchange application provider interface (API) is available free of charge to registered developers.">
+<meta name="keywords" content='hotel management, software, lodging, hospitality, spa management, hydro management, restaurant management, bar management'>
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="google-site-verification" content="BspR0fHstWXjjBZTvgVoqKDc-N7M442SY56vN1Q7W3U" />
+
+<link rel="shortcut icon" href="/cimsomain/static/favicon.png">
+  <!-- All JavaScript at the bottom, except for Modernizr which enables
+       HTML5 elements & feature detects -->
+  <script src="/cimsomain/static/responsive/js/vendor/modernizr-2.8.3-respond-1.4.2.min.js"></script>
+ <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.8.9/themes/base/jquery-ui.css" type="text/css" />
+  <!-- include stylesheets -->
+  
+
+
+
+  <script type="text/javascript"><!--
+    // These variables are used by the web2py_ajax_init function in web2py_ajax.js (which is loaded below).
+    var w2p_ajax_confirm_message = "Are you sure you want to delete this object?";
+    var w2p_ajax_date_format = "%Y-%m-%d";
+    var w2p_ajax_datetime_format = "%Y-%m-%d %H:%M:%S";
+    var ajax_error_500 = 'An error occured, please <a href="/api_registration">reload</a> the page'
+    //--></script>
+
+<meta name="author" content="CIMSO Software" />
+<meta name="description" content="CiMSO INNterchange provides data exchange between 3rd party applications or devices and the CiMSO ERP suite. The INNterchange application provider interface (API) is available free of charge to registered developers." />
+<meta name="keywords" content="hotel software,ERP,resort software,CIMSO,INNkeeper,management software,hotel management software,PMS system,property management,management,point of sale software,lodging software,point of sale,retail,hospitality software,hospitality industry,software,south africa,singapore,namibia,financial software,finance,bookings,bookings management,fidelio micros,hotel,motel,resort,lodge,game farm,scheduler,spa,golf management,golf course software,restuarant management" />
+<script src="/cimsomain/static/js/jquery.js" type="text/javascript"></script><link href="/cimsomain/static/css/calendar.css" rel="stylesheet" type="text/css" /><script src="/cimsomain/static/js/calendar.js" type="text/javascript"></script><script src="/cimsomain/static/js/masonry.pkgd.min.js" type="text/javascript"></script><script src="/cimsomain/static/js/web2py.js" type="text/javascript"></script><link href="/cimsomain/static/css/web2py.css" rel="stylesheet" type="text/css" /><link href="/cimsomain/static/responsive/css/bootstrap.min.css" rel="stylesheet" type="text/css" /><link href="/cimsomain/static/responsive/css/bootstrap-theme.min.css" rel="stylesheet" type="text/css" /><link href="/cimsomain/static/responsive/js/jstree/themes/default/style.min.css" rel="stylesheet" type="text/css" /><link href="/cimsomain/static/responsive/css/font-awesome.min.css" rel="stylesheet" type="text/css" /><link href="/cimsomain/static/assets/owl.carousel.min.css" rel="stylesheet" type="text/css" /><link href="/cimsomain/static/css/web2py_bootstrap.css" rel="stylesheet" type="text/css" /><link href="/cimsomain/static/responsive/css/main.0822.css" rel="stylesheet" type="text/css" /><link href="/cimsomain/static/responsive/css/main-cimso-site.css" rel="stylesheet" type="text/css" /><link href="/cimsomain/static/responsive/js/datetimepicker-master/build/jquery.datetimepicker.min.css" rel="stylesheet" type="text/css" /><link href="/cimsomain/static/responsive/js/DataTables/datatables.min.css" rel="stylesheet" type="text/css" /><link href="/cimsomain/static/responsive/js/intl-tel-input/css/intlTelInput.css" rel="stylesheet" type="text/css" /><link href="/cimsomain/static/responsive/js/plupload/js/jquery.ui.plupload/css/jquery.ui.plupload.css" rel="stylesheet" type="text/css" />
+
+<script type="text/javascript"><!--
+function popup(url) {
+  newwindow=window.open(url,'name','height=400,width=600');
+  if (window.focus) newwindow.focus();
+  return false;
+}
+function collapse(id) { jQuery('#'+id).slideToggle(); }
+function fade(id,value) { if(value>0) jQuery('#'+id).hide().fadeIn('slow'); else jQuery('#'+id).show().fadeOut('slow'); }
+function ajax(u,s,t) {
+    query = '';
+    if (typeof s == "string") {
+        d = jQuery(s).serialize();
+        if(d){ query = d; }
+    } else {
+        pcs = [];
+        for(i=0; i<s.length; i++) {
+            q = jQuery("[name="+s[i]+"]").serialize();
+            if(q){pcs.push(q);}
+        }
+        if (pcs.length>0){query = pcs.join("&");}
+    }
+    jQuery.ajax({type: "POST", url: u, data: query, success: function(msg) { if(t) { if(t==':eval') eval(msg); else jQuery("#" + t).html(msg); } } }); 
+}
+String.prototype.reverse = function () { return this.split('').reverse().join('');};
+function web2py_ajax_init() {
+  jQuery('.hidden').hide();
+  jQuery('.error').hide().slideDown('slow');
+  jQuery('.flash').click(function() { jQuery(this).fadeOut('slow'); return false; });
+  // jQuery('input[type=submit]').click(function(){var t=jQuery(this);t.hide();t.after('<input class="submit_disabled" disabled="disabled" type="submit" name="'+t.attr("name")+'_dummy" value="'+t.val()+'">')});
+  jQuery('input.integer').keyup(function(){this.value=this.value.reverse().replace(/[^0-9\-]|\-(?=.)/g,'').reverse();});
+  jQuery('input.double,input.decimal').keyup(function(){this.value=this.value.reverse().replace(/[^0-9\-\.]|[\-](?=.)|[\.](?=[0-9]*[\.])/g,'').reverse();});
+  jQuery("input[type='checkbox'].delete").each(function(){jQuery(this).click(function() { if(this.checked) if(!confirm("Sure you want to delete this object?")) this.checked=false; });});
+  try {jQuery("input.date").focus( function() {Calendar.setup({
+     inputField:this.id, ifFormat:"%Y-%m-%d", showsTime:false
+  }); }); } catch(e) {};
+  try { jQuery("input.datetime").focus( function() {Calendar.setup({
+     inputField:this.id, ifFormat:"%Y-%m-%d %H:%M:%S", showsTime: true,timeFormat: "24"
+  }); }); } catch(e) {};
+  try { jQuery("input.time").clockpick({
+      starthour:0, endhour:23, showminutes:true, military:true
+  }); } catch(e) {};
+};
+jQuery(document).ready(function(){
+   jQuery('.flash').hide();
+   if(jQuery('.flash').html()!='') jQuery('.flash').slideDown('slow');
+   web2py_ajax_init();});
+
+function web2py_trap_form(action,target) {
+   jQuery('#'+target+' form').each(function(i){
+      var form=jQuery(this);
+      if(!form.hasClass('no_trap'))
+        form.submit(function(obj){
+         jQuery('.flash').hide().html('');
+         web2py_ajax_page('post',action,form.serialize(),target);
+         return false;
+      });
+   });
+}
+
+function web2py_ajax_page(method,action,data,target) {
+  jQuery.ajax({'type':method,'url':action,'data':data,
+    'beforeSend':function(xhr) {
+      xhr.setRequestHeader('web2py-component-location',document.location);
+      xhr.setRequestHeader('web2py-component-element',target);},
+    'complete':function(xhr,text){
+      var html=xhr.responseText;
+      var content=xhr.getResponseHeader('web2py-component-content'); 
+      var command=xhr.getResponseHeader('web2py-component-command');
+      var flash=xhr.getResponseHeader('web2py-component-flash');
+      var t = jQuery('#'+target);
+      if(content=='prepend') t.prepend(html); 
+      else if(content=='append') t.append(html);
+      else if(content!='hide') t.html(html);  
+      web2py_trap_form(action,target);
+      web2py_ajax_init();      
+      if(command) eval(command);
+      if(flash) jQuery('.flash').html(flash).slideDown();
+      }
+    });
+}
+function web2py_component(action,target) {
+    jQuery(document).ready(function(){ web2py_ajax_page('get',action,null,target); });
+}
+//--></script>
+
+
+    
+   
+
+    <!--script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.0/jquery.min.js"></script-->
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.10.2/jquery-ui.min.js"></script>
+    <script src="/cimsomain/static/responsive/js/plupload/js/plupload.full.min.js"></script>
+    <script src="/cimsomain/static/responsive/js/plupload/js/jquery.ui.plupload/jquery.ui.plupload.js"></script>
+    <link rel="stylesheet" href="//fonts.googleapis.com/css?family=Rajdhani:700,700i,400,400i,600,600i,500,500i&#038;subset=latin,latin-ext&#038;display=swap" type="text/css" media="all" />
+
+    <style>
+		body {
+			padding-top: 0px;
+		}
+	</style>
+<noscript><link href="/cimsomain/static/css/web2py_bootstrap_nojs.css" rel="stylesheet" type="text/css" /></noscript>
+
+
+<script>
+jQuery(document).ready(function($){
+	// browser window scroll (in pixels) after which the "back to top" link is shown
+	var offset = 300,
+		//browser window scroll (in pixels) after which the "back to top" link opacity is reduced
+		offset_opacity = 1200,
+		//duration of the top scrolling animation (in ms)
+		scroll_top_duration = 700,
+		//grab the "back to top" link
+		$back_to_top = $('.cd-top');
+
+	//hide or show the "back to top" link
+	$(window).scroll(function(){
+		( $(this).scrollTop() > offset ) ? $back_to_top.addClass('cd-is-visible') : $back_to_top.removeClass('cd-is-visible cd-fade-out');
+		if( $(this).scrollTop() > offset_opacity ) { 
+			$back_to_top.addClass('cd-fade-out');
+		}
+	});
+
+	//smooth scroll to top
+	$back_to_top.on('click', function(event){
+		event.preventDefault();
+		$('body,html').animate({
+			scrollTop: 0 ,
+		 	}, scroll_top_duration
+		);
+	});
+
+});	
+</script>
+
+<!--Start of Tawk.to Script
+<script type="text/javascript">
+    var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
+    (function(){
+    var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
+    s1.async=true;
+    s1.src='https://embed.tawk.to/59fc6df3bb0c3f433d4c6e46/default';
+    s1.charset='UTF-8';
+    s1.setAttribute('crossorigin','*');
+    s0.parentNode.insertBefore(s1,s0);
+    })();
+</script>
+End of Tawk.to Script-->
+<!-- Global site tag (gtag.js) - Google Analytics -->
+
+<script async src="https://www.googletagmanager.com/gtag/js?id=UA-142575105-3"></script>
+
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'UA-142575105-3');
+</script>
+<style>
+@font-face{font-family:FontAwesome;font-style:normal;font-weight:900;font-display:block;src:url('/cimsomain/static/responsive/fonts/fa-solid-900.woff2') format('woff2'),url('/cimsomain/static/responsive/fonts/fa-solid-900.woff') format('woff'),url('/cimsomain/static/responsive/fonts/fa-solid-900.ttf') format('truetype')}[data-x-icon-s],[data-x-icon],[data-x-icon][class*=cs-fa-]{font-family:FontAwesome!important;font-weight:900}[data-x-icon]:before,[data-x-icon][class*=cs-fa-]:before{content:attr(data-x-icon)}[data-x-icon-s]:before{content:attr(data-x-icon-s)}@font-face{font-family:FontAwesomeBrands;font-style:normal;font-weight:400;font-display:block;src:url('/cimsomain/static/responsive/fonts/fa-brands-400.woff2') format('woff2'),url('/cimsomain/static/responsive/fonts/fa-brands-400.woff') format('woff'),url('/cimsomain/static/responsive/fonts/fa-brands-400.ttf') format('truetype')}[data-x-icon-b]{font-family:FontAwesomeBrands!important}[data-x-icon-b]:before{content:attr(data-x-icon-b)}i.x-icon{font-style:normal}body,html{font-size:16px}body,button,input,select,textarea{font-family:Rajdhani,sans-serif}.e58-1.x-bar{width:calc(100% - (0px * 2));margin-top:0;margin-left:0;margin-right:0;height:5em;font-size:18px;background-color:rgba(0,0,0,.49);box-shadow:0 .11699999999999999em .653em 3px rgba(0,0,0,.42);z-index:9999}.e58-1.x-bar-content{flex-direction:row;justify-content:space-between;align-items:center;height:5em;max-width:1200px}.e58-2.x-bar-container{flex-direction:row;justify-content:flex-start;align-items:center;flex:1 0 auto;background-color:transparent}.widget ol li a:hover,.widget ul li a:hover,.widget.widget_text ol li a,.widget.widget_text ul li a,.widget_nav_menu .current-menu-item>a,.x-accordion-heading .x-accordion-toggle:hover,.x-breadcrumb-wrap a:hover,.x-comment-author a:hover,.x-comment-time:hover,.x-recent-posts a:hover .h-recent-posts,a,h1 a:hover,h2 a:hover,h3 a:hover,h4 a:hover,h5 a:hover,h6 a:hover{color:#bed739}.e58-3.x-image{margin:20px 0 0 0;background-color:transparent}.e58-4.x-bar-container{flex-direction:row-reverse;justify-content:space-between;align-items:center;flex:0 1 auto;background-color:transparent}.e58-5.x-anchor-toggle{width:2.6em;height:2.6em;margin:0 -1em 0 0;border-radius:100em;font-size:1em;background-color:#bed739;box-shadow:0 .25em 1em 0 rgba(0,0,0,.15)}.social-icons.x-anchor{width:2em;height:2.75em;margin:0 0 -.7em 0;font-size:1em;background-color:transparent}.social-icons.x-anchor .x-anchor-content{flex-direction:row;justify-content:center;align-items:flex-end}.social-icons.x-anchor .x-graphic-icon{width:auto;font-size:1em;text-shadow:1px 1px 2px #000;color:#bed739;background-color:transparent;box-shadow:1em 1em 2em 0 transparent}.social-icons.x-anchor .x-graphic-icon[class*=active]{text-shadow:1px 1px 2px transparent;color:#fff;background-color:transparent}.e58-10.x-menu{flex-direction:row;justify-content:space-around;align-items:stretch;align-self:flex-end;flex:0 1 auto;margin:0;font-size:1em}.e58-10.x-menu{font-size:1em}.e58-10.x-menu>li,.e58-10.x-menu>li>a{flex:0 1 auto}.e58-10.x-menu>li,.e58-10.x-menu>li>a{flex:0 1 auto}.e58-10.x-menu>li>.x-anchor{font-size:1em;background-color:transparent}.e58-10.x-menu>li>.x-anchor[class*=active]{background-color:transparent}.e58-10.x-menu>li>a.x-anchor:focus,.e58-10.x-menu>li>a.x-anchor:hover{color:#23527c;text-decoration:none}.e58-10.x-menu>li>.x-anchor .x-anchor-content{flex-direction:row;justify-content:center;align-items:center;padding:.5em .75em .5em .75em}.e58-10.x-menu>li>.x-anchor .x-anchor-text{margin:4px 4px 5px 4px}.e58-10.x-menu>li>.x-anchor .x-anchor-text-primary{font-family:inherit;font-size:1.1em;font-style:normal;font-weight:500;line-height:1;letter-spacing:.05em;margin-right:calc(.05em * -1);text-shadow:1px 1px 1px #000;color:#bed739}.e58-10.x-menu>li>.x-anchor[class*=active] .x-anchor-text-primary{text-shadow:1px 1px 1px transparent;color:rgba(255,255,255,.75)}.e58-10.x-menu>li>.x-anchor .x-anchor-particle-primary{width:100%;height:5px;color:#fff;transform-origin:50% 100%}.x-main.full{margin-top:-20px;float:none;display:block;width:auto}.darkgreyback{background:#383838;background:linear-gradient(135deg,#383838 0,#383838 35%,#000 100%)}.e388-5.x-section{margin:0;padding:0;background-color:transparent;z-index:2}.e388-6.x-row{z-index:1;margin:3% auto 3% auto;padding:1px;font-size:1em;background-color:transparent}.e388-6>.x-row-inner{flex-direction:row;justify-content:flex-start;align-items:stretch;align-content:stretch;margin:calc(((1rem / 2) + 1px) * -1) calc(((1rem / 2) + 1px) * -1)}.e388-7.x-col{display:flex;flex-direction:column;justify-content:flex-start;align-items:flex-start;flex-wrap:wrap;align-content:flex-start;z-index:1;padding:0;font-size:1em;background-color:transparent}.e388-6>.x-row-inner>*{margin:calc(1rem / 2) calc(1rem / 2)}.e388-8.x-text{margin:0;padding:0;font-size:1rem;background-color:transparent}.e388-8.support{font-size:65px}.e388-8.x-text .x-text-content-text-primary{margin:0 calc(-.06em * -1) 0 0;font-family:Rajdhani,sans-serif;font-size:calc(100%);font-style:normal;font-weight:400;line-height:.9;letter-spacing:-.06em;text-align:left;text-shadow:1px 2px 6px rgba(0,0,0,.77);text-transform:none;color:#fff}.e388-1.x-section{margin:0;padding:45px 0 45px 0;background-color:transparent;z-index:2}.e388-2.x-row{z-index:1;margin:0 auto 0 auto;padding:5% 0 0 0;font-size:1em;background-color:transparent}.e388-3.x-col{display:flex;flex-direction:column;justify-content:flex-start;align-items:flex-start;flex-wrap:wrap;align-content:flex-start;z-index:1;font-size:1em;background-color:transparent}.e388-2>.x-row-inner>*{margin:calc(1rem / 2) calc(1rem / 2)}.e388-2>.x-row-inner>:nth-child(n){flex-basis:calc(100% - 1rem)}.e388-4.x-line{padding:5% 0 0 0;font-size:1em}.e1001-6.x-row{z-index:1;margin:0 auto 0 auto;padding:1px;font-size:1em;background-color:transparent}.e1001-6>.x-row-inner{flex-direction:row;justify-content:flex-start;align-items:stretch;align-content:stretch;margin:calc(((1rem / 2) + 1px) * -1) calc(((1rem / 2) + 1px) * -1)}.e1001-6>.x-row-inner>:nth-child(n){flex-basis:calc(100% - 1rem)}.e1001-6>.x-row-inner>*{margin:calc(1rem / 2) calc(1rem / 2)}.e1001-7.x-col{display:flex;flex-direction:column;justify-content:center;align-items:flex-start;z-index:1;padding:1.1% 0 0 0;font-size:1em;background-color:#bed739;box-shadow:-1rem .8rem 1.1rem 0 #101010}.e1001-8.x-crumbs{margin:0 0 0 7%;padding:0 0 1% 0;font-family:inherit;font-size:.9rem;font-weight:600;line-height:1.4;background-color:transparent}.e1001-8 .x-crumbs-list{justify-content:flex-start;margin-left:-8px!important}.e1001-8 .x-crumbs-list-item{margin-left:8px}.e1001-8 .x-crumbs-link{font-style:normal;line-height:1.3;color:#000;background-color:transparent}.e1001-8 .x-crumbs-delimiter{margin-left:8px;color:rgba(0,0,0,.33)}
+ @font-face{font-family:'FontAwesome';font-style:normal;font-weight:900;font-display:block;src:url('/cimsomain/static/responsive/fonts/fa-solid-900.woff2') format('woff2'),url('/cimsomain/static/responsive/fonts/fa-solid-900.woff') format('woff'),url('/cimsomain/static/responsive/fonts/fa-solid-900.ttf') format('truetype');}[data-x-icon],[data-x-icon-s],[data-x-icon][class*="cs-fa-"]{font-family:"FontAwesome" !important;font-weight:900;}[data-x-icon]:before,[data-x-icon][class*="cs-fa-"]:before{content:attr(data-x-icon);}[data-x-icon-s]:before{content:attr(data-x-icon-s);}
+ @font-face{font-family:'FontAwesomeBrands';font-style:normal;font-weight:normal;font-display:block;src:url('/cimsomain/static/responsive/fonts/fa-brands-400.woff2') format('woff2'),url('/cimsomain/static/responsive/fonts/fa-brands-400.woff') format('woff'),url('/cimsomain/static/responsive/fonts/fa-brands-400.ttf') format('truetype');}[data-x-icon-b]{font-family:"FontAwesomeBrands" !important;}[data-x-icon-b]:before{content:attr(data-x-icon-b);}
+
+.e58-1.x-bar-outer-spacers::before, .e58-1.x-bar-outer-spacers::after {flex-basis: 2.5em;width: 2.5em !important;height: 2.5em;}.e58-5.x-anchor-toggle .x-anchor-content {flex-direction: row;justify-content: center;align-items: center;}.e58-5.x-anchor-toggle .x-graphic {margin: 4px 0px 4px 0px;}.e58-5 .x-toggle {color: rgb(0,0,0);}.e58-5.x-anchor:hover .x-toggle {color: white;}.e58-5 .x-toggle-burger {width: 9.200000000000001em;margin: 3em 0;font-size: 0.14700000000000002em;}.e58-5 .x-toggle-burger-bun-t {transform: translate3d(0,-3em,0);}.e58-5 .x-toggle-burger {font-size: 0.14700000000000002em;}.e58-5.x-anchor-toggle {font-size: 1em;}.e58-5.x-off-canvas {font-size: 17px;}.x-off-canvas {overflow-x: hidden;overflow-y: auto;visibility: hidden;position: fixed;top: 0;left: 0;right: 0;bottom: 0;transition: visibility 0s linear 0.525s;pointer-events: none;z-index: 99999998;}.x-off-canvas.x-active .x-off-canvas-close { opacity: 1;transform: scale(1);}
+
+a{color:#bed739}footer{display:block}.e110-1.x-bar{height:auto;padding:1em 7vw 2em 7vw;font-size:16px;background-color:#222;box-shadow:0 .15em 2em rgba(0,0,0,.15);z-index:10}.x-bar-content{z-index:5}.e110-1.x-bar-content{flex-direction:row;justify-content:space-around;align-items:center;flex:0 1 100%;height:auto}.e110-2.x-bar-container{flex-direction:row;justify-content:space-between;align-items:center;flex:0 1 auto;background-color:transparent}.e110-3.x-text{margin:0;padding:0;font-family:Rajdhani,sans-serif;font-size:10px;font-style:normal;font-weight:400;line-height:1.4;letter-spacing:0;text-transform:none;color:#4f4f4f;background-color:transparent}.e110-3.cimso{font-size:min(max(10px,2.5vw),15px)}.e110-3.x-text>:last-child{margin-bottom:0}.e110-3.x-text>:first-child{margin-top:0}.e110-4.x-bar-container{flex-direction:row;justify-content:flex-end;align-items:flex-start;flex:1 0 0%;background-color:transparent}.e110-5.x-image{width:60px;margin:0 5% 0 0;background-color:transparent}
+
+.e58-5.x-off-canvas .x-off-canvas-bg {background-color: rgba(190,215,57,0.45);}.e58-5.x-off-canvas .x-off-canvas-close {width: calc(1em * 1);height: calc(1em * 1);font-size: 1.5rem;color: transparent;}.e58-5.x-off-canvas .x-off-canvas-content {max-width: 50%;border-width: 4px 3px 0px 4px;border-style: none solid none none;border-color: transparent rgb(140,159,40) transparent transparent;padding: calc(1.5rem * 1);background-color: rgb(190,215,57);box-shadow: 0em 0.15em 2em 0em rgba(0,0,0,0.83);}.e58-5.x-menu {margin: 25px 0px 0px 0px;font-size: 1em;}.e58-5.x-menu > li > .x-anchor[class*="active"] {background-color: transparent;}.e58-5.x-menu > li > .x-anchor {margin: 0em -1.5em 0em -1.5em;font-size: 1em;background-color: transparent;}.e58-5.x-menu > li > .x-anchor .x-anchor-content {flex-direction: row;justify-content: flex-start;align-items: center;padding: .75em .75em .75em 0.75em;}.e58-5.x-menu > li > .x-anchor .x-anchor-text {margin: 1% auto 1% 20%;}.e58-5.x-menu > li > .x-anchor .x-anchor-text-primary {font-family: "Rajdhani",sans-serif;font-size: 1em;font-style: normal;font-weight: 600;line-height: 1;text-shadow: 1px 1px 2px rgba(0,0,0,0);color: rgba(0,0,0,0.75);}.e58-5.x-menu > li > .x-anchor[class*="active"] .x-anchor-text-primary {text-shadow: 1px 1px 2px rgba(0,0,0,0.34);color: rgb(255,255,255);}.e58-5.x-menu > li > .x-anchor[class*="active"] .x-anchor-sub-indicator {color: transparent;}.e58-5.x-menu > li > .x-anchor .x-anchor-particle-primary {width: 100%;height: 100px;color: rgba(56,56,56,0.42);transform-origin: 0% 50%;}.e58-5.x-menu > li > .x-anchor .x-anchor-particle-secondary {width: 3px;height: 100%;color: rgb(255,255,255);transform-origin: 50% 50%;}.e58-5.x-menu > li > .x-anchor .x-anchor-particle-primary {width: 100%;    height: 100px;color: rgba(56,56,56,0.42);transform-origin: 0% 50%;}.e58-5.x-menu > li > .x-anchor .x-anchor-particle-secondary {width: 3px;height: 100%;color: rgb(255,255,255);transform-origin: 50% 50%;}.e58-5.x-off-canvas .x-off-canvas-close {width: calc(1em * 1);height: calc(1em * 1);  font-size: 1.5rem;color: transparent;transition-duration: 0.3s,500ms,500ms;transition-timing-function: ease-in-out,cubic-bezier(0.400,0.000,0.200,1.000),cubic-bezier(0.400,0.000,0.200,1.000);}
+
+</style>
+</head>
+<body id="body-container">
+<!--[if lt IE 8]>
+            <p class="browserupgrade">You are using an <strong>outdated</strong> browser. Please <a href="http://browsehappy.com/">upgrade your browser</a> to improve your experience.</p>
+        <![endif]-->
+<header class="x-masthead" role="banner">
+  <div class="e58-1 x-bar x-bar-top x-bar-h x-bar-absolute x-bar-is-sticky x-bar-outer-spacers">      
+    <div class="x-bg" aria-hidden="true"></div>
+      <div class="e58-1 x-bar-content">
+        <div class="e58-2 x-bar-container">
+          <a class="e58-3 x-image" href="https://wordpress.cimso.com">
+            <img alt="cimso hotel management software" src="https://www.cimso.com/wp-content/uploads/2020/01/cimso-logo-300-transparent.png" width="150" height="53">
+          </a>
+
+        </div>
+        <div class="e58-4 x-bar-container">
+          
+          <a class="e58-5 x-anchor x-anchor-toggle  x-hide-lg x-hide-xl" tabindex="0" data-x-toggle="1" data-x-toggleable="e58-5"><div class="x-anchor-content"><span class="x-graphic" aria-hidden="true"><span class="x-toggle x-toggle-burger x-graphic-toggle" aria-hidden="true"><span class="x-toggle-burger-bun-t" data-x-toggle-anim="x-bun-t-1"></span><span class="x-toggle-burger-patty" data-x-toggle-anim="x-patty-1"></span><span class="x-toggle-burger-bun-b" data-x-toggle-anim="x-bun-b-1" style="margin-top: 9px;"></span></span></span></div><span class="x-particle x-anchor-particle-primary" data-x-particle="scale-x_y inside-c_c" aria-hidden="true"><span></span></span><span class="x-particle x-anchor-particle-secondary" data-x-particle="scale-x_y inside-c_c" aria-hidden="true"><span></span></span></a>
+          
+          <a class="e58-6 social-icons x-anchor x-anchor-button x-hide-sm x-hide-xs" tabindex="0" href="https://twitter.com/cimso">
+            <div class="x-anchor-content"><span class="x-graphic" aria-hidden="true"><i class="x-icon x-graphic-icon x-graphic-primary" aria-hidden="true" data-x-icon-b="&#xf099;"></i></span></div></a><a class="e58-7 social-icons x-anchor x-anchor-button x-hide-sm x-hide-xs" tabindex="0" href="https://www.linkedin.com/company/cimso-development-pte-ltd"><div class="x-anchor-content"><span class="x-graphic" aria-hidden="true"><i class="x-icon x-graphic-icon x-graphic-primary" aria-hidden="true" data-x-icon-b="&#xf0e1;"></i></span></div></a><a class="e58-8 social-icons x-anchor x-anchor-button x-hide-sm x-hide-xs" tabindex="0" href="https://www.instagram.com/cimsogroup/"><div class="x-anchor-content"><span class="x-graphic" aria-hidden="true"><i class="x-icon x-graphic-icon x-graphic-primary" aria-hidden="true" data-x-icon-b="&#xf16d;"></i></span></div></a><a class="e58-9 social-icons x-anchor x-anchor-button x-hide-sm x-hide-xs" tabindex="0" href="https://www.facebook.com/cimsogroup"><div class="x-anchor-content"><span class="x-graphic" aria-hidden="true"><i class="x-icon x-graphic-icon x-graphic-primary" aria-hidden="true" data-x-icon-b="&#xf082;"></i></span></div></a>
+
+          <ul class="e58-10 x-menu x-menu-inline  x-hide-md x-hide-sm x-hide-xs">
+            <li class="menu-item menu-item-type-post_type menu-item-object-page menu-item-home menu-item-77">
+              <a class="e58-10 x-anchor x-anchor-menu-item" tabindex="0" href="https://www.cimso.com/">
+                <div class="x-anchor-content"><div class="x-anchor-text"><span class="x-anchor-text-primary">Home</span></div></div><span class="x-particle x-anchor-particle-primary" data-x-particle="scale-y inside-b_c" aria-hidden="true"><span></span></span>
+              </a>
+            </li>
+            <li class="menu-item menu-item-type-post_type menu-item-object-page menu-item-164">
+              <a class="e58-10 x-anchor x-anchor-menu-item" tabindex="0" href="https://www.cimso.com/about/">
+                <div class="x-anchor-content"><div class="x-anchor-text"><span class="x-anchor-text-primary">About</span></div></div><span class="x-particle x-anchor-particle-primary" data-x-particle="scale-y inside-b_c" aria-hidden="true"><span></span></span>
+              </a>
+          </li>
+          <li class="menu-item menu-item-type-post_type menu-item-object-page menu-item-144">
+            <a class="e58-10 x-anchor x-anchor-menu-item" tabindex="0" href="https://www.cimso.com/software/">
+              <div class="x-anchor-content"><div class="x-anchor-text"><span class="x-anchor-text-primary">Software</span></div></div><span class="x-particle x-anchor-particle-primary" data-x-particle="scale-y inside-b_c" aria-hidden="true"><span></span></span>
+            </a>
+            </li>
+            <li class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3913">
+              <a class="e58-10 x-anchor x-anchor-menu-item" tabindex="0" href="https://www.cimso.com/corporate-groups/">
+              <div class="x-anchor-content"><div class="x-anchor-text"><span class="x-anchor-text-primary">Installations</span></div></div><span class="x-particle x-anchor-particle-primary" data-x-particle="scale-y inside-b_c" aria-hidden="true"><span></span></span>
+              </a>
+            </li>
+            <li class="menu-item menu-item-type-post_type menu-item-object-page menu-item-2856">
+              <a class="e58-10 x-anchor x-anchor-menu-item" tabindex="0" href="https://www.cimso.com/hotel-school/">
+              <div class="x-anchor-content"><div class="x-anchor-text"><span class="x-anchor-text-primary">School</span></div></div><span class="x-particle x-anchor-particle-primary" data-x-particle="scale-y inside-b_c" aria-hidden="true"><span></span></span>
+              </a>
+            </li>
+            <li class="menu-item menu-item-type-post_type menu-item-object-page menu-item-139">
+              <a class="e58-10 x-anchor x-anchor-menu-item" tabindex="0" href="https://www.cimso.com/news/">
+              <div class="x-anchor-content"><div class="x-anchor-text"><span class="x-anchor-text-primary">News</span></div></div><span class="x-particle x-anchor-particle-primary" data-x-particle="scale-y inside-b_c" aria-hidden="true"><span></span></span>
+              </a>
+            </li>
+            <li class="menu-item menu-item-type-post_type menu-item-object-page current-menu-item page_item page-item-388 current_page_item current-menu-ancestor current-menu-parent current_page_parent current_page_ancestor menu-item-has-children menu-item-608">
+              <a class="e58-10 x-anchor x-anchor-menu-item x-always-active" tabindex="0" href="https://www.cimso.com/support/">
+              <div class="x-anchor-content"><div class="x-anchor-text"><span class="x-anchor-text-primary">Support</span></div></div><span class="x-particle x-anchor-particle-primary" data-x-particle="scale-y inside-b_c" aria-hidden="true"><span></span></span>
+              </a>
+            </li>
+          </ul>
+        </div>
+      </div>    
+    </div>
+  </header>
+
+ <div class="x-main full" role="main">    
+      <article id="post-388" class="post-388 page type-page status-publish hentry no-post-thumbnail">
+        <div class="entry-content content">
+          <div id="cs-content" class="cs-content">
+            <div class="e388-1 x-section">
+              <div class="x-bg" aria-hidden="true"><div class="x-bg-layer-lower-image" style=" background-image: url('https://www.cimso.com/wp-content/uploads/2020/04/cimso-about-1-scaled.jpg'); background-repeat: no-repeat; background-position: top; background-size: cover;"></div></div>
+
+              <div class="e388-2 x-row">
+                <div class="x-row-inner"><div class="e388-3 x-col"><hr class="e388-4 x-line"></div></div>
+              </div>
+            </div>
+            
+
+  <!-- start main container content -->
+  
+
+
+<div class="e388-5 x-section darkgreyback"><span class="x-separator-top-angle-out" style="top: 0px; height: 50px; color: rgba(190, 215, 57, 0.76);" aria-hidden="true"><svg class="angle-top-out" style="fill: currentColor;" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="0,0 100,100 0,100"></polygon></svg></span><div class="e1001-6 x-row"><div class="x-row-inner"><div class="e1001-7 x-col"><nav class="e1001-8 x-crumbs" role="navigation"><ol class="x-crumbs-list" itemscope="" itemtype="http://schema.org/BreadcrumbList" aria-label="Breadcrumb Navigation"><li class="x-crumbs-list-item" itemprop="itemListElement" itemscope="" itemtype="http://schema.org/ListItem"><a class="x-crumbs-link" itemtype="http://schema.org/Thing" itemprop="item" href="https://www.cimso.com/"><span itemprop="name"><i class="e1001-8 x-icon" aria-hidden="true" data-x-icon-s="&#xf015;"></i><span class="visually-hidden">Home</span></span></a><span class="x-crumbs-delimiter">→</span><meta itemprop="position" content="1"></li><li class="x-crumbs-list-item" itemprop="itemListElement" itemscope="" itemtype="http://schema.org/ListItem"><a class="x-crumbs-link" itemtype="http://schema.org/Thing" itemprop="item" href="https://www.cimso.com/support/"><span itemprop="name">Support</span></a><span class="x-crumbs-delimiter">→</span><meta itemprop="position" content="2"></li><li class="x-crumbs-list-item" itemprop="itemListElement" itemscope="" itemtype="http://schema.org/ListItem"><a class="x-crumbs-link x-crumbs-current" itemtype="http://schema.org/Thing" itemprop="item" href="https://backoffice.cimso.com/api_registration" title="You Are Here"><span itemprop="name">API Registration</span></a><meta itemprop="position" content="3"></li></ol></nav></div></div></div><div class="e388-6 x-row x-container max width"><div class="x-row-inner"><div class="e388-7 x-col h-responsive"><div class="e388-8 x-text support x-text-headline"><div class="x-text-content"><div class="x-text-content-text"><h2 class="x-text-content-text-primary">API Registration</h2></div></div></div></div><div class="e388-9 x-col  x-hide-sm x-hide-xs"><hr class="e388-10 x-line"></div></div></div><span class="x-separator-bottom-angle-in" style="bottom: 0px; height: 50px; color: rgb(190, 215, 57);" aria-hidden="true"><svg class="angle-bottom-in" style="fill: currentColor;" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 100 100" preserveAspectRatio="none"><polygon points="0,0 0,0 0,100"></polygon><polygon points="0,0 100,0 100,100"></polygon></svg></span></div>
+<!-- start main container content -->
+
+            
+        
+
+
+
+<!-- end jumbotron -->
+<!-- start main container content -->
+
+<section id="api_register" style="margin-top: 45px;">
+  <div class="e388-11 x-section">
+      
+<div class="e388-12 x-row x-container max width">
+  <div class="x-row-inner">
+    
+    <div class="e388-13 x-col">
+      
+    <div class="e388-14 x-text x-text-headline" style="max-width: 760px;">
+      <div class="x-text-content"><div class="x-text-content-text"><h3 class="x-text-content-text-primary" style="margin: 0 calc(0em * -1) 0 0;
+font-family: 'Rajdhani',sans-serif;font-size: 2.1rem;font-style: normal;font-weight: 500;line-height: 1.4;letter-spacing: 0em;text-transform: none;
+color: rgb(190,215,57);">Application for Registration</h3></div></div></div>
+    <div class="e388-125 x-text resp-p" style="padding: 2em 0 0;">
+  <div><b>Africa Region: E: </b><a href="/cdn-cgi/l/email-protection#325f53405957465b5c55485372515b5f415d1c515d5f"><span class="__cf_email__" data-cfemail="7914180b121c0d10171e0318391a10140a16571a1614">[email&#160;protected]</span></a><b> T:</b> +27 21 852 2388 UTC+2hrs</div>
+<div><b>Asia Region: E: </b><a href="/cdn-cgi/l/email-protection#1b767a69707e6f72757c687c5b787276687435787476"><span class="__cf_email__" data-cfemail="afc2ceddc4cadbc6c1c8dcc8efccc6c2dcc081ccc0c2">[email&#160;protected]</span></a><b> T:</b> +65 6604 7245 UTC+8hrs</div></div>
+      <div class="e388-15 x-text resp-p" style="font-size: 21px;max-width: 760px;margin: 0em;padding: 2em 0 0;font-family: 'Rajdhani',sans-serif;font-style: normal;font-weight: 400;line-height: 1.4;letter-spacing: 0em;text-transform: none;color: rgb(104,104,104);background-color: transparent;">
+        <p>CiMSO INNterchange provides data exchange between 3rd party applications or devices and the CiMSO ERP suite. The INNterchange application provider interface (API) is available free of charge to registered developers.</p><p><strong>Registration is a 4 step process:</strong></p>
+      <ol>
+        <li>Complete your Application</li>
+        <li>Sign the Non-disclosure Agreement</li>
+        <li>Submit the Application for approval</li>
+        <li>Download the API.</li>
+      </ol>
+      <p>Once an interface is completed you may submit it to CiMSO for testing and Certification. Certified interfaces are licensed by CiMSO and published in our Newsletters.</p>
+      </div>
+
+        
+        
+      <form action="#" class="form bootstrap3_stacked" enctype="multipart/form-data" id="form_registration" method="post" name="form_registration"><div class="col-xs-12 col-sm-10 col-md-10"><div class="wizard-frame" id="wizard-frame-1"><div><h2>Business Details </h2></div><div style="margin-top: 10px;"><label>What is the full official name of your business?</label><input class="form-control" id="business_name" name="business_name" required="required" type="text" /></div><div style="margin-top: 10px;"><label>What is the Trading Name of your Business? </label><input class="form-control" id="trading_name" name="trading_name" required="required" type="text" /></div><div style="margin-top: 10px;"><label>What is your business Website URL?</label><input class="form-control" id="website" name="website" required="required" type="text" /></div><div style="margin-top: 10px;"><label>Street address: </label><input class="form-control" id="address_1" name="address_1" required="required" type="text" /></div><div style="margin-top: 10px;"><label>State: </label><input class="form-control" id="city" name="city" required="required" type="text" /></div><div style="margin-top: 10px;"><label>Country: </label><input class="form-control" id="country" name="country" required="required" type="text" /></div><div style="margin-top: 10px;"><label>Postal Code: </label><input class="form-control" id="postal_code" name="postal_code" required="required" type="text" /></div><div style="margin-top: 10px;"><label>What is the nature of your business? </label><input class="form-control" id="business_description" name="business_description" required="required" type="text" /></div><div style="margin-top: 10px;"><label>How many years trading: </label><input class="form-control " id="years_trading" name="years_trading" required="required" type="tel" /></div><div class="clearfix" style="margin-bottom:30px"></div><br><div class="command-buttons" ><button type="button" id="button-next-1" class="btn button-next btn-primary" data-step_index="1" > Next <i class="fa fa-chevron-right"></i></button></div><div class="clearfix" style="margin-bottom:30px"></div></div><div class="wizard-frame" id="wizard-frame-2" style="display:none;"><div><h1>Application for Registration</h1><h2>Applicant Details </h2></div><div class="col-sm-12" style="margin-top: 10px;"><label>First Name? </label><input class="form-control" id="first_name" name="first_name" required="required" type="text" /></div><div class="col-sm-12" style="margin-top: 10px;"><label>Last Name? </label><input class="form-control" id="last_name" name="last_name" required="required" type="text" /></div><div class="col-sm-12"><label>Applicant Job Title? </label><input class="form-control" id="job_title" name="job_title" required="required" type="text" /></div><div class="col-sm-12" style="margin-top: 10px;"><label>Applicant Email? </label><input class="form-control" id="email" name="email" required="required" type="email" /><span style="display:none;visibility:hidden;"><label for="email2">Ignore this text box. It is used to detect spammers. If you enter anything into this text box, your message will not be sent.</label><input class="form-control" id="email2" maxlength="150" name="email2" size="1" type="email" /></span></div><div class="col-sm-4" style="margin-top: 10px;"><label>Applicant Phone Number: </label><br /><input class="form-control inttelephone" id="contact_number" name="contact_number" required="required" type="tel" /></div><div class="col-sm-8" style="margin-top: 10px;"> In compliance with General Data Protection Regulations this number will only be used to contact you regarding this request. It will not be distributed or used for marketing purposes.</div><div class="clearfix" style="margin-bottom:30px"></div><br><div class="command-buttons" ><button type="button" id="button-back-2" class="btn button-back btn-light" data-step_index="2" style="margin-right: 5px;"><i class="fa fa-chevron-left"></i>Back</button><button type="button" id="button-next-2" class="btn button-next btn-primary" data-step_index="2" > Next <i class="fa fa-chevron-right"></i></button></div></div><div class="wizard-frame" id="wizard-frame-3" style="display:none;"><div><h1>Application for Registration</h1></div><h2>End User Detail (Customer)</h2><div style="margin-top: 10px;"><label>Please name the organization or customer for whom you will develop this interface to CiMSO: </label><input class="form-control" id="customer" name="customer" required="required" type="TEXT" /></div><div style="margin-top: 10px;"><label>Please provide a brief description of the program, device or process you will be interfacing: </label><textarea class="form-control" cols="40" id="interface_description" name="interface_description" required="required" rows="5"></textarea></div><div style="margin-top: 10px;"><label>Please provide a product name of the program, device or process you will be interfacing: </label><input class="form-control" id="interface_name" name="interface_name" required="required" type="TEXT" /></div><h2>Interface Type Detail</h2><div class="row"><div class="col-sm-9"><div class="checkbox">                       <label><input type="checkbox" value="1" name="interface_type">Customer data platform - provides access to customer profile and membership data</label>                     </div><div class="checkbox">                       <label><input type="checkbox" value="2" name="interface_type">Customer satisfaction - provides access to customer and services detail</label>                     </div><div class="checkbox">                       <label><input type="checkbox" value="3" name="interface_type">Lodging reservations - provides access to lodging rooms, rates and bookings detail</label>                     </div><div class="checkbox">                       <label><input type="checkbox" value="4" name="interface_type">Front desk services - provides access to check-in, check-out and billing detail</label>                     </div><div class="checkbox">                       <label><input type="checkbox" value="5" name="interface_type">Housekeeping services - provides access to lodging room service detail</label>                     </div><div class="checkbox">                       <label><input type="checkbox" value="6" name="interface_type">Workshop services - provides access to workshop service ticket detail</label>                     </div><div class="checkbox">                       <label><input type="checkbox" value="7" name="interface_type">Restaurant & Bar services - provides access to F&B service delivery detail</label>                     </div><div class="checkbox">                       <label><input type="checkbox" value="8" name="interface_type">Golf T-bookings - provides access to golf T-bookings and scoring detail</label>                     </div><div class="checkbox">                       <label><input type="checkbox" value="9" name="interface_type">Activity scheduling - provides access to activity scheduling detail</label>                     </div><div class="checkbox">                       <label><input type="checkbox" value="10" name="interface_type">Staff tasks and activities - provides access to internal staff task and activity management detail</label>                     </div><div class="checkbox">                       <label><input type="checkbox" value="11" name="interface_type">Business Intelligence - provides access to customer specified financial detail</label>                     </div></div><div class="col-sm-3 well">NOTE: The INNterchange interface that you develop will be limited to the Interface Type messages selected in this list.  During development you may decide to use messages from another Interface Type. Should you do so you are required to register the further type. </div></div><div class="clearfix"></div><h2>Non-Disclosure Agreement (NDA)</h2><div class="col-sm-3"><a class="btn btn-default" href="javascript:;" onclick="displayDoc();">Preview NDA</a></div><div class="col-sm-3"><a class="btn btn-default" href="/api_nda_view/1" target="_blank">Download NDA</a></div><div class="clearfix"></div><div style="margin-top: 10px;"><strong>Upload signed NDA: </strong><input class="form-control" id="nda" name="nda" required="required" type="file" /></div><div class="clearfix" style="margin-bottom:30px"></div><br><div class="command-buttons" ><button type="button" id="button-back-3" class="btn button-back btn-light" data-step_index="3"><i class="fa fa-chevron-left"></i>Back</button>                           <input type="submit" id="submit2" value="Submit Application"></div><br></div></div><div style="display:none;"><input name="_formkey" type="hidden" value="9287de61-10f4-4f7d-96c1-2a6d650c51f1" /><input name="_formname" type="hidden" value="form_registration" /></div></form>
+
+      <div class="clearfix"></div>
+      <div id="pdf" class="pdfWrapper" style="display:none">
+        <div class="alert alert-info" id="loading">Loading...This might take a few seconds.<br>
+        The file will open on the screen or auto download, depending on your browser settings. If you do not see it on the page you can open it from your downloads tab.
+        </div>      
+        <iframe id="viewdocFrame" style="width: 100%; height: 750px" frameborder="0" scrolling="no"></iframe>       
+      </div>
+      <div class="clearfix"></div>
+      <div id="sig" style="display:none">
+        <canvas id="signature" width="450" height="150" style="border: 1px solid #ddd;"></canvas>
+        <button id="save">Save</button>
+      </div> 
+      </div>
+  </div>
+  </div>
+  </div>
+
+
+
+
+    <!-- div class="container container-valueprop links-pages" style="min-height: 1000px">
+      <div class="row">
+        <div class="col-xs-12">
+          
+         
+      </div>
+    </div>
+  </div -->
+</section>
+<!-- end container --> 
+<!-- end main container content -->
+<style>
+  .error{color: red}
+</style>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+  function displayDoc(){
+      doc=1
+      $('#docid').val(doc);
+      $('#loading').show();
+      $('#pdf').show();
+           
+     
+      link_v="/nda_preview_doc";
+      link_v=link_v+"/"+doc;         
+           
+      console.log('doc'+doc+'  ' +link_v); 
+ 
+      $('#viewdocFrame').attr('src',link_v);
+      $('html, body').animate({
+          scrollTop: ($('#viewdocFrame').offset().top)
+      },500);
+      
+   
+}
+/*function displayDoc(){
+  $('#loading').show();
+  $('#pdf').show();
+  
+  link_v="/cimsomain/static/API-4-C2-AGR-CND-Confidentiality-and-non-Disclosure-R3.7.pdf",
+ 
+  $('#viewdocFrame').attr('src',link_v);
+  $('html, body').animate({
+      scrollTop: ($('#viewdocFrame').offset().top)
+  },500);   
+   
+}*/
+
+$(document).ready(function() {
+  $('.navbar-nav li:nth-child(5)').addClass('active');
+  $('.gm_mainmenu').css('background','#6f6f6f');
+
+  $('#viewdocFrame').load(function()
+  {
+    $('#loading').hide();
+  });
+
+  var v = $("#form_registration").validate({
+        errorClass: "error",
+        onkeyup: false,
+        onfocusout: false,
+
+
+        // Do not change code below
+        errorPlacement : function(error, element) {
+            error.insertAfter(element.parent());
+        }
+    });
+
+  /**
+    * Event: Next Step Button "Clicked"
+    *
+    * This handler is triggered every time the user pressed the "next" button on the book wizard.
+    * Some special tasks might be performed, depending the current wizard step.
+    */
+    $('.button-next').click(function () {
+        if ((v!==undefined && v.form())) {
+            // Display the next step tab (uses jquery animation effect).
+            var nextTabIndex = parseInt($(this).attr('data-step_index')) + 1;
+
+            $(this).parents().eq(1).hide('fade', function () {               
+                $('#wizard-frame-' + nextTabIndex).show('fade');
+            });
+        }
+    });
+
+    /**
+    * Event: Back Step Button "Clicked"
+    *
+    * This handler is triggered every time the user pressed the "back" button on the
+    * book wizard.
+    */
+    $('.button-back').click(function () {
+        var prevTabIndex = parseInt($(this).attr('data-step_index')) - 1;
+
+        $(this).parents().eq(1).hide('fade', function () {           
+            $('#wizard-frame-' + prevTabIndex).show('fade');
+        });
+    });
+
+   
+
+});
+jQuery(document).ready(function($){
+   /* https://github.com/szimek/signature_pad*/ 
+    var canvas = document.getElementById("signature");
+    var signaturePad = new SignaturePad(canvas);
+    
+       // Returns signature image as data URL (see https://mdn.io/todataurl for the list of possible parameters)
+    /*signaturePad.toDataURL(); // save image as PNG
+    signaturePad.toDataURL("image/jpeg"); // save image as JPEG
+    signaturePad.toDataURL("image/svg+xml"); // save image as SVG
+
+    // Draws signature image from data URL.
+    // NOTE: This method does not populate internal data structure that represents drawn signature. Thus, after using #fromDataURL, #toData won't work properly.
+    signaturePad.fromDataURL("data:image/png;base64,iVBORw0K...");
+
+    // Returns signature image as an array of point groups
+    const data = signaturePad.toData();
+
+    // Draws signature image from an array of point groups
+    signaturePad.fromData(data);
+
+    // Clears the canvas
+    signaturePad.clear();
+
+    // Returns true if canvas is empty, otherwise returns false
+    signaturePad.isEmpty();
+
+    // Unbinds all event handlers
+    signaturePad.off();
+
+    // Rebinds all event handlers
+    signaturePad.on();*/
+
+    var saveButton = document.getElementById('save');
+      saveButton.addEventListener('click', function (event) {
+      var data = signaturePad.toDataURL('image/png');
+
+    // Send data to server instead...
+      alert(data);
+      console.log(data);
+    });
+    
+});
+
+</script>
+<script src="//cdn.jsdelivr.net/npm/signature_pad@2.3.2/dist/signature_pad.min.js"></script>
+</script>
+       
+
+<!-- end container --> 
+<!-- end main container content -->
+
+  <!-- end main container content -->
+            
+          </div>
+        </div>
+      </article>
+    </div>
+  
+
+<!-- /. container -->
+<style>
+  
+</style>
+<footer class="x-colophon" role="contentinfo">
+  <div class="e110-1 x-bar x-bar-footer x-bar-h x-bar-relative x-bar-outer-spacers" data-x-bar="{&quot;id&quot;:&quot;e110-1&quot;,&quot;region&quot;:&quot;footer&quot;,&quot;height&quot;:&quot;auto&quot;}">    
+    <div class="e110-1 x-bar-content">      
+      <div class="e110-2 x-bar-container">  
+        <div class="e110-3 x-text cimso">
+          <p> © Copyright 1989 - 2026 CiMSO. All Rights Reserved.</p></div>
+        </div>
+        <div class="e110-4 x-bar-container">
+          <a class="e110-5 x-image" href="https://wordpress.cimso.com">
+            <img alt="Cimso Management Software" src="https://www.cimso.com/wp-content/uploads/2020/03/Cimso-Mono-Logo-1.png" width="159" height="39">
+          </a>
+        </div>
+      </div>  
+  </div>
+</footer>
+
+<style>
+
+  
+</style>
+
+
+
+
+
+
+<div id="e58-5-off-canvas" class="e58-5 x-off-canvas x-off-canvas-left x-hide-lg x-hide-xl" role="dialog" tabindex="-1" data-x-toggleable="e58-5" aria-hidden="true" aria-label="Off Canvas" style="outline: currentcolor none medium;">
+  <span class="x-off-canvas-bg"></span>
+  <button class="x-off-canvas-close x-off-canvas-close-left" data-x-toggle-close="1" aria-label="Close Off Canvas Content">
+    <span>×</span>
+  </button>
+
+  <div class="x-off-canvas-content x-off-canvas-content-left ps" data-x-scrollbar="{&quot;suppressScrollX&quot;:true}" role="document" aria-label="Off Canvas Content">
+    
+
+
+    <ul class="e58-5 x-menu x-menu-collapsed">
+
+        <li class="menu-item menu-item-type-post_type menu-item-object-page menu-item-home current-menu-item page_item page-item-63 current_page_item menu-item-77" id="menu-item-77">
+          <a class="e58-5 x-anchor x-anchor-menu-item x-always-active" tabindex="0" href="https://www.cimso.com/">  
+            <div class="x-anchor-content">
+              <div class="x-anchor-text">
+                <span class="x-anchor-text-primary">Home</span>
+              </div>
+              <i class="x-anchor-sub-indicator" data-x-skip-scroll="true" aria-hidden="true" data-x-icon-s=""></i>  
+            </div>    
+            <span class="x-particle x-anchor-particle-primary" data-x-particle="scale-x_y overlap-c_c" aria-hidden="true">
+              <span></span>
+            </span>
+            <span class="x-particle x-anchor-particle-secondary" data-x-particle="inside-b_l" aria-hidden="true">
+              <span></span>
+            </span>  
+          </a>
+        </li>
+
+        <li class="menu-item menu-item-type-post_type menu-item-object-page menu-item-164" id="menu-item-164">
+          <a class="e58-5 x-anchor x-anchor-menu-item x-always-active" tabindex="0" href="https://www.cimso.com/about/">     
+            <div class="x-anchor-content">
+              <div class="x-anchor-text">
+                <span class="x-anchor-text-primary">About</span>
+              </div>
+              <i class="x-anchor-sub-indicator" data-x-skip-scroll="true" aria-hidden="true" data-x-icon-s=""></i>
+            </div>              
+            <span class="x-particle x-anchor-particle-primary" data-x-particle="scale-x_y overlap-c_c" aria-hidden="true">
+              <span></span>
+            </span>
+            <span class="x-particle x-anchor-particle-secondary" data-x-particle="inside-b_l" aria-hidden="true">
+              <span></span>
+            </span>            
+          </a>
+        </li>
+        <li class="menu-item menu-item-type-post_type menu-item-object-page menu-item-144" id="menu-item-144">
+          <a class="e58-5 x-anchor x-anchor-menu-item x-always-active" tabindex="0" href="https://www.cimso.com/software/">
+            <div class="x-anchor-content">
+              <div class="x-anchor-text">
+                <span class="x-anchor-text-primary">Software</span>
+              </div>
+              <i class="x-anchor-sub-indicator" data-x-skip-scroll="true" aria-hidden="true" data-x-icon-s=""></i>
+            </div>            
+            <span class="x-particle x-anchor-particle-primary" data-x-particle="scale-x_y overlap-c_c" aria-hidden="true">
+              <span></span>
+            </span>
+            <span class="x-particle x-anchor-particle-secondary" data-x-particle="inside-b_l" aria-hidden="true">
+              <span></span>
+            </span>  
+          </a>
+        </li>
+
+        <li class="menu-item menu-item-type-post_type menu-item-object-page menu-item-3913" id="menu-item-3913">
+          <a class="e58-5 x-anchor x-anchor-menu-item" tabindex="0" href="https://www.cimso.com/corporate-groups/">            
+            <div class="x-anchor-content">
+              <div class="x-anchor-text">
+                <span class="x-anchor-text-primary">Installations</span>
+              </div>
+              <i class="x-anchor-sub-indicator" data-x-skip-scroll="true" aria-hidden="true" data-x-icon-s=""></i>
+            </div>              
+            <span class="x-particle x-anchor-particle-primary" data-x-particle="scale-x_y overlap-c_c" aria-hidden="true">
+              <span></span>
+            </span>
+            <span class="x-particle x-anchor-particle-secondary" data-x-particle="inside-b_l" aria-hidden="true">
+              <span></span>
+            </span>            
+          </a>
+        </li>
+        <li class="menu-item menu-item-type-post_type menu-item-object-page menu-item-2856" id="menu-item-2856">
+          <a class="e58-5 x-anchor x-anchor-menu-item" tabindex="0" href="https://www.cimso.com/hotel-school/">            
+            <div class="x-anchor-content">
+              <div class="x-anchor-text">
+                <span class="x-anchor-text-primary">School</span>
+              </div>
+              <i class="x-anchor-sub-indicator" data-x-skip-scroll="true" aria-hidden="true" data-x-icon-s=""></i>
+            </div>              
+            <span class="x-particle x-anchor-particle-primary" data-x-particle="scale-x_y overlap-c_c" aria-hidden="true">
+              <span></span>
+            </span>
+            <span class="x-particle x-anchor-particle-secondary" data-x-particle="inside-b_l" aria-hidden="true">
+              <span></span>
+            </span>            
+          </a>
+        </li>
+        <li class="menu-item menu-item-type-post_type menu-item-object-page menu-item-139" id="menu-item-139">
+          <a class="e58-5 x-anchor x-anchor-menu-item" tabindex="0" href="https://www.cimso.com/news/">
+            <div class="x-anchor-content">
+              <div class="x-anchor-text">
+                <span class="x-anchor-text-primary">News</span>
+              </div>
+              <i class="x-anchor-sub-indicator" data-x-skip-scroll="true" aria-hidden="true" data-x-icon-s=""></i>
+            </div>              
+            <span class="x-particle x-anchor-particle-primary" data-x-particle="scale-x_y overlap-c_c" aria-hidden="true">
+              <span></span>
+            </span>
+            <span class="x-particle x-anchor-particle-secondary" data-x-particle="inside-b_l" aria-hidden="true">
+              <span></span>
+            </span>            
+          </a>
+        </li>
+        <li class="menu-item menu-item-type-post_type menu-item-object-page menu-item-608" id="menu-item-608">
+          <a class="e58-5 x-anchor x-anchor-menu-item" tabindex="0" href="https://www.cimso.com/support/">            
+            <div class="x-anchor-content">
+              <div class="x-anchor-text">
+                <span class="x-anchor-text-primary">Support</span>
+              </div>
+              <i class="x-anchor-sub-indicator" data-x-skip-scroll="true" aria-hidden="true" data-x-icon-s=""></i>
+            </div>              
+            <span class="x-particle x-anchor-particle-primary x-active" data-x-particle="scale-x_y overlap-c_c" aria-hidden="true">
+              <span></span>
+            </span>
+            <span class="x-particle x-anchor-particle-secondary x-active" data-x-particle="inside-b_l" aria-hidden="true">
+              <span></span>
+            </span>            
+          </a>
+        </li>
+      </ul>
+<div class="ps__rail-x" style="left: 0px; bottom: 0px;"><div class="ps__thumb-x" tabindex="0" style="left: 0px; width: 0px;"></div></div><div class="ps__rail-y" style="top: 0px; right: 0px;"><div class="ps__thumb-y" tabindex="0" style="top: 0px; height: 0px;"></div></div></div>
+
+</div>
+
+<!-- footer style="background: #384752;padding: 20px 15px 10px;">
+  <div class="container">
+    <div class="row" style="color: white;">
+      <div class="col-md-6">
+        <p> © Copyright 1989 - 2026 CiMSO. All Rights Reserved</p>
+      </div>
+  </div>
+  </div>
+</footer -->
+<!-- a id="float-contact-btn" href="/contact_us" class="btn btn-lg">Contact Us</a>
+			<a id="float-demo-btn" href="/free_demo" class="btn btn-lg hidden-xs">Request Free Demo</a>
+			<a id="float-demo-btn" href="/free_demo" class="btn btn-lg hidden-sm hidden-md hidden-lg">Free Demo</a -->
+
+<!-- The javascript =============================================
+       (Placed at the end of the document so the pages load faster) -->
+		<script src="/cimsomain/static/responsive/js/vendor/bootstrap.min.js"></script>
+		<script src="/cimsomain/static/js/web2py_bootstrap.js"></script>    
+	 
+    <script src="/cimsomain/static/responsive/js/main.20190228.js"></script>
+    <script src="/cimsomain/static/responsive/js/jstree/jstree.min.js"></script>
+    <script src="/cimsomain/static/responsive/js/plugins.js"></script>
+    <script src="/cimsomain/static/jQueryRotate.2.1.js"></script>
+    <script src="/cimsomain/static/owl.carousel.min.js"></script>
+    <script src="/cimsomain/static/pdfobject.js"></script>
+
+    <script src="/cimsomain/static/responsive/js/datetimepicker-master/build/jquery.datetimepicker.full.min.js"></script>
+    <script src="/cimsomain/static/responsive/js/DataTables/datatables.min.js"></script>
+     <!--International Telephone Input-->  
+    <script src="/cimsomain/static/responsive/js/intl-tel-input/js/intlTelInput.min.js"></script>
+    
+    <a href="#0" class="cd-top">Top</a>
+  
+<script>
+$(document).ready(function(){	
+
+  $(window).scroll(function() {var scroll = $(window).scrollTop();if (scroll >= 1) {$(".e58-1.x-bar").addClass("x-bar-fixed");} else {$(".e58-1.x-bar").removeClass("x-bar-fixed");}});
+  
+  $( ".e58-10.x-menu > li > a.x-anchor" ).hover(function() { 
+    $( this ).addClass( "x-interactive" );
+    $( this ).find('.x-particle').addClass( "x-active" );    
+
+  }, function() {
+    $( this ).removeClass( "x-interactive" ); 
+    $( this ).find('.x-particle').removeClass( "x-active" );
+  });
+
+
+  $( ".e58-5.x-menu > li > a.x-anchor" ).hover(function() { 
+    $( this ).addClass( "x-interactive" );
+    $( this ).find('.x-particle').addClass( "x-active" );
+  }, function() {
+    $( this ).removeClass( "x-interactive" ); 
+    $( this ).find('.x-particle').removeClass( "x-active" );
+  });
+
+  $( "a.e58-5.x-anchor, .x-off-canvas-bg" ).click(function() { 
+    $( '#e58-5-off-canvas, a.e58-5.x-anchor, a.e58-5 .x-toggle.x-toggle-burger' ).toggleClass( "x-active" );    
+
+      if ($('#e58-5-off-canvas').attr('aria-hidden') == 'true') {
+        $('#e58-5-off-canvas').attr('aria-hidden', 'false');
+        $( '.x-toggle-burger-bun-t' ).css({"animation-name": "x-bun-t-1"}).css({"transform": "rotate(45deg)"});
+        $( '.x-toggle-burger-patty' ).css({"animation-name": "x-patty-1"}).css({"transform": "rotate(-45deg)"});
+        $( '.x-toggle-burger-bun-b' ).css({"animation-name": "x-bun-b-1"}).css({"display": "none"});
+      } else {
+        $('#e58-5-off-canvas').attr('aria-hidden', 'true');
+        $( '.x-toggle-burger-bun-t' ).removeAttr("style");
+        $( '.x-toggle-burger-patty' ).removeAttr("style");
+        $( '.x-toggle-burger-bun-b' ).removeAttr("style").css({"margin-top":"9px"});
+      }
+  });
+
+  $('button').click(function() { 
+  /*Check and alternate attribute's value, 
+  then show/hide accordingly using chaining. */ 
+  }); 
+
+
+  $( ".social-icons.x-anchor" ).hover(function() {$( this ).addClass( "x-interactive" );$( this ).find('.x-icon').addClass( "x-active" );}, function() {$( this ).removeClass( "x-interactive" );$( this ).find('.x-icon').removeClass( "x-active" );});
+
+  $(".inttelephone").intlTelInput({
+    // options here
+  });
+
+});
+</script>
+
+</body>
+</html>

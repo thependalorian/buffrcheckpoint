@@ -51,6 +51,64 @@ No self-registration — a `platform_support` account is provisioned
 directly in the database. A demo one exists in the dev DB:
 `platform-ops-demo@buffrcheckpoint.test` (see
 `backend/db/seed/0017_platform_support_demo.sql` for how to create another).
+Its home org FK is Buffr Analytics (`b51f0704-…`) after seed `0018` —
+platform_support never acts on that home org directly; real work is
+cross-tenant aggregate reads or grant-gated support sessions.
+
+## Signup-first GTM (ops playbook)
+
+Primary marketing CTA is **Create account** →
+`https://admin.buffrcheckpoint.com/auth/register`; the secondary link is
+“See pricing”. The paid Paper Register Exposure Review offer is retired (§17.1). New org registration emails `CONTACT_OPS_EMAIL`
+(`team@buffranalytics.com`) with an outreach checklist.
+
+### When you get a “New org signup” email
+
+Reply to the Owner-Operator (from `team@`):
+
+1. Can they complete onboarding themselves, or do they want a Paper Register
+   Exposure Review / assisted setup?
+2. Choose Core / Professional / Verify; pay by EFT; upload proof of payment
+   under Admin → Billing (or grant **trial** for design-partner A1).
+3. After POP (+ KYB) review, set subscription **active**. Go-live and
+   operational dashboard routes require `active` or `trial`.
+
+### Onsite / design-partner script (e.g. first hospitality pilot)
+
+> Create your organisation at https://admin.buffrcheckpoint.com/auth/register,
+> confirm the email, finish onboarding with us on site, and we will print your
+> site QR. Payment is EFT + proof of payment in Billing; we activate production
+> use after POP review (or a short trial). Ask if you want a full paper-register
+> review later — Contact stays available. CiMSO / PMS connect is a later step.
+
+Park PMS Connect until host/port/credentials and network path exist; keep
+platform capability `cimso_innterchange` at **Targeted**.
+
+## Production cutover note
+
+Full-stack production readiness (2026-09-25) includes Neon migration **0038**,
+Railway `PUBLIC_*` / CORS (apex + `www`) / Resend / `ARTIFACT_STORE=neon_s3` /
+`LOCAL_DEV_DATA_KEY` / billing letterhead env, and redeploys of API + website +
+admin + this ops-console. CiMSO stays **Targeted** (no live TCP sell). Prod DB
+is Frankfurt (`eu-central-1`) — do not claim Namibia hosting.
+
+## Branded notification templates
+
+Ops → **Configuration** lists every `platform_notification_template` row
+(migration `0038_branded_notification_templates.sql`), grouped by category.
+Bodies are plain text with `{{token}}` placeholders; the backend wraps them
+in the mustard/charcoal Buffr Checkpoint email shell before Resend delivery
+(via the notification outbox).
+
+**Send test to ops inbox** uses `CONTACT_OPS_EMAIL` and sample tokens.
+
+Document downloads (invoice / receipt PDF):
+
+- `GET /platform/billing/invoices/:id/document`
+- `GET /platform/billing/invoices/:id/receipt`
+- `POST /platform/billing/invoices/:id/remind` — unpaid reminder email
+
+Human email signature (Gmail/Outlook): `branding/email-signature.html`.
 
 ## Structure
 
@@ -65,7 +123,22 @@ directly in the database. A demo one exists in the dev DB:
   (region geometry copied verbatim; component rewritten against this app's
   own brand tokens).
 - `src/lib/api.ts` — server-side fetch helper, attaches the session JWT.
-- `src/lib/auth/session.ts` — the `bc_ops_session` httpOnly cookie.
+- `src/lib/auth/session.ts` — the `bc_ops_session` httpOnly cookie (2h, matching the ops token),
+  plus the short-lived MFA challenge and MFA enrolment cookies.
+
+## Sign-in (separate from customers)
+
+The console signs in through its own endpoints, never the customer `/auth/login`
+(buffrcheckpoint.md §9.2a):
+
+1. `/login` posts to `POST /auth/platform/login`. Only `platform_support` accounts get past it;
+   anyone else sees "Invalid email or password".
+2. Staff with MFA go to `/login/mfa`, which posts to `POST /auth/platform/mfa/challenge/verify`.
+3. Staff without MFA go to `/login/mfa-setup`: scan the QR code, confirm a code, save the 10
+   recovery codes. The enrolment token lasts 15 minutes and can do nothing else.
+
+Ops tokens only work on the ops API surface. To act inside a customer tenant, use Support Access
+(customer-approved, time-boxed grant); that mints a separate customer-scoped session.
 
 ## Known gaps (not silently missing — see buffrcheckpoint.md §11.9.1a)
 
@@ -75,3 +148,6 @@ directly in the database. A demo one exists in the dev DB:
   built — no labeled churn history exists yet to train on safely.
 - No PSP integration — billing is manual EFT + Proof of Payment by design,
   no processor partnership exists yet.
+- Dormant templates (`visitor_prereg_invite`, `credit_note_issued`,
+  `support_ticket_ack`) are seeded for ops editing but have no product
+  trigger until those features ship.

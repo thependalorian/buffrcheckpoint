@@ -28,6 +28,7 @@ export interface PublicCapabilityStatusResponse {
   ussd: PublicCapabilityStatusValue;
   qrInvitationCheckIn: PublicCapabilityStatusValue;
   smsContactConfirmation: PublicCapabilityStatusValue;
+  cimsoInnterchange: PublicCapabilityStatusValue;
 }
 
 /** Capabilities that inherit platform status when no org row exists. */
@@ -40,6 +41,7 @@ const PUBLIC_RESPONSE_KEYS: Record<string, keyof PublicCapabilityStatusResponse>
   ussd: "ussd",
   qr_invitation_checkin: "qrInvitationCheckIn",
   sms_contact_confirmation: "smsContactConfirmation",
+  cimso_innterchange: "cimsoInnterchange",
 };
 
 export interface OrganisationCapabilityEnablementEntry {
@@ -83,6 +85,7 @@ export class CapabilityStatusService {
       ussd: "not_available",
       qrInvitationCheckIn: "not_available",
       smsContactConfirmation: "not_available",
+      cimsoInnterchange: "not_available",
     };
     await Promise.all(
       rows.map(async (row) => {

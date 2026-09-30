@@ -56,6 +56,7 @@ export class FeaturePhoneCheckInSessionService {
       permissions: [],
       emailVerified: true,
       mfaEnabled: true,
+      audience: "admin",
     };
     const effective = await this.capabilityStatus.listEffectiveForOrganisation(effectiveUser);
     if (effective.ussd !== "live") {

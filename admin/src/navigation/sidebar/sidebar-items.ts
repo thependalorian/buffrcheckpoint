@@ -1,4 +1,5 @@
 import {
+  BarChart3,
   BellRing,
   Building2,
   Calendar,
@@ -7,6 +8,7 @@ import {
   FileCheck2,
   FolderTree,
   Gavel,
+  Hotel,
   KeyRound,
   LayoutDashboard,
   Lock,
@@ -18,6 +20,7 @@ import {
   ScrollText,
   ShieldAlert,
   Tablet,
+  UserCheck,
   UserRound,
   UserSquare2,
   Users,
@@ -70,10 +73,22 @@ export const sidebarItems: NavGroup[] = [
     label: "Operations",
     items: [
       {
+        id: "overview",
+        title: "Overview",
+        url: "/dashboard/overview",
+        icon: LayoutDashboard,
+      },
+      {
+        id: "analytics",
+        title: "Analytics",
+        url: "/dashboard/analytics",
+        icon: BarChart3,
+      },
+      {
         id: "front-desk",
         title: "Front Desk",
         url: "/dashboard/front-desk",
-        icon: LayoutDashboard,
+        icon: UserCheck,
       },
       {
         id: "visitors",
@@ -168,6 +183,13 @@ export const sidebarItems: NavGroup[] = [
         title: "Capability Enablement",
         url: "/dashboard/site-experience/capabilities",
         icon: Lock,
+        badge: "new",
+      },
+      {
+        id: "cimso",
+        title: "CiMSO INNterchange",
+        url: "/dashboard/site-experience/cimso",
+        icon: Hotel,
         badge: "new",
       },
       {

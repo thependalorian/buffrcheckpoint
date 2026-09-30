@@ -1,11 +1,22 @@
 // Section 11.2 Messaging adapter — real Resend implementation when
 // RESEND_API_KEY is set; otherwise honest failure (never fake "sent").
 
+export interface EmailAttachmentPayload {
+  filename: string;
+  /** Base64-encoded file bytes */
+  contentBase64: string;
+  contentType: string;
+}
+
 export interface NotificationChannelAdapter {
   send(
     recipientReference: string,
     message: string,
-    options?: { subject?: string; html?: string },
+    options?: {
+      subject?: string;
+      html?: string;
+      attachments?: EmailAttachmentPayload[];
+    },
   ): Promise<{ delivered: boolean; providerReference?: string }>;
 }
 
@@ -31,8 +42,18 @@ export class ResendEmailAdapter implements NotificationChannelAdapter {
   async send(
     recipientReference: string,
     message: string,
-    options?: { subject?: string; html?: string },
+    options?: {
+      subject?: string;
+      html?: string;
+      attachments?: EmailAttachmentPayload[];
+    },
   ): Promise<{ delivered: boolean; providerReference?: string }> {
+    const attachments = options?.attachments?.map((a) => ({
+      filename: a.filename,
+      content: a.contentBase64,
+      type: a.contentType,
+    }));
+
     const response = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
@@ -45,6 +66,7 @@ export class ResendEmailAdapter implements NotificationChannelAdapter {
         subject: options?.subject ?? "Buffr Checkpoint notification",
         text: message,
         ...(options?.html ? { html: options.html } : {}),
+        ...(attachments?.length ? { attachments } : {}),
       }),
     });
 

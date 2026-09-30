@@ -8,33 +8,51 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 
 import "./globals.css";
 
-// Variable names must match what src/styles/presets/buffr-checkpoint.css
-// references (--font-archivo, --font-geist, --font-geist-mono) — this is
-// the same fix applied in admin/src/lib/fonts/registry.ts, where
-// --font-archivo was previously never loaded anywhere.
 const archivo = Archivo({
-  variable: "--font-archivo",
   subsets: ["latin"],
-  weight: ["100", "300", "400"],
+  variable: "--font-archivo",
+  weight: ["100", "200", "300", "400", "500", "600", "700"],
+  display: "swap",
 });
 
 const geist = Geist({
-  variable: "--font-geist",
   subsets: ["latin"],
+  variable: "--font-geist",
+  display: "swap",
 });
 
 const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
   subsets: ["latin"],
+  variable: "--font-geist-mono",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://buffrcheckpoint.com"),
   title: {
-    default: "Buffr Checkpoint: Secure Visitor Check-In",
-    template: "%s | Buffr Checkpoint",
+    default: "Checkpoint: Secure Visitor Check-In",
+    template: "%s | Checkpoint",
   },
   description:
-    "Buffr Checkpoint is a Namibia-built digital visitor and access-management platform. Replace paper registers with isolated records, risk-based controls, and offline-first operation.",
+    "A paper visitor register shows every name, phone number, and ID number to the next person who signs. Checkpoint gives each visitor a private, encrypted record, keeps working offline, and checks in people with or without a smartphone.",
+  openGraph: {
+    type: "website",
+    locale: "en_NA",
+    url: "https://buffrcheckpoint.com",
+    siteName: "Checkpoint",
+    images: ["/og.png"],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Checkpoint",
+    description: "Secure, inclusive visitor check-in for Africa's regulated organisations.",
+    images: ["/og.png"],
+  },
+  icons: {
+    icon: "/icon.png",
+    apple: "/apple-icon.png",
+  },
+  robots: { index: true, follow: true },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -45,10 +63,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${archivo.variable} ${geist.variable} ${geistMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <body className="min-h-full flex flex-col">
+      <body className="flex min-h-full flex-col bg-background font-sans text-foreground">
         <AnalyticsProviders>
           <TooltipProvider>
-            {children}
+            <div className="flex min-h-full flex-1 flex-col">{children}</div>
             <Toaster />
           </TooltipProvider>
         </AnalyticsProviders>

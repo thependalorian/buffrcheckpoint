@@ -15,8 +15,7 @@ import {
   typeDefinition,
 } from "../../db/schema";
 import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.service";
-import { NotificationsService } from "../notifications/notifications.service";
-import { PlatformNotificationTemplateService } from "../platform-configuration/platform-notification-template.service";
+import { TemplatedEmailService } from "../notifications/templated-email.service";
 
 const PLATFORM_ROLE_CODE = "platform_support";
 const INVITATION_TTL_MS = 60 * 60 * 1000;
@@ -52,8 +51,7 @@ export class PlatformStaffService {
   constructor(
     @Inject(DB) private readonly db: Database,
     private readonly typeDefs: TypeDefinitionLookupService,
-    private readonly notifications: NotificationsService,
-    private readonly templates: PlatformNotificationTemplateService,
+    private readonly templatedEmail: TemplatedEmailService,
   ) {}
 
   async list(user: AuthenticatedUser) {
@@ -323,28 +321,20 @@ export class PlatformStaffService {
     const adminBase = (process.env.PUBLIC_ADMIN_BASE_URL ?? "http://localhost:3000").replace(/\/$/, "");
     const resetUrl = `${adminBase}/auth/reset-password?token=${rawToken}`;
 
-    const rendered = await this.templates.render(
-      "platform_staff_invitation",
-      { resetUrl },
-      {
+    await this.templatedEmail.send({
+      templateCode: "platform_staff_invitation",
+      organisationId,
+      to: email,
+      variables: { resetUrl },
+      fallback: {
         subject: "You have been invited to Buffr Checkpoint Platform Ops",
         body: [
           "A Buffr Checkpoint platform administrator invited you to the internal Platform Ops console.",
-          "Set your password to activate the account: {{resetUrl}}",
+          `Set your password to activate the account: ${resetUrl}`,
           "This link expires in one hour. Request a new one from the sign-in page if it lapses.",
         ].join("\n\n"),
       },
-    );
-
-    await this.notifications
-      .sendForOrganisation({
-        organisationId,
-        channelCode: "email",
-        recipientReference: email,
-        subject: rendered.subject,
-        message: rendered.body,
-      })
-      .catch(() => undefined);
+    });
 
     return resetUrl;
   }

@@ -204,5 +204,8 @@ INSERT INTO type_definition (domain, code, label, sort_order) VALUES
   ('purpose_category', 'government', 'Government', 5),
   ('purpose_category', 'medical', 'Medical', 6),
   ('purpose_category', 'maintenance', 'Maintenance / contractor work', 7),
-  ('purpose_category', 'event', 'Event', 8)
+  ('purpose_category', 'event', 'Event', 8),
+  ('purpose_category', 'meeting', 'Meeting', 9),
+  ('purpose_category', 'vehicle', 'Vehicle / parking', 10),
+  ('purpose_category', 'other', 'Other', 11)
 ON CONFLICT DO NOTHING;

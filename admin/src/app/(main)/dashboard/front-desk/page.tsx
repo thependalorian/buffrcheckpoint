@@ -1,5 +1,5 @@
-import type { VisitRosterRow } from "@/app/(main)/dashboard/default/_components/recent-customers-table/schema";
-import { VisitRosterTable } from "@/app/(main)/dashboard/default/_components/recent-customers-table/table";
+import type { VisitRosterRow } from "@/components/features/visits/visit-roster-table/schema";
+import { VisitRosterTable } from "@/components/features/visits/visit-roster-table/table";
 import { DashboardPageHeader } from "@/components/dashboard-page-header";
 import { DashboardErrorState } from "@/components/dashboard-state";
 import { api } from "@/lib/api/client";
@@ -40,15 +40,15 @@ export default async function FrontDeskPage() {
       ) : (
         <>
           {queue.length > 0 ? (
-            <div className="rounded-lg border bg-card p-4">
-              <h2 className="text-sm font-medium">Reception wait queue</h2>
-              <ul className="mt-3 space-y-2">
+            <div className="bc-panel">
+              <h2 className="bc-panel-header text-sm font-medium">Reception wait queue</h2>
+              <ul className="space-y-2">
                 {queue.map((entry) => (
-                  <li key={entry.id} className="flex items-center justify-between text-sm">
-                    <span>
+                  <li key={entry.id} className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                    <span className="min-w-0 break-words">
                       Ticket #{entry.queueNumber} · {entry.statusCode}
                     </span>
-                    <span className="text-muted-foreground">
+                    <span className="shrink-0 text-muted-foreground">
                       {new Date(entry.enqueuedAt).toLocaleTimeString()}
                     </span>
                   </li>
@@ -56,7 +56,9 @@ export default async function FrontDeskPage() {
               </ul>
             </div>
           ) : null}
-          <VisitRosterTable data={rows} />
+          <div className="bc-panel p-0! overflow-hidden">
+            <VisitRosterTable data={rows} />
+          </div>
         </>
       )}
     </div>

@@ -31,6 +31,8 @@ export const PERMISSIONS = {
   // Platform Ops Console (internal, platform_support-only) — see
   // backend/db/migrations/0022_platform_ops_console.sql for role grants.
   PLATFORM_DASHBOARD_READ: "platform.dashboard.read",
+  // Analytics ETL backfills — db/migrations/0041_analytics_etl.sql.
+  PLATFORM_ANALYTICS_MANAGE: "platform.analytics.manage",
   PLATFORM_ORG_HEALTH_READ: "platform.org_health.read",
   PLATFORM_INCIDENT_MANAGE: "platform.incident.manage",
   PLATFORM_TICKET_MANAGE: "platform.ticket.manage",

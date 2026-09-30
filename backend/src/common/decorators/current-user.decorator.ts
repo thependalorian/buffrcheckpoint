@@ -1,5 +1,7 @@
 import { createParamDecorator, type ExecutionContext } from "@nestjs/common";
 
+import type { SessionAudience } from "../auth/session-audience";
+
 export interface AuthenticatedUser {
   userId: string;
   organisationId: string;
@@ -8,6 +10,8 @@ export interface AuthenticatedUser {
   permissions: string[];
   emailVerified: boolean;
   mfaEnabled: boolean;
+  /** Which front door issued the token (JWT `aud`); see common/auth/session-audience.ts. */
+  audience: SessionAudience;
   /**
    * Set only on a Platform Ops Console support-session token (see
    * support-sessions.service.ts) — never on a normal login session.

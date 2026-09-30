@@ -1,0 +1,415 @@
+"use client";
+import * as React from "react";
+
+import { useRouter } from "next/navigation";
+
+import {
+  type ColumnFiltersState,
+  type ColumnVisibilityState,
+  type PaginationState,
+  type SortingState,
+  useTable,
+} from "@tanstack/react-table";
+import {
+  ArrowUpDown,
+  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  CreditCard,
+  Download,
+  Search,
+  UsersRound,
+} from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { IDENTITY_ASSURANCE_LEVEL_CODES, IDENTITY_ASSURANCE_LEVEL_LABELS } from "@/lib/canonical-codes";
+import { dataTableFeatures } from "@/lib/data-table-features";
+
+import { visitRosterColumns } from "./columns";
+import type { VisitRosterRow } from "./schema";
+
+const statusOptions = [
+  { value: "all", label: "All" },
+  { value: "checked_in", label: "Checked in" },
+  { value: "checked_out", label: "Checked out" },
+  { value: "pending_approval", label: "Pending approval" },
+] as const;
+const assuranceOptions = [
+  { value: "all", label: "All assurance levels" },
+  ...IDENTITY_ASSURANCE_LEVEL_CODES.map((code) => ({
+    value: code,
+    label: IDENTITY_ASSURANCE_LEVEL_LABELS[code],
+  })),
+] as const;
+const actionOptions = [
+  { value: "all", label: "All" },
+  { value: "required", label: "Action required" },
+  { value: "none", label: "No action" },
+] as const;
+const sortOptions = [
+  { value: "newest", label: "Newest first" },
+  { value: "oldest", label: "Oldest first" },
+  { value: "name-asc", label: "Name A-Z" },
+  { value: "name-desc", label: "Name Z-A" },
+] as const;
+const sortOptionState = {
+  newest: [{ id: "checkedInAt", desc: true }],
+  oldest: [{ id: "checkedInAt", desc: false }],
+  "name-asc": [{ id: "visitorDisplayName", desc: false }],
+  "name-desc": [{ id: "visitorDisplayName", desc: true }],
+} satisfies Record<(typeof sortOptions)[number]["value"], SortingState>;
+
+export function VisitRosterTable({
+  data,
+  dateRange,
+}: {
+  data: VisitRosterRow[];
+  /** Present only on pages that support historical date-range search (Visitors) — absent on live "right now" views (Front Desk). */
+  dateRange?: { from?: string; to?: string };
+}) {
+  const router = useRouter();
+  const [rowSelection, setRowSelection] = React.useState({});
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
+  const [sorting, setSorting] = React.useState<SortingState>([{ id: "checkedInAt", desc: true }]);
+  const [columnVisibility] = React.useState<ColumnVisibilityState>({
+    search: false,
+  });
+  const [pagination, setPagination] = React.useState<PaginationState>({
+    pageIndex: 0,
+    pageSize: 10,
+  });
+  const [fromInput, setFromInput] = React.useState(dateRange?.from ?? "");
+  const [toInput, setToInput] = React.useState(dateRange?.to ?? "");
+
+  function applyDateRange() {
+    const qs = new URLSearchParams();
+    if (fromInput) qs.set("from", fromInput);
+    if (toInput) qs.set("to", toInput);
+    router.push(qs.toString() ? `/dashboard/visitors?${qs}` : "/dashboard/visitors");
+  }
+
+  function clearDateRange() {
+    setFromInput("");
+    setToInput("");
+    router.push("/dashboard/visitors");
+  }
+
+  const table = useTable({
+    features: dataTableFeatures,
+    data,
+    columns: visitRosterColumns,
+    state: {
+      rowSelection,
+      columnFilters,
+      sorting,
+      columnVisibility,
+      pagination,
+    },
+    getRowId: (row) => row.visitId,
+    enableRowSelection: true,
+    onRowSelectionChange: setRowSelection,
+    onColumnFiltersChange: setColumnFilters,
+    onSortingChange: setSorting,
+    onPaginationChange: setPagination,
+  });
+
+  const searchQuery = (table.getColumn("search")?.getFilterValue() as string | undefined) ?? "";
+  const statusFilter = (table.getColumn("visitStatusCode")?.getFilterValue() as string | undefined) ?? "all";
+  const assuranceFilter = (table.getColumn("assuranceLevelCode")?.getFilterValue() as string | undefined) ?? "all";
+  const actionFilter = (table.getColumn("requiresAction")?.getFilterValue() as string | undefined) ?? "all";
+  const sortValue = React.useMemo(() => {
+    const currentSort = sorting[0];
+
+    if (!currentSort) return "newest";
+    if (currentSort.id === "checkedInAt" && currentSort.desc) return "newest";
+    if (currentSort.id === "checkedInAt" && !currentSort.desc) return "oldest";
+    if (currentSort.id === "visitorDisplayName" && !currentSort.desc) return "name-asc";
+    if (currentSort.id === "visitorDisplayName" && currentSort.desc) return "name-desc";
+
+    return "newest";
+  }, [sorting]);
+
+  return (
+    <div className="min-w-0 w-full space-y-4">
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <div className="relative w-full min-w-0 sm:max-w-xs lg:w-80">
+            <Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              className="h-7 rounded-[min(var(--radius-md),12px)] pl-8"
+              placeholder="Search visits..."
+              value={searchQuery}
+              onChange={(event) => {
+                table.getColumn("search")?.setFilterValue(event.target.value || undefined);
+                table.setPageIndex(0);
+              }}
+            />
+          </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <UsersRound />
+                Status
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-35" align="start">
+              <DropdownMenuRadioGroup
+                value={statusFilter}
+                onValueChange={(value) => {
+                  table.getColumn("visitStatusCode")?.setFilterValue(value === "all" ? undefined : value);
+                  table.setPageIndex(0);
+                }}
+              >
+                {statusOptions.map((status) => (
+                  <DropdownMenuRadioItem key={status.value} value={status.value}>
+                    {status.label}
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          {dateRange ? (
+            <div className="flex items-center gap-1.5">
+              <CalendarDays className="size-4 text-muted-foreground" />
+              <Input
+                type="date"
+                aria-label="From date"
+                className="h-7 w-36"
+                value={fromInput}
+                onChange={(event) => setFromInput(event.target.value)}
+              />
+              <span className="text-muted-foreground text-xs">to</span>
+              <Input
+                type="date"
+                aria-label="To date"
+                className="h-7 w-36"
+                value={toInput}
+                onChange={(event) => setToInput(event.target.value)}
+              />
+              <Button size="sm" variant="outline" onClick={applyDateRange}>
+                Apply
+              </Button>
+              {dateRange.from || dateRange.to ? (
+                <Button size="sm" variant="ghost" onClick={clearDateRange}>
+                  Clear
+                </Button>
+              ) : null}
+            </div>
+          ) : null}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <UsersRound />
+                Action
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-40" align="start">
+              <DropdownMenuRadioGroup
+                value={actionFilter}
+                onValueChange={(value) => {
+                  const filterValue = value === "all" ? undefined : String(value === "required");
+                  table.getColumn("requiresAction")?.setFilterValue(filterValue);
+                  table.setPageIndex(0);
+                }}
+              >
+                {actionOptions.map((option) => (
+                  <DropdownMenuRadioItem key={option.value} value={option.value}>
+                    {option.label}
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center xl:w-auto">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <CreditCard />
+                Assurance
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuRadioGroup
+                value={assuranceFilter}
+                onValueChange={(value) => {
+                  table.getColumn("assuranceLevelCode")?.setFilterValue(value === "all" ? undefined : value);
+                  table.setPageIndex(0);
+                }}
+              >
+                {assuranceOptions.map((option) => (
+                  <DropdownMenuRadioItem key={option.value} value={option.value}>
+                    {option.label}
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                <ArrowUpDown />
+                Sort
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuRadioGroup
+                value={sortValue}
+                onValueChange={(value) => {
+                  table.setSorting(sortOptionState[value as keyof typeof sortOptionState] ?? sortOptionState.newest);
+                  table.setPageIndex(0);
+                }}
+              >
+                {sortOptions.map((option) => (
+                  <DropdownMenuRadioItem key={option.value} value={option.value}>
+                    {option.label}
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          {dateRange ? (
+            <Button variant="outline" size="sm" asChild>
+              <a
+                href={`/api/visits/roster/export${
+                  dateRange.from || dateRange.to
+                    ? `?${new URLSearchParams({ ...(dateRange.from ? { from: dateRange.from } : {}), ...(dateRange.to ? { to: dateRange.to } : {}) })}`
+                    : ""
+                }`}
+              >
+                <Download />
+                Download CSV
+              </a>
+            </Button>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="min-w-0 overflow-x-auto rounded-lg border bg-card">
+        <Table className="min-w-[64rem]">
+          <TableHeader className="bg-muted/15">
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map((header) => (
+                  <TableHead key={header.id} colSpan={header.colSpan} className="h-11 p-3 font-medium">
+                    {header.isPlaceholder ? null : <table.FlexRender header={header} />}
+                  </TableHead>
+                ))}
+              </TableRow>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {table.getRowModel().rows.length ? (
+              table.getRowModel().rows.map((row) => (
+                <TableRow key={row.id} data-state={table.state.rowSelection[row.id] && "selected"}>
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id} className="p-3 align-middle">
+                      <table.FlexRender cell={cell} />
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={table.getVisibleLeafColumns().length} className="h-24 text-center">
+                  No visits found.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      <div className="flex flex-col gap-4 px-1 sm:flex-row sm:items-center sm:justify-between">
+        <div className="hidden flex-1 text-muted-foreground text-sm lg:flex">
+          {table.getFilteredSelectedRowModel().rows.length} of {table.getFilteredRowModel().rows.length} row(s)
+          selected.
+        </div>
+        <div className="flex w-full min-w-0 flex-wrap items-center justify-between gap-4 lg:w-fit lg:flex-nowrap lg:gap-8">
+          <div className="hidden items-center gap-2 lg:flex">
+            <Label htmlFor="visit-roster-rows-per-page" className="font-medium text-sm">
+              Rows per page
+            </Label>
+            <Select
+              value={`${table.state.pagination.pageSize}`}
+              onValueChange={(value) => {
+                table.setPageSize(Number(value));
+              }}
+            >
+              <SelectTrigger size="sm" className="w-20" id="visit-roster-rows-per-page">
+                <SelectValue placeholder={table.state.pagination.pageSize} />
+              </SelectTrigger>
+              <SelectContent side="top">
+                <SelectGroup>
+                  {[10, 20, 30, 40, 50].map((pageSize) => (
+                    <SelectItem key={pageSize} value={`${pageSize}`}>
+                      {pageSize}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="flex w-fit items-center justify-center font-medium text-sm">
+            Page {table.state.pagination.pageIndex + 1} of {table.getPageCount()}
+          </div>
+          <div className="ml-auto flex items-center gap-2 lg:ml-0">
+            <Button
+              variant="outline"
+              className="hidden size-8 lg:flex"
+              size="icon"
+              onClick={() => table.setPageIndex(0)}
+              disabled={!table.getCanPreviousPage()}
+            >
+              <span className="sr-only">Go to first page</span>
+              <ChevronsLeft className="size-4" />
+            </Button>
+            <Button
+              variant="outline"
+              className="size-8"
+              size="icon"
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+            >
+              <span className="sr-only">Go to previous page</span>
+              <ChevronLeft className="size-4" />
+            </Button>
+            <Button
+              variant="outline"
+              className="size-8"
+              size="icon"
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+            >
+              <span className="sr-only">Go to next page</span>
+              <ChevronRight className="size-4" />
+            </Button>
+            <Button
+              variant="outline"
+              className="hidden size-8 lg:flex"
+              size="icon"
+              onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+              disabled={!table.getCanNextPage()}
+            >
+              <span className="sr-only">Go to last page</span>
+              <ChevronsRight className="size-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

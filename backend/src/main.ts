@@ -10,13 +10,30 @@ import helmet from "helmet";
 
 import { AppModule } from "./app.module";
 
+function corsOrigins(): boolean | string[] {
+  const raw = process.env.CORS_ORIGIN?.trim();
+  if (!raw) return true;
+  const list = raw
+    .split(",")
+    .map((o) => o.trim())
+    .filter(Boolean);
+  return list.length > 0 ? list : true;
+}
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // Section 11.8.6: security hardening baseline.
-  app.use(helmet());
+  // CORP must be cross-origin: browsers fetch this API from website/admin/ops
+  // (different origins). Helmet's default same-origin CORP breaks those fetches
+  // even when Access-Control-Allow-Origin is set.
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: { policy: "cross-origin" },
+    }),
+  );
   app.enableCors({
-    origin: process.env.CORS_ORIGIN?.split(",") ?? true,
+    origin: corsOrigins(),
     credentials: true,
   });
   app.useGlobalPipes(

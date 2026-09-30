@@ -8,7 +8,7 @@ import { AuthCardHeader, AuthLayout } from "../_components/auth-layout";
 import { LoginForm } from "../_components/login-form";
 
 export const metadata: Metadata = {
-  title: "Sign in: Buffr Checkpoint",
+  title: "Sign in: Checkpoint",
 };
 
 export default function LoginPage() {

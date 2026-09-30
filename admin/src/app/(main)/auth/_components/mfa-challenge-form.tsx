@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authCopy } from "@/lib/copy/auth";
 import { AnalyticsEvents, track } from "@/lib/observability/track";
+import { safeNextPath } from "@/lib/auth/safe-next-path";
 
 export function MfaChallengeForm() {
   const router = useRouter();
@@ -52,7 +53,9 @@ export function MfaChallengeForm() {
       }
       track(AnalyticsEvents.mfaChallengeSucceeded, { used_recovery: useRecovery });
       sessionStorage.removeItem("buffr.mfaChallengeToken");
-      router.push(result.nextPath ?? "/dashboard/default");
+      const storedNext = sessionStorage.getItem("buffr.mfaNextPath");
+      sessionStorage.removeItem("buffr.mfaNextPath");
+      router.push(safeNextPath(storedNext ?? result.nextPath));
       router.refresh();
     } finally {
       setSubmitting(false);

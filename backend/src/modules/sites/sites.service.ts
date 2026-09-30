@@ -1,10 +1,10 @@
-import { Inject, Injectable, NotFoundException } from "@nestjs/common";
-import { and, eq, isNull } from "drizzle-orm";
+import { ForbiddenException, Inject, Injectable, NotFoundException } from "@nestjs/common";
+import { and, count, desc, eq, isNull } from "drizzle-orm";
 
 import type { AuthenticatedUser } from "../../common/decorators/current-user.decorator";
 import type { Database } from "../../db/client";
 import { DB } from "../../db/db.module";
-import { sites, typeDefinition } from "../../db/schema";
+import { organisationSubscription, sites, typeDefinition } from "../../db/schema";
 import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.service";
 import { randomUUID } from "node:crypto";
 
@@ -21,6 +21,7 @@ export class SitesService {
   ) {}
 
   async create(input: CreateSiteInput, user: AuthenticatedUser) {
+    await this.assertSiteLicence(user.organisationId);
     const [created] = await this.db
       .insert(sites)
       .values({
@@ -31,6 +32,29 @@ export class SitesService {
       })
       .returning();
     return created;
+  }
+
+  /**
+   * Per-site licensing: once an organisation has a subscription, active sites may not
+   * exceed its licensed site_quantity. Before the first subscription (setup before
+   * payment) there is no cap; go-live is gated separately on subscription status.
+   */
+  private async assertSiteLicence(organisationId: string) {
+    const sub = await this.db.query.organisationSubscription.findFirst({
+      where: and(eq(organisationSubscription.organisationId, organisationId), isNull(organisationSubscription.deletedAt)),
+      orderBy: desc(organisationSubscription.startedAt),
+    });
+    if (!sub) return;
+    const [row] = await this.db
+      .select({ n: count() })
+      .from(sites)
+      .where(and(eq(sites.organisationId, organisationId), isNull(sites.deletedAt)));
+    const activeSites = Number(row?.n ?? 0);
+    if (activeSites >= sub.siteQuantity) {
+      throw new ForbiddenException(
+        `Your plan covers ${sub.siteQuantity} site${sub.siteQuantity === 1 ? "" : "s"}, and all are in use. Email team@buffranalytics.com to add sites to your plan.`,
+      );
+    }
   }
 
   async list(user: AuthenticatedUser) {

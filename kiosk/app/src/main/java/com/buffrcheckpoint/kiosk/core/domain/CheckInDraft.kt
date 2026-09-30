@@ -20,6 +20,11 @@ data class CheckInDraft(
     val visitorId: String? = null,
     val visitorName: String? = null,
     val visitorPhone: String? = null,
+    /** First-class PII — mirrors CheckInDto / public check-in; written into visitor_personal_data. */
+    val companyName: String? = null,
+    val visitorEmail: String? = null,
+    val vehicleRegistration: String? = null,
+    val idDocumentNumber: String? = null,
     val hostId: String,
     val visitorType: VisitorType,
     val invitationId: String? = null,

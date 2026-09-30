@@ -1,0 +1,354 @@
+CiMSO INNkeeper - Membership Administration
+
+Home
+
+About
+
+Technology
+
+Value
+
+Mission
+
+Feedback
+
+Software
+
+Client Centric
+
+Keeping Control
+
+Software Suites
+
+Cimso Identify
+
+Cimso Connect
+
+Cimso Collaborate
+
+Cimso Live
+
+Cimso Play
+
+Cimso Rest
+
+Cimso Finance
+
+Cimso Tools
+
+Installations
+
+Corporate
+
+Individual
+
+Campus
+
+Introduction
+
+Training Syllabus
+
+Internship Program
+
+Register to Participate
+
+Certification Register
+
+Support
+
+Product Brochures
+
+Business Solutions
+
+Api Registration
+
+Download Applications
+
+Policy Documents
+
+Tutorials
+
+Contact
+
+Reseller Network
+
+Apply For Position
+
+Privacy
+
+Book a Demo
+
+News
+
+Latest
+
+Thailand
+
+Subscribe
+
+Home →
+
+Software →
+
+INNkeeper
+
+Reservations and property management for resorts and hotels
+
+Reservations
+
+Content rich, colour coded infinite availability and occupancy bookings view grid
+
+Fast reservations process for walk-in, FIT, Travel Agent, Tour Operator and Internet bookings
+
+Configurable geographic, marketing, industry and recreational source of business tracking
+
+Waiting list console with prioritised guest booking preferences and rule based allocation
+
+Internet reservations in real time directly from your web-page, CRS or online channels
+
+Integrated WORKflow system with project board, stages and case boxes to manage sales
+
+Central Reservations Office
+
+Fast reservations for all properties in the group with infinite availability view grid
+
+Near real time data synchronization between the CRO and all property servers
+
+Powerful group bookings management with rule based mass cancellation processes
+
+Seamless interface to WEBsync’s CRS for online bookings by your channel bookers
+
+Rates Management
+
+Property inventory management with dynamic rule based seasonal rates, rack rates and special rates
+
+Group bookings and event packages
+
+AHLA budgeting integrated seamlessly to your income statement (P&L report)
+
+Front Office Management
+
+Fast guest identification, registration and check-in with a special facility for contactless, mobile device or kiosk check-in
+
+Front office services including help desk, guest services, vehicle permits and forex buy and sell
+
+Bell services with messaging, lost and found storage and luggage tagging
+
+Accounts and City Ledger
+
+City Ledger console which tracks in house and checked out bookings for collections and closure
+
+Billing on arrival, nightly or ad-hoc, with pit check control and detailed management reporting
+
+Unlimited guest folios per booking with fast inter folio transfers and reversals
+
+Fast guest account validation and check-out with per folio or consolidated statement printing
+
+Housekeeping
+
+Housekeeping services integrated to the PMS and managed from the lodging occupancy grid
+
+Configurable room grouping with points allocation, linked to staff and service schedules
+
+Colour coded clean and inspected room statuses displayed on the front office bookings grid
+
+Integrated HELPdesk system with fast maintenance ticket creation and resolution tracking
+
+Interfaces
+
+Middleware interfaces to more than 600 devices for guest services and environment control
+
+Application provider interface (API) for data exchange with mobile devices in the Cloud
+
+Direct interfaces to financial institutions for credit card and GIRO payments
+
+Deployment
+
+Local server or computer
+
+Distributed replicating servers
+
+Cloud server
+
+Training
+
+Full documentation (SOP based)
+
+On-site, in person training
+
+Live online or webinar training
+
+Support
+
+Business hours phone and mail
+
+Online chat and remote access
+
+Live 24/7 emergency support
+
+CiMSO INNkeeper
+Brochure Download
+
+Send me this brochure
+
+Software Selector
+
+CLUBmanager Membership Administration Software → Learn More
+
+CLIENTmanager Customer Relations & Business Management Software → Learn More
+
+WORKflow Asset Maintenance & Repairs Software → Learn More
+
+HELPdesk Fast s upport ticket tracking with resolution management → Learn More
+
+COMMunicator Communications Software → Learn More
+
+DOCmanager Document Management & E-filing Software → Learn More
+
+MAILMerger Text Transmit & Receive Software → Learn More
+
+SMSmanager Text Transmit & Receive Software → Learn More
+
+PHONEmanager Telephone Usage & Billing Software → Learn More
+
+FAXmanager Fax Transmit & Receive Software → Learn More
+
+INNsync Data Synchronising Software → Learn More
+
+INNterchange Data Exchange Software → Learn More
+
+WEBsync Secure Online Presence → Learn More
+
+RESTauranteur Restaurant & Bar Point of Sale Software → Learn More
+
+EVENTmanager Event & Conference Software → Learn More
+
+SHOPkeeper Retail Point of Sale Software → Learn More
+
+ACTIVities Manager Activities Scheduling Software → Learn More
+
+GOLFmanager Golf T-bookings & Green Fees Software → Learn More
+
+SPAscheduler SPA & Hydro Wellness Software → Learn More
+
+INNkeeper Hotel & Resort Software → Learn More
+
+HOUSEKeeper Cleaning & Servicing Software → Learn More
+
+REALtor Real Estate, Mall, Timeshare & Leasing Software → Learn More
+
+BACKoffice Accounting Software → Learn More
+
+ACCOUNTSoffice Controlling accounts receivable and accounts payable → Learn More
+
+STOCKmanager Inventory & Procurement Software → Learn More
+
+ASSETManager Asset Register & Tracker → Learn More
+
+TOOLbox Database and Platform Maintenance Tools → Learn More
+
+INTERfaces Interface Software Tools → Learn More
+
+Rest Software Suite
+
+Comprehensive software for Hotel Reservations, Lodging PMS, Leasing and Timeshare :
+
+→ INN keeper
+→ HOUSE keeper
+→ REAL tor
+
+Demo, quote or enquiry:
+
+Request
+
+Subscribe to the CiMSO LIFE Newsletter
+
+Subscribe
+
+©CiMSO. All Rights Reserved.
+
+Home
+
+About
+
+Technology
+
+Value
+
+Mission
+
+Feedback
+
+Software
+
+Client Centric
+
+Keeping Control
+
+Software Suites
+
+Cimso Identify
+
+Cimso Connect
+
+Cimso Collaborate
+
+Cimso Live
+
+Cimso Play
+
+Cimso Rest
+
+Cimso Finance
+
+Cimso Tools
+
+Installations
+
+Corporate
+
+Individual
+
+Campus
+
+Introduction
+
+Training Syllabus
+
+Internship Program
+
+Register to Participate
+
+Certification Register
+
+Support
+
+Product Brochures
+
+Business Solutions
+
+Api Registration
+
+Download Applications
+
+Policy Documents
+
+Tutorials
+
+Contact
+
+Reseller Network
+
+Apply For Position
+
+Privacy
+
+Book a Demo
+
+News
+
+Latest
+
+Thailand
+
+Subscribe

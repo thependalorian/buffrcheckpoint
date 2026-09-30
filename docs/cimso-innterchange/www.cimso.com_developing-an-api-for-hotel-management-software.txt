@@ -1,0 +1,230 @@
+- Developing an API for hotel management software
+
+Home
+
+About
+
+Technology
+
+Value
+
+Mission
+
+Feedback
+
+Software
+
+Client Centric
+
+Keeping Control
+
+Software Suites
+
+Cimso Identify
+
+Cimso Connect
+
+Cimso Collaborate
+
+Cimso Live
+
+Cimso Play
+
+Cimso Rest
+
+Cimso Finance
+
+Cimso Tools
+
+Installations
+
+Corporate
+
+Individual
+
+Campus
+
+Introduction
+
+Training Syllabus
+
+Internship Program
+
+Register to Participate
+
+Certification Register
+
+Support
+
+Product Brochures
+
+Business Solutions
+
+Api Registration
+
+Download Applications
+
+Policy Documents
+
+Tutorials
+
+Contact
+
+Reseller Network
+
+Apply For Position
+
+Privacy
+
+Book a Demo
+
+News
+
+Latest
+
+Thailand
+
+Subscribe
+
+News
+
+Home →
+
+News →
+
+Developing an API for hotel management software
+
+Developing an API for hotel management software
+
+27th November 2019
+Johan Marais
+
+CiMSO provides a customer-centric, enterprise resource planning – ERP – solution comprising a suite of products based on customer requirements. Today’s hotels, lodges, resorts and clubs expect connectivity and interfacing between their hotel management software and various levels of specialized services application.
+
+CiMSO developed an application programmable interface – API – to meet this expectation, and considered the following design methodologies in the development:
+
+CiMSO ’s INNterchange Hotel Management Software API was developed using the Microservices architecture and is currently being rolled out and installed at CiMSO customers worldwide.
+
+Sep. 22, 2026
+The Most Interesting Hospitality Innovations Shaping Africa in 2026
+
+Sep. 21, 2026
+Africa’s Golf Tourism Opportunity: Is Your Club Ready for the International Golfer?
+
+Sep. 18, 2026
+From Gift to Green Fee: Why Golf Clubs Need Better Voucher Management
+
+Sep. 18, 2026
+Your Voice Shapes the Conversation: Turning Your Feedback Into Solutions
+
+Aug. 28, 2026
+Multi-Currency Hospitality Management in Southern Africa
+
+Aug. 24, 2026
+Sustainable Procurement: Can Your Property Track What It Buys?
+
+Aug. 20, 2026
+10 Common Hospitality & Golf Software Implementation Mistakes (and How to Avoid Them)
+
+Aug. 20, 2026
+Implementing CiMSO Successfully: Why Project Management Is Critical
+
+Jul. 24, 2026
+Streamlining Activities, Scheduling, and Guest Experiences
+
+Jul. 24, 2026
+Taking Control of Inventory Management
+
+Jul. 24, 2026
+From Players to Members: Creating a More Engaging Golf Club Experience
+
+Jul. 24, 2026
+The Connected Golf Club: One Platform, Every Department
+
+©CiMSO. All Rights Reserved.
+
+Home
+
+About
+
+Technology
+
+Value
+
+Mission
+
+Feedback
+
+Software
+
+Client Centric
+
+Keeping Control
+
+Software Suites
+
+Cimso Identify
+
+Cimso Connect
+
+Cimso Collaborate
+
+Cimso Live
+
+Cimso Play
+
+Cimso Rest
+
+Cimso Finance
+
+Cimso Tools
+
+Installations
+
+Corporate
+
+Individual
+
+Campus
+
+Introduction
+
+Training Syllabus
+
+Internship Program
+
+Register to Participate
+
+Certification Register
+
+Support
+
+Product Brochures
+
+Business Solutions
+
+Api Registration
+
+Download Applications
+
+Policy Documents
+
+Tutorials
+
+Contact
+
+Reseller Network
+
+Apply For Position
+
+Privacy
+
+Book a Demo
+
+News
+
+Latest
+
+Thailand
+
+Subscribe

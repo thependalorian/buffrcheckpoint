@@ -15,16 +15,9 @@ export async function createFormDefinitionAction(input: {
     siteId: input.siteId || undefined,
   });
   const version = await api.post<{ id: string }>(`/visitor-policy/forms/${created.id}/versions`);
-  await api.post(`/visitor-policy/forms/versions/${version.id}/fields`, {
-    fieldCode: "visitor_name",
-    fieldLabel: "Visitor name",
-    dataClassificationCode: "basic",
-    required: true,
-    displayOrder: 0,
-  });
-  await api.post(`/visitor-policy/forms/versions/${version.id}/publish`);
   revalidatePath("/dashboard/policies/forms");
-  return created;
+  revalidatePath(`/dashboard/policies/forms/${created.id}`);
+  return { ...created, draftVersionId: version.id };
 }
 
 export async function createAccessPolicyAction(input: { siteId?: string; configJson: string }) {
@@ -123,10 +116,34 @@ export async function setDeviceStatusAction(deviceId: string, statusCode: string
   revalidatePath("/dashboard/devices");
 }
 
-export async function inviteUserAction(input: { email: string; password: string; roleCode?: string }) {
+export async function inviteUserAction(input: {
+  email: string;
+  password: string;
+  roleCode: string;
+  siteId?: string;
+}) {
   await api.post("/auth/register", {
     email: input.email,
     password: input.password,
+    roleCode: input.roleCode,
+    siteId: input.siteId || undefined,
   });
   revalidatePath("/dashboard/users");
+  revalidatePath("/dashboard/roles");
+}
+
+export async function changeUserRoleAction(input: {
+  userId: string;
+  newRoleCode: string;
+  reason: string;
+  siteId?: string;
+}) {
+  await api.post("/rbac/role-assignments/change", {
+    userId: input.userId,
+    newRoleCode: input.newRoleCode,
+    reason: input.reason,
+    siteId: input.siteId || undefined,
+  });
+  revalidatePath("/dashboard/users");
+  revalidatePath("/dashboard/roles");
 }

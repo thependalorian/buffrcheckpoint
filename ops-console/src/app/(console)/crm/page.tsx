@@ -2,7 +2,6 @@ import Link from "next/link";
 
 import { ShareBars } from "@/components/charts/ShareBars";
 import { DashboardErrorState, EmptyState } from "@/components/dashboard-state";
-import { Card, CardContent } from "@/components/ui/card";
 import { apiFetch, loadOrError } from "@/lib/api";
 import { loadOrgLabelMap, loadOrgOptions } from "@/lib/orgs";
 
@@ -95,26 +94,24 @@ export default async function CrmPage() {
         ) : (
           <div className="flex gap-4 overflow-x-auto pb-2">
             {stages.map((stage) => (
-              <div key={stage.id} className="w-72 shrink-0">
+              <div key={stage.id} className="bc-surface w-72 shrink-0 p-3">
                 <div className="mb-2 flex items-center justify-between">
                   <h3 className="font-medium text-foreground text-sm">{stage.label}</h3>
                   <span className="text-muted-foreground text-xs">{(dealsByStage.get(stage.id) ?? []).length}</span>
                 </div>
                 <div className="space-y-2">
                   {(dealsByStage.get(stage.id) ?? []).map((deal) => (
-                    <Card key={deal.id}>
-                      <CardContent className="space-y-2 pt-4">
-                        <Link href={`/crm/${deal.id}`} className="font-medium text-foreground text-sm hover:underline">
-                          {deal.prospectName ??
-                            (deal.organisationId ? orgLabel[deal.organisationId] : null) ??
-                            "Untitled deal"}
-                        </Link>
-                        {deal.expectedMrr ? (
-                          <p className="text-muted-foreground text-xs">Expected MRR NAD {deal.expectedMrr}</p>
-                        ) : null}
-                        <DealStageControls dealId={deal.id} />
-                      </CardContent>
-                    </Card>
+                    <div key={deal.id} className="bc-surface-inset space-y-2 p-3">
+                      <Link href={`/crm/${deal.id}`} className="font-medium text-foreground text-sm hover:underline">
+                        {deal.prospectName ??
+                          (deal.organisationId ? orgLabel[deal.organisationId] : null) ??
+                          "Untitled deal"}
+                      </Link>
+                      {deal.expectedMrr ? (
+                        <p className="text-muted-foreground text-xs">Expected MRR NAD {deal.expectedMrr}</p>
+                      ) : null}
+                      <DealStageControls dealId={deal.id} />
+                    </div>
                   ))}
                 </div>
               </div>

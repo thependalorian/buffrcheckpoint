@@ -34,13 +34,13 @@ export function CreateSiteSheet() {
             const formData = new FormData(event.currentTarget);
             const name = String(formData.get("name") ?? "");
             startTransition(async () => {
-              try {
-                await createSiteAction({ name });
-                setOpen(false);
-                router.refresh();
-              } catch (err) {
-                setError(err instanceof Error ? err.message : "Could not create site.");
+              const result = await createSiteAction({ name });
+              if ("error" in result) {
+                setError(result.error);
+                return;
               }
+              setOpen(false);
+              router.refresh();
             });
           }}
         >

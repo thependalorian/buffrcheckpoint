@@ -9,8 +9,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Buffr Checkpoint — Platform Ops Console",
-  description: "Internal Buffr Checkpoint operations console — never customer-facing.",
+  title: "Checkpoint: Platform Ops Console",
+  description: "Internal Checkpoint operations console. Never customer-facing.",
   robots: { index: false, follow: false },
 };
 

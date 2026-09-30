@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   HttpException,
   HttpStatus,
   Inject,
@@ -23,15 +24,18 @@ import {
 } from "../../common/crypto/secret-crypto";
 import type { AuthenticatedUser } from "../../common/decorators/current-user.decorator";
 import type { Database } from "../../db/client";
+import { ADMIN_SESSION_TTL, OPS_ENROLL_TTL, OPS_SESSION_TTL } from "../../common/auth/session-audience";
 import { DB } from "../../db/db.module";
 import {
   applicationUsers,
   emailVerificationTokens,
   mfaChallengeTokens,
   mfaRecoveryCodes,
+  membershipScopes,
   organisationMemberships,
   organisationOnboardingStates,
   organisationOnboardingStatusLog,
+  organisationSubscription,
   organisations,
   passwordResetTokens,
   platformSupportSession,
@@ -39,8 +43,9 @@ import {
   typeDefinition,
 } from "../../db/schema";
 import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.service";
-import { NotificationsService } from "../notifications/notifications.service";
+import { TemplatedEmailService } from "../notifications/templated-email.service";
 import { ONBOARDING_STEPS, REQUIRED_BEFORE_GOLIVE, type OnboardingStepCode } from "../onboarding/onboarding-steps";
+import { RbacService } from "../rbac/rbac.service";
 import type { ConfirmPasswordResetDto, RequestPasswordResetDto } from "./dto/password-reset.dto";
 import { OnboardingEvidenceService } from "./onboarding-evidence.service";
 
@@ -75,12 +80,20 @@ export interface LoginResult {
   mfaRequired?: boolean;
   mfaChallengeToken?: string;
   emailVerificationRequired?: boolean;
+  /** Ops login only: staff account has no MFA yet; enrollmentToken may only enrol MFA. */
+  mfaEnrollmentRequired?: boolean;
+  enrollmentToken?: string;
 }
+
+const PLATFORM_ROLE = "platform_support";
+const INVALID_CREDENTIALS = "Invalid email or password";
 
 export interface RegisterInput {
   organisationId: string;
   email: string;
   password: string;
+  roleCode?: string;
+  siteId?: string;
 }
 
 @Injectable()
@@ -90,8 +103,9 @@ export class AuthService {
     private readonly jwt: JwtService,
     private readonly typeDefs: TypeDefinitionLookupService,
     private readonly permissionEvaluation: ScopedPermissionEvaluationService,
-    private readonly notifications: NotificationsService,
+    private readonly templatedEmail: TemplatedEmailService,
     private readonly onboardingEvidence: OnboardingEvidenceService,
+    private readonly rbac: RbacService,
   ) {}
 
   async register(dto: RegisterInput): Promise<{ ok: true; email: string; emailVerificationRequired: true }> {
@@ -101,6 +115,10 @@ export class AuthService {
     if (existing) {
       throw new ConflictException("An account with this email already exists for this organisation");
     }
+
+    const roleCode = dto.roleCode?.trim() || "owner_operator";
+    this.rbac.assertAssignableRoleCode(roleCode);
+    const targetRole = await this.rbac.resolveRoleDefinition(dto.organisationId, roleCode);
 
     const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
     const userId = randomUUID();
@@ -114,41 +132,90 @@ export class AuthService {
       mfaEnabled: false,
     });
 
-    const ownerOperatorRoleCodeId = await this.typeDefs.id("role_code", "owner_operator");
-    const existingRole = await this.db.query.roleDefinitions.findFirst({
-      where: and(
-        eq(roleDefinitions.organisationId, dto.organisationId),
-        eq(roleDefinitions.roleCode, ownerOperatorRoleCodeId),
-        isNull(roleDefinitions.deletedAt),
-      ),
-    });
-
-    const ownerOperatorRoleId = existingRole?.id ?? randomUUID();
-    if (!existingRole) {
-      await this.db.insert(roleDefinitions).values({
-        id: ownerOperatorRoleId,
-        organisationId: dto.organisationId,
-        roleCode: ownerOperatorRoleCodeId,
-        roleLabel: "Owner-Operator",
-        isSystemRole: true,
-      });
-    }
-
     const initialAssignmentType = await this.typeDefs.id("role_assignment_event_type", "initial");
+    const membershipId = randomUUID();
     await this.db.insert(organisationMemberships).values({
-      id: randomUUID(),
+      id: membershipId,
       organisationId: dto.organisationId,
       userId,
-      roleId: ownerOperatorRoleId,
+      roleId: targetRole.id,
       assignmentEventTypeCode: initialAssignmentType,
     });
+
+    if (dto.siteId) {
+      await this.db.insert(membershipScopes).values({
+        id: randomUUID(),
+        membershipId,
+        scopeType: "site",
+        scopeId: dto.siteId,
+      });
+    }
 
     await this.issueEmailVerification(userId, dto.organisationId, dto.email);
 
     return { ok: true, email: dto.email, emailVerificationRequired: true };
   }
 
+  /** Customer admin / kiosk login. Platform staff are refused here; they use platformLogin. */
   async login(email: string, password: string): Promise<LoginResult> {
+    const user = await this.checkCredentials(email, password);
+    if (!user.emailVerifiedAt) {
+      return { emailVerificationRequired: true };
+    }
+
+    const { roleCode } = await this.resolveSessionRole(user.id);
+    if (!roleCode) {
+      throw new UnauthorizedException("Account has no role assignment — contact your administrator");
+    }
+    if (roleCode === PLATFORM_ROLE) {
+      throw new UnauthorizedException(INVALID_CREDENTIALS);
+    }
+
+    if (user.mfaEnabled) {
+      const challenge = await this.createMfaChallenge(user.id, user.organisationId);
+      return { mfaRequired: true, mfaChallengeToken: challenge };
+    }
+
+    return this.issueFullSession(user.id, user.organisationId, roleCode, true, false);
+  }
+
+  /**
+   * Platform Ops Console login (buffrcheckpoint.md §9.2a). Only platform_support accounts;
+   * everyone else gets the same error as a wrong password. MFA is mandatory: an account
+   * without it receives a 15-minute token that can only enrol MFA.
+   */
+  async platformLogin(email: string, password: string): Promise<LoginResult> {
+    const user = await this.checkCredentials(email, password);
+    const { roleCode } = await this.resolveSessionRole(user.id);
+    if (roleCode !== PLATFORM_ROLE) {
+      throw new UnauthorizedException(INVALID_CREDENTIALS);
+    }
+    if (!user.emailVerifiedAt) {
+      return { emailVerificationRequired: true };
+    }
+    if (user.mfaEnabled) {
+      const challenge = await this.createMfaChallenge(user.id, user.organisationId);
+      return { mfaRequired: true, mfaChallengeToken: challenge };
+    }
+    const permissions = Array.from(await this.permissionEvaluation.permissionsForRoleCode(PLATFORM_ROLE));
+    const enrollmentToken = this.jwt.sign(
+      {
+        sub: user.id,
+        organisationId: user.organisationId,
+        siteId: null,
+        roleCode: PLATFORM_ROLE,
+        permissions,
+        emailVerified: true,
+        mfaEnabled: false,
+        aud: "ops_enroll",
+      },
+      { expiresIn: OPS_ENROLL_TTL },
+    );
+    return { mfaEnrollmentRequired: true, enrollmentToken };
+  }
+
+  /** Password check shared by both front doors, including lockout bookkeeping. */
+  private async checkCredentials(email: string, password: string) {
     const user = await this.db.query.applicationUsers.findFirst({
       where: and(eq(applicationUsers.email, email), isNull(applicationUsers.deletedAt)),
     });
@@ -167,26 +234,11 @@ export class AuthService {
           this.assertNotLocked(lockedUntil);
         }
       }
-      throw new UnauthorizedException("Invalid email or password");
+      throw new UnauthorizedException(INVALID_CREDENTIALS);
     }
 
     await this.clearLoginLockout(user.id);
-
-    if (!user.emailVerifiedAt) {
-      return { emailVerificationRequired: true };
-    }
-
-    const { roleCode } = await this.resolveSessionRole(user.id);
-    if (!roleCode) {
-      throw new UnauthorizedException("Account has no role assignment — contact your administrator");
-    }
-
-    if (user.mfaEnabled) {
-      const challenge = await this.createMfaChallenge(user.id, user.organisationId);
-      return { mfaRequired: true, mfaChallengeToken: challenge };
-    }
-
-    return this.issueFullSession(user.id, user.organisationId, roleCode, true, false);
+    return user;
   }
 
   async verifyEmail(rawToken: string): Promise<AccessTokenResult> {
@@ -254,16 +306,16 @@ export class AuthService {
     const adminBase = (process.env.PUBLIC_ADMIN_BASE_URL ?? "http://localhost:3000").replace(/\/$/, "");
     const verifyUrl = `${adminBase}/auth/verify-email?token=${rawToken}`;
 
-    await this.notifications
-      .sendForOrganisation({
-        organisationId,
-        channelCode: "email",
-        recipientReference: email,
+    await this.templatedEmail.send({
+      templateCode: "email_verification",
+      organisationId,
+      to: email,
+      variables: { verifyUrl },
+      fallback: {
         subject: "Confirm your Buffr Checkpoint account",
-        message: `Confirm your Buffr Checkpoint account by opening this link within 24 hours:\n\n${verifyUrl}\n\nIf you did not create this account, ignore this email.`,
-        html: `<p>Confirm your Buffr Checkpoint account by clicking the link below within 24 hours.</p><p><a href="${verifyUrl}">Verify email address</a></p><p>If you did not create this account, ignore this email.</p>`,
-      })
-      .catch(() => undefined);
+        body: `Confirm your Buffr Checkpoint account by opening this link within 24 hours:\n\n${verifyUrl}\n\nIf you did not create this account, ignore this email.`,
+      },
+    });
   }
 
   async startMfaEnrollment(user: AuthenticatedUser): Promise<{ otpauthUrl: string; secret: string }> {
@@ -342,6 +394,23 @@ export class AuthService {
       .set({ mfaEnabled: true })
       .where(eq(applicationUsers.id, user.userId));
 
+    await this.templatedEmail.send({
+      templateCode: "mfa_enabled",
+      organisationId: user.organisationId,
+      to: account.email,
+      variables: { email: account.email },
+      fallback: {
+        subject: "Authenticator MFA is now enabled",
+        body: `Authenticator multi-factor authentication is now enabled on your Buffr Checkpoint account (${account.email}).\n\nStore your recovery codes somewhere safe. If you did not enable MFA, contact support immediately.`,
+      },
+    });
+
+    if (user.audience === "ops_enroll" || user.audience === "ops") {
+      // Staff enrolment: no customer onboarding state to move; issue the ops session.
+      const session = await this.issueFullSession(user.userId, user.organisationId, PLATFORM_ROLE, true, true, "ops");
+      return { recoveryCodes, nextPath: session.nextPath, accessToken: session.accessToken };
+    }
+
     await this.transitionOnboardingStatus(user.organisationId, "mfa_enrolled", user.userId, "organisation_profile");
     await this.transitionOnboardingStatus(user.organisationId, "in_progress", user.userId, "organisation_profile");
 
@@ -356,7 +425,12 @@ export class AuthService {
     return { recoveryCodes, nextPath: session.nextPath, accessToken: session.accessToken };
   }
 
-  async verifyMfaChallenge(challengeToken: string, rawCode: string, recoveryCode?: string): Promise<AccessTokenResult> {
+  async verifyMfaChallenge(
+    challengeToken: string,
+    rawCode: string,
+    recoveryCode?: string,
+    audience: "admin" | "ops" = "admin",
+  ): Promise<AccessTokenResult> {
     const tokenHash = hashOpaqueToken(challengeToken.trim(), "MFA_CHALLENGE_PEPPER");
     const challenge = await this.db.query.mfaChallengeTokens.findFirst({
       where: and(eq(mfaChallengeTokens.tokenHash, tokenHash), isNull(mfaChallengeTokens.consumedAt)),
@@ -414,6 +488,10 @@ export class AuthService {
       .where(eq(mfaChallengeTokens.id, challenge.id));
 
     const { roleCode } = await this.resolveSessionRole(user.id);
+    // Each front door only completes challenges for its own kind of account.
+    if ((audience === "ops") !== (roleCode === PLATFORM_ROLE)) {
+      throw new UnauthorizedException(INVALID_CREDENTIALS);
+    }
 
     return this.issueFullSession(
       user.id,
@@ -421,6 +499,7 @@ export class AuthService {
       roleCode ?? "owner_operator",
       true,
       true,
+      audience,
     );
   }
 
@@ -449,7 +528,8 @@ export class AuthService {
           grantId: authUser.supportGrantId,
           expiresAt: sessionRow?.expiresAt ?? null,
         },
-        onboarding: { status: "live", currentStep: "complete", completedSteps: [], complete: true, nextPath: "/dashboard/default" },
+        onboarding: { status: "live", currentStep: "complete", completedSteps: [], complete: true, nextPath: "/dashboard/overview" },
+        subscription: await this.resolveSubscriptionEntitlement(authUser.organisationId),
       };
     }
 
@@ -509,6 +589,7 @@ export class AuthService {
 
     const onboardingComplete = statusRow?.code === "live";
     const nextPath = this.resolveNextPath(userRow.emailVerifiedAt !== null, userRow.mfaEnabled, statusRow?.code, stepRow?.code);
+    const subscription = await this.resolveSubscriptionEntitlement(authUser.organisationId);
 
     return {
       user: {
@@ -534,6 +615,7 @@ export class AuthService {
         complete: onboardingComplete,
         nextPath,
       },
+      subscription,
     };
   }
 
@@ -597,6 +679,31 @@ export class AuthService {
     if (stepCode === "golive_approval") {
       if (!requiredDone || !account?.mfaEnabled) {
         throw new BadRequestException("Complete required onboarding steps and MFA before go-live approval");
+      }
+      const entitlement = await this.resolveSubscriptionEntitlement(user.organisationId);
+      if (!entitlement.operationalUseAllowed) {
+        const adminBase = (process.env.PUBLIC_ADMIN_BASE_URL ?? "https://admin.buffrcheckpoint.com").replace(/\/$/, "");
+        const org = await this.db.query.organisations.findFirst({
+          where: eq(organisations.id, user.organisationId),
+        });
+        if (account?.email) {
+          await this.templatedEmail.send({
+            templateCode: "suspension_warning",
+            organisationId: user.organisationId,
+            to: account.email,
+            variables: {
+              organisationName: org?.legalName ?? "your organisation",
+              billingUrl: `${adminBase}/dashboard/billing`,
+            },
+            fallback: {
+              subject: "Action needed: Buffr Checkpoint access may be limited",
+              body: `The subscription for ${org?.legalName ?? "your organisation"} is not active or on trial.\n\nGo-live stays blocked until billing is settled. Billing: ${adminBase}/dashboard/billing`,
+            },
+          });
+        }
+        throw new ForbiddenException(
+          "Go-live requires an active or trial subscription. Pay by EFT, upload proof of payment under Billing, and wait for Buffr ops to activate — or ask ops for a design-partner trial.",
+        );
       }
       statusCode = await this.typeDefs.id("organisation_onboarding_status", "live");
       await this.db
@@ -664,15 +771,17 @@ export class AuthService {
     });
 
     const adminBase = (process.env.PUBLIC_ADMIN_BASE_URL ?? "http://localhost:3000").replace(/\/$/, "");
-    await this.notifications
-      .sendForOrganisation({
-        organisationId: user.organisationId,
-        channelCode: "email",
-        recipientReference: user.email,
+    const resetUrl = `${adminBase}/auth/reset-password?token=${rawToken}`;
+    await this.templatedEmail.send({
+      templateCode: "password_reset",
+      organisationId: user.organisationId,
+      to: user.email,
+      variables: { resetUrl },
+      fallback: {
         subject: "Reset your Buffr Checkpoint password",
-        message: `Password reset requested. Open: ${adminBase}/auth/reset-password?token=${rawToken}`,
-      })
-      .catch(() => undefined);
+        body: `We received a request to reset the password for your Buffr Checkpoint account.\n\nOpen this link within one hour to choose a new password:\n${resetUrl}\n\nIf you did not request this, you can ignore this email. Your password will stay the same.`,
+      },
+    });
 
     return { tokenIssued: true };
   }
@@ -698,6 +807,26 @@ export class AuthService {
       })
       .where(eq(applicationUsers.id, candidate.userId));
     await this.db.delete(passwordResetTokens).where(eq(passwordResetTokens.id, candidate.id));
+
+    const account = await this.db.query.applicationUsers.findFirst({
+      where: eq(applicationUsers.id, candidate.userId),
+    });
+    if (account) {
+      const adminBase = (process.env.PUBLIC_ADMIN_BASE_URL ?? "http://localhost:3000").replace(/\/$/, "");
+      await this.templatedEmail.send({
+        templateCode: "password_changed",
+        organisationId: account.organisationId,
+        to: account.email,
+        variables: {
+          email: account.email,
+          forgotPasswordUrl: `${adminBase}/auth/forgot-password`,
+        },
+        fallback: {
+          subject: "Your Buffr Checkpoint password was changed",
+          body: `The password for your Buffr Checkpoint account (${account.email}) was changed successfully.\n\nIf you did not make this change, reset your password immediately: ${adminBase}/auth/forgot-password`,
+        },
+      });
+    }
 
     return { success: true };
   }
@@ -745,20 +874,26 @@ export class AuthService {
 
     if (shouldLock) {
       const adminBase = (process.env.PUBLIC_ADMIN_BASE_URL ?? "http://localhost:3000").replace(/\/$/, "");
-      await this.notifications
-        .sendForOrganisation({
-          organisationId: user.organisationId,
-          channelCode: "email",
-          recipientReference: user.email,
+      const lockoutMinutes = String(Math.round(LOGIN_LOCKOUT_MS / 60_000));
+      await this.templatedEmail.send({
+        templateCode: "account_lockout",
+        organisationId: user.organisationId,
+        to: user.email,
+        variables: {
+          lockoutMinutes,
+          forgotPasswordUrl: `${adminBase}/auth/forgot-password`,
+          lockedAtUtc: new Date(now).toISOString(),
+        },
+        fallback: {
           subject: "Buffr Checkpoint sign-in temporarily locked",
-          message: [
+          body: [
             "Someone tried to sign in to your Buffr Checkpoint account with the wrong password several times.",
-            `Your account is locked for about ${Math.round(LOGIN_LOCKOUT_MS / 60_000)} minutes.`,
+            `Your account is locked for about ${lockoutMinutes} minutes.`,
             `If this was not you, reset your password: ${adminBase}/auth/forgot-password`,
             `Time (UTC): ${new Date(now).toISOString()}`,
           ].join("\n\n"),
-        })
-        .catch(() => undefined);
+        },
+      });
     }
 
     return lockedUntil;
@@ -825,6 +960,7 @@ export class AuthService {
     roleCode: string,
     emailVerified: boolean,
     mfaEnabled: boolean,
+    audience: "admin" | "ops" = "admin",
   ): Promise<AccessTokenResult> {
     // Ops Console health-score signal ("admin login recency") — every
     // successful login path (password-only, post-MFA-challenge) converges
@@ -844,18 +980,23 @@ export class AuthService {
       ? await this.db.query.typeDefinition.findFirst({ where: eq(typeDefinition.id, onboarding.currentStepCode) })
       : null;
     const onboardingComplete = statusRow?.code === "live";
-    const nextPath = this.resolveNextPath(emailVerified, mfaEnabled, statusRow?.code, stepRow?.code);
+    const nextPath =
+      audience === "ops" ? "/" : this.resolveNextPath(emailVerified, mfaEnabled, statusRow?.code, stepRow?.code);
 
     const permissions = Array.from(await this.permissionEvaluation.permissionsForRoleCode(roleCode));
-    const accessToken = this.jwt.sign({
-      sub: userId,
-      organisationId,
-      siteId: null,
-      roleCode,
-      permissions,
-      emailVerified,
-      mfaEnabled,
-    });
+    const accessToken = this.jwt.sign(
+      {
+        sub: userId,
+        organisationId,
+        siteId: null,
+        roleCode,
+        permissions,
+        emailVerified,
+        mfaEnabled,
+        aud: audience,
+      },
+      { expiresIn: audience === "ops" ? OPS_SESSION_TTL : ADMIN_SESSION_TTL },
+    );
     return { accessToken, emailVerified, mfaEnabled, onboardingComplete, nextPath };
   }
 
@@ -867,9 +1008,49 @@ export class AuthService {
   ): string {
     if (!emailVerified) return "/auth/check-email";
     if (!mfaEnabled) return "/auth/mfa/setup";
-    if (statusCode === "live") return "/dashboard/default";
+    if (statusCode === "live") return "/dashboard/overview";
     if (stepCode) return `/onboarding/${stepCode.replace(/_/g, "-")}`;
     return "/onboarding/organisation-profile";
+  }
+
+  /**
+   * Operational use (go-live + post-go-live dashboard) requires subscription
+   * status `active` (POP approved) or `trial` (ops design-partner grant).
+   */
+  async resolveSubscriptionEntitlement(organisationId: string): Promise<{
+    operationalUseAllowed: boolean;
+    status: string | null;
+  }> {
+    const rows = await this.db
+      .select({
+        statusCode: organisationSubscription.statusCode,
+      })
+      .from(organisationSubscription)
+      .where(
+        and(
+          eq(organisationSubscription.organisationId, organisationId),
+          isNull(organisationSubscription.deletedAt),
+        ),
+      );
+
+    for (const row of rows) {
+      const statusRow = await this.db.query.typeDefinition.findFirst({
+        where: eq(typeDefinition.id, row.statusCode),
+      });
+      const code = statusRow?.code ?? null;
+      if (code === "active" || code === "trial") {
+        return { operationalUseAllowed: true, status: code };
+      }
+    }
+
+    const latest = rows[0];
+    if (!latest) {
+      return { operationalUseAllowed: false, status: null };
+    }
+    const statusRow = await this.db.query.typeDefinition.findFirst({
+      where: eq(typeDefinition.id, latest.statusCode),
+    });
+    return { operationalUseAllowed: false, status: statusRow?.code ?? null };
   }
 
   async transitionOnboardingStatus(

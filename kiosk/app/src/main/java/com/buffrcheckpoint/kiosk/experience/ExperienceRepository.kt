@@ -8,17 +8,26 @@ import com.buffrcheckpoint.kiosk.core.network.dto.EffectiveKioskExperienceRespon
 import com.buffrcheckpoint.kiosk.core.security.CredentialStore
 import com.buffrcheckpoint.kiosk.sync.OutboxDrainWorker
 import com.buffrcheckpoint.kiosk.sync.OutboxRepository
+import com.buffrcheckpoint.kiosk.ui.LogoDiskCache
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.time.Instant
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+
+class ExperienceSyncException(
+    message: String,
+    cause: Throwable? = null,
+) : Exception(message, cause)
 
 @Singleton
 class ExperienceRepository @Inject constructor(
     private val apiServiceProvider: ApiServiceProvider,
     private val credentialStore: CredentialStore,
     private val outboxRepository: OutboxRepository,
+    private val logoDiskCache: LogoDiskCache,
     @ApplicationContext private val appContext: Context,
 ) {
     private var cachedState: KioskExperienceState = KioskExperienceState()
@@ -28,22 +37,47 @@ class ExperienceRepository @Inject constructor(
 
     fun currentState(): KioskExperienceState = cachedState
 
+    /**
+     * Fetches published site experience. On network/API failure, keeps the
+     * last-good cache (if any) and throws [ExperienceSyncException] so the UI
+     * can surface the problem instead of silently falling back to product chrome.
+     */
     suspend fun syncFromBackend(): KioskExperienceState {
-        val siteId = credentialStore.siteId ?: return cachedState
+        val siteId = credentialStore.siteId
+            ?: throw ExperienceSyncException("Site is not configured on this kiosk.")
         val effective = try {
             apiServiceProvider.get().effectiveKioskExperience(siteId)
-        } catch (_: Exception) {
-            null
+        } catch (e: Exception) {
+            loadCached()
+            throw ExperienceSyncException(
+                "Could not refresh site branding — showing last saved look if available.",
+                e,
+            )
+        } ?: run {
+            loadCached()
+            throw ExperienceSyncException(
+                "Site experience response was empty — showing last saved look if available.",
+            )
         }
 
         cachedState = mapEffective(effective)
         credentialStore.cacheExperience(cachedState)
+        withContext(Dispatchers.IO) {
+            logoDiskCache.prefetch(cachedState.logoUrl)
+        }
         return cachedState
     }
 
     fun loadCached(): KioskExperienceState {
         cachedState = credentialStore.loadCachedExperience() ?: cachedState
         return cachedState
+    }
+
+    fun clearCachedExperience() {
+        cachedState = KioskExperienceState()
+        credentialStore.clearExperienceCache()
+        logoDiskCache.clear()
+        clearVisitorSession()
     }
 
     fun setSelectedLanguage(code: String) {
@@ -112,9 +146,7 @@ class ExperienceRepository @Inject constructor(
         kioskSessionId = null
     }
 
-    private fun mapEffective(effective: EffectiveKioskExperienceResponse?): KioskExperienceState {
-        if (effective == null) return loadCached()
-
+    private fun mapEffective(effective: EffectiveKioskExperienceResponse): KioskExperienceState {
         val branding = effective.branding?.version
         val channelCodes = buildSet {
             effective.channels.mapTo(this) { it.captureChannelCode }

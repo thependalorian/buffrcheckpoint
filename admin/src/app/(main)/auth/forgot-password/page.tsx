@@ -7,7 +7,7 @@ import { AuthCardHeader, AuthLayout } from "../_components/auth-layout";
 import { ForgotPasswordForm } from "../_components/forgot-password-form";
 
 export const metadata: Metadata = {
-  title: "Forgot password: Buffr Checkpoint",
+  title: "Forgot password: Checkpoint",
 };
 
 export default function ForgotPasswordPage() {

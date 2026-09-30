@@ -6,6 +6,7 @@ import { PlatformScoped } from "../../common/decorators/platform-scoped.decorato
 import { RequirePermission } from "../../common/decorators/require-permission.decorator";
 import { PERMISSIONS } from "../../common/rbac/permissions";
 import { DevicesService } from "../devices/devices.service";
+import { CimsoIntegrationService } from "../integrations/cimso/cimso-integration.service";
 import { OrganisationHealthService } from "../organisation-health/organisation-health.service";
 import { SitesService } from "../sites/sites.service";
 import { PlatformDashboardService } from "./platform-dashboard.service";
@@ -37,6 +38,7 @@ export class PlatformDashboardController {
     private readonly health: OrganisationHealthService,
     private readonly devices: DevicesService,
     private readonly sites: SitesService,
+    private readonly cimso: CimsoIntegrationService,
   ) {}
 
   @Get("overview")
@@ -118,6 +120,13 @@ export class PlatformDashboardController {
   @PlatformScoped()
   orgSites(@Param("id") id: string) {
     return this.sites.listForOrganisation(id);
+  }
+
+  @Get("organisations/:id/pms-integrations")
+  @RequirePermission(PERMISSIONS.PLATFORM_DASHBOARD_READ)
+  @PlatformScoped()
+  orgPmsIntegrations(@Param("id") id: string) {
+    return this.cimso.listForOrganisation(id);
   }
 
   @Get("devices/:deviceId")

@@ -11,6 +11,7 @@ import {
   createPrivacyDocumentAction,
   createRetentionPolicyAction,
   inviteUserAction,
+  changeUserRoleAction,
   issueCredentialAction,
   revokeCredentialAction,
   retireDeviceAction,
@@ -41,7 +42,7 @@ export function CreateFormSheet({ sites }: { sites: Array<{ id: string; name: st
       <SheetContent>
         <SheetHeader>
           <SheetTitle>Create visitor form</SheetTitle>
-          <SheetDescription>Creates a definition, draft version with a name field, and publishes it.</SheetDescription>
+          <SheetDescription>Creates a form definition and an empty draft version. Open the builder to add fields, then publish.</SheetDescription>
         </SheetHeader>
         <form
           className="mt-6 space-y-4"
@@ -51,13 +52,13 @@ export function CreateFormSheet({ sites }: { sites: Array<{ id: string; name: st
             const data = new FormData(event.currentTarget);
             state.startTransition(async () => {
               try {
-                await createFormDefinitionAction({
+                const created = await createFormDefinitionAction({
                   formName: String(data.get("formName") ?? ""),
                   visitorCategoryCode: String(data.get("visitorCategoryCode") ?? "general"),
                   siteId: String(data.get("siteId") ?? "") || undefined,
                 });
                 state.setOpen(false);
-                state.router.refresh();
+                state.router.push(`/dashboard/policies/forms/${created.id}`);
               } catch (err) {
                 state.setError(err instanceof Error ? err.message : "Could not create form");
               }
@@ -85,7 +86,7 @@ export function CreateFormSheet({ sites }: { sites: Array<{ id: string; name: st
           </div>
           {state.error ? <p className="text-destructive text-sm">{state.error}</p> : null}
           <Button type="submit" disabled={state.pending} className="w-full">
-            {state.pending ? "Saving…" : "Create and publish"}
+            {state.pending ? "Saving…" : "Create draft"}
           </Button>
         </form>
       </SheetContent>
@@ -341,8 +342,16 @@ export function CreateDeviceSheet({ sites }: { sites: Array<{ id: string; name: 
   );
 }
 
-export function InviteUserSheet() {
+export function InviteUserSheet({
+  roles,
+  sites,
+}: {
+  roles: Array<{ code: string; label: string }>;
+  sites: Array<{ id: string; name: string }>;
+}) {
   const state = useSheetSubmit();
+  const [roleCode, setRoleCode] = useState(roles[0]?.code ?? "front_desk_operator");
+
   return (
     <Sheet open={state.open} onOpenChange={state.setOpen}>
       <SheetTrigger asChild>
@@ -351,7 +360,10 @@ export function InviteUserSheet() {
       <SheetContent>
         <SheetHeader>
           <SheetTitle>Invite user</SheetTitle>
-          <SheetDescription>Creates an organisation user who must verify email before signing in.</SheetDescription>
+          <SheetDescription>
+            Creates an organisation user with a chosen role. They must verify email before signing in. On a small site,
+            one person holds Owner-Operator to cover several jobs.
+          </SheetDescription>
         </SheetHeader>
         <form
           className="mt-6 space-y-4"
@@ -359,11 +371,14 @@ export function InviteUserSheet() {
             event.preventDefault();
             state.setError(null);
             const data = new FormData(event.currentTarget);
+            const siteId = String(data.get("siteId") ?? "");
             state.startTransition(async () => {
               try {
                 await inviteUserAction({
                   email: String(data.get("email") ?? ""),
                   password: String(data.get("password") ?? ""),
+                  roleCode: String(data.get("roleCode") ?? roleCode),
+                  siteId: siteId || undefined,
                 });
                 state.setOpen(false);
                 state.router.refresh();
@@ -381,9 +396,148 @@ export function InviteUserSheet() {
             <Label htmlFor="password">Temporary password</Label>
             <Input id="password" name="password" type="password" minLength={12} required />
           </div>
+          <div className="space-y-2">
+            <Label htmlFor="roleCode">Role</Label>
+            <select
+              id="roleCode"
+              name="roleCode"
+              className="border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
+              value={roleCode}
+              onChange={(e) => setRoleCode(e.target.value)}
+              required
+            >
+              {roles.map((r) => (
+                <option key={r.code} value={r.code}>
+                  {r.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          {sites.length > 0 ? (
+            <div className="space-y-2">
+              <Label htmlFor="siteId">Site scope (optional)</Label>
+              <select
+                id="siteId"
+                name="siteId"
+                className="border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
+                defaultValue=""
+              >
+                <option value="">Organisation-wide</option>
+                {sites.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : null}
+          {state.error ? <p className="text-destructive text-sm">{state.error}</p> : null}
+          <Button type="submit" disabled={state.pending || roles.length === 0} className="w-full">
+            {state.pending ? "Inviting…" : "Send invite"}
+          </Button>
+        </form>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+export function ChangeUserRoleSheet({
+  userId,
+  userEmail,
+  currentRoleCode,
+  roles,
+  sites,
+}: {
+  userId: string;
+  userEmail: string;
+  currentRoleCode: string;
+  roles: Array<{ code: string; label: string }>;
+  sites: Array<{ id: string; name: string }>;
+}) {
+  const state = useSheetSubmit();
+  const [roleCode, setRoleCode] = useState(
+    roles.find((r) => r.code === currentRoleCode)?.code ?? roles[0]?.code ?? "front_desk_operator",
+  );
+
+  return (
+    <Sheet open={state.open} onOpenChange={state.setOpen}>
+      <SheetTrigger asChild>
+        <Button size="sm" variant="outline">
+          Change role
+        </Button>
+      </SheetTrigger>
+      <SheetContent>
+        <SheetHeader>
+          <SheetTitle>Change role</SheetTitle>
+          <SheetDescription>
+            Update access for {userEmail}. Role changes are audited. You are blocked from changing your own role.
+          </SheetDescription>
+        </SheetHeader>
+        <form
+          className="mt-6 space-y-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            state.setError(null);
+            const data = new FormData(event.currentTarget);
+            const siteId = String(data.get("siteId") ?? "");
+            state.startTransition(async () => {
+              try {
+                await changeUserRoleAction({
+                  userId,
+                  newRoleCode: String(data.get("roleCode") ?? roleCode),
+                  reason: String(data.get("reason") ?? ""),
+                  siteId: siteId || undefined,
+                });
+                state.setOpen(false);
+                state.router.refresh();
+              } catch (err) {
+                state.setError(err instanceof Error ? err.message : "Could not change role");
+              }
+            });
+          }}
+        >
+          <div className="space-y-2">
+            <Label htmlFor={`role-${userId}`}>Role</Label>
+            <select
+              id={`role-${userId}`}
+              name="roleCode"
+              className="border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
+              value={roleCode}
+              onChange={(e) => setRoleCode(e.target.value)}
+              required
+            >
+              {roles.map((r) => (
+                <option key={r.code} value={r.code}>
+                  {r.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          {sites.length > 0 ? (
+            <div className="space-y-2">
+              <Label htmlFor={`site-${userId}`}>Site scope (optional)</Label>
+              <select
+                id={`site-${userId}`}
+                name="siteId"
+                className="border-input bg-background h-9 w-full rounded-md border px-3 text-sm"
+                defaultValue=""
+              >
+                <option value="">Organisation-wide</option>
+                {sites.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : null}
+          <div className="space-y-2">
+            <Label htmlFor={`reason-${userId}`}>Reason</Label>
+            <Textarea id={`reason-${userId}`} name="reason" required minLength={8} rows={3} />
+          </div>
           {state.error ? <p className="text-destructive text-sm">{state.error}</p> : null}
           <Button type="submit" disabled={state.pending} className="w-full">
-            {state.pending ? "Inviting…" : "Send invite"}
+            {state.pending ? "Saving…" : "Save role change"}
           </Button>
         </form>
       </SheetContent>

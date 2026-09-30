@@ -1,12 +1,9 @@
--- Default published check-in form for Buffr Analytics demo org (FR-K09).
--- Org: 47c8b69b-5d9c-499d-a759-debc33e87c5e
+-- Default published check-in form for Buffr Analytics demo org (FR-K09 / v0.28).
+-- Org: b51f0704-12a7-45d4-8b0d-3642785b6e77
 -- Safe to re-run (upsert by id).
 
 WITH types AS (
   SELECT code, id FROM type_definition WHERE domain = 'visitor_type' AND deleted_at IS NULL
-),
-field_class AS (
-  SELECT code, id FROM type_definition WHERE domain = 'field_class' AND deleted_at IS NULL
 ),
 form_status AS (
   SELECT code, id FROM type_definition WHERE domain = 'form_version_status' AND deleted_at IS NULL
@@ -16,7 +13,7 @@ INSERT INTO check_in_form_definitions (
 )
 SELECT
   'f1111111-1111-4111-8111-111111111101'::uuid,
-  '47c8b69b-5d9c-499d-a759-debc33e87c5e'::uuid,
+  'b51f0704-12a7-45d4-8b0d-3642785b6e77'::uuid,
   (SELECT id FROM types WHERE code = 'general'),
   NULL,
   'General visitor check-in',
@@ -42,26 +39,124 @@ ON CONFLICT (id) DO UPDATE SET
   deleted_at = NULL;
 
 INSERT INTO check_in_form_fields (
-  id, form_version_id, field_code, field_label, data_classification_code,
-  required, visibility_rule, validation_schema, display_order, deleted_at
+  id, form_version_id, field_code, field_label, field_type_code, help_text,
+  data_classification_code, required, visibility_rule, validation_schema, display_order, deleted_at
 )
-SELECT v.id, v.form_version_id, v.field_code, v.field_label,
+SELECT
+  v.id,
+  v.form_version_id,
+  v.field_code,
+  v.field_label,
+  (SELECT id FROM type_definition WHERE domain = 'field_type' AND code = v.field_type AND deleted_at IS NULL LIMIT 1),
+  v.help_text,
   (SELECT id FROM type_definition WHERE domain = 'field_class' AND code = v.field_class AND deleted_at IS NULL LIMIT 1),
-  v.required, '{}'::jsonb, '{}'::jsonb, v.display_order, NULL
+  v.required,
+  v.visibility_rule::jsonb,
+  v.validation_schema::jsonb,
+  v.display_order,
+  NULL
 FROM (VALUES
-  ('f1111111-1111-4111-8111-111111111301'::uuid, 'f1111111-1111-4111-8111-111111111201'::uuid, 'visitor_name', 'Full name', 'core', TRUE, 1),
-  ('f1111111-1111-4111-8111-111111111302'::uuid, 'f1111111-1111-4111-8111-111111111201'::uuid, 'visitor_phone', 'Mobile number', 'core', TRUE, 2),
-  ('f1111111-1111-4111-8111-111111111303'::uuid, 'f1111111-1111-4111-8111-111111111201'::uuid, 'company_name', 'Organisation / company', 'basic', TRUE, 3),
-  ('f1111111-1111-4111-8111-111111111304'::uuid, 'f1111111-1111-4111-8111-111111111201'::uuid, 'visitor_email', 'Email (optional)', 'basic', FALSE, 4),
-  ('f1111111-1111-4111-8111-111111111305'::uuid, 'f1111111-1111-4111-8111-111111111201'::uuid, 'id_document_number', 'ID / passport (optional)', 'sensitive', FALSE, 5),
-  ('f1111111-1111-4111-8111-111111111306'::uuid, 'f1111111-1111-4111-8111-111111111201'::uuid, 'vehicle_registration', 'Vehicle registration (optional)', 'basic', FALSE, 6),
-  ('f1111111-1111-4111-8111-111111111307'::uuid, 'f1111111-1111-4111-8111-111111111201'::uuid, 'host', 'Who are you visiting', 'core', TRUE, 7),
-  ('f1111111-1111-4111-8111-111111111308'::uuid, 'f1111111-1111-4111-8111-111111111201'::uuid, 'purpose_category', 'Purpose of visit', 'basic', FALSE, 8)
-) AS v(id, form_version_id, field_code, field_label, field_class, required, display_order)
+  (
+    'f1111111-1111-4111-8111-111111111301'::uuid,
+    'f1111111-1111-4111-8111-111111111201'::uuid,
+    'visitor_name', 'Full name', 'text', NULL::text, 'core', TRUE,
+    '{}', '{}', 1
+  ),
+  (
+    'f1111111-1111-4111-8111-111111111302'::uuid,
+    'f1111111-1111-4111-8111-111111111201'::uuid,
+    'visitor_phone', 'Mobile number', 'phone', NULL::text, 'core', TRUE,
+    '{}', '{}', 2
+  ),
+  (
+    'f1111111-1111-4111-8111-111111111303'::uuid,
+    'f1111111-1111-4111-8111-111111111201'::uuid,
+    'company_name', 'Organisation / company', 'text', NULL::text, 'basic', TRUE,
+    '{}', '{}', 3
+  ),
+  (
+    'f1111111-1111-4111-8111-111111111304'::uuid,
+    'f1111111-1111-4111-8111-111111111201'::uuid,
+    'visitor_email', 'Email (optional)', 'email', NULL::text, 'basic', FALSE,
+    '{}', '{}', 4
+  ),
+  (
+    'f1111111-1111-4111-8111-111111111305'::uuid,
+    'f1111111-1111-4111-8111-111111111201'::uuid,
+    'id_document_number', 'ID / passport (optional)', 'text', NULL::text, 'sensitive', FALSE,
+    '{}', '{}', 5
+  ),
+  (
+    'f1111111-1111-4111-8111-111111111307'::uuid,
+    'f1111111-1111-4111-8111-111111111201'::uuid,
+    'host', 'Who are you visiting', 'text', NULL::text, 'core', TRUE,
+    '{}', '{}', 6
+  ),
+  (
+    'f1111111-1111-4111-8111-111111111308'::uuid,
+    'f1111111-1111-4111-8111-111111111201'::uuid,
+    'purpose_category', 'Purpose of visit', 'single_choice', NULL::text, 'basic', FALSE,
+    '{}',
+    '{"options":["meeting","delivery","interview","vehicle","other"]}',
+    7
+  ),
+  (
+    'f1111111-1111-4111-8111-111111111306'::uuid,
+    'f1111111-1111-4111-8111-111111111201'::uuid,
+    'vehicle_registration', 'Vehicle registration', 'text',
+    'Required when purpose is vehicle-related',
+    'basic', FALSE,
+    '{"op":"and","conditions":[{"fieldCode":"purpose_category","equals":"vehicle"}]}',
+    '{"requiredIf":{"op":"and","conditions":[{"fieldCode":"purpose_category","equals":"vehicle"}]}}',
+    8
+  )
+) AS v(
+  id, form_version_id, field_code, field_label, field_type, help_text, field_class,
+  required, visibility_rule, validation_schema, display_order
+)
 ON CONFLICT (id) DO UPDATE SET
   field_label = EXCLUDED.field_label,
+  field_type_code = EXCLUDED.field_type_code,
+  help_text = EXCLUDED.help_text,
   required = EXCLUDED.required,
+  visibility_rule = EXCLUDED.visibility_rule,
+  validation_schema = EXCLUDED.validation_schema,
   display_order = EXCLUDED.display_order,
+  deleted_at = NULL;
+
+INSERT INTO check_in_form_field_translations (
+  id, field_id, language_code, field_label, help_text, deleted_at
+)
+SELECT
+  v.id,
+  v.field_id,
+  (SELECT id FROM type_definition WHERE domain = 'language_code' AND code = v.lang AND deleted_at IS NULL LIMIT 1),
+  v.field_label,
+  v.help_text,
+  NULL
+FROM (VALUES
+  (
+    'f1111111-1111-4111-8111-111111111501'::uuid,
+    'f1111111-1111-4111-8111-111111111301'::uuid,
+    'af', 'Volle naam', NULL::text
+  ),
+  (
+    'f1111111-1111-4111-8111-111111111502'::uuid,
+    'f1111111-1111-4111-8111-111111111302'::uuid,
+    'af', 'Selfoonnommer', NULL::text
+  ),
+  (
+    'f1111111-1111-4111-8111-111111111503'::uuid,
+    'f1111111-1111-4111-8111-111111111306'::uuid,
+    'af', 'Voertuigregistrasie', 'Verpligtend wanneer die doel voertuigverwant is'
+  )
+) AS v(id, field_id, lang, field_label, help_text)
+WHERE EXISTS (
+  SELECT 1 FROM type_definition WHERE domain = 'language_code' AND code = v.lang AND deleted_at IS NULL
+)
+ON CONFLICT (id) DO UPDATE SET
+  field_label = EXCLUDED.field_label,
+  help_text = EXCLUDED.help_text,
   deleted_at = NULL;
 
 INSERT INTO visitor_categories (
@@ -70,7 +165,7 @@ INSERT INTO visitor_categories (
 )
 SELECT
   'f1111111-1111-4111-8111-111111111401'::uuid,
-  '47c8b69b-5d9c-499d-a759-debc33e87c5e'::uuid,
+  'b51f0704-12a7-45d4-8b0d-3642785b6e77'::uuid,
   (SELECT id FROM type_definition WHERE domain = 'visitor_type' AND code = 'general' AND deleted_at IS NULL LIMIT 1),
   'f1111111-1111-4111-8111-111111111101'::uuid,
   (SELECT id FROM type_definition WHERE domain = 'identity_assurance_level' AND code = 'V0' AND deleted_at IS NULL LIMIT 1),

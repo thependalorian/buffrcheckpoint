@@ -1,8 +1,9 @@
 import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 import { EventEmitter2 } from "@nestjs/event-emitter";
-import { and, desc, eq, inArray, isNull } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNull, lt, lte, or, type SQL } from "drizzle-orm";
 
 import { resolvePublicAssetUrl } from "../../common/assets/public-asset-url";
+import { isVisitStatusCode } from "../../common/canonical-codes";
 import {
   PersonalDataProtectionService,
   type ProtectedPersonalDataEnvelope,
@@ -16,10 +17,10 @@ import {
   siteHosts,
   sites,
   typeDefinition,
-  visitorPersonalData,
-  visitorSubjects,
   visitFormAnswers,
   visitInvitations,
+  visitorPersonalData,
+  visitorSubjects,
   visitorVisits,
   visitStatusEvents,
 } from "../../db/schema";
@@ -29,11 +30,11 @@ import { KioskExperienceService } from "../kiosk-experience/kiosk-experience.ser
 import { buildHostNotificationHtml } from "../notifications/host-notification-email";
 import { SiteBrandingService } from "../site-branding/site-branding.service";
 import { SiteQrReferencesService } from "../site-qr-references/site-qr-references.service";
+import { VisitorDataMinimisationService } from "../visitor-policy/visitor-data-minimisation.service";
 import { VisitorPolicyService } from "../visitor-policy/visitor-policy.service";
 import { VisitorWaitQueueService } from "../visitor-wait-queue/visitor-wait-queue.service";
 import type { CheckInDto } from "./dto/check-in.dto";
 import type { PublicCheckInDto, PublicCheckOutDto } from "./dto/public-check-in.dto";
-import { isVisitStatusCode } from "../../common/canonical-codes";
 import { resolveVisitorNextSteps } from "./visitor-next-steps";
 import { randomUUID } from "node:crypto";
 
@@ -86,6 +87,7 @@ export class VisitsService {
     private readonly invitations: InvitationsService,
     private readonly waitQueue: VisitorWaitQueueService,
     private readonly visitorPolicy: VisitorPolicyService,
+    private readonly dataMinimisation: VisitorDataMinimisationService,
   ) {}
 
   // Section 8.1/8.5's walk-in and offline journeys. Idempotent: a retried
@@ -119,6 +121,7 @@ export class VisitsService {
       permissions: [],
       emailVerified: true,
       mfaEnabled: true,
+      audience: "admin",
     };
 
     return this.insertCheckIn(
@@ -198,12 +201,18 @@ export class VisitsService {
     };
   }
 
-  async getPublicCheckInForm(siteId: string, referenceId: string, visitorTypeCode: string) {
+  async getPublicCheckInForm(
+    siteId: string,
+    referenceId: string,
+    visitorTypeCode: string,
+    languageCode?: string,
+  ) {
     const validated = await this.siteQrReferences.validatePublicCheckInReference(siteId, referenceId);
     return this.visitorPolicy.resolveEffectiveForm(
       validated.organisationId,
       validated.siteId,
       visitorTypeCode.trim() || "general",
+      languageCode,
     );
   }
 
@@ -254,6 +263,7 @@ export class VisitsService {
       permissions: [],
       emailVerified: true,
       mfaEnabled: true,
+      audience: "admin",
     };
 
     const branding = await this.resolvePublicBranding(validated.organisationId, validated.siteId);
@@ -277,6 +287,7 @@ export class VisitsService {
         checkedInAt: new Date().toISOString(),
         offlineCaptured: false,
         formAnswers: dto.formAnswers,
+        languageCode: dto.languageCode,
       },
       systemUser,
     );
@@ -332,10 +343,7 @@ export class VisitsService {
     };
   }
 
-  private async resolvePublicBranding(
-    organisationId: string,
-    siteId: string,
-  ): Promise<PublicCheckInBranding | null> {
+  private async resolvePublicBranding(organisationId: string, siteId: string): Promise<PublicCheckInBranding | null> {
     const bundle = await this.siteBranding.getPublishedForOrganisationSite(organisationId, siteId);
     if (!bundle?.version) return null;
     const { version } = bundle;
@@ -357,6 +365,31 @@ export class VisitsService {
     if (!siteRow) {
       throw new ForbiddenException("Site does not belong to your organisation");
     }
+
+    // Validate form answers before any visit / PII writes so a failed
+    // minimisation check cannot leave an orphan checked-in visit.
+    const effectiveForm = await this.visitorPolicy.resolveEffectiveForm(
+      user.organisationId,
+      dto.siteId,
+      dto.visitorTypeCode,
+      dto.languageCode,
+    );
+    const validatedAnswers = this.dataMinimisation.validateCheckInAnswers({
+      form: effectiveForm
+        ? {
+            formVersionId: effectiveForm.formVersionId,
+            fields: effectiveForm.fields.map((f) => ({
+              fieldCode: f.fieldCode,
+              fieldLabel: f.fieldLabel,
+              required: f.required,
+              dataClassificationCode: f.dataClassificationCode,
+              visibilityRule: f.visibilityRule,
+              validationSchema: f.validationSchema,
+            })),
+          }
+        : null,
+      formAnswers: dto.formAnswers,
+    });
 
     // A first-time walk-in with no visitorId gets a real visitor_subjects/
     // visitor_personal_data row created here, so the roster has a real
@@ -455,9 +488,9 @@ export class VisitsService {
         await this.invitations.matchAtCheckIn(dto.invitationId, user);
       }
 
-      if (dto.formAnswers?.length) {
+      if (validatedAnswers.length) {
         await this.db.insert(visitFormAnswers).values(
-          dto.formAnswers.map((answer) => ({
+          validatedAnswers.map((answer) => ({
             id: randomUUID(),
             organisationId: user.organisationId,
             visitId: dto.id,
@@ -525,16 +558,21 @@ export class VisitsService {
 
         const visitorName = dto.visitorName?.trim() || "A visitor";
         const siteLabel = siteRowForNotify?.name ?? "reception";
-        const detailLines = [
-          `${visitorName} has checked in at ${siteLabel}.`,
+        const detailParts = [
           visitorTypeLabel ? `Visitor type: ${visitorTypeLabel}` : null,
           dto.companyName?.trim() ? `Organisation: ${dto.companyName.trim()}` : null,
           purposeLabel ? `Purpose: ${purposeLabel}` : null,
           dto.visitorPhone?.trim() ? `Mobile: ${dto.visitorPhone.trim()}` : null,
           dto.visitorEmail?.trim() ? `Email: ${dto.visitorEmail.trim()}` : null,
           queue ? `Queue ticket: #${queue.queueNumber} (${queue.peopleAhead} ahead)` : null,
+          hostRow?.department ? `Your unit: ${hostRow.department}` : null,
+        ].filter(Boolean) as string[];
+        const detailBlock = detailParts.join("\n");
+        const detailLines = [
+          `${visitorName} has checked in at ${siteLabel}.`,
+          ...detailParts,
           "Please come to reception to meet them.",
-        ].filter(Boolean);
+        ];
 
         const brandingForMail = await this.resolvePublicBranding(user.organisationId, dto.siteId);
         const html = buildHostNotificationHtml({
@@ -560,6 +598,9 @@ export class VisitsService {
             `${visitorName} is waiting at ${siteLabel} reception`,
             detailLines.join("\n"),
             html,
+            visitorName,
+            siteLabel,
+            detailBlock,
           ),
         );
       }
@@ -639,9 +680,9 @@ export class VisitsService {
    * Does not expose a visitor directory — phone must match an open visit.
    */
   async signOutByPhone(siteId: string, visitorPhone: string, user: AuthenticatedUser) {
-    const phoneHmac = this.dataProtection.lookupHmac(visitorPhone.trim(), "PHONE_HASH_PEPPER");
+    const phoneHmacs = this.dataProtection.phoneLookupHmacCandidates(visitorPhone);
     const personalRows = await this.db.query.visitorPersonalData.findMany({
-      where: eq(visitorPersonalData.phoneLookupHmac, phoneHmac),
+      where: inArray(visitorPersonalData.phoneLookupHmac, phoneHmacs),
     });
     if (personalRows.length === 0) {
       throw new NotFoundException("No open visit found for that phone at this site");
@@ -661,12 +702,18 @@ export class VisitsService {
     if (!visit) {
       throw new NotFoundException("No open visit found for that phone at this site");
     }
+    const remainingOpen = openVisits.length - 1;
     const checkedOut = await this.checkOut(visit.id, user);
     return {
       visitId: checkedOut.id,
       siteId: checkedOut.siteId,
       checkedOutAt: checkedOut.checkedOutAt?.toISOString() ?? new Date().toISOString(),
       confirmationCode: visit.id.replace(/-/g, "").slice(0, 8).toUpperCase(),
+      remainingOpenVisits: remainingOpen,
+      message:
+        remainingOpen > 0
+          ? `Signed out the most recent visit. ${remainingOpen} other open visit(s) remain for this phone — sign out again if needed.`
+          : undefined,
     };
   }
 
@@ -680,6 +727,7 @@ export class VisitsService {
       permissions: [],
       emailVerified: true,
       mfaEnabled: true,
+      audience: "admin",
     };
 
     if (dto.visitId) {
@@ -696,8 +744,8 @@ export class VisitsService {
         const personal = await this.db.query.visitorPersonalData.findFirst({
           where: eq(visitorPersonalData.visitorId, visit.visitorId),
         });
-        const phoneHmac = this.dataProtection.lookupHmac(dto.visitorPhone.trim(), "PHONE_HASH_PEPPER");
-        if (!personal || personal.phoneLookupHmac !== phoneHmac) {
+        const phoneHmacs = this.dataProtection.phoneLookupHmacCandidates(dto.visitorPhone);
+        if (!personal || !personal.phoneLookupHmac || !phoneHmacs.includes(personal.phoneLookupHmac)) {
           throw new BadRequestException("Phone does not match this visit confirmation");
         }
       }
@@ -719,7 +767,11 @@ export class VisitsService {
     const pendingStatus = await this.typeDefs.id("visit_status", "pending_approval");
     const admittedStatus = await this.typeDefs.id("visit_status", "admitted");
     const visit = await this.db.query.visitorVisits.findFirst({
-      where: and(eq(visitorVisits.id, visitId), eq(visitorVisits.organisationId, user.organisationId), isNull(visitorVisits.deletedAt)),
+      where: and(
+        eq(visitorVisits.id, visitId),
+        eq(visitorVisits.organisationId, user.organisationId),
+        isNull(visitorVisits.deletedAt),
+      ),
     });
     if (!visit) throw new NotFoundException("Visit not found");
     if (visit.statusCode !== pendingStatus) {
@@ -749,7 +801,11 @@ export class VisitsService {
     const pendingStatus = await this.typeDefs.id("visit_status", "pending_approval");
     const rejectedStatus = await this.typeDefs.id("visit_status", "entry_rejected");
     const visit = await this.db.query.visitorVisits.findFirst({
-      where: and(eq(visitorVisits.id, visitId), eq(visitorVisits.organisationId, user.organisationId), isNull(visitorVisits.deletedAt)),
+      where: and(
+        eq(visitorVisits.id, visitId),
+        eq(visitorVisits.organisationId, user.organisationId),
+        isNull(visitorVisits.deletedAt),
+      ),
     });
     if (!visit) throw new NotFoundException("Visit not found");
     if (visit.statusCode !== pendingStatus) {
@@ -803,6 +859,55 @@ export class VisitsService {
       orderBy: [desc(visitorVisits.checkedInAt)],
       limit: 200,
     });
+    return this.resolveRosterRows(visits);
+  }
+
+  /**
+   * Date-range, cursor-paginated visit search — same keyset-pagination
+   * shape as AuditService.listForOrganisation, for the same reason: a plain
+   * OFFSET would skip/duplicate rows as new check-ins land between page
+   * fetches. Separate from listRoster (kept unchanged for its existing
+   * callers — kiosk roster, front-desk/emergency "currently open" views)
+   * because a date-searchable history query is a genuinely different shape
+   * of request, not a superset of "who's on site right now."
+   */
+  async searchRoster(
+    user: AuthenticatedUser,
+    input: { siteId?: string; from?: string; to?: string; limit?: number; cursor?: string },
+  ): Promise<{ rows: VisitRosterRow[]; nextCursor: string | null }> {
+    const limit = Math.min(input.limit ?? 50, 200);
+    const conditions: SQL[] = [eq(visitorVisits.organisationId, user.organisationId), isNull(visitorVisits.deletedAt)];
+    if (input.siteId) conditions.push(eq(visitorVisits.siteId, input.siteId));
+    if (input.from) conditions.push(gte(visitorVisits.checkedInAt, new Date(input.from)));
+    if (input.to) conditions.push(lte(visitorVisits.checkedInAt, new Date(input.to)));
+
+    if (input.cursor) {
+      const separatorIndex = input.cursor.lastIndexOf("_");
+      const cursorCheckedInAt = new Date(input.cursor.slice(0, separatorIndex));
+      const cursorId = input.cursor.slice(separatorIndex + 1);
+      const cursorCondition = or(
+        lt(visitorVisits.checkedInAt, cursorCheckedInAt),
+        and(eq(visitorVisits.checkedInAt, cursorCheckedInAt), lt(visitorVisits.id, cursorId)),
+      );
+      if (cursorCondition) conditions.push(cursorCondition);
+    }
+
+    const visits = await this.db.query.visitorVisits.findMany({
+      where: and(...conditions),
+      orderBy: [desc(visitorVisits.checkedInAt), desc(visitorVisits.id)],
+      limit: limit + 1,
+    });
+
+    const hasMore = visits.length > limit;
+    const page = hasMore ? visits.slice(0, limit) : visits;
+    const last = page.at(-1);
+    const nextCursor = hasMore && last ? `${last.checkedInAt.toISOString()}_${last.id}` : null;
+
+    return { rows: await this.resolveRosterRows(page), nextCursor };
+  }
+
+  /** Resolves *_code FKs to labels and decrypts visitor/host display names — shared by listRoster and searchRoster (Part Three §4's default-table-response rule: the admin UI never receives raw envelope ciphertext or opaque uuids). */
+  private async resolveRosterRows(visits: (typeof visitorVisits.$inferSelect)[]): Promise<VisitRosterRow[]> {
     if (visits.length === 0) return [];
 
     const codeIds = Array.from(
@@ -864,6 +969,40 @@ export class VisitsService {
         requiresAction: isVisitStatusCode(statusCode) && statusCode === "pending_approval",
       };
     });
+  }
+
+  /** CSV export for the same date-range search, no pagination cap — "pull everyone who visited last Tuesday" as a file a front-desk lead can hand to an auditor. */
+  async exportRosterCsv(
+    user: AuthenticatedUser,
+    input: { siteId?: string; from?: string; to?: string },
+  ): Promise<string> {
+    const conditions: SQL[] = [eq(visitorVisits.organisationId, user.organisationId), isNull(visitorVisits.deletedAt)];
+    if (input.siteId) conditions.push(eq(visitorVisits.siteId, input.siteId));
+    if (input.from) conditions.push(gte(visitorVisits.checkedInAt, new Date(input.from)));
+    if (input.to) conditions.push(lte(visitorVisits.checkedInAt, new Date(input.to)));
+
+    const visits = await this.db.query.visitorVisits.findMany({
+      where: and(...conditions),
+      orderBy: [desc(visitorVisits.checkedInAt)],
+    });
+    const rows = await this.resolveRosterRows(visits);
+
+    const header = "visitor_name,visitor_type,host_name,status,checked_in_at,checked_out_at\n";
+    const body = rows
+      .map((r) =>
+        [
+          r.visitorDisplayName,
+          r.visitorTypeCode,
+          r.hostDisplayName ?? "",
+          r.visitStatusCode,
+          r.checkedInAt,
+          r.checkedOutAt ?? "",
+        ]
+          .map((field) => `"${String(field).replaceAll('"', '""')}"`)
+          .join(","),
+      )
+      .join("\n");
+    return header + body + "\n";
   }
 
   async getById(visitId: string, user: AuthenticatedUser) {

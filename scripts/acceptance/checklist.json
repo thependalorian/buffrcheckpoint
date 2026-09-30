@@ -1,0 +1,437 @@
+{
+  "version": 1,
+  "doc": "buffrcheckpoint.md §17.4",
+  "stages": {
+    "a0": {
+      "name": "Internal alpha",
+      "authority": "Engineering lead + product owner",
+      "items": [
+        {
+          "id": "A0-ENTRY-SMOKE",
+          "kind": "auto",
+          "runner": "smoke-production",
+          "title": "Production/staging smoke (scripts/smoke-production.sh)",
+          "required": true
+        },
+        {
+          "id": "A0-ENTRY-JOURNEY",
+          "kind": "auto",
+          "runner": "journey-smoke",
+          "title": "Journey smoke (backend/scripts/journey-smoke.ts)",
+          "required": true
+        },
+        {
+          "id": "A0-ENTRY-FORM-RULES",
+          "kind": "auto",
+          "runner": "form-rules-unit",
+          "title": "Form-rules unit tests (visibility / requiredIf)",
+          "required": true
+        },
+        {
+          "id": "A0-ENTRY-11.8",
+          "kind": "manual",
+          "title": "§11.8.1–11.8.9 closed or deferred with owner+date",
+          "required": true
+        },
+        {
+          "id": "A0-ENTRY-TENANCY",
+          "kind": "manual",
+          "title": "Demo org single-tenancy (Buffr Analytics); kiosk JWT matches",
+          "required": true
+        },
+        {
+          "id": "A0-ENTRY-MFA",
+          "kind": "manual",
+          "title": "MFA enrolled for all alpha operator accounts",
+          "required": true
+        },
+        {
+          "id": "A0-ENTRY-RESEND",
+          "kind": "manual",
+          "title": "Resend configured or host-email degrade documented",
+          "required": true
+        },
+        {
+          "id": "A0-ENTRY-BLOCKERS",
+          "kind": "manual",
+          "title": "No open Sev-1/Sev-2 on triage board",
+          "required": true
+        },
+        {
+          "id": "A0-01",
+          "kind": "manual",
+          "autoCoveredBy": ["A0-ENTRY-JOURNEY", "A0-ENTRY-SMOKE"],
+          "title": "Walk-in: site QR → phone /check-in → confirmation",
+          "journey": "8.1",
+          "required": true
+        },
+        {
+          "id": "A0-02",
+          "kind": "manual",
+          "title": "Assisted front-desk check-in (no phone); no shared-register leak",
+          "journey": "8.1",
+          "required": true
+        },
+        {
+          "id": "A0-03",
+          "kind": "manual",
+          "autoCoveredBy": ["A0-ENTRY-FORM-RULES"],
+          "title": "Published form visibilityRule / requiredIf enforced (client + server)",
+          "journey": "8.1",
+          "required": true
+        },
+        {
+          "id": "A0-04",
+          "kind": "manual",
+          "title": "Invitation create → revoke → resolve → check-in",
+          "journey": "8.2",
+          "required": true
+        },
+        {
+          "id": "A0-05",
+          "kind": "manual",
+          "title": "Kiosk offline capture → sync; never false host-notified",
+          "journey": "8.5",
+          "required": true
+        },
+        {
+          "id": "A0-06",
+          "kind": "manual",
+          "autoCoveredBy": ["A0-ENTRY-JOURNEY"],
+          "title": "Emergency trigger → roster → resolve",
+          "journey": "8.6",
+          "required": true
+        },
+        {
+          "id": "A0-07",
+          "kind": "manual",
+          "autoCoveredBy": ["A0-ENTRY-JOURNEY"],
+          "title": "Sign-out closes exactly one open visit",
+          "journey": "8.7",
+          "required": true
+        },
+        {
+          "id": "A0-08",
+          "kind": "manual",
+          "title": "Host notification: outbox sent or honest failed",
+          "journey": "8.8",
+          "required": true
+        },
+        {
+          "id": "A0-09",
+          "kind": "manual",
+          "autoCoveredBy": ["A0-ENTRY-JOURNEY"],
+          "title": "Host-approval zone: pending → approve/reject audited",
+          "journey": "8.8",
+          "required": true
+        },
+        {
+          "id": "A0-10",
+          "kind": "manual",
+          "title": "RBAC: front desk vs site manager vs owner; no cross-site leak",
+          "journey": "8.10",
+          "required": true
+        },
+        {
+          "id": "A0-11",
+          "kind": "manual",
+          "title": "Kiosk Staff roster requires fresh login every time",
+          "journey": "privacy",
+          "required": true
+        },
+        {
+          "id": "A0-12",
+          "kind": "manual",
+          "title": "/check-in?lang=af and lang=pt labels + successful submit",
+          "journey": "i18n",
+          "required": true
+        },
+        {
+          "id": "A0-13",
+          "kind": "manual",
+          "title": "NFC badge validate → check-in; revoked rejected (Professional alpha)",
+          "journey": "8.3",
+          "required": false
+        },
+        {
+          "id": "A0-14",
+          "kind": "manual",
+          "title": "DSAR / evidence pack generates; sensitive reads audited",
+          "journey": "8.10",
+          "required": true
+        },
+        {
+          "id": "A0-EXIT-SIGNOFF",
+          "kind": "signoff",
+          "title": "A0 sign-off recorded (accept / accept-with-conditions / reject)",
+          "required": true
+        }
+      ]
+    },
+    "a1": {
+      "name": "Design-partner UAT",
+      "authority": "Partner site champion; product owner accountable",
+      "items": [
+        {
+          "id": "A1-ENTRY-A0",
+          "kind": "manual",
+          "title": "A0 accepted (or conditions closed)",
+          "required": true
+        },
+        {
+          "id": "A1-ENTRY-CHARTER",
+          "kind": "manual",
+          "title": "UAT charter: scope, out-of-scope, data handling, NDA",
+          "required": true
+        },
+        {
+          "id": "A1-ENTRY-RBA",
+          "kind": "manual",
+          "title": "Partner sites classified on RBA tiers (§7.2)",
+          "required": true
+        },
+        {
+          "id": "A1-ENTRY-PAPER",
+          "kind": "manual",
+          "title": "Paper register parallel authorised for UAT week 1 only",
+          "required": true
+        },
+        {
+          "id": "A1-ENTRY-TRACKER",
+          "kind": "manual",
+          "title": "Feedback tracker ready (severity + journey ID; no visitor PII)",
+          "required": true
+        },
+        {
+          "id": "U-01",
+          "kind": "manual",
+          "title": "10 phone walk-ins via site QR; completion ≥90%; median ≤2 min",
+          "required": true
+        },
+        {
+          "id": "U-02",
+          "kind": "manual",
+          "title": "5 assisted check-ins; zero shared-screen PII leaks; completion ≥95%",
+          "required": true
+        },
+        {
+          "id": "U-03",
+          "kind": "manual",
+          "title": "Host email + approval path; notify success ≥95% or honest degrade",
+          "required": true
+        },
+        {
+          "id": "U-04",
+          "kind": "manual",
+          "title": "Peak wait queue (≥3 waiting); tickets usable",
+          "required": true
+        },
+        {
+          "id": "U-05",
+          "kind": "manual",
+          "title": "Sign-out; unexplained open visits at close-of-day ≤5%",
+          "required": true
+        },
+        {
+          "id": "U-06",
+          "kind": "manual",
+          "title": "Emergency roster drill ≤60s; matches on-site reality",
+          "required": true
+        },
+        {
+          "id": "U-07",
+          "kind": "manual",
+          "title": "Manager evidence for “last Tuesday” ≤15 min",
+          "required": true
+        },
+        {
+          "id": "U-08",
+          "kind": "manual",
+          "title": "Wrong-site / wrong-role denied; no cross-tenant data",
+          "required": true
+        },
+        {
+          "id": "U-09",
+          "kind": "manual",
+          "title": "Offline window (kiosk sites); sync OK; paper fallbacks counted",
+          "required": false
+        },
+        {
+          "id": "U-10",
+          "kind": "manual",
+          "title": "Language switch af/pt; visitor completes without English",
+          "required": true
+        },
+        {
+          "id": "A1-EXIT-BOTH-PARTNERS",
+          "kind": "manual",
+          "title": "U-01–U-08 executed at both design partners",
+          "required": true
+        },
+        {
+          "id": "A1-EXIT-SEV",
+          "kind": "manual",
+          "title": "Sev-1=0; Sev-2 fixed or formally accepted",
+          "required": true
+        },
+        {
+          "id": "A1-EXIT-SIGNOFF",
+          "kind": "signoff",
+          "title": "Partner written decision + go/no-go for paid pilot",
+          "required": true
+        }
+      ]
+    },
+    "a2": {
+      "name": "Paid pilot (§17.2)",
+      "authority": "Pilot site champions; product owner + commercial accountable",
+      "items": [
+        {
+          "id": "A2-ENTRY-A1",
+          "kind": "manual",
+          "title": "A1 accepted (or accept-with-conditions closed)",
+          "required": true
+        },
+        {
+          "id": "A2-ENTRY-CONTRACT",
+          "kind": "manual",
+          "title": "Pilot agreement + DPA / controller-processor clarity",
+          "required": true
+        },
+        {
+          "id": "A2-ENTRY-RBA-POLICY",
+          "kind": "manual",
+          "title": "Site access policy approved (RBA document)",
+          "required": true
+        },
+        {
+          "id": "A2-ENTRY-TRAINING",
+          "kind": "manual",
+          "title": "Front desk + backup operator trained per site",
+          "required": true
+        },
+        {
+          "id": "A2-ENTRY-MONITORING",
+          "kind": "manual",
+          "title": "Monitoring: API errors, outbox failures, sync lag, auth lockouts",
+          "required": true
+        },
+        {
+          "id": "A2-ENTRY-PAPER7",
+          "kind": "manual",
+          "title": "Paper parallel authorised for first 7 calendar days only",
+          "required": true
+        },
+        {
+          "id": "A2-KPI-WEEKLY",
+          "kind": "manual",
+          "title": "Weekly KPI pack filed (§17.2 measure list)",
+          "required": true
+        },
+        {
+          "id": "A2-MID-SEV1",
+          "kind": "manual",
+          "title": "Day-30: no Sev-1 open >5 business days",
+          "required": true
+        },
+        {
+          "id": "A2-MID-PAPER-TREND",
+          "kind": "manual",
+          "title": "Day-30: paper fallbacks trending down week-over-week",
+          "required": true
+        },
+        {
+          "id": "A2-MID-DRILL",
+          "kind": "manual",
+          "title": "Day-30: ≥1 emergency drill completed per site",
+          "required": true
+        },
+        {
+          "id": "A2-MID-DECISION",
+          "kind": "signoff",
+          "title": "Day-30 continue / remediate / stop decision recorded",
+          "required": true
+        },
+        {
+          "id": "A2-EXIT-DURATION",
+          "kind": "manual",
+          "title": "60–90 days complete at ≥3 sites (or documented early stop)",
+          "required": true
+        },
+        {
+          "id": "A2-EXIT-KPI-REVIEW",
+          "kind": "manual",
+          "title": "KPI pack reviewed; §17.3 hypotheses updated with actuals",
+          "required": true
+        },
+        {
+          "id": "A2-EXIT-REFERENCE",
+          "kind": "manual",
+          "title": "Reference-call permission from ≥1 site (optional)",
+          "required": false
+        },
+        {
+          "id": "A2-EXIT-SIGNOFF",
+          "kind": "signoff",
+          "title": "A2 → A3 decision: accept / accept-with-conditions / reject",
+          "required": true
+        }
+      ]
+    },
+    "a3": {
+      "name": "Commercial GA",
+      "authority": "Product owner + commercial; sales informed of FULL-only Core claims",
+      "items": [
+        {
+          "id": "A3-ENTRY-A2",
+          "kind": "manual",
+          "title": "A2 accepted for commercial GA",
+          "required": true
+        },
+        {
+          "id": "A3-ENTRY-SMOKE",
+          "kind": "auto",
+          "runner": "smoke-production",
+          "title": "Production smoke green on launch candidates",
+          "required": true
+        },
+        {
+          "id": "A3-SELL-CORE-ONLY",
+          "kind": "manual",
+          "title": "Core sell sheet = FULL surfaces only (no DigiNam/USSD/SMS live claims)",
+          "required": true
+        },
+        {
+          "id": "A3-CAPABILITY-REGISTER",
+          "kind": "manual",
+          "title": "Capability badges match register (DigiNam / e-ID NFC honest)",
+          "required": true
+        },
+        {
+          "id": "A3-SUPPORT-RUNBOOK",
+          "kind": "manual",
+          "title": "Support runbook: lockout, outbox fail, offline sync, emergency",
+          "required": true
+        },
+        {
+          "id": "A3-ONCALL",
+          "kind": "manual",
+          "title": "On-call / incident path named for first 30 days post-GA",
+          "required": true
+        },
+        {
+          "id": "A3-PRICING-LIVE",
+          "kind": "manual",
+          "title": "Pricing + Book a review path live; ops billing POP path verified",
+          "required": true
+        },
+        {
+          "id": "A3-EXIT-SIGNOFF",
+          "kind": "signoff",
+          "title": "GA launch decision recorded",
+          "required": true
+        }
+      ]
+    }
+  }
+}

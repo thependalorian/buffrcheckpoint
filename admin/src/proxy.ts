@@ -27,6 +27,16 @@ const ONBOARDING_CONFIG_PREFIXES = [
   "/dashboard/compliance",
   "/dashboard/emergency",
   "/dashboard/evidence",
+  "/dashboard/billing",
+  "/dashboard/kyb",
+];
+
+/** Allowed while waiting for active/trial subscription after (or before) go-live. */
+const BILLING_GATE_ALLOW_PREFIXES = [
+  "/dashboard/billing",
+  "/dashboard/kyb",
+  "/dashboard/account",
+  "/dashboard/organisation",
 ];
 
 function backendBaseUrl(): string {
@@ -38,6 +48,7 @@ async function resolveGate(token: string): Promise<{
   mfaEnabled: boolean;
   onboardingComplete: boolean;
   nextPath: string;
+  operationalUseAllowed: boolean;
 } | null> {
   try {
     const response = await fetch(`${backendBaseUrl()}/auth/me`, {
@@ -48,12 +59,14 @@ async function resolveGate(token: string): Promise<{
     const me = (await response.json()) as {
       user?: { emailVerified?: boolean; mfaEnabled?: boolean };
       onboarding?: { complete?: boolean; nextPath?: string };
+      subscription?: { operationalUseAllowed?: boolean };
     };
     return {
       emailVerified: me.user?.emailVerified === true,
       mfaEnabled: me.user?.mfaEnabled === true,
       onboardingComplete: me.onboarding?.complete === true,
       nextPath: me.onboarding?.nextPath ?? "/onboarding",
+      operationalUseAllowed: me.subscription?.operationalUseAllowed === true,
     };
   } catch {
     return null;
@@ -66,6 +79,10 @@ function isPublicAuthPath(pathname: string): boolean {
 
 function isOnboardingConfigPath(pathname: string): boolean {
   return ONBOARDING_CONFIG_PREFIXES.some((path) => pathname === path || pathname.startsWith(`${path}/`));
+}
+
+function isBillingGateAllowPath(pathname: string): boolean {
+  return BILLING_GATE_ALLOW_PREFIXES.some((path) => pathname === path || pathname.startsWith(`${path}/`));
 }
 
 export async function proxy(request: NextRequest) {
@@ -86,7 +103,16 @@ export async function proxy(request: NextRequest) {
 
   if (hasSession && sessionToken) {
     const gate = await resolveGate(sessionToken);
-    if (gate) {
+    if (!gate) {
+      // Session cookie present but /auth/me failed — fail closed (do not skip MFA/onboarding).
+      if (needsAuth || isPublicAuthPath(pathname)) {
+        const loginUrl = new URL("/auth/login", request.url);
+        loginUrl.searchParams.set("next", pathname.startsWith("/auth/") ? "/dashboard/overview" : pathname);
+        const response = NextResponse.redirect(loginUrl);
+        response.cookies.delete(SESSION_COOKIE_NAME);
+        return response;
+      }
+    } else {
       if (!gate.emailVerified && !pathname.startsWith("/auth/check-email") && !pathname.startsWith("/auth/verify-email")) {
         return NextResponse.redirect(new URL("/auth/check-email", request.url));
       }
@@ -103,7 +129,19 @@ export async function proxy(request: NextRequest) {
         return NextResponse.redirect(new URL(gate.nextPath, request.url));
       }
       if (gate.onboardingComplete && isPublicAuthPath(pathname)) {
-        return NextResponse.redirect(new URL("/dashboard/default", request.url));
+        return NextResponse.redirect(
+          new URL(gate.operationalUseAllowed ? "/dashboard/overview" : "/dashboard/billing", request.url),
+        );
+      }
+      if (
+        gate.emailVerified &&
+        gate.mfaEnabled &&
+        gate.onboardingComplete &&
+        !gate.operationalUseAllowed &&
+        pathname.startsWith("/dashboard") &&
+        !isBillingGateAllowPath(pathname)
+      ) {
+        return NextResponse.redirect(new URL("/dashboard/billing", request.url));
       }
       if (
         gate.emailVerified &&
@@ -116,8 +154,32 @@ export async function proxy(request: NextRequest) {
     }
   }
 
+  // Legacy bookmark: /login → /auth/login
+  if (pathname === "/login") {
+    return NextResponse.redirect(new URL("/auth/login", request.url));
+  }
+
   if (pathname === "/") {
-    return NextResponse.redirect(new URL(hasSession ? "/dashboard/default" : "/auth/login", request.url));
+    if (!hasSession || !sessionToken) {
+      return NextResponse.redirect(new URL("/auth/login", request.url));
+    }
+    // Resolve gate so incomplete onboarding / billing hold skip a bounce via overview.
+    const gate = await resolveGate(sessionToken);
+    if (!gate) {
+      return NextResponse.redirect(new URL("/auth/login", request.url));
+    }
+    if (!gate.emailVerified) {
+      return NextResponse.redirect(new URL("/auth/check-email", request.url));
+    }
+    if (!gate.mfaEnabled) {
+      return NextResponse.redirect(new URL("/auth/mfa/setup", request.url));
+    }
+    if (!gate.onboardingComplete) {
+      return NextResponse.redirect(new URL(gate.nextPath, request.url));
+    }
+    return NextResponse.redirect(
+      new URL(gate.operationalUseAllowed ? "/dashboard/overview" : "/dashboard/billing", request.url),
+    );
   }
 
   return NextResponse.next();
@@ -126,6 +188,7 @@ export async function proxy(request: NextRequest) {
 export const config = {
   matcher: [
     "/",
+    "/login",
     "/dashboard/:path*",
     "/onboarding/:path*",
     "/auth/login",

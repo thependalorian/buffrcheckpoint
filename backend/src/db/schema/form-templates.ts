@@ -57,6 +57,10 @@ export const checkInFormFields = pgTable(
       .references(() => checkInFormVersions.id),
     fieldCode: text("field_code").notNull(),
     fieldLabel: text("field_label"),
+    fieldTypeCode: uuid("field_type_code")
+      .notNull()
+      .references(() => typeDefinition.id), // domain 'field_type'
+    helpText: text("help_text"),
     dataClassificationCode: uuid("data_classification_code")
       .notNull()
       .references(() => typeDefinition.id), // domain 'field_class'
@@ -67,6 +71,26 @@ export const checkInFormFields = pgTable(
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
   (t) => [index("idx_check_in_form_fields_version").on(t.formVersionId)],
+);
+
+export const checkInFormFieldTranslations = pgTable(
+  "check_in_form_field_translations",
+  {
+    id: uuid("id").primaryKey(),
+    fieldId: uuid("field_id")
+      .notNull()
+      .references(() => checkInFormFields.id),
+    languageCode: uuid("language_code")
+      .notNull()
+      .references(() => typeDefinition.id), // domain 'language_code'
+    fieldLabel: text("field_label"),
+    helpText: text("help_text"),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (t) => [
+    index("idx_check_in_form_field_translations_field").on(t.fieldId),
+    uniqueIndex("idx_check_in_form_field_translations_unique").on(t.fieldId, t.languageCode),
+  ],
 );
 
 // Renamed `visitor_type_policy` -> `visitor_categories`.
@@ -98,4 +122,5 @@ export const visitorCategories = pgTable(
 export type CheckInFormDefinition = typeof checkInFormDefinitions.$inferSelect;
 export type CheckInFormVersion = typeof checkInFormVersions.$inferSelect;
 export type CheckInFormField = typeof checkInFormFields.$inferSelect;
+export type CheckInFormFieldTranslation = typeof checkInFormFieldTranslations.$inferSelect;
 export type VisitorCategory = typeof visitorCategories.$inferSelect;

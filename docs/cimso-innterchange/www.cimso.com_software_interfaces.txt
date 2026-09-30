@@ -1,0 +1,343 @@
+CiMSO INTERfaces - Membership Administration
+
+Home
+
+About
+
+Technology
+
+Value
+
+Mission
+
+Feedback
+
+Software
+
+Client Centric
+
+Keeping Control
+
+Software Suites
+
+Cimso Identify
+
+Cimso Connect
+
+Cimso Collaborate
+
+Cimso Live
+
+Cimso Play
+
+Cimso Rest
+
+Cimso Finance
+
+Cimso Tools
+
+Installations
+
+Corporate
+
+Individual
+
+Campus
+
+Introduction
+
+Training Syllabus
+
+Internship Program
+
+Register to Participate
+
+Certification Register
+
+Support
+
+Product Brochures
+
+Business Solutions
+
+Api Registration
+
+Download Applications
+
+Policy Documents
+
+Tutorials
+
+Contact
+
+Reseller Network
+
+Apply For Position
+
+Privacy
+
+Book a Demo
+
+News
+
+Latest
+
+Thailand
+
+Subscribe
+
+Home →
+
+Software →
+
+INTERfaces
+
+CiMSO software suites intergrate to a wide range of interfaces
+
+Integrated software is specially designed to work effectively with closely related devices, facilities and services. Increased productivity and efficiencies, vastly reduce the laborious time spent on admin tasks, freeing the staff up to focus on important tasks.
+
+Middleware interface engine
+
+CiMSO integrates with Comtrol middleware for a host of guest service devices:
+
+Keyless entry for the card and biometric door locks - 73 types Aarfid, AdemLocktronics System, ASSA ABLOY Hospitality, BE-TECH, CISA, Dormakaba, DWARPAAL, GuestKey, Hafele, Hotek, Kaba - ILCO, KCP KURNIA CIPTAJAYA PERKASA, Messerschmitt Systems, Miwa Lock, Nexus, NSP Europe, ONITY, RemoteLOCK, Saflok, Salto, Secure Lox, Security Technologies, Talleres de Escoriaza, Timelox, TLJ, Uniqey Security, VDA Multimedia, VingCard, Yaletronics.
+
+PBX/PABX switchboard systems - 166 types 360 Networks, Adapt Telephony Services, Alcatel Telecom, Altura, Atlas Innfone, Avaya, Blue Mountain Software, Callista Group, Cloggs, Comdial, ComTelco, Connect Call Global, Data DPS, Dialexia Communications, Digital Voice Corporation, DuVoice, EADS Telecom, Ericsson, FCS Computer Systems, Fortinet Technologies, Fujitsu, Geosoft, GrayMatter Networks, HControl, Hitachi, Imagicle S.p.a, InterTel, iPecs, Iwatsu, Jurudata JDS, Larsson, LG Electronics, Mitel, Mix Networks, NEC, Nevotek, Nitsuko, Nortel Networks, Panasonic, PBillX Inc, pbxnsip Inc, Percipia Networks, Philips, PhoneSuite, PSE Group, Samsung, Siemens, SRComms, Swisscom Hospitality Services, Tadiran Telecom, Telecom Eye, Telephone Management Systems TMS, Tiger Communications, Toshiba, TransTel Communications, Vertical, Vodia Networks.
+
+Telephone call accounting - 112 types Alcatel Telecom, Amtel, Atlas, Avaya, Avotus, Bell Hobic, CA-Vision, Call A Matic, Callista Group, CDR of Washington, Char Systems Development, Comdial, Comm One, CSS, Cubix, Ericsson, ERMEZ Hard & Soft, ESI, Executech, FCS Computer Systems, Genesis, GoldStar, Hitachi, Homisco, HSD Hansen Software, Inn Client Server Systems ICSS, InnOvation, InnSoft, InnTel, Intech, Inter-Tel, ISI, MATRA Nortel, Matracom, Matracom, MDR, Metropolis Technologies, Microcall, Micros, Microtel, Midas Management Systems, Mitel, Netas, Nortel Networks, Orbitel, Samsung, Scout G, SDD, SDT, Siemens, Soft Ex, Sumus, Symantics, TABS, Telecost RSI, TelElectronics, Toshiba, Total Tech, Trisys, TriVium Systems, Ultimate, Veramark, Wren Communications, Xeta, Xiox Suma.
+
+Voicemail messaging systems - 41 types ActiveVoice, Avaya, AVST Applied Voice and Speech Technologies, Baypoint, Centigram, Digital Speech, DuVoice, ESNA Technologies, FCS Computer Systems, Hartford Communications, InnOvation, Mcorp, Midas Management Systems, Mitel, NEC, Nortel Networks, T3 Telecom Software, Telekol, VoiceGate Corporation, VSR.
+
+In room internet access and billing - 45 types Antamedia, ANTLabs INNGate, AtCom, CISCO CAIS, Coresma, Deep Blue Communications, Elastic Networks, EthoStream, Everest Broadband, Extenway Solutions, fdxtended, Golden Tree Communications, Guest-Tek, GuestTrack, Hospitality Technical Services, Hotel Internet Services, Hotel Software Systems. HSS, iBAHN, Intello, IP3 Networks, Meru Networks, Nomadix, Orbiss, Promasa, Pure Pages Canada, Radius Gateway, RG Nets, RIEO Communications, Share a Net, Superclick Networks, Travelnet Technologies, Ucopia Communications, Viator Networks, Wayport, Western, Wifi-soft Solutions, Xpossible.
+
+In room mini-bar billing - 25 types Adult Beverage Machines, Bartech Systems International, Dometic Corporation, DuVoice, HOMI Minibar, Inn Room Systems, Kooltech, Minibar NA Minibar Systems, Mobile Simple Solutions IAS, Quintus Systems, Roomsystems, RSI.
+
+Movies on demand and pay TV - 85 types 2M by Locatel, Acentic, Advanced Digital Broadcast, Allin Interactive, Amaya Gaming Group, AzurDEV, BeeSmart, ChoiceEXS, CoxHN, Dalvi Technology, DIRECTV, Dish Network, Enseo, Eona, ETV Interactive, Exceptional Innovation, GalaVu Entertainment, General Dynamics Interactive, Granda Systems, Guest Connect, Guest Tek, Hibox Systems, Hotwire Communications, InfoValue Computing, Insystcom, KoolConnect Technologies, Lifestyle Panel LSP, Locatel Group, Lodgenet, MCOM Media Communications, Media Entertainment Networks, Microsense Networks, Miracle TV Corp, MOOW, NEOS Interactive, Network Connection nSTREAMS, NXTV, OnCommand, Orbiss, Otrum Technology, Oxford Media P Labor, People of Lava Sweden AB, Prodac Media AG, Quadriga Formally Thorn, Roomlinx, Roomster, SeaChange International, Select TV Solutions, Smart Hospitality Corporation, SONIFI, Spectradyne, Tangerine Global, Tech Inter Com, Telesys. TELUS Triple Crown, Time Warner, Total Vision, UnykTV, Valuable Technologies VDA Multimedia, Vianeos SAS, Western, World Cinema.
+
+Energy management systems - 20 types AFDtek Solutions, Alerton, Automated Logic Corporation, Channel Parity DWARPAAL, Ecolodgix, Fab Controls, HomAtion, Honeywell, INNCOM International, Lutron, McQuay International, Metronic, NRG Management Systems, Pepperl+Fuchs Comtrol, PolarSoft Inc, Prolon Control Systems, Schneider Electric Centralite Systems, Scientific Control Systems, SenerComm, Siemens, Telkonet, WiSuite.Com.
+
+Intergrated client profile data
+
+An interface to the NTUC database to verify membership status
+
+All Twain compliant passport and image scanners
+
+INNterchange, NTUC Singapore, Twain, MyKad Malaysia,
+
+Integrated identification and access controls
+
+Mifare RFID proximity cards & readers
+
+QR & Bar code labels & readers
+
+Magnetic stripe cards & readers
+
+MyKad - Malaysian identity cards & readers
+
+Jenberg - Keyless door locks, encoders & card keys
+
+Mifar e RFID , QR codes, Bar codes, Magnetic cards, Jenberg RFID
+
+Integrated online lodging services
+
+Siteminder - World channel manager with GDS access
+
+TripAdvisor - Availability and real time bookings
+
+Expedia - America's largest online travel agent
+
+NightsBridge - South African online property aggregator
+
+Integrated operational and service devices
+
+INNterchange - API to CiMSO data for mobile devices
+
+Digitot - spirits dispensers and stock system
+
+Bizmann - online e-procurement system
+
+Mquest - (Sun Japan) golf ball dispensers
+
+Integrated banks and payment portals
+
+OCBC Bank - Oversea-Chinese Banking Corp. Ltd – Giro & deductions, Giro & cheque payments
+
+DBS Bank - Development Bank of Singapore Ltd – Giro deductions, Giro & cheque payments
+
+HSBC Bank - Hongkong and Shanghai Banking Corp. Ltd - Giro payments
+
+Maybank - Malayan Banking Berhad – credit cards
+
+Republic Bank - Public Bank Berhad – credit cards
+
+Fidelity Banking Plc – credit cards
+
+PayPal Holdings Inc – credit cards
+
+DPO Paygate - Payfast & VCS PSP - Cards
+
+CiMSO INTERface
+Brochure Download
+
+Send me this brochure
+
+Software Selector
+
+CLUBmanager Membership Administration Software → Learn More
+
+CLIENTmanager Customer Relations & Business Management Software → Learn More
+
+WORKflow Asset Maintenance & Repairs Software → Learn More
+
+HELPdesk Fast s upport ticket tracking with resolution management → Learn More
+
+COMMunicator Communications Software → Learn More
+
+DOCmanager Document Management & E-filing Software → Learn More
+
+MAILMerger Text Transmit & Receive Software → Learn More
+
+SMSmanager Text Transmit & Receive Software → Learn More
+
+PHONEmanager Telephone Usage & Billing Software → Learn More
+
+FAXmanager Fax Transmit & Receive Software → Learn More
+
+INNsync Data Synchronising Software → Learn More
+
+INNterchange Data Exchange Software → Learn More
+
+WEBsync Secure Online Presence → Learn More
+
+RESTauranteur Restaurant & Bar Point of Sale Software → Learn More
+
+EVENTmanager Event & Conference Software → Learn More
+
+SHOPkeeper Retail Point of Sale Software → Learn More
+
+ACTIVities Manager Activities Scheduling Software → Learn More
+
+GOLFmanager Golf T-bookings & Green Fees Software → Learn More
+
+SPAscheduler SPA & Hydro Wellness Software → Learn More
+
+INNkeeper Hotel & Resort Software → Learn More
+
+HOUSEKeeper Cleaning & Servicing Software → Learn More
+
+REALtor Real Estate, Mall, Timeshare & Leasing Software → Learn More
+
+BACKoffice Accounting Software → Learn More
+
+ACCOUNTSoffice Controlling accounts receivable and accounts payable → Learn More
+
+STOCKmanager Inventory & Procurement Software → Learn More
+
+ASSETManager Asset Register & Tracker → Learn More
+
+TOOLbox Database and Platform Maintenance Tools → Learn More
+
+INTERfaces Interface Software Tools → Learn More
+
+Cimso Tools
+
+Extensive software maintenance and support tools:
+
+→ TOOL box
+→ INTER faces
+
+Demo, quote or enquiry:
+
+Request
+
+Subscribe to the CiMSO LIFE Newsletter
+
+Subscribe
+
+©CiMSO. All Rights Reserved.
+
+Home
+
+About
+
+Technology
+
+Value
+
+Mission
+
+Feedback
+
+Software
+
+Client Centric
+
+Keeping Control
+
+Software Suites
+
+Cimso Identify
+
+Cimso Connect
+
+Cimso Collaborate
+
+Cimso Live
+
+Cimso Play
+
+Cimso Rest
+
+Cimso Finance
+
+Cimso Tools
+
+Installations
+
+Corporate
+
+Individual
+
+Campus
+
+Introduction
+
+Training Syllabus
+
+Internship Program
+
+Register to Participate
+
+Certification Register
+
+Support
+
+Product Brochures
+
+Business Solutions
+
+Api Registration
+
+Download Applications
+
+Policy Documents
+
+Tutorials
+
+Contact
+
+Reseller Network
+
+Apply For Position
+
+Privacy
+
+Book a Demo
+
+News
+
+Latest
+
+Thailand
+
+Subscribe

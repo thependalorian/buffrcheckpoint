@@ -7,7 +7,7 @@ import { AuthCardHeader, AuthLayout } from "../../_components/auth-layout";
 import { MfaSetupForm } from "../../_components/mfa-setup-form";
 
 export const metadata: Metadata = {
-  title: "Set up MFA · Buffr Checkpoint",
+  title: "Set up MFA · Checkpoint",
 };
 
 export default function MfaSetupPage() {

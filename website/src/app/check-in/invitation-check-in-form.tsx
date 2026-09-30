@@ -28,6 +28,7 @@ export function InvitationCheckInForm({ invitationToken }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [visitorName, setVisitorName] = useState("");
+  const [visitorPhone, setVisitorPhone] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -58,7 +59,7 @@ export function InvitationCheckInForm({ invitationToken }: Props) {
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
-    if (!context || !visitorName.trim()) return;
+    if (!context || !visitorName.trim() || visitorPhone.trim().length < 7 || submitting || done) return;
     setSubmitting(true);
     try {
       const res = await fetch(`${apiBaseUrl()}/public/check-in/invitation`, {
@@ -68,6 +69,7 @@ export function InvitationCheckInForm({ invitationToken }: Props) {
           id: newClientId(),
           token: invitationToken,
           visitorName: visitorName.trim(),
+          visitorPhone: visitorPhone.trim(),
         }),
       });
       if (!res.ok) {
@@ -88,7 +90,9 @@ export function InvitationCheckInForm({ invitationToken }: Props) {
     return (
       <div className="space-y-2">
         <h1 className="text-2xl font-semibold tracking-tight">Check-in recorded</h1>
-        <p className="text-sm text-muted-foreground">Thank you. Please proceed to reception.</p>
+        <p className="text-sm text-muted-foreground">
+          Thank you. Please proceed to reception. Use the same mobile number to sign out when you leave.
+        </p>
       </div>
     );
   }
@@ -110,7 +114,22 @@ export function InvitationCheckInForm({ invitationToken }: Props) {
           autoComplete="name"
         />
       </div>
-      <Button type="submit" disabled={submitting || !visitorName.trim()}>
+      <div className="space-y-2">
+        <Label htmlFor="visitorPhone">Mobile phone</Label>
+        <Input
+          id="visitorPhone"
+          type="tel"
+          value={visitorPhone}
+          onChange={(e) => setVisitorPhone(e.target.value)}
+          required
+          minLength={7}
+          maxLength={40}
+          autoComplete="tel"
+          placeholder="+264…"
+        />
+        <p className="text-xs text-muted-foreground">Required so you can sign out with the same number.</p>
+      </div>
+      <Button type="submit" disabled={submitting || !visitorName.trim() || visitorPhone.trim().length < 7}>
         {submitting ? "Submitting…" : "Check in"}
       </Button>
     </form>

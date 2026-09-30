@@ -6,6 +6,13 @@ import { List, ListRow } from "@/components/ui/list";
 import { apiFetch } from "@/lib/api";
 
 import { RequestGrantForm } from "../_components/request-grant-form";
+import {
+  CreateSubscriptionForm,
+  SubscriptionAddonsPanel,
+  SubscriptionSitesPanel,
+  type CatalogItem,
+  type SubscriptionDetail,
+} from "./_components/subscription-panel";
 import { OrgDetailTabs } from "./_components/tabs";
 
 interface OrgRow {
@@ -43,11 +50,23 @@ interface CrmActivity {
 interface Subscription {
   id: string;
   planCode: string;
+  planLabel: string;
+  siteQuantity: number;
+  activeSiteCount: number;
+  includedSites: number;
+  extraSiteMonthlyAmount: string | null;
+  billingPeriod: string;
   mrrAmount: string;
   currencyCode: string;
   statusCode: string;
   kybGatePassed: boolean;
   currentPeriodEnd: string | null;
+  addons: Array<{
+    code: string;
+    label: string;
+    monthlyAmount: string;
+    currencyCode: string;
+  }>;
 }
 
 interface Invoice {
@@ -121,6 +140,7 @@ export default async function OrganisationDetailPage({
         {tab === "rollup" ? <RollupTab org={org} /> : null}
         {tab === "devices" ? <DevicesTab organisationId={id} /> : null}
         {tab === "sites" ? <SitesTab organisationId={id} /> : null}
+        {tab === "integrations" ? <IntegrationsTab organisationId={id} /> : null}
         {tab === "crm" ? <CrmTab organisationId={id} /> : null}
         {tab === "billing" ? <BillingTab organisationId={id} /> : null}
         {tab === "kyb" ? <KybTab organisationId={id} /> : null}
@@ -237,6 +257,70 @@ async function SitesTab({ organisationId }: { organisationId: string }) {
   );
 }
 
+interface PmsConnectionRow {
+  id: string;
+  siteId: string;
+  siteName: string | null;
+  statusCode: string;
+  siteExternalId: string | null;
+  enabledInterfaceTypes: number[];
+  tcpHost: string | null;
+  tcpPort: number | null;
+  tlsEnabled: boolean;
+  clientLoginId: string | null;
+  credentialsSecretRef: string | null;
+  defaultHostId: string | null;
+  lastSyncAt: string | null;
+  lastErrorCode: string | null;
+  credentialsConfigured?: boolean;
+}
+
+async function IntegrationsTab({ organisationId }: { organisationId: string }) {
+  const connections = await apiFetch<PmsConnectionRow[]>(
+    `/platform/dashboard/organisations/${organisationId}/pms-integrations`,
+  ).catch(() => [] as PmsConnectionRow[]);
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h2 className="font-medium text-foreground text-sm">CiMSO INNterchange</h2>
+        <p className="mt-1 text-slate text-xs">
+          Non-secret TCP settings and sync posture. Passwords live in env vars named by{" "}
+          <code className="text-xs">credentials_secret_ref</code>. Org must enable{" "}
+          <code className="text-xs">cimso_innterchange</code> under admin Capabilities, then connect
+          sites.
+        </p>
+      </div>
+      {connections.length === 0 ? (
+        <p className="text-slate text-sm">
+          No PMS connections. Organisation must enable CiMSO under Capability enablement, then connect
+          sites in admin Site Experience.
+        </p>
+      ) : (
+        <List>
+          {connections.map((c) => (
+            <ListRow key={c.id}>
+              <div className="flex flex-col gap-0.5">
+                <span className="text-foreground text-sm">
+                  {c.siteName ?? c.siteId} · {c.statusCode.replaceAll("_", " ")}
+                </span>
+                <span className="text-slate text-xs">
+                  {c.tcpHost ? `${c.tcpHost}:${c.tcpPort ?? "—"}` : "no tcp"}
+                  {c.tlsEnabled ? " tls" : ""} · login {c.clientLoginId ?? "—"} · secretRef{" "}
+                  {c.credentialsSecretRef ?? "—"} · host {c.defaultHostId ?? "—"} · external{" "}
+                  {c.siteExternalId ?? "—"} · last sync{" "}
+                  {c.lastSyncAt ? new Date(c.lastSyncAt).toLocaleString() : "never"}
+                  {c.lastErrorCode ? ` · error ${c.lastErrorCode}` : ""}
+                </span>
+              </div>
+            </ListRow>
+          ))}
+        </List>
+      )}
+    </div>
+  );
+}
+
 async function CrmTab({ organisationId }: { organisationId: string }) {
   const [contacts, deals, activity, stages] = await Promise.all([
     apiFetch<CrmContact[]>(`/platform/crm/contacts?organisationId=${organisationId}`),
@@ -308,10 +392,15 @@ async function CrmTab({ organisationId }: { organisationId: string }) {
 }
 
 async function BillingTab({ organisationId }: { organisationId: string }) {
-  const [subscription, invoices] = await Promise.all([
+  const [subscription, invoices, catalog, orgSites] = await Promise.all([
     apiFetch<Subscription | null>(`/platform/billing/subscriptions/organisation?organisationId=${organisationId}`),
     apiFetch<Invoice[]>(`/platform/billing/invoices/organisation?organisationId=${organisationId}`),
+    apiFetch<CatalogItem[]>("/platform/billing/catalog"),
+    apiFetch<SiteRow[]>(`/platform/dashboard/organisations/${organisationId}/sites`),
   ]);
+
+  const plans = catalog.filter((c) => c.kind === "plan");
+  const addons = catalog.filter((c) => c.kind === "addon");
 
   return (
     <div className="space-y-6">
@@ -320,14 +409,29 @@ async function BillingTab({ organisationId }: { organisationId: string }) {
         {subscription ? (
           <Card className="mt-2 p-3 text-sm">
             <p className="text-foreground">
-              {subscription.planCode} · {subscription.currencyCode} {subscription.mrrAmount}/mo
+              {subscription.planLabel} · {subscription.billingPeriod} · {subscription.currencyCode}{" "}
+              {subscription.mrrAmount}/mo MRR
             </p>
             <p className="text-slate text-xs">
               Status: {subscription.statusCode} · KYB gate {subscription.kybGatePassed ? "passed" : "not passed"}
             </p>
+            <SubscriptionSitesPanel organisationId={organisationId} subscription={subscription as SubscriptionDetail} />
+            <SubscriptionAddonsPanel
+              organisationId={organisationId}
+              subscription={subscription as SubscriptionDetail}
+              catalogAddons={addons}
+            />
           </Card>
         ) : (
-          <p className="mt-2 text-slate text-sm">No subscription yet.</p>
+          <>
+            <p className="mt-2 text-slate text-sm">No subscription yet.</p>
+            <CreateSubscriptionForm
+              organisationId={organisationId}
+              plans={plans}
+              addons={addons}
+              activeSiteCount={orgSites.length}
+            />
+          </>
         )}
       </div>
 

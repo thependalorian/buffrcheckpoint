@@ -2,8 +2,11 @@
 
 import { useState, useTransition } from "react";
 
+import { useRouter } from "next/navigation";
+
 import { TableEmptyRow } from "@/components/dashboard-state";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 import { loadMoreAuditEvents } from "./actions";
@@ -12,20 +15,38 @@ import type { AuditEventRow } from "./types";
 export function AuditLogTable({
   initialEvents,
   initialCursor,
+  dateRange,
 }: {
   initialEvents: AuditEventRow[];
   initialCursor: string | null;
+  dateRange: { from?: string; to?: string };
 }) {
+  const router = useRouter();
   const [events, setEvents] = useState(initialEvents);
   const [cursor, setCursor] = useState(initialCursor);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [fromInput, setFromInput] = useState(dateRange.from ?? "");
+  const [toInput, setToInput] = useState(dateRange.to ?? "");
+
+  function applyDateRange() {
+    const qs = new URLSearchParams();
+    if (fromInput) qs.set("from", fromInput);
+    if (toInput) qs.set("to", toInput);
+    router.push(qs.toString() ? `/dashboard/audit?${qs}` : "/dashboard/audit");
+  }
+
+  function clearDateRange() {
+    setFromInput("");
+    setToInput("");
+    router.push("/dashboard/audit");
+  }
 
   function handleLoadMore() {
     if (!cursor) return;
     startTransition(async () => {
       try {
-        const page = await loadMoreAuditEvents(cursor);
+        const page = await loadMoreAuditEvents(cursor, dateRange);
         setEvents((prev) => [...prev, ...page.events]);
         setCursor(page.nextCursor);
         setError(null);
@@ -37,6 +58,31 @@ export function AuditLogTable({
 
   return (
     <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-1.5">
+        <Input
+          type="date"
+          aria-label="From date"
+          className="h-7 w-36"
+          value={fromInput}
+          onChange={(event) => setFromInput(event.target.value)}
+        />
+        <span className="text-muted-foreground text-xs">to</span>
+        <Input
+          type="date"
+          aria-label="To date"
+          className="h-7 w-36"
+          value={toInput}
+          onChange={(event) => setToInput(event.target.value)}
+        />
+        <Button size="sm" variant="outline" onClick={applyDateRange}>
+          Apply
+        </Button>
+        {dateRange.from || dateRange.to ? (
+          <Button size="sm" variant="ghost" onClick={clearDateRange}>
+            Clear
+          </Button>
+        ) : null}
+      </div>
       <div className="overflow-hidden rounded-lg border bg-card">
         <Table>
           <TableHeader className="bg-muted/15">

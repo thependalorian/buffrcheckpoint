@@ -14,10 +14,10 @@ export class PublicInvitationCheckInDto {
   @MaxLength(120)
   visitorName!: string;
 
-  @IsOptional()
   @IsString()
+  @MinLength(7)
   @MaxLength(40)
-  visitorPhone?: string;
+  visitorPhone!: string;
 
   @IsOptional()
   @IsString()

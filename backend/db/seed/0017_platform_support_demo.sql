@@ -1,7 +1,7 @@
 -- Buffr Checkpoint — platform_support demo account, for exercising the
 -- Platform Ops Console's break-glass support-session flow end-to-end
 -- (buffrcheckpoint.md Section 11.9.1a). Home org is the existing
--- "Buffr Checkpoint Kiosk Demo" org — a platform_support user's own
+-- Buffr Analytics org (canonical demo customer). A platform_support user's
 -- organisationId is just an FK-satisfying home row; they never act on it
 -- directly (their real endpoints are cross-tenant aggregate reads or
 -- grant-gated support sessions targeting *other* orgs).
@@ -10,7 +10,7 @@
 
 DO $$
 DECLARE
-  home_org_id UUID := '47c8b69b-5d9c-499d-a759-debc33e87c5e'; -- Buffr Checkpoint Kiosk Demo
+  home_org_id UUID := 'b51f0704-12a7-45d4-8b0d-3642785b6e77'; -- Buffr Analytics (Buffr Financial Services CC)
   demo_user_id UUID;
   role_def_id UUID;
   role_code_id UUID;

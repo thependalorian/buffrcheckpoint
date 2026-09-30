@@ -9,11 +9,11 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-type SearchParams = Promise<{ site?: string; ref?: string; inv?: string }>;
+type SearchParams = Promise<{ site?: string; ref?: string; inv?: string; lang?: string }>;
 
 /**
  * Neutral container — organisation chrome (hero/logo/footer) is owned by
- * CheckInBrandedShell after context loads. Buffr Checkpoint product marks
+ * CheckInBrandedShell after context loads. Checkpoint product marks
  * only appear when no published branding exists.
  */
 export default async function CheckInPage({ searchParams }: { searchParams: SearchParams }) {
@@ -21,6 +21,7 @@ export default async function CheckInPage({ searchParams }: { searchParams: Sear
   const siteId = params.site?.trim() ?? "";
   const referenceId = params.ref?.trim() ?? "";
   const invitationToken = params.inv?.trim() ?? "";
+  const initialLanguageCode = params.lang?.trim() || "en";
   const hasSiteQrParams = Boolean(siteId && referenceId);
   const hasInvitationToken = Boolean(invitationToken);
 
@@ -29,7 +30,13 @@ export default async function CheckInPage({ searchParams }: { searchParams: Sear
   }
 
   if (hasSiteQrParams) {
-    return <CheckInForm siteId={siteId} referenceId={referenceId} />;
+    return (
+      <CheckInForm
+        siteId={siteId}
+        referenceId={referenceId}
+        initialLanguageCode={initialLanguageCode}
+      />
+    );
   }
 
   return (
@@ -38,7 +45,7 @@ export default async function CheckInPage({ searchParams }: { searchParams: Sear
         <div className="space-y-3">
           <h1 className="text-2xl font-semibold tracking-tight">Missing check-in link</h1>
           <p className="text-sm text-muted-foreground">
-            Scan the QR code on the reception kiosk to open a valid check-in page for this site.
+            Ask reception for a fresh check-in QR, or scan the printed public site QR for this location.
           </p>
         </div>
       </main>

@@ -1,5 +1,5 @@
-import { VisitRosterTable } from "@/app/(main)/dashboard/default/_components/recent-customers-table/table";
-import type { VisitRosterRow } from "@/app/(main)/dashboard/default/_components/recent-customers-table/schema";
+import type { VisitRosterRow } from "@/components/features/visits/visit-roster-table/schema";
+import { VisitRosterTable } from "@/components/features/visits/visit-roster-table/table";
 import { EmergencyTriggerPanel } from "./_components/emergency-trigger-panel";
 import { DashboardPageHeader } from "@/components/dashboard-page-header";
 import { DashboardErrorState } from "@/components/dashboard-state";

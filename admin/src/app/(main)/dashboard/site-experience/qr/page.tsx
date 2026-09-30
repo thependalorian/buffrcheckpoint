@@ -10,6 +10,7 @@ interface SiteQrRow {
   label: string | null;
   siteId: string;
   qrTypeCode: string;
+  qrTypeLabel?: string;
 }
 
 export default async function SiteQrPage() {
@@ -64,7 +65,7 @@ export default async function SiteQrPage() {
                     <TableRow key={row.id}>
                       <TableCell className="p-3 font-medium">{row.label ?? "Unlabelled reference"}</TableCell>
                       <TableCell className="p-3 font-mono text-xs">{row.siteId}</TableCell>
-                      <TableCell className="p-3 font-mono text-xs">{row.qrTypeCode}</TableCell>
+                      <TableCell className="p-3 text-sm">{row.qrTypeLabel ?? row.qrTypeCode}</TableCell>
                       <TableCell className="p-3">
                         <QrRotateButton referenceId={row.id} />
                       </TableCell>

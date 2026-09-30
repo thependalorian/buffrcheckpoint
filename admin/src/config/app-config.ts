@@ -3,12 +3,12 @@ import packageJson from "../../package.json";
 const currentYear = new Date().getFullYear();
 
 export const APP_CONFIG = {
-  name: "Buffr Checkpoint",
+  name: "Checkpoint",
   version: packageJson.version,
-  copyright: `© ${currentYear} Buffr Checkpoint.`,
+  copyright: `© ${currentYear} Checkpoint by Buffr.`,
   meta: {
-    title: "Buffr Checkpoint: Admin",
+    title: "Checkpoint: Admin",
     description:
-      "Buffr Checkpoint's admin dashboard — visitor check-in, access control, and compliance evidence for regulated, multi-site organisations.",
+      "Checkpoint admin: visitor check-in, access control, and compliance evidence for regulated, multi-site organisations.",
   },
 };

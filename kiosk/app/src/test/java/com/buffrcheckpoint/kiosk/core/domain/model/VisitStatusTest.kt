@@ -16,12 +16,12 @@ class VisitStatusTest {
 
     @Test
     fun `unknown or doc-invented values fail closed to null instead of crashing`() {
-        // These were in the aspirational buffrcheckpoint.md model but were never
-        // seeded server-side (backend/db/seed/0001_type_definitions.sql) — the
-        // kiosk must not assume they exist.
+        // pending_approval is now seeded (0001) and present on VisitStatus —
+        // only truly unknown codes must fail closed.
+        assertEquals(VisitStatus.PENDING_APPROVAL, VisitStatus.fromCodeOrNull("pending_approval"))
         assertNull(VisitStatus.fromCodeOrNull("invited"))
         assertNull(VisitStatus.fromCodeOrNull("denied"))
-        assertNull(VisitStatus.fromCodeOrNull("pending_approval"))
+        assertNull(VisitStatus.fromCodeOrNull("not_a_real_status"))
         assertNull(VisitStatus.fromCodeOrNull(null))
     }
 }

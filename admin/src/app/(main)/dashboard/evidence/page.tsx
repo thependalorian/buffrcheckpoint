@@ -11,6 +11,7 @@ interface EvidencePackRow {
   statusCode: string;
   generatedAt: string | null;
   fileReference: string | null;
+  scope: { from?: string | null; to?: string | null; generatedFor?: string } | null;
 }
 
 export default async function EvidencePacksPage() {
@@ -38,15 +39,16 @@ export default async function EvidencePacksPage() {
               <TableRow>
                 <TableHead className="h-11 p-3 font-medium">Status</TableHead>
                 <TableHead className="h-11 p-3 font-medium">Generated at</TableHead>
-                <TableHead className="h-11 p-3 font-medium">File reference</TableHead>
+                <TableHead className="h-11 p-3 font-medium">Scope</TableHead>
+                <TableHead className="h-11 p-3 font-medium">Download</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {packs.length === 0 ? (
                 <TableEmptyRow
-                  colSpan={3}
+                  colSpan={4}
                   title="No evidence packs generated yet"
-                  description="A generated pack bundles the current RBAC matrix, retention-policy report, and audit-log extract (Section 20.2) into one exportable record. Use the button above to generate the first one."
+                  description="A generated pack bundles the current RBAC matrix, retention-policy report, and audit-log extract (Section 20.2) into one exportable record. Add a date range to also include a visitor-access extract for that period. Use the button above to generate the first one."
                 />
               ) : (
                 packs.map((pack) => (
@@ -57,7 +59,20 @@ export default async function EvidencePacksPage() {
                     <TableCell className="p-3">
                       {pack.generatedAt ? new Date(pack.generatedAt).toLocaleString() : "Pending"}
                     </TableCell>
-                    <TableCell className="p-3 font-mono text-xs">{pack.fileReference ?? "—"}</TableCell>
+                    <TableCell className="p-3 text-muted-foreground text-xs">
+                      {pack.scope?.from || pack.scope?.to
+                        ? `${pack.scope.from ?? "…"} to ${pack.scope.to ?? "…"}`
+                        : "Org-wide"}
+                    </TableCell>
+                    <TableCell className="p-3">
+                      {pack.fileReference ? (
+                        <a href={`/api/evidence/${pack.id}/download`} className="text-primary text-xs hover:underline">
+                          Download
+                        </a>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">Pending</span>
+                      )}
+                    </TableCell>
                   </TableRow>
                 ))
               )}

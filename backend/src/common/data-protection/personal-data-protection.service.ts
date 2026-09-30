@@ -74,6 +74,22 @@ export class PersonalDataProtectionService {
     return plaintext.toString("utf8");
   }
 
+  /**
+   * Normalize phone strings for HMAC lookup so "+264 81 111 9029",
+   * "+264811119029", and "264811119029" resolve to the same digest.
+   * Digits only; preserve a leading "+" when the input had one (or looks
+   * like an international number with country code length ≥ 10).
+   */
+  normalizePhoneForLookup(value: string): string {
+    const trimmed = value.trim();
+    if (!trimmed) return "";
+    const digits = trimmed.replace(/\D/g, "");
+    if (!digits) return trimmed.toLowerCase();
+    const hadPlus = trimmed.startsWith("+");
+    // Prefer E.164-style (+digits) when the caller used +, otherwise digits-only.
+    return hadPlus ? `+${digits}` : digits;
+  }
+
   // The keyed HMAC lookup index (Canonical Engineering Constitution's
   // explicit correction: a plain hash of a name/phone is dictionary-attack
   // vulnerable — this is a lookup index, never treated as data protection
@@ -81,6 +97,27 @@ export class PersonalDataProtectionService {
   // `visitorNameLookupHmac`, never `nameHash`.
   lookupHmac(value: string, pepperEnvVar: string): string {
     const pepper = process.env[pepperEnvVar] ?? "";
-    return createHash("sha256").update(`${pepper}:${value.trim().toLowerCase()}`).digest("hex");
+    const material =
+      pepperEnvVar === "PHONE_HASH_PEPPER" ? this.normalizePhoneForLookup(value) : value.trim().toLowerCase();
+    return createHash("sha256").update(`${pepper}:${material}`).digest("hex");
+  }
+
+  /**
+   * Digests to try when matching a phone against rows written before
+   * normalization (legacy trim+lower) and alternate +/digits forms.
+   */
+  phoneLookupHmacCandidates(value: string): string[] {
+    const pepper = process.env.PHONE_HASH_PEPPER ?? "";
+    const digits = value.replace(/\D/g, "");
+    const variants = new Set<string>();
+    variants.add(this.normalizePhoneForLookup(value));
+    variants.add(value.trim().toLowerCase());
+    if (digits) {
+      variants.add(digits);
+      variants.add(`+${digits}`);
+    }
+    return [...variants]
+      .filter((v) => v.length > 0)
+      .map((material) => createHash("sha256").update(`${pepper}:${material}`).digest("hex"));
   }
 }

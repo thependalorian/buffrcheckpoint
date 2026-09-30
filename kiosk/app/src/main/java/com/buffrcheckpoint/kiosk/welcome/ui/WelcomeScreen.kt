@@ -37,8 +37,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.buffrcheckpoint.kiosk.ui.OrgBrandingHeader
 import com.buffrcheckpoint.kiosk.ui.QrCodeImage
-import com.buffrcheckpoint.kiosk.ui.RemoteLogoImage
 import com.buffrcheckpoint.kiosk.ui.theme.BuffrFrost
 import com.buffrcheckpoint.kiosk.welcome.WelcomeViewModel
 
@@ -86,6 +86,9 @@ fun WelcomeScreen(
                         modifier = Modifier.padding(top = 8.dp),
                         textAlign = TextAlign.Center,
                     )
+                    TextButton(onClick = { viewModel.refresh() }) {
+                        Text("Retry branding sync")
+                    }
                 }
             }
         }
@@ -208,29 +211,7 @@ fun WelcomeScreen(
 private fun WelcomeBrandingHeader(
     experience: com.buffrcheckpoint.kiosk.experience.KioskExperienceState,
 ) {
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        RemoteLogoImage(
-            url = experience.logoUrl,
-            contentDescription = experience.organisationDisplayName,
-            modifier = Modifier.height(88.dp).padding(bottom = 16.dp),
-        )
-        Text(
-            text = experience.organisationDisplayName ?: "Buffr Checkpoint",
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center,
-        )
-        Text(
-            text = experience.siteDisplayName ?: "Visitor reception",
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.primary,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(top = 4.dp),
-        )
-    }
+    OrgBrandingHeader(experience = experience)
 }
 
 @Composable

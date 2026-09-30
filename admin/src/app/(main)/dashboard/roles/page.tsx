@@ -3,13 +3,19 @@ import { api } from "@/lib/api/client";
 
 import { AccessReviewsTab } from "./_components/access-reviews-tab";
 import { Roles } from "./_components/roles";
-import type { BuffrRole } from "./_components/roles-table/data";
+import type { BuffrRole } from "./_components/roles-table/types";
 
 interface BackendRoleRow {
   id: string;
   roleCode: string;
   label: string;
   isSystemRole: boolean;
+  release: string;
+  scopeType: BuffrRole["scopeType"];
+  assignmentCount: number;
+  permittedActions: string[];
+  lastReview: string | null;
+  reviewStatus: BuffrRole["reviewStatus"];
 }
 
 export default async function Page() {
@@ -20,12 +26,12 @@ export default async function Page() {
     roles = rows.map((row) => ({
       roleCode: row.roleCode,
       roleLabel: row.label,
-      release: row.isSystemRole ? "Checkpoint Core" : "Checkpoint Professional",
-      scopeType: "organisation",
-      assignmentCount: 0,
-      permittedActions: [],
-      lastReview: null,
-      reviewStatus: "active",
+      release: row.release,
+      scopeType: row.scopeType,
+      assignmentCount: row.assignmentCount,
+      permittedActions: row.permittedActions,
+      lastReview: row.lastReview,
+      reviewStatus: row.reviewStatus,
     }));
   } catch (err) {
     error = err instanceof Error ? err.message : "Failed to load roles.";
@@ -33,5 +39,11 @@ export default async function Page() {
 
   if (error) return <DashboardErrorState message={error} />;
 
-  return <Roles roles={roles} accessReviewsSlot={<AccessReviewsTab />} />;
+  return (
+    <Roles
+      roles={roles}
+      accessReviewsSlot={<AccessReviewsTab />}
+      assignUsersHref="/dashboard/users"
+    />
+  );
 }

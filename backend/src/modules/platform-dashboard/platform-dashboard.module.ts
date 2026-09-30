@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 
 import { DevicesModule } from "../devices/devices.module";
+import { CimsoModule } from "../integrations/cimso/cimso.module";
 import { OrganisationHealthModule } from "../organisation-health/organisation-health.module";
 import { SitesModule } from "../sites/sites.module";
 import { PlatformDashboardController } from "./platform-dashboard.controller";
@@ -13,7 +14,7 @@ import { PlatformDashboardService } from "./platform-dashboard.service";
 // detail Devices/Sites tabs (their own controllers are customer-scoped to
 // the caller's own org, which doesn't fit a platform_support caller).
 @Module({
-  imports: [OrganisationHealthModule, DevicesModule, SitesModule],
+  imports: [OrganisationHealthModule, DevicesModule, SitesModule, CimsoModule],
   controllers: [PlatformDashboardController],
   providers: [PlatformDashboardService],
   exports: [PlatformDashboardService],

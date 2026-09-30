@@ -6,7 +6,7 @@ import { buildPublicCheckInQrUrl } from "../../common/assets/public-asset-url";
 import type { AuthenticatedUser } from "../../common/decorators/current-user.decorator";
 import type { Database } from "../../db/client";
 import { DB } from "../../db/db.module";
-import { siteQrReferenceRotations, siteQrReferences, sites } from "../../db/schema";
+import { siteQrReferenceRotations, siteQrReferences, sites, typeDefinition } from "../../db/schema";
 import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.service";
 import type { CreateSiteQrReferenceDto, RotateSiteQrReferenceDto } from "./dto/site-qr-references.dto";
 
@@ -50,9 +50,21 @@ export class SiteQrReferencesService {
   }
 
   async list(user: AuthenticatedUser) {
-    return this.db.query.siteQrReferences.findMany({
+    const rows = await this.db.query.siteQrReferences.findMany({
       where: and(eq(siteQrReferences.organisationId, user.organisationId), isNull(siteQrReferences.deletedAt)),
     });
+    return Promise.all(
+      rows.map(async (row) => {
+        const typeRow = await this.db.query.typeDefinition.findFirst({
+          where: eq(typeDefinition.id, row.qrTypeCode),
+        });
+        return {
+          ...row,
+          qrTypeCode: typeRow?.code ?? row.qrTypeCode,
+          qrTypeLabel: typeRow?.label ?? typeRow?.code ?? "Unknown",
+        };
+      }),
+    );
   }
 
   async getById(referenceId: string, user: AuthenticatedUser) {
@@ -81,24 +93,61 @@ export class SiteQrReferencesService {
   async rotate(referenceId: string, dto: RotateSiteQrReferenceDto, user: AuthenticatedUser) {
     const reference = await this.getById(referenceId, user);
     const now = new Date();
-    const activeUntil = dto.activeUntil ? new Date(dto.activeUntil) : new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
+    const activeUntil = dto.activeUntil
+      ? new Date(dto.activeUntil)
+      : new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000);
     const opaqueToken = randomUUID();
     const opaqueTokenHmac = this.tokenHmac(opaqueToken);
+
+    const priorRotation = await this.db.query.siteQrReferenceRotations.findFirst({
+      where: and(
+        eq(siteQrReferenceRotations.siteQrReferenceId, reference.id),
+        eq(siteQrReferenceRotations.organisationId, user.organisationId),
+      ),
+      orderBy: [desc(siteQrReferenceRotations.activeFrom)],
+    });
+
+    // First rotation on a brand-new reference: keep the same ref id.
+    // Subsequent rotates: soft-delete + new ref so old printed URLs fail closed.
+    let targetRef = reference;
+    if (priorRotation) {
+      await this.db
+        .update(siteQrReferences)
+        .set({ deletedAt: now })
+        .where(and(eq(siteQrReferences.id, reference.id), eq(siteQrReferences.organisationId, user.organisationId)));
+
+      const [createdRef] = await this.db
+        .insert(siteQrReferences)
+        .values({
+          id: randomUUID(),
+          organisationId: user.organisationId,
+          siteId: reference.siteId,
+          qrTypeCode: reference.qrTypeCode,
+          label: reference.label,
+        })
+        .returning();
+      targetRef = createdRef;
+    }
 
     const [created] = await this.db
       .insert(siteQrReferenceRotations)
       .values({
         id: randomUUID(),
         organisationId: user.organisationId,
-        siteId: reference.siteId,
-        siteQrReferenceId: reference.id,
+        siteId: targetRef.siteId,
+        siteQrReferenceId: targetRef.id,
         opaqueTokenHmac,
         activeFrom: now,
         activeUntil,
       })
       .returning();
 
-    return { rotation: created, opaqueToken };
+    return {
+      reference: targetRef,
+      rotation: created,
+      opaqueToken,
+      checkInUrl: buildPublicCheckInQrUrl(targetRef.siteId, targetRef.id),
+    };
   }
 
   /** Active public site check-in QR for kiosk welcome display. */

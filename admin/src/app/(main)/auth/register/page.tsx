@@ -6,7 +6,7 @@ import { AuthCardHeader, AuthLayout } from "../_components/auth-layout";
 import { RegisterForm } from "../_components/register-form";
 
 export const metadata: Metadata = {
-  title: "Create account: Buffr Checkpoint",
+  title: "Create account: Checkpoint",
 };
 
 export default function RegisterPage() {

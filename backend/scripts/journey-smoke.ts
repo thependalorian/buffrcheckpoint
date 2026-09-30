@@ -9,6 +9,7 @@
  * Covers:
  *   1) emergency trigger → roster → resolve
  *   2) public check-in into a host-approval zone → approve
+ *   3) staff check-out of that visit (A0-07)
  */
 import { randomUUID } from "node:crypto";
 
@@ -168,6 +169,23 @@ async function main() {
   } else {
     console.log("WARN no host-approval zone — public check-in created but approval path not exercised");
   }
+
+  // --- 3) Staff check-out (A0-07) ---
+  await req(`/visits/${visitId}/check-out`, {
+    method: "POST",
+    token,
+    body: JSON.stringify({}),
+  });
+  const rosterClosed = (await req(`/visits/roster?siteId=${qr.siteId}`, { token })) as unknown as Array<{
+    visitId: string;
+    visitStatusCode: string;
+  }>;
+  const closed = rosterClosed.find((r) => r.visitId === visitId);
+  assert(
+    !closed || closed.visitStatusCode === "checked_out" || closed.visitStatusCode === "closed",
+    `expected visit checked out / absent from open roster, got ${closed?.visitStatusCode ?? "absent"}`,
+  );
+  console.log("OK staff check-out", visitId);
 
   console.log("journey-smoke: all checks passed");
 }

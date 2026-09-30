@@ -88,6 +88,6 @@ export async function POST(request: Request) {
     emailVerified: payload.emailVerified ?? true,
     mfaEnabled: payload.mfaEnabled ?? false,
     onboardingComplete: payload.onboardingComplete ?? false,
-    nextPath: payload.nextPath ?? "/dashboard/default",
+    nextPath: payload.nextPath ?? "/dashboard/overview",
   });
 }

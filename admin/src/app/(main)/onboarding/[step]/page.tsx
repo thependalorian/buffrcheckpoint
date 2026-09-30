@@ -36,7 +36,7 @@ export default async function OnboardingStepPage({
   return (
     <div className="flex flex-col gap-6">
       <OnboardingProgress currentSlug={slug} completedSteps={completedSteps} />
-      <section className="space-y-4 rounded-lg border p-6">
+      <section className="bc-panel space-y-4">
         <div className="space-y-2">
           <h2 className="font-heading text-xl">{copy.title}</h2>
           <p className="text-muted-foreground text-sm">{copy.description}</p>

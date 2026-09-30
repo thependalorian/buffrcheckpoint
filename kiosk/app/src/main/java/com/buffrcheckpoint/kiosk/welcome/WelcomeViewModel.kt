@@ -42,11 +42,19 @@ class WelcomeViewModel @Inject constructor(
             }.onSuccess { loaded ->
                 _uiState.value = loaded
             }.onFailure { error ->
+                val cached = experienceRepository.loadCached()
+                val hasBranding = !cached.organisationDisplayName.isNullOrBlank() ||
+                    !cached.logoUrl.isNullOrBlank()
                 _uiState.value = WelcomeUiState(
                     isLoading = false,
-                    experience = experienceRepository.loadCached(),
+                    experience = cached,
                     capabilities = capabilityRepository.current(),
-                    errorMessage = error.message,
+                    errorMessage = if (hasBranding) {
+                        error.message ?: "Could not refresh site branding."
+                    } else {
+                        error.message
+                            ?: "Could not load site branding. Check network and try again."
+                    },
                 )
             }
         }

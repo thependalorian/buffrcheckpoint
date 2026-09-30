@@ -1,0 +1,10 @@
+# Verified together on Python 3.12 (see run notes). Pin, then freeze.
+pydantic==2.13.5
+pydantic-ai-slim[anthropic,openai]==2.51.0
+langgraph==1.2.12
+asyncpg==0.31.0
+python-dotenv>=1.0
+# Image rendering (render command). Released > 7 days before 2026-09-29.
+pillow==12.3.0
+resvg-py==0.5.0
+defusedxml==0.7.1

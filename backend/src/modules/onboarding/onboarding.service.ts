@@ -15,6 +15,7 @@ import {
 } from "../../db/schema";
 import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.service";
 import { AuthService } from "../auth/auth.service";
+import { TemplatedEmailService } from "../notifications/templated-email.service";
 import type { CreateOrganisationAdminDto } from "./dto/create-organisation-admin.dto";
 
 const BCRYPT_ROUNDS = 12;
@@ -32,6 +33,7 @@ export class OnboardingService {
     @Inject(DB) private readonly db: Database,
     private readonly typeDefs: TypeDefinitionLookupService,
     private readonly authService: AuthService,
+    private readonly templatedEmail: TemplatedEmailService,
   ) {}
 
   async createOrganisationAdmin(dto: CreateOrganisationAdminDto): Promise<OnboardingResult> {
@@ -141,6 +143,17 @@ export class OnboardingService {
     ]);
 
     await this.authService.issueEmailVerification(userId, organisationId, dto.email);
+    await this.notifyOpsOfNewOrganisation({
+      organisationId,
+      organisationName: dto.organisationName,
+      adminEmail: dto.email,
+      sectorCode: dto.sectorCode,
+    });
+    await this.sendOrgWelcome({
+      organisationId,
+      organisationName: dto.organisationName,
+      adminEmail: dto.email,
+    });
 
     return {
       ok: true,
@@ -148,6 +161,75 @@ export class OnboardingService {
       organisationId,
       emailVerificationRequired: true,
     };
+  }
+
+  private async sendOrgWelcome(input: {
+    organisationId: string;
+    organisationName: string;
+    adminEmail: string;
+  }): Promise<void> {
+    const adminUrl = (process.env.PUBLIC_ADMIN_BASE_URL ?? "https://admin.buffrcheckpoint.com").replace(/\/$/, "");
+    await this.templatedEmail.send({
+      templateCode: "org_welcome",
+      organisationId: input.organisationId,
+      to: input.adminEmail,
+      variables: {
+        organisationName: input.organisationName,
+        adminEmail: input.adminEmail,
+        adminUrl,
+      },
+      fallback: {
+        subject: "Welcome to Buffr Checkpoint",
+        body: `Welcome to Buffr Checkpoint, ${input.organisationName}.\n\nYour Owner-Operator account is ${input.adminEmail}. Confirm your email if you have not already, then continue onboarding in the admin console:\n${adminUrl}\n\nBilling is EFT with proof of payment. Go-live requires an active or trial subscription after POP review.`,
+      },
+    });
+  }
+
+  /** Fire-and-forget ops alert so signup-first outreach does not depend on watching the console. */
+  private async notifyOpsOfNewOrganisation(input: {
+    organisationId: string;
+    organisationName: string;
+    adminEmail: string;
+    sectorCode: string;
+  }): Promise<void> {
+    const opsInbox = TemplatedEmailService.resolveOpsInbox();
+    if (!opsInbox) {
+      return;
+    }
+    const adminUrl = (process.env.PUBLIC_ADMIN_BASE_URL ?? "https://admin.buffrcheckpoint.com").replace(/\/$/, "");
+    const opsBase = (process.env.PUBLIC_OPS_BASE_URL ?? "https://ops.buffrcheckpoint.com").replace(/\/$/, "");
+    await this.templatedEmail.send({
+      templateCode: "ops_new_organisation",
+      organisationId: input.organisationId,
+      to: opsInbox,
+      variables: {
+        organisationName: input.organisationName,
+        organisationId: input.organisationId,
+        adminEmail: input.adminEmail,
+        sectorCode: input.sectorCode,
+        adminUrl,
+        opsOrgUrl: `${opsBase}/organisations`,
+      },
+      fallback: {
+        subject: `New org signup: ${input.organisationName}`,
+        body: [
+          "New Buffr Checkpoint organisation registered (signup-first).",
+          "",
+          `Organisation: ${input.organisationName}`,
+          `Organisation ID: ${input.organisationId}`,
+          `Owner-Operator email: ${input.adminEmail}`,
+          `Sector code: ${input.sectorCode}`,
+          "",
+          "Outreach checklist:",
+          "1) Ask if they will self-complete onboarding or need assisted setup.",
+          "2) Point them at Pricing then EFT + upload POP under Billing (or grant trial).",
+          "3) After POP (+ KYB) review, set subscription active — go-live requires active or trial.",
+          "",
+          `Admin: ${adminUrl}`,
+          `Ops: ${opsBase}/organisations`,
+        ].join("\n"),
+      },
+    });
   }
 }
 

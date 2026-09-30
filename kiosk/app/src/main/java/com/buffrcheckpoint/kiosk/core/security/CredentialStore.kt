@@ -69,6 +69,32 @@ class CredentialStore @Inject constructor(
         prefs.edit().clear().apply()
     }
 
+    fun clearExperienceCache() {
+        prefs.edit()
+            .remove(KEY_WELCOME)
+            .remove(KEY_ORG_NAME)
+            .remove(KEY_SITE_NAME)
+            .remove(KEY_HELP)
+            .remove(KEY_BRAND_COLOUR)
+            .remove(KEY_PRIVACY_VERSION)
+            .remove(KEY_PRIVACY_NAME)
+            .remove(KEY_IDLE_TIMEOUT)
+            .remove(KEY_IDLE_WARNING)
+            .remove(KEY_MAINTENANCE)
+            .remove(KEY_MAINTENANCE_MSG)
+            .remove(KEY_ASSISTED_DIR)
+            .remove(KEY_CHANNELS)
+            .remove(KEY_LOGO_URL)
+            .remove(KEY_PRIVACY_TEXT)
+            .remove(KEY_LANGUAGES)
+            .remove(KEY_SELECTED_LANGUAGE)
+            .remove(KEY_LARGE_TEXT)
+            .remove(KEY_QR_PAYLOAD)
+            .remove(KEY_QR_LABEL)
+            .remove(KEY_QR_ACTIVE)
+            .apply()
+    }
+
     fun cacheExperience(state: KioskExperienceState) {
         prefs.edit()
             .putString(KEY_WELCOME, state.welcomeMessage)

@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { PassportStrategy } from "@nestjs/passport";
 import { ExtractJwt, Strategy } from "passport-jwt";
 
+import { deriveAudience } from "../../../common/auth/session-audience";
 import type { AuthenticatedUser } from "../../../common/decorators/current-user.decorator";
 
 interface JwtPayload {
@@ -15,6 +16,8 @@ interface JwtPayload {
   /** Platform Ops Console support-session claims — see support-sessions.service.ts. */
   supportSessionId?: string;
   supportGrantId?: string;
+  /** Session audience; absent on tokens issued before 2026-09-29 (derived instead). */
+  aud?: string;
 }
 
 @Injectable()
@@ -42,6 +45,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       mfaEnabled: payload.mfaEnabled === true,
       supportSessionId: payload.supportSessionId,
       supportGrantId: payload.supportGrantId,
+      audience: deriveAudience(payload),
     };
   }
 }

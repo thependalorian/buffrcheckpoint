@@ -25,6 +25,7 @@ export class UpdateCapabilityStatusDto {
     "ussd",
     "qr_invitation_checkin",
     "sms_contact_confirmation",
+    "cimso_innterchange",
   ])
   capabilityCode!: string;
 

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post } from "@nestjs/common";
+import { Body, Controller, Get, Param, Post } from "@nestjs/common";
 
 import { AuditLog } from "../../common/decorators/audit-log.decorator";
 import { type AuthenticatedUser, CurrentUser } from "../../common/decorators/current-user.decorator";
@@ -26,9 +26,21 @@ export class RbacController {
     return this.rbacService.listUsers(user);
   }
 
+  @Get("users/:userId")
+  @RequirePermission(PERMISSIONS.USER_MANAGE)
+  getUser(@Param("userId") userId: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.rbacService.getUserDetail(user.organisationId, userId);
+  }
+
   @Get("roles")
   @RequirePermission(PERMISSIONS.ROLE_MANAGE)
   listRoles(@CurrentUser() user: AuthenticatedUser) {
     return this.rbacService.listRoles(user);
+  }
+
+  @Get("assignable-roles")
+  @RequirePermission(PERMISSIONS.USER_MANAGE)
+  listAssignableRoles(@CurrentUser() user: AuthenticatedUser) {
+    return this.rbacService.listAssignableRoles(user);
   }
 }

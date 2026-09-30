@@ -55,6 +55,7 @@ interface ApiService {
     suspend fun effectiveCheckInForm(
         @Query("siteId") siteId: String?,
         @Query("visitorTypeCode") visitorTypeCode: String,
+        @Query("languageCode") languageCode: String? = "en",
     ): EffectiveCheckInFormDto?
 
     @GET("visits/roster")

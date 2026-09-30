@@ -7,6 +7,7 @@ const TABS = [
   { key: "kyb", label: "KYB" },
   { key: "devices", label: "Devices" },
   { key: "sites", label: "Sites" },
+  { key: "integrations", label: "Integrations" },
 ] as const;
 
 export function OrgDetailTabs({ id, active }: { id: string; active: string }) {

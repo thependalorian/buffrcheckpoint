@@ -40,7 +40,7 @@ export default async function DeviceCompliancePage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-6">
       <DashboardPageHeader
         title="Device Compliance Register"
         description="CRAN assessment, certificate or exemption evidence, firmware, and asset status."
@@ -48,8 +48,8 @@ export default async function DeviceCompliancePage() {
       {error ? (
         <DashboardErrorState message={error} />
       ) : (
-        <div className="overflow-hidden rounded-lg border bg-card">
-          <Table>
+        <div className="bc-panel min-w-0 overflow-x-auto p-0!">
+          <Table className="min-w-[40rem]">
             <TableHeader className="bg-muted/15">
               <TableRow>
                 <TableHead className="h-11 p-3 font-medium">Device</TableHead>

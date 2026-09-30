@@ -80,6 +80,12 @@ export class PublicCheckInDto {
   @ValidateNested({ each: true })
   @Type(() => VisitFormAnswerDto)
   formAnswers?: VisitFormAnswerDto[];
+
+  /** Preferred UI language for dynamic form validation (en/af/pt). */
+  @IsOptional()
+  @IsString()
+  @MaxLength(8)
+  languageCode?: string;
 }
 
 export class PublicCheckOutDto {

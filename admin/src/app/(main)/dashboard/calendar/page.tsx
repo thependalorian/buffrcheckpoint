@@ -3,7 +3,7 @@ import { DashboardErrorState } from "@/components/dashboard-state";
 import { api } from "@/lib/api/client";
 
 import { ScheduleCalendar } from "./_components/calendar";
-import type { CheckpointScheduleEvent } from "./_components/events-data";
+import type { CheckpointScheduleEvent } from "./_components/schedule-event";
 
 // Grid view of the same /schedule data the plain-table Schedule page reads
 // (dashboard/schedule/page.tsx) — that page favors a fast date-ordered

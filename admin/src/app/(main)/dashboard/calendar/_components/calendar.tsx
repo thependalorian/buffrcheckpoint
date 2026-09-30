@@ -8,7 +8,7 @@ import { EventCalendarViews } from "@/components/calendar/event-calendar-views";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
-import { type CheckpointScheduleEvent, toFullCalendarEvents } from "./events-data";
+import { type CheckpointScheduleEvent, toFullCalendarEvents } from "./schedule-event";
 
 interface SelectedEvent {
   title: string;

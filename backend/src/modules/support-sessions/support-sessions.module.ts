@@ -2,7 +2,6 @@ import { Module } from "@nestjs/common";
 
 import { AuthModule } from "../auth/auth.module";
 import { NotificationsModule } from "../notifications/notifications.module";
-import { PlatformConfigurationModule } from "../platform-configuration/platform-configuration.module";
 import { SupportSessionsController } from "./support-sessions.controller";
 import { SupportSessionsService } from "./support-sessions.service";
 
@@ -10,9 +9,7 @@ import { SupportSessionsService } from "./support-sessions.service";
 // ../rename-map.tsv) — the break-glass access/consent flow is its own
 // security-sensitive surface, not a CRM/billing/incidents concern.
 @Module({
-  // JwtService (session minting), NotificationsService (consent-request
-  // emails), PlatformNotificationTemplateService (that email's ops-editable copy).
-  imports: [AuthModule, NotificationsModule, PlatformConfigurationModule],
+  imports: [AuthModule, NotificationsModule],
   controllers: [SupportSessionsController],
   providers: [SupportSessionsService],
   exports: [SupportSessionsService],

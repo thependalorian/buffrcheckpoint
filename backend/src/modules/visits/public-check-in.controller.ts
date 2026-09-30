@@ -24,8 +24,14 @@ export class PublicCheckInController {
     @Query("site") siteId: string,
     @Query("ref") referenceId: string,
     @Query("visitorTypeCode") visitorTypeCode: string,
+    @Query("languageCode") languageCode?: string,
   ) {
-    return this.visitsService.getPublicCheckInForm(siteId, referenceId, visitorTypeCode || "general");
+    return this.visitsService.getPublicCheckInForm(
+      siteId,
+      referenceId,
+      visitorTypeCode || "general",
+      languageCode,
+    );
   }
 
   @Public()

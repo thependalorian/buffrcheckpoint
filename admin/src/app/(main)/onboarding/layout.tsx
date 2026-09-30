@@ -16,7 +16,7 @@ export default async function OnboardingLayout({ children }: { children: ReactNo
     redirect("/auth/mfa/setup");
   }
   if (currentUser.onboarding?.complete) {
-    redirect("/dashboard/default");
+    redirect("/dashboard/overview");
   }
 
   return (

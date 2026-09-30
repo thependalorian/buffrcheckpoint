@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { CreateFormSheet } from "@/app/(main)/dashboard/_components/policy-create-sheets";
 import { DashboardPageHeader } from "@/components/dashboard-page-header";
 import { DashboardErrorState, TableEmptyRow } from "@/components/dashboard-state";
@@ -27,7 +29,7 @@ export default async function VisitorTypesFormsPage() {
     <div className="space-y-6">
       <DashboardPageHeader
         title="Visitor Types & Forms"
-        description="Risk-based form templates and field rules."
+        description="Risk-based form templates, field rules, and translations."
         action={<CreateFormSheet sites={sites} />}
       />
       {error ? (
@@ -50,8 +52,12 @@ export default async function VisitorTypesFormsPage() {
                 />
               ) : (
                 forms.map((form) => (
-                  <TableRow key={form.id}>
-                    <TableCell className="p-3 font-medium">{form.formName ?? "Untitled form"}</TableCell>
+                  <TableRow key={form.id} className="hover:bg-muted/30">
+                    <TableCell className="p-3 font-medium">
+                      <Link href={`/dashboard/policies/forms/${form.id}`} className="underline-offset-4 hover:underline">
+                        {form.formName ?? "Untitled form"}
+                      </Link>
+                    </TableCell>
                     <TableCell className="p-3">{form.siteId ? `Site ${form.siteId}` : "Organisation-wide"}</TableCell>
                   </TableRow>
                 ))

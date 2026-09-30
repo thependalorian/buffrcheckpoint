@@ -13,6 +13,7 @@ interface PublicCapabilityStatusResponse {
   ussd: PublicStatus;
   qrInvitationCheckIn: PublicStatus;
   smsContactConfirmation: PublicStatus;
+  cimsoInnterchange: PublicStatus;
 }
 
 const LABELS: Record<keyof PublicCapabilityStatusResponse, string> = {
@@ -22,6 +23,7 @@ const LABELS: Record<keyof PublicCapabilityStatusResponse, string> = {
   ussd: "USSD",
   qrInvitationCheckIn: "QR invitation check-in",
   smsContactConfirmation: "SMS contact confirmation",
+  cimsoInnterchange: "CiMSO INNterchange (PMS)",
 };
 
 export default async function CapabilityStatusPage() {

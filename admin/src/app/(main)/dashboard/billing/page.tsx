@@ -36,7 +36,7 @@ export default async function BillingPage() {
     <div className="space-y-6">
       <DashboardPageHeader
         title="Billing"
-        description="Invoices are settled by bank transfer to Buffr Financial Services CC — upload your proof of payment against the invoice below once paid."
+        description="Invoices are settled by bank transfer to Buffr Financial Services CC — upload your proof of payment against the invoice below once paid. Go-live and operational dashboard use require an active or trial subscription after Buffr ops reviews your POP (and KYB)."
       />
       {error ? (
         <DashboardErrorState message={error} />

@@ -90,4 +90,9 @@ export class CheckInDto {
   @ValidateNested({ each: true })
   @Type(() => VisitFormAnswerDto)
   formAnswers?: VisitFormAnswerDto[];
+
+  /** Preferred UI language for form label/validation (en/af/pt). */
+  @IsOptional()
+  @IsString()
+  languageCode?: string;
 }

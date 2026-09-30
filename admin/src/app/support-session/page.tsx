@@ -22,5 +22,5 @@ export default async function SupportSessionPage({
   }
 
   await setSessionCookie(token);
-  redirect("/dashboard/default");
+  redirect("/dashboard/overview");
 }

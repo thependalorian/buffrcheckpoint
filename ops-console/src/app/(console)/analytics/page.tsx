@@ -9,6 +9,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { apiFetch, loadOrError } from "@/lib/api";
 import { loadOrgOptions } from "@/lib/orgs";
 
+import {
+  type ArrivalStatistics,
+  ArrivalStatisticsPanel,
+  EtlHealthPanel,
+  type EtlRunRow,
+} from "./_components/analytics-data-panels";
+
 interface ChurnRow {
   organisationId: string;
   healthScore: string;
@@ -86,6 +93,11 @@ export default async function AnalyticsPage() {
 
   // Ticket resolution time lives on the tickets queue, next to the tickets it
   // describes, rather than being repeated here.
+  const [etlRuns, arrivalStats] = await Promise.all([
+    loadSeries<EtlRunRow[]>("/platform/analytics/etl-runs", []),
+    loadSeries<ArrivalStatistics | null>("/platform/analytics/arrival-statistics", null),
+  ]);
+
   const [mrr, kybThroughput, deliveryHealth, complianceShares] = await Promise.all([
     loadSeries<VisitVolumePoint[]>("/platform/dashboard/mrr-trend", []),
     loadSeries<VisitVolumePoint[]>("/platform/dashboard/kyb-throughput-trend", []),
@@ -122,6 +134,16 @@ export default async function AnalyticsPage() {
           <Link href="/organisations">Browse organisations</Link>
         </Button>
       </div>
+
+      <div className="mt-6">
+        <EtlHealthPanel runs={etlRuns} />
+      </div>
+
+      {arrivalStats && arrivalStats.cells.length > 0 ? (
+        <div className="mt-6">
+          <ArrivalStatisticsPanel stats={arrivalStats} />
+        </div>
+      ) : null}
 
       {retentionPoints.length > 1 ? (
         <div className="mt-6">
@@ -229,35 +251,37 @@ export default async function AnalyticsPage() {
             actionLabel="Open organisations"
           />
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Organisation</TableHead>
-                <TableHead>Health</TableHead>
-                <TableHead>MRR</TableHead>
-                <TableHead>Expected value</TableHead>
-                <TableHead>Computed</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {queue.map((row) => (
-                <TableRow key={row.organisationId}>
-                  <TableCell>
-                    <Link href={`/organisations/${row.organisationId}`} className="hover:underline">
-                      {orgLabel[row.organisationId] ?? row.organisationId}
-                    </Link>
-                  </TableCell>
-                  <TableCell>{Number(row.healthScore).toFixed(0)}/100</TableCell>
-                  <TableCell>NAD {row.mrr.toFixed(2)}</TableCell>
-                  <TableCell className="font-medium">{row.expectedValue.toFixed(2)}</TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {new Date(row.computedAt).toLocaleDateString()}
-                  </TableCell>
+          <div className="bc-panel overflow-x-auto p-0!">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Organisation</TableHead>
+                  <TableHead>Health</TableHead>
+                  <TableHead>MRR</TableHead>
+                  <TableHead>Expected value</TableHead>
+                  <TableHead>Computed</TableHead>
                 </TableRow>
-              ))}
-              {queue.length === 0 ? <TableEmptyRow colSpan={5} title="Empty" description="No rows" /> : null}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {queue.map((row) => (
+                  <TableRow key={row.organisationId}>
+                    <TableCell>
+                      <Link href={`/organisations/${row.organisationId}`} className="hover:underline">
+                        {orgLabel[row.organisationId] ?? row.organisationId}
+                      </Link>
+                    </TableCell>
+                    <TableCell>{Number(row.healthScore).toFixed(0)}/100</TableCell>
+                    <TableCell>NAD {row.mrr.toFixed(2)}</TableCell>
+                    <TableCell className="font-medium">{row.expectedValue.toFixed(2)}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {new Date(row.computedAt).toLocaleDateString()}
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {queue.length === 0 ? <TableEmptyRow colSpan={5} title="Empty" description="No rows" /> : null}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </div>
     </div>

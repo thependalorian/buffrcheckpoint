@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.buffrcheckpoint.kiosk.ui.OrgBrandingHeader
 import kotlinx.coroutines.delay
 
 /**
@@ -33,6 +34,8 @@ fun CheckInSuccessScreen(
     autoReturnAfterMillis: Long = 12000,
     viewModel: CheckInSuccessViewModel = hiltViewModel(),
 ) {
+    val experience = viewModel.experienceRepository.loadCached()
+
     LaunchedEffect(visitId) {
         if (visitId.isNotBlank()) {
             viewModel.experienceRepository.acknowledgePendingPolicy(visitId)
@@ -66,6 +69,11 @@ fun CheckInSuccessScreen(
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
+        OrgBrandingHeader(
+            experience = experience,
+            compact = true,
+            modifier = Modifier.padding(bottom = 24.dp),
+        )
         Text(headline, style = MaterialTheme.typography.headlineLarge, textAlign = TextAlign.Center)
         Text(
             "Meeting: $hostLabel",

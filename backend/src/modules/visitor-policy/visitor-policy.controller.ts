@@ -1,6 +1,6 @@
-import { Body, Controller, Get, Param, Patch, Post, Query } from "@nestjs/common";
-import { Type } from "class-transformer";
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from "@nestjs/common";
 import {
+  IsArray,
   IsBoolean,
   IsInt,
   IsObject,
@@ -9,7 +9,6 @@ import {
   IsUUID,
   Min,
   MinLength,
-  ValidateNested,
 } from "class-validator";
 
 import { AuditLog } from "../../common/decorators/audit-log.decorator";
@@ -19,6 +18,7 @@ import { PERMISSIONS } from "../../common/rbac/permissions";
 import { AcknowledgePolicyDto } from "./dto/acknowledge-policy.dto";
 import { PreCheckinAcknowledgePolicyDto } from "./dto/pre-checkin-acknowledge.dto";
 import { CreateCheckInFormDefinitionDto } from "./dto/check-in-form.dto";
+import { FormAiService } from "./form-ai.service";
 import { VisitorPolicyService } from "./visitor-policy.service";
 
 class CreatePolicyDocumentDto {
@@ -53,6 +53,14 @@ class CreateFormFieldDto {
   @IsString()
   fieldLabel?: string;
 
+  @IsOptional()
+  @IsString()
+  fieldTypeCode?: string;
+
+  @IsOptional()
+  @IsString()
+  helpText?: string;
+
   @IsString()
   dataClassificationCode!: string;
 
@@ -80,6 +88,18 @@ class UpdateFormFieldDto {
   fieldLabel?: string;
 
   @IsOptional()
+  @IsString()
+  fieldTypeCode?: string;
+
+  @IsOptional()
+  @IsString()
+  helpText?: string;
+
+  @IsOptional()
+  @IsString()
+  dataClassificationCode?: string;
+
+  @IsOptional()
   @IsBoolean()
   required?: boolean;
 
@@ -95,6 +115,70 @@ class UpdateFormFieldDto {
   @IsOptional()
   @IsObject()
   validationSchema?: Record<string, unknown>;
+}
+
+class ReorderFieldsDto {
+  @IsArray()
+  @IsUUID("4", { each: true })
+  fieldIds!: string[];
+}
+
+class UpsertTranslationDto {
+  @IsString()
+  @MinLength(1)
+  languageCode!: string;
+
+  @IsOptional()
+  @IsString()
+  fieldLabel?: string;
+
+  @IsOptional()
+  @IsString()
+  helpText?: string;
+}
+
+class PublishFormVersionDto {
+  @IsOptional()
+  @IsString()
+  approvalReference?: string;
+}
+
+class ApprovalReferenceDto {
+  @IsString()
+  approvalReference!: string;
+}
+
+class SuggestFormFieldsDto {
+  @IsString()
+  @MinLength(1)
+  visitorTypeCode!: string;
+
+  @IsString()
+  @MinLength(8)
+  intentText!: string;
+
+  @IsOptional()
+  @IsUUID()
+  siteId?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  existingFieldCodes?: string[];
+}
+
+class TranslateFormFieldDto {
+  @IsString()
+  @MinLength(1)
+  languageCode!: string;
+
+  @IsString()
+  @MinLength(1)
+  fieldLabel!: string;
+
+  @IsOptional()
+  @IsString()
+  helpText?: string;
 }
 
 class CreateVisitorCategoryDto {
@@ -114,20 +198,31 @@ class CreateVisitorCategoryDto {
 
 @Controller("visitor-policy/forms")
 export class VisitorPolicyController {
-  constructor(private readonly visitorPolicyService: VisitorPolicyService) {}
+  constructor(
+    private readonly visitorPolicyService: VisitorPolicyService,
+    private readonly formAiService: FormAiService,
+  ) {}
 
   @Get("effective")
   @RequirePermission(PERMISSIONS.VISIT_WRITE)
   effectiveForm(
     @Query("siteId") siteId: string | undefined,
     @Query("visitorTypeCode") visitorTypeCode: string,
+    @Query("languageCode") languageCode: string | undefined,
     @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.visitorPolicyService.resolveEffectiveFormForUser(
       siteId,
       visitorTypeCode?.trim() || "general",
       user,
+      languageCode,
     );
+  }
+
+  @Get("field-library")
+  @RequirePermission(PERMISSIONS.SITE_CONFIGURE)
+  fieldLibrary() {
+    return this.visitorPolicyService.listFieldLibrary();
   }
 
   @Post()
@@ -141,6 +236,12 @@ export class VisitorPolicyController {
   @RequirePermission(PERMISSIONS.SITE_CONFIGURE)
   list(@CurrentUser() user: AuthenticatedUser) {
     return this.visitorPolicyService.list(user);
+  }
+
+  @Get(":id")
+  @RequirePermission(PERMISSIONS.SITE_CONFIGURE)
+  getDefinition(@Param("id") id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.visitorPolicyService.getFormDefinition(id, user);
   }
 
   @Post(":id/versions")
@@ -167,6 +268,39 @@ export class VisitorPolicyController {
     return this.visitorPolicyService.addFormField(versionId, dto, user);
   }
 
+  @Patch("versions/:versionId/fields/reorder")
+  @RequirePermission(PERMISSIONS.SITE_CONFIGURE)
+  @AuditLog({ action: "check_in_form_field.reorder", resourceType: "check_in_form_version" })
+  reorderFields(
+    @Param("versionId") versionId: string,
+    @Body() dto: ReorderFieldsDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.visitorPolicyService.reorderFormFields(versionId, dto.fieldIds, user);
+  }
+
+  @Post("versions/:versionId/clone")
+  @RequirePermission(PERMISSIONS.SITE_CONFIGURE)
+  @AuditLog({ action: "check_in_form_version.clone", resourceType: "check_in_form_version" })
+  cloneVersion(@Param("versionId") versionId: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.visitorPolicyService.cloneFormVersion(versionId, user);
+  }
+
+  @Patch("versions/:versionId/approval-reference")
+  @RequirePermission(PERMISSIONS.SITE_CONFIGURE)
+  @AuditLog({ action: "check_in_form_version.approval_reference", resourceType: "check_in_form_version" })
+  setApprovalReference(
+    @Param("versionId") versionId: string,
+    @Body() dto: ApprovalReferenceDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.visitorPolicyService.setFormVersionApprovalReference(
+      versionId,
+      dto.approvalReference,
+      user,
+    );
+  }
+
   @Patch("fields/:fieldId")
   @RequirePermission(PERMISSIONS.SITE_CONFIGURE)
   @AuditLog({ action: "check_in_form_field.update", resourceType: "check_in_form_field" })
@@ -178,17 +312,55 @@ export class VisitorPolicyController {
     return this.visitorPolicyService.updateFormField(fieldId, dto, user);
   }
 
+  @Delete("fields/:fieldId")
+  @RequirePermission(PERMISSIONS.SITE_CONFIGURE)
+  @AuditLog({ action: "check_in_form_field.delete", resourceType: "check_in_form_field" })
+  deleteField(@Param("fieldId") fieldId: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.visitorPolicyService.softDeleteFormField(fieldId, user);
+  }
+
+  @Post("fields/:fieldId/translations")
+  @RequirePermission(PERMISSIONS.SITE_CONFIGURE)
+  @AuditLog({ action: "check_in_form_field_translation.upsert", resourceType: "check_in_form_field" })
+  upsertTranslation(
+    @Param("fieldId") fieldId: string,
+    @Body() dto: UpsertTranslationDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.visitorPolicyService.upsertFieldTranslation(fieldId, dto, user);
+  }
+
   @Post("versions/:versionId/publish")
   @RequirePermission(PERMISSIONS.SITE_CONFIGURE)
   @AuditLog({ action: "check_in_form_version.publish", resourceType: "check_in_form_version" })
-  publishVersion(@Param("versionId") versionId: string, @CurrentUser() user: AuthenticatedUser) {
-    return this.visitorPolicyService.publishFormVersion(versionId, user);
+  publishVersion(
+    @Param("versionId") versionId: string,
+    @Body() dto: PublishFormVersionDto | undefined,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.visitorPolicyService.publishFormVersion(versionId, user, {
+      approvalReference: dto?.approvalReference,
+    });
   }
 
   @Get("versions/:versionId")
   @RequirePermission(PERMISSIONS.SITE_CONFIGURE)
   getVersion(@Param("versionId") versionId: string, @CurrentUser() user: AuthenticatedUser) {
     return this.visitorPolicyService.getFormVersionWithFields(versionId, user);
+  }
+
+  @Post("ai/suggest-fields")
+  @RequirePermission(PERMISSIONS.SITE_CONFIGURE)
+  @AuditLog({ action: "check_in_form.ai_suggest_fields", resourceType: "check_in_form_definition" })
+  suggestFields(@Body() dto: SuggestFormFieldsDto) {
+    return this.formAiService.suggestFields(dto);
+  }
+
+  @Post("ai/translate-field")
+  @RequirePermission(PERMISSIONS.SITE_CONFIGURE)
+  @AuditLog({ action: "check_in_form.ai_translate_field", resourceType: "check_in_form_field" })
+  translateField(@Body() dto: TranslateFormFieldDto) {
+    return this.formAiService.translateField(dto);
   }
 }
 

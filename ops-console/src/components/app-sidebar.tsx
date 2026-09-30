@@ -30,9 +30,9 @@ export function AppSidebar({ email }: { email: string }) {
           <SidebarMenuItem>
             <SidebarMenuButton asChild size="lg">
               <Link prefetch={false} href="/">
-                <Image src="/icon.png" alt="" width={20} height={20} className="rounded-sm" />
+                <Image src="/icon.png" alt="" width={64} height={64} className="size-8 shrink-0 rounded-md" />
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">Buffr Checkpoint</span>
+                  <span className="truncate font-heading font-semibold text-base tracking-tight">Checkpoint</span>
                   <span className="truncate text-muted-foreground text-xs">Platform Ops</span>
                 </div>
               </Link>
@@ -49,7 +49,16 @@ export function AppSidebar({ email }: { email: string }) {
                 const active = item.url === "/" ? pathname === "/" : pathname.startsWith(item.url);
                 return (
                   <SidebarMenuItem key={item.url}>
-                    <SidebarMenuButton asChild isActive={active} tooltip={item.title}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={active}
+                      tooltip={item.title}
+                      className={
+                        active
+                          ? "bc-active-soft data-active:bg-[color-mix(in_srgb,var(--color-sodium-yellow)_14%,var(--color-pure-white))]"
+                          : undefined
+                      }
+                    >
                       <Link prefetch={false} href={item.url}>
                         <item.icon />
                         <span>{item.title}</span>

@@ -8,18 +8,23 @@ import { AppController } from "./app.controller";
 import { AccessControlModule } from "./common/access-control/access-control.module";
 import { DataProtectionModule } from "./common/data-protection/data-protection.module";
 import { RbacGuard } from "./common/guards/rbac.guard";
+import { SessionAudienceGuard } from "./common/guards/session-audience.guard";
 import { TenantScopeGuard } from "./common/guards/tenant-scope.guard";
 import { AuditInterceptor } from "./common/interceptors/audit.interceptor";
 import { DbModule } from "./db/db.module";
 import { AccessPoliciesModule } from "./modules/access-policies/access-policies.module";
+import { AccessReviewsModule } from "./modules/access-reviews/access-reviews.module";
 import { AnalyticsModule } from "./modules/analytics/analytics.module";
+import { AnalyticsEtlModule } from "./modules/analytics-etl/analytics-etl.module";
 import { AuditModule } from "./modules/audit/audit.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { JwtAuthGuard } from "./modules/auth/guards/jwt-auth.guard";
+import { BillingModule } from "./modules/billing/billing.module";
 import { CapabilityStatusModule } from "./modules/capability-status/capability-status.module";
 import { ComplianceModule } from "./modules/compliance/compliance.module";
 import { ContactModule } from "./modules/contact/contact.module";
 import { CredentialsModule } from "./modules/credentials/credentials.module";
+import { CrmModule } from "./modules/crm/crm.module";
 import { DevicesModule } from "./modules/devices/devices.module";
 import { DsarModule } from "./modules/dsar/dsar.module";
 import { EmergencyModule } from "./modules/emergency/emergency.module";
@@ -27,26 +32,22 @@ import { EvidenceModule } from "./modules/evidence/evidence.module";
 import { HostNotificationEscalationModule } from "./modules/host-notification-escalation/host-notification-escalation.module";
 import { HostsModule } from "./modules/hosts/hosts.module";
 import { IdentityVerificationModule } from "./modules/identity-verification/identity-verification.module";
+import { CimsoModule } from "./modules/integrations/cimso/cimso.module";
 import { TelecomsModule } from "./modules/integrations/telecoms/telecoms.module";
 import { InvitationsModule } from "./modules/invitations/invitations.module";
 import { KioskExperienceModule } from "./modules/kiosk-experience/kiosk-experience.module";
+import { KybModule } from "./modules/kyb/kyb.module";
 import { LegalHoldsModule } from "./modules/legal-holds/legal-holds.module";
 import { NotificationsModule } from "./modules/notifications/notifications.module";
 import { OnboardingModule } from "./modules/onboarding/onboarding.module";
 import { OrganisationDirectoryModule } from "./modules/organisation-directory/organisation-directory.module";
-import { OrganisationsModule } from "./modules/organisations/organisations.module";
-import { BillingModule } from "./modules/billing/billing.module";
-import { CrmModule } from "./modules/crm/crm.module";
-import { KybModule } from "./modules/kyb/kyb.module";
-import { AccessReviewsModule } from "./modules/access-reviews/access-reviews.module";
 import { OrganisationHealthModule } from "./modules/organisation-health/organisation-health.module";
+import { OrganisationsModule } from "./modules/organisations/organisations.module";
 import { PlatformConfigurationModule } from "./modules/platform-configuration/platform-configuration.module";
 import { PlatformDashboardModule } from "./modules/platform-dashboard/platform-dashboard.module";
 import { PlatformIncidentsModule } from "./modules/platform-incidents/platform-incidents.module";
 import { PlatformSearchModule } from "./modules/platform-search/platform-search.module";
 import { PlatformStaffModule } from "./modules/platform-staff/platform-staff.module";
-import { SupportSessionsModule } from "./modules/support-sessions/support-sessions.module";
-import { SupportTicketsModule } from "./modules/support-tickets/support-tickets.module";
 import { RbacModule } from "./modules/rbac/rbac.module";
 import { RegionsModule } from "./modules/regions/regions.module";
 import { RetentionPolicyModule } from "./modules/retention-policy/retention-policy.module";
@@ -55,6 +56,8 @@ import { SecurityZonesModule } from "./modules/security-zones/security-zones.mod
 import { SiteBrandingModule } from "./modules/site-branding/site-branding.module";
 import { SiteQrReferencesModule } from "./modules/site-qr-references/site-qr-references.module";
 import { SitesModule } from "./modules/sites/sites.module";
+import { SupportSessionsModule } from "./modules/support-sessions/support-sessions.module";
+import { SupportTicketsModule } from "./modules/support-tickets/support-tickets.module";
 import { TypeDefinitionsModule } from "./modules/type-definitions/type-definitions.module";
 import { VisitorPolicyModule } from "./modules/visitor-policy/visitor-policy.module";
 import { VisitorWaitQueueModule } from "./modules/visitor-wait-queue/visitor-wait-queue.module";
@@ -107,6 +110,7 @@ import { VisitsModule } from "./modules/visits/visits.module";
     AccessPoliciesModule,
     VisitorPolicyModule,
     AnalyticsModule,
+    AnalyticsEtlModule,
     SiteBrandingModule,
     KioskExperienceModule,
     SiteQrReferencesModule,
@@ -115,6 +119,7 @@ import { VisitsModule } from "./modules/visits/visits.module";
     SecurityZonesModule,
     ContactModule,
     TelecomsModule,
+    CimsoModule,
     SupportSessionsModule,
     PlatformDashboardModule,
     PlatformIncidentsModule,
@@ -137,6 +142,7 @@ import { VisitsModule } from "./modules/visits/visits.module";
     // user's role. Section 9.2 rule 1: enforced here, not only in the UI.
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
+    { provide: APP_GUARD, useClass: SessionAudienceGuard },
     { provide: APP_GUARD, useClass: TenantScopeGuard },
     { provide: APP_GUARD, useClass: RbacGuard },
     { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },

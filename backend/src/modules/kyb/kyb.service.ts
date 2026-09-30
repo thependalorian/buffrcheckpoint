@@ -1,16 +1,24 @@
 import { Inject, Injectable, NotFoundException } from "@nestjs/common";
-import { desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 
 import { createArtifactStore } from "../../common/artifacts/artifact-store";
 import {
   PersonalDataProtectionService,
-  type ProtectedPersonalDataEnvelope,
 } from "../../common/data-protection/personal-data-protection.service";
 import type { AuthenticatedUser } from "../../common/decorators/current-user.decorator";
 import type { Database } from "../../db/client";
 import { DB } from "../../db/db.module";
-import { organisationKybStatusEvents, organisationKybVerification } from "../../db/schema";
+import {
+  applicationUsers,
+  organisationKybStatusEvents,
+  organisationKybVerification,
+  organisationMemberships,
+  organisations,
+  roleDefinitions,
+  typeDefinition,
+} from "../../db/schema";
 import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.service";
+import { TemplatedEmailService } from "../notifications/templated-email.service";
 import { randomUUID } from "node:crypto";
 
 export interface SubmitKybInput {
@@ -25,16 +33,13 @@ export interface SubmitKybInput {
 
 const artifactStore = createArtifactStore();
 
-// Scoped to business-identity verification at onboarding only — not
-// ongoing sanctions/PEP/AML monitoring (regulated-fintech-grade capability
-// this visitor-management product doesn't need). Gates
-// organisation_subscription reaching 'active' (billing.service.ts).
 @Injectable()
 export class KybService {
   constructor(
     @Inject(DB) private readonly db: Database,
     private readonly typeDefs: TypeDefinitionLookupService,
     private readonly dataProtection: PersonalDataProtectionService,
+    private readonly templatedEmail: TemplatedEmailService,
   ) {}
 
   async submit(dto: SubmitKybInput, user: AuthenticatedUser) {
@@ -72,17 +77,10 @@ export class KybService {
       actorId: user.userId,
     });
 
+    await this.notifySubmitted(dto.organisationId, user.userId).catch(() => undefined);
     return row;
   }
 
-  // Explicit `?? null`: Drizzle's findFirst() resolves to `undefined` when
-  // nothing matches, and NestJS/Express sends an EMPTY response body for a
-  // controller that returns `undefined` — not JSON "null". Every caller of
-  // this endpoint expects `KybVerification | null` and calls `.json()` on
-  // the response; an empty body makes that throw
-  // "SyntaxError: Unexpected end of JSON input" for any organisation with
-  // no KYB submission yet — confirmed live via Vercel runtime error logs
-  // on both the admin and ops-console KYB screens.
   async getLatestForOrganisation(organisationId: string) {
     const row = await this.db.query.organisationKybVerification.findFirst({
       where: eq(organisationKybVerification.organisationId, organisationId),
@@ -124,6 +122,8 @@ export class KybService {
       note,
     });
 
+    await this.notifyDecision(row.organisationId, decision, note).catch(() => undefined);
+
     const updated = await this.db.query.organisationKybVerification.findFirst({
       where: eq(organisationKybVerification.id, kybVerificationId),
     });
@@ -149,7 +149,6 @@ export class KybService {
     return { requested: kybVerificationIds.length, updated, failed };
   }
 
-  /** Full status-event timeline for an org's KYB verification(s) — the ops-console KYB tab's history view. */
   async history(organisationId: string) {
     const verifications = await this.db.query.organisationKybVerification.findMany({
       where: eq(organisationKybVerification.organisationId, organisationId),
@@ -167,22 +166,19 @@ export class KybService {
     return events;
   }
 
-  /** Streams the stored registration document back for staff review. Reference format is `<namespace>/<packageId>` — the document's own filename lives inside the manifest, not the reference, so resolve it there first. */
   async getDocument(kybVerificationId: string) {
     const row = await this.db.query.organisationKybVerification.findFirst({
       where: eq(organisationKybVerification.id, kybVerificationId),
     });
     if (!row?.registrationDocumentReference) {
-      throw new NotFoundException("No registration document on file");
+      throw new NotFoundException("No KYB document on file");
     }
 
     const manifestBuffer = await artifactStore.readFile(row.registrationDocumentReference, "manifest.json");
-    const manifest = JSON.parse(manifestBuffer.toString("utf8")) as {
-      files: Array<{ name: string }>;
-    };
+    const manifest = JSON.parse(manifestBuffer.toString("utf8")) as { files: Array<{ name: string }> };
     const documentFile = manifest.files.find((f) => f.name !== "manifest.json");
     if (!documentFile) {
-      throw new NotFoundException("No registration document on file");
+      throw new NotFoundException("No KYB document on file");
     }
 
     const content = await artifactStore.readFile(row.registrationDocumentReference, documentFile.name);
@@ -191,10 +187,77 @@ export class KybService {
 
   async isVerified(organisationId: string): Promise<boolean> {
     const verifiedStatus = await this.typeDefs.id("kyb_status", "verified");
-    const latest = await this.db.query.organisationKybVerification.findFirst({
-      where: eq(organisationKybVerification.organisationId, organisationId),
-      orderBy: desc(organisationKybVerification.submittedAt),
-    });
+    const latest = await this.getLatestForOrganisation(organisationId);
     return latest?.statusCode === verifiedStatus;
+  }
+
+  private async notifySubmitted(organisationId: string, userId: string) {
+    const org = await this.db.query.organisations.findFirst({ where: eq(organisations.id, organisationId) });
+    const submitter = await this.db.query.applicationUsers.findFirst({ where: eq(applicationUsers.id, userId) });
+    if (!submitter) return;
+    await this.templatedEmail.send({
+      templateCode: "kyb_submitted_ack",
+      organisationId,
+      to: submitter.email,
+      variables: { organisationName: org?.legalName ?? "your organisation" },
+      fallback: {
+        subject: "KYB documents received",
+        body: `We received the business verification (KYB) pack for ${org?.legalName ?? "your organisation"}.\n\nOur team will review it. You will receive an email when it is verified or if we need more information.`,
+      },
+    });
+  }
+
+  private async notifyDecision(organisationId: string, decision: "verified" | "rejected", note?: string) {
+    const org = await this.db.query.organisations.findFirst({ where: eq(organisations.id, organisationId) });
+    const organisationName = org?.legalName ?? "your organisation";
+    const recipients = await this.organisationAdminEmails(organisationId);
+    const templateCode = decision === "verified" ? "kyb_verified" : "kyb_rejected";
+    const noteText = note?.trim() || (decision === "rejected" ? "Please correct the details and resubmit." : "");
+    await Promise.all(
+      recipients.map((email) =>
+        this.templatedEmail.send({
+          templateCode,
+          organisationId,
+          to: email,
+          variables: { organisationName, note: noteText },
+          fallback:
+            decision === "verified"
+              ? {
+                  subject: "Business verification approved",
+                  body: `Business verification (KYB) for ${organisationName} is approved.\n\nYou can proceed with billing activation and go-live when your subscription is active or on trial.`,
+                }
+              : {
+                  subject: "Business verification needs attention",
+                  body: `Business verification (KYB) for ${organisationName} was not approved.\n\n${noteText}\n\nPlease correct the details and resubmit from Admin → KYB.`,
+                },
+        }),
+      ),
+    );
+  }
+
+  private async organisationAdminEmails(organisationId: string): Promise<string[]> {
+    const memberships = await this.db.query.organisationMemberships.findMany({
+      where: and(eq(organisationMemberships.organisationId, organisationId), isNull(organisationMemberships.deletedAt)),
+    });
+    if (memberships.length === 0) return [];
+    const roleRows = await this.db.query.roleDefinitions.findMany({
+      where: inArray(
+        roleDefinitions.id,
+        memberships.map((m) => m.roleId),
+      ),
+    });
+    const adminRoleIds = new Set<string>();
+    for (const role of roleRows) {
+      const code = await this.db.query.typeDefinition.findFirst({ where: eq(typeDefinition.id, role.roleCode) });
+      if (code && (code.code === "owner_operator" || code.code === "system_administrator")) {
+        adminRoleIds.add(role.id);
+      }
+    }
+    const adminUserIds = memberships.filter((m) => adminRoleIds.has(m.roleId)).map((m) => m.userId);
+    if (adminUserIds.length === 0) return [];
+    const users = await this.db.query.applicationUsers.findMany({
+      where: and(inArray(applicationUsers.id, adminUserIds), isNull(applicationUsers.deletedAt)),
+    });
+    return users.map((u) => u.email);
   }
 }

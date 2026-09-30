@@ -64,7 +64,7 @@ export function AccountMenu({
         ) : null}
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
-          <Link href="/dashboard/profile">
+          <Link href="/dashboard/account">
             <BadgeCheck />
             Account
           </Link>

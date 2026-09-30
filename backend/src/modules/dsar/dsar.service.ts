@@ -1,7 +1,8 @@
 import { Inject, Injectable, NotFoundException, StreamableFile } from "@nestjs/common";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 
 import { createArtifactStore } from "../../common/artifacts/artifact-store";
+import { PersonalDataProtectionService } from "../../common/data-protection/personal-data-protection.service";
 import type { AuthenticatedUser } from "../../common/decorators/current-user.decorator";
 import type { Database } from "../../db/client";
 import { DB } from "../../db/db.module";
@@ -28,6 +29,7 @@ export class DsarService {
   constructor(
     @Inject(DB) private readonly db: Database,
     private readonly typeDefs: TypeDefinitionLookupService,
+    private readonly dataProtection: PersonalDataProtectionService,
   ) {}
 
   async create(input: CreateDsarInput, user: AuthenticatedUser) {
@@ -172,21 +174,45 @@ export class DsarService {
     };
   }
 
+  // subjectReference is overloaded today: an email for the staff
+  // account-deletion path above (matched against applicationUsers.email),
+  // but a phone number for this visitor data-export path — visitors have no
+  // applicationUsers row to match on, only the phoneLookupHmac deterministic
+  // hash already used for returning-visitor lookup (visitors.service.ts's
+  // findByPhone, visits.service.ts's signOutByPhone). That split is a real
+  // pre-existing product-data-model question, not resolved here — this fix
+  // only closes the bug where this method ignored subjectReference entirely
+  // and returned every visitor's data regardless of who requested it.
   private async buildExportPackage(subjectReference: string, user: AuthenticatedUser) {
-    const subjects = await this.db.query.visitorSubjects.findMany({
-      where: and(eq(visitorSubjects.organisationId, user.organisationId), isNull(visitorSubjects.deletedAt)),
+    const phoneHmacs = this.dataProtection.phoneLookupHmacCandidates(subjectReference);
+    const personalDataMatch = await this.db.query.visitorPersonalData.findFirst({
+      where: inArray(visitorPersonalData.phoneLookupHmac, phoneHmacs),
     });
+
+    const subjects = personalDataMatch
+      ? await this.db.query.visitorSubjects.findMany({
+          where: and(
+            eq(visitorSubjects.id, personalDataMatch.visitorId),
+            eq(visitorSubjects.organisationId, user.organisationId),
+            isNull(visitorSubjects.deletedAt),
+          ),
+        })
+      : [];
     const subjectIds = subjects.map((s) => s.id);
-    const personal =
+    // subjects is already org-scoped above, so a non-empty result confirms
+    // the phone-matched visitor belongs to this organisation.
+    const personal = subjects.length > 0 && personalDataMatch ? [personalDataMatch] : [];
+
+    const visits =
       subjectIds.length === 0
         ? []
-        : await this.db.query.visitorPersonalData.findMany({
-            where: (fields, { inArray }) => inArray(fields.visitorId, subjectIds),
+        : await this.db.query.visitorVisits.findMany({
+            where: and(
+              eq(visitorVisits.organisationId, user.organisationId),
+              isNull(visitorVisits.deletedAt),
+              inArray(visitorVisits.visitorId, subjectIds),
+            ),
           });
-
-    const visits = await this.db.query.visitorVisits.findMany({
-      where: and(eq(visitorVisits.organisationId, user.organisationId), isNull(visitorVisits.deletedAt)),
-    });
 
     const dataJson = {
       subjectReference,

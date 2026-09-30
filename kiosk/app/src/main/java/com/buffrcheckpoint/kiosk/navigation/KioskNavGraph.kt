@@ -52,6 +52,13 @@ fun KioskNavGraph(
 
     var experience by remember { mutableStateOf(experienceRepository.loadCached()) }
     var technicianEscapePending by remember { mutableStateOf(false) }
+    // The kiosk device stays logged in for a whole shift (CredentialStore),
+    // so an isLoggedIn() check here would never actually challenge anyone —
+    // "Staff" always forces a fresh LoginScreen credential entry, unlike the
+    // technician-escape path above which only challenges when logged out.
+    // Closes the gap where any visitor could tap "Staff" and see every
+    // other visitor's name and host with no gate at all.
+    var staffRosterPending by remember { mutableStateOf(false) }
 
     fun resetToWelcome() {
         abandonCheckIn.execute {
@@ -86,6 +93,13 @@ fun KioskNavGraph(
                         if (technicianEscapePending) {
                             technicianEscapePending = false
                             navController.navigate(KioskDestinations.ABOUT_DEBUG) {
+                                launchSingleTop = true
+                            }
+                            return@LoginScreen
+                        }
+                        if (staffRosterPending) {
+                            staffRosterPending = false
+                            navController.navigate(KioskDestinations.HOME) {
                                 launchSingleTop = true
                             }
                             return@LoginScreen
@@ -133,7 +147,12 @@ fun KioskNavGraph(
                     onAssistedCheckIn = { navController.navigate(KioskDestinations.ASSISTED_CHECK_IN) },
                     onQrCheckIn = { navController.navigate(KioskDestinations.privacyNotice("qr_check_in")) },
                     onNfcCheckIn = { navController.navigate(KioskDestinations.privacyNotice("nfc_check_in")) },
-                    onStaffRoster = { navController.navigate(KioskDestinations.HOME) },
+                    onStaffRoster = {
+                        staffRosterPending = true
+                        navController.navigate(KioskDestinations.LOGIN) {
+                            launchSingleTop = true
+                        }
+                    },
                     onPrivacyNotice = { navController.navigate(KioskDestinations.privacyNotice("manual_check_in")) },
                     onUssdInstructions = { navController.navigate(KioskDestinations.USSD_INSTRUCTIONS) },
                     onSignOut = { navController.navigate(KioskDestinations.VISITOR_SIGN_OUT) },

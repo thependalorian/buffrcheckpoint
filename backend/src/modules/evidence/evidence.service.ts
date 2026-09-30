@@ -1,6 +1,7 @@
 import { Inject, Injectable, NotFoundException } from "@nestjs/common";
 import { and, eq } from "drizzle-orm";
 
+import { createArtifactStore } from "../../common/artifacts/artifact-store";
 import type { AuthenticatedUser } from "../../common/decorators/current-user.decorator";
 import type { Database } from "../../db/client";
 import { DB } from "../../db/db.module";
@@ -13,38 +14,29 @@ import {
   roleDefinitions,
 } from "../../db/schema";
 import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.service";
+import { VisitsService } from "../visits/visits.service";
 import { randomUUID } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
-import { join } from "node:path";
 
-// v0.4 correction (Section 4a.7 / hardening-pass point 2): evidence packs
-// can contain sensitive tenant data (RBAC assignments, audit-log extracts).
-// The required target architecture is:
-//   evidence pack -> encrypted object storage -> tenant-specific path ->
-//   short-lived signed download link -> audit event -> retention/deletion
-//   lifecycle.
-// This scaffolding pass has no cloud storage credentials configured, so it
-// cannot honestly claim that architecture is built — writing to local disk
-// below is the disclosed interim state, not a stand-in presented as done.
-// This directory is gitignored and must never hold real production PII;
-// only synthetic/dev-org content until object storage replaces it.
-// TODO(object-storage): replace writeFile below with an upload to an
-// S3-compatible encrypted bucket, replace fileReference with a short-lived
-// signed URL issued per request (not a stored permanent path), and emit an
-// audit_event on every signed-link issuance — not just on generation.
-const OUTPUT_DIR = join(process.cwd(), "generated-evidence-packs");
+const ARTIFACT_NAMESPACE = "evidence-packs";
 
 @Injectable()
 export class EvidenceService {
+  private readonly artifacts = createArtifactStore();
+
   constructor(
     @Inject(DB) private readonly db: Database,
     private readonly typeDefs: TypeDefinitionLookupService,
+    private readonly visits: VisitsService,
   ) {}
 
-  // Section 20.2's client assurance pack, in miniature: RBAC matrix,
-  // retention-policy report, and access-log extract, actually queried from
-  // the live database — not a template with fields left blank.
-  async generate(user: AuthenticatedUser) {
+  // Section 20.2's client assurance pack: RBAC matrix, retention-policy
+  // report, admin-action audit-log extract, and — when from/to is given —
+  // a visitor-access extract, actually queried from the live database. An
+  // optional date range turns this into "produce evidence of who accessed
+  // the premises for this period," the capability neither this pack nor the
+  // DSAR export answered before (an auditor/regulator ask, not a DSAR
+  // subject-access request).
+  async generate(user: AuthenticatedUser, range?: { from?: string; to?: string }) {
     const [pendingStatus, generatingStatus, readyStatus] = await Promise.all([
       this.typeDefs.id("evidence_pack_status", "pending"),
       this.typeDefs.id("evidence_pack_status", "generating"),
@@ -57,14 +49,17 @@ export class EvidenceService {
         id: randomUUID(),
         organisationId: user.organisationId,
         requestedBy: user.userId,
-        scope: { generatedFor: "org-wide" },
+        scope:
+          range?.from || range?.to
+            ? { generatedFor: "org-wide", from: range.from, to: range.to }
+            : { generatedFor: "org-wide" },
         statusCode: pendingStatus,
       })
       .returning();
 
     await this.logStatus(pack.id, generatingStatus, user.userId, "generation started");
 
-    const [rbacMatrix, retentionReport, accessLogExtract, roles] = await Promise.all([
+    const [rbacMatrix, retentionReport, accessLogExtract, roles, visitorAccessExtract] = await Promise.all([
       this.db.query.organisationMemberships.findMany({
         where: eq(organisationMemberships.organisationId, user.organisationId),
       }),
@@ -74,29 +69,32 @@ export class EvidenceService {
         limit: 500,
       }),
       this.db.query.roleDefinitions.findMany({ where: eq(roleDefinitions.organisationId, user.organisationId) }),
+      range?.from || range?.to
+        ? this.visits.searchRoster(user, { from: range.from, to: range.to, limit: 1000 }).then((r) => r.rows)
+        : Promise.resolve(null),
     ]);
 
     const content = {
       generatedAt: new Date().toISOString(),
       organisationId: user.organisationId,
+      scope:
+        range?.from || range?.to ? { from: range.from ?? null, to: range.to ?? null } : { generatedFor: "org-wide" },
       rbacMatrix: { roles, organisationMemberships: rbacMatrix },
       retentionPolicyReport: retentionReport,
-      accessLogExtract, // Section 9.2 rule 3's audit_event rows, verbatim
+      accessLogExtract, // Section 9.2 rule 3's audit_event rows, verbatim — admin actions, not visitor check-ins
+      visitorAccessExtract, // who was actually on the premises in the requested period, or null when no range was given
     };
 
-    // Tenant-scoped path even in this interim local-disk implementation —
-    // the eventual object-storage path structure (tenant-specific path per
-    // the architecture above) should not be a bigger change than swapping
-    // the write target.
-    const tenantDir = join(OUTPUT_DIR, user.organisationId);
-    await mkdir(tenantDir, { recursive: true });
-    const fileName = `${pack.id}.json`;
-    const filePath = join(tenantDir, fileName);
-    await writeFile(filePath, JSON.stringify(content, null, 2), "utf-8");
+    const contentBody = JSON.stringify(content, null, 2);
+    const stored = await this.artifacts.writePackage(
+      ARTIFACT_NAMESPACE,
+      [{ name: `${pack.id}.json`, content: contentBody, contentType: "application/json" }],
+      { organisationId: user.organisationId, requestedBy: user.userId },
+    );
 
     const [updated] = await this.db
       .update(evidencePack)
-      .set({ statusCode: readyStatus, generatedAt: new Date(), fileReference: filePath })
+      .set({ statusCode: readyStatus, generatedAt: new Date(), fileReference: stored.fileReference })
       .where(eq(evidencePack.id, pack.id))
       .returning();
 
@@ -117,6 +115,13 @@ export class EvidenceService {
     });
     if (!found) throw new NotFoundException("Evidence pack not found");
     return found;
+  }
+
+  /** Streams the generated pack's JSON content back for download. */
+  async getContent(evidencePackId: string, user: AuthenticatedUser): Promise<Buffer> {
+    const pack = await this.getById(evidencePackId, user);
+    if (!pack.fileReference) throw new NotFoundException("Evidence pack has not finished generating");
+    return this.artifacts.readFile(pack.fileReference, `${pack.id}.json`);
   }
 
   private async logStatus(evidencePackId: string, statusCode: string, actorId: string, reason: string) {

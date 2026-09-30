@@ -18,7 +18,6 @@ export function track(event: string, properties?: Record<string, string | number
 export const AnalyticsEvents = {
   consentAccepted: "analytics_consent_accepted",
   consentDeclined: "analytics_consent_declined",
-  contactEnquirySubmitted: "contact_enquiry_submitted",
   // Visitor web journey — target: check-in completed (and later signed out)
   checkInStarted: "web_check_in_started",
   checkInContextFailed: "web_check_in_context_failed",

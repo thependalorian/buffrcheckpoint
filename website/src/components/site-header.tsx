@@ -1,63 +1,88 @@
-import Image from "next/image";
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
-import { Button } from "@/components/ui/button";
+import { BrandLogo } from "@/components/brand-logo";
+import { BRAND } from "@/lib/copy/brand";
+import { MARKETING_PRIMARY_CTA, MARKETING_SECONDARY_PRICING_CTA } from "@/lib/copy/signup";
 
-const navItems = [
+const NAV = [
   { href: "/platform", label: "Platform" },
   { href: "/pricing", label: "Pricing" },
-  { href: "/developers", label: "Developers" },
   { href: "/about", label: "About" },
-  { href: "/status", label: "Status" },
   { href: "/contact", label: "Contact" },
 ] as const;
 
-export type SiteHeaderActivePath = (typeof navItems)[number]["href"] | "/" | null;
+function isActive(pathname: string, href: string): boolean {
+  if (href === "/") return pathname === "/";
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
 
-// Was duplicated verbatim across all 7 public pages (page.tsx, about,
-// contact, pricing, platform, privacy, terms) — one shared header instead
-// of seven copies to keep in sync by hand. Opaque white, not the
-// translucent/blurred dark-canvas-era bg-background/80 — the real brand
-// (Section 11.5's v0.5 correction) is a white-canvas identity, so the nav
-// should read as a clean white bar, not a frosted panel. Wordmark text
-// dropped next to the icon — the icon alone, larger, is the mark; pairing
-// it with a redundant text label was never how the actual logo asset
-// presents it.
-export function SiteHeader({ active, ctaLabel = "Get in Touch" }: { active: SiteHeaderActivePath; ctaLabel?: string }) {
+export function SiteHeader() {
+  const pathname = usePathname();
+
   return (
-    <header className="sticky top-0 z-50 border-b border-border/40 bg-white">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 lg:px-6">
-        <Link href="/" className="flex items-center">
-          <Image
-            src="/icon.png"
-            alt="Buffr Checkpoint"
-            width={48}
-            height={48}
-            className="rounded-lg"
-            style={{ height: "auto" }}
-            priority
-          />
+    <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur">
+      <div className="mx-auto flex min-w-0 max-w-7xl items-center justify-between gap-3 px-4 py-4 sm:px-6 lg:px-8">
+        <Link href="/" className="flex min-w-0 shrink items-center" aria-label={`${BRAND.productName} home`}>
+          <BrandLogo priority />
         </Link>
-        <nav className="hidden items-center gap-6 text-sm md:flex">
-          {navItems.map((item) => (
+
+        <nav className="hidden items-center gap-8 md:flex" aria-label="Primary">
+          {NAV.map((item) => (
             <Link
               key={item.href}
               href={item.href}
               className={
-                active === item.href
-                  ? "font-medium text-foreground"
-                  : "text-muted-foreground transition-colors hover:text-foreground"
+                isActive(pathname, item.href)
+                  ? "bc-active-soft rounded-md px-2.5 py-1.5 text-sm font-medium text-foreground"
+                  : "rounded-md px-2.5 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
               }
             >
               {item.label}
             </Link>
           ))}
         </nav>
-        <div className="flex items-center gap-3">
-          <Button asChild size="sm">
-            <Link href="/contact">{ctaLabel}</Link>
-          </Button>
-        </div>
+
+        <a
+          href={MARKETING_PRIMARY_CTA.href}
+          className="hidden rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 md:inline-block"
+        >
+          {MARKETING_PRIMARY_CTA.label}
+        </a>
+
+        <details className="relative md:hidden">
+          <summary
+            className="cursor-pointer list-none rounded-md border border-border px-3 py-2 text-sm"
+            aria-label="Open menu"
+          >
+            Menu
+          </summary>
+          <div className="absolute right-0 top-full z-50 mt-2 w-[min(14rem,calc(100vw-2rem))] rounded-lg border border-border bg-card p-3 ring-1 ring-border">
+            {NAV.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="block rounded-md px-3 py-2 text-sm hover:bg-muted"
+              >
+                {item.label}
+              </Link>
+            ))}
+            <a
+              href={MARKETING_PRIMARY_CTA.href}
+              className="mt-2 block rounded-md bg-primary px-3 py-2 text-sm font-medium text-primary-foreground"
+            >
+              {MARKETING_PRIMARY_CTA.label}
+            </a>
+            <Link
+              href={MARKETING_SECONDARY_PRICING_CTA.href}
+              className="mt-1 block rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted"
+            >
+              {MARKETING_SECONDARY_PRICING_CTA.label}
+            </Link>
+          </div>
+        </details>
       </div>
     </header>
   );

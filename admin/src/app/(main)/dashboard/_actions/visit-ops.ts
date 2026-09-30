@@ -7,19 +7,19 @@ import { api } from "@/lib/api/client";
 export async function approveVisitAction(visitId: string) {
   await api.post(`/visits/${visitId}/approve`);
   revalidatePath("/dashboard/front-desk");
-  revalidatePath("/dashboard/default");
+  revalidatePath("/dashboard/overview");
 }
 
 export async function rejectVisitAction(visitId: string, reason: string) {
   await api.post(`/visits/${visitId}/reject`, { reason });
   revalidatePath("/dashboard/front-desk");
-  revalidatePath("/dashboard/default");
+  revalidatePath("/dashboard/overview");
 }
 
 export async function checkoutVisitAction(visitId: string) {
   await api.post(`/visits/${visitId}/check-out`);
   revalidatePath("/dashboard/front-desk");
-  revalidatePath("/dashboard/default");
+  revalidatePath("/dashboard/overview");
   revalidatePath("/dashboard/visitors");
 }
 

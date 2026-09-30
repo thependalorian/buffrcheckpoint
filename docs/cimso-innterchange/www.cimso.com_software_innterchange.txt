@@ -1,0 +1,333 @@
+CiMSO INNterchange - Membership Administration
+
+Home
+
+About
+
+Technology
+
+Value
+
+Mission
+
+Feedback
+
+Software
+
+Client Centric
+
+Keeping Control
+
+Software Suites
+
+Cimso Identify
+
+Cimso Connect
+
+Cimso Collaborate
+
+Cimso Live
+
+Cimso Play
+
+Cimso Rest
+
+Cimso Finance
+
+Cimso Tools
+
+Installations
+
+Corporate
+
+Individual
+
+Campus
+
+Introduction
+
+Training Syllabus
+
+Internship Program
+
+Register to Participate
+
+Certification Register
+
+Support
+
+Product Brochures
+
+Business Solutions
+
+Api Registration
+
+Download Applications
+
+Policy Documents
+
+Tutorials
+
+Contact
+
+Reseller Network
+
+Apply For Position
+
+Privacy
+
+Book a Demo
+
+News
+
+Latest
+
+Thailand
+
+Subscribe
+
+Home →
+
+Software →
+
+INNterchange
+
+Secure data exchange with devices across the Cloud
+
+System Features
+
+Exchange data with servers, mobile devices and web pages via the worldwide Cloud
+
+Highly secure, encrypted, proprietary data transmission on the trusted TCP/IP protocol
+
+Affordable connectivity via Diginet, DSL, RF, G3-5, VSat, or even dial-up modem
+
+Data Exchange
+
+Minimise data stored in the Cloud and reduce the risk of GDPR or data privacy breaches
+
+Near real-time updating of financial and operational processes from mobile devices
+
+Minimize double-bookings between central reservations offices and properties
+
+Application Programmable Interfaces (API’s) for application development by 3 rd parties
+
+Proprietary Technology
+
+INNterchange is a proprietary messaging system that does not rely on 3 rd party technology
+
+Security
+
+User access controlled by two processes requiring encrypted NIST compliant passwords
+
+User work process restrictions controlled by configurable multi-level security pre-sets
+
+User access monitoring with controls for banned passwords and multiple login attempts
+
+Specified data encrypted and stored in compliance with GDPR and PCI requirement
+
+Value Proposition
+
+Next Generation technology delivers evolving and increasingly more efficient systems
+
+Customer-centric design ensures improved client service delivery and satisfaction
+
+Seamless integration offers real time financial and operational reporting
+
+Complete financial control with peer review for transparency and accountability
+
+Data synchronization provides centralised control for geo-distributed transaction points
+
+Service Level Agreement (SLA) support with worldwide 24/7 emergency response
+
+Reduced cost of ownership facilitates improved ROI and bottom line profit margins
+
+Deployment
+
+Local server or computer
+
+Distributed replicating servers
+
+Cloud server
+
+Training
+
+Full documentation (SOP based)
+
+On-site, in person training
+
+Live online or webinar training
+
+Support
+
+Business hours phone and mail
+
+Online chat and remote access
+
+Live 24/7 emergency support
+
+CiMSO INNterchange
+Brochure Download
+
+Send me this brochure
+
+Software Selector
+
+CLUBmanager Membership Administration Software → Learn More
+
+CLIENTmanager Customer Relations & Business Management Software → Learn More
+
+WORKflow Asset Maintenance & Repairs Software → Learn More
+
+HELPdesk Fast s upport ticket tracking with resolution management → Learn More
+
+COMMunicator Communications Software → Learn More
+
+DOCmanager Document Management & E-filing Software → Learn More
+
+MAILMerger Text Transmit & Receive Software → Learn More
+
+SMSmanager Text Transmit & Receive Software → Learn More
+
+PHONEmanager Telephone Usage & Billing Software → Learn More
+
+FAXmanager Fax Transmit & Receive Software → Learn More
+
+INNsync Data Synchronising Software → Learn More
+
+INNterchange Data Exchange Software → Learn More
+
+WEBsync Secure Online Presence → Learn More
+
+RESTauranteur Restaurant & Bar Point of Sale Software → Learn More
+
+EVENTmanager Event & Conference Software → Learn More
+
+SHOPkeeper Retail Point of Sale Software → Learn More
+
+ACTIVities Manager Activities Scheduling Software → Learn More
+
+GOLFmanager Golf T-bookings & Green Fees Software → Learn More
+
+SPAscheduler SPA & Hydro Wellness Software → Learn More
+
+INNkeeper Hotel & Resort Software → Learn More
+
+HOUSEKeeper Cleaning & Servicing Software → Learn More
+
+REALtor Real Estate, Mall, Timeshare & Leasing Software → Learn More
+
+BACKoffice Accounting Software → Learn More
+
+ACCOUNTSoffice Controlling accounts receivable and accounts payable → Learn More
+
+STOCKmanager Inventory & Procurement Software → Learn More
+
+ASSETManager Asset Register & Tracker → Learn More
+
+TOOLbox Database and Platform Maintenance Tools → Learn More
+
+INTERfaces Interface Software Tools → Learn More
+
+Collaborate Software Suite
+
+Software to manage a local server and web-based data interchange:
+→ INN sync
+→ INN terchange
+→ WEB sync
+
+Demo, quote or enquiry:
+
+Request
+
+Subscribe to the CiMSO LIFE Newsletter
+
+Subscribe
+
+©CiMSO. All Rights Reserved.
+
+Home
+
+About
+
+Technology
+
+Value
+
+Mission
+
+Feedback
+
+Software
+
+Client Centric
+
+Keeping Control
+
+Software Suites
+
+Cimso Identify
+
+Cimso Connect
+
+Cimso Collaborate
+
+Cimso Live
+
+Cimso Play
+
+Cimso Rest
+
+Cimso Finance
+
+Cimso Tools
+
+Installations
+
+Corporate
+
+Individual
+
+Campus
+
+Introduction
+
+Training Syllabus
+
+Internship Program
+
+Register to Participate
+
+Certification Register
+
+Support
+
+Product Brochures
+
+Business Solutions
+
+Api Registration
+
+Download Applications
+
+Policy Documents
+
+Tutorials
+
+Contact
+
+Reseller Network
+
+Apply For Position
+
+Privacy
+
+Book a Demo
+
+News
+
+Latest
+
+Thailand
+
+Subscribe

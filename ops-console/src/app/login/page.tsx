@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import Image from "next/image";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardForm } from "@/components/ui/card";
@@ -18,7 +19,11 @@ export default function LoginPage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-4">
       <Card className="w-full max-w-sm">
-        <CardHeader>
+        <CardHeader className="items-center text-center">
+          <span className="mb-2 inline-flex items-center gap-3">
+            <Image src="/icon.png" alt="" width={96} height={96} className="size-11 rounded-lg" priority />
+            <span className="font-heading font-semibold text-2xl tracking-tight">Checkpoint</span>
+          </span>
           <CardTitle className="font-heading text-2xl font-light">Platform Ops Console</CardTitle>
           <CardDescription>
             Buffr internal only. Sign in with a <span className="font-medium">platform_support</span> account — customer

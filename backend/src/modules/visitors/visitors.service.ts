@@ -1,5 +1,5 @@
 import { Inject, Injectable, NotFoundException } from "@nestjs/common";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 
 import {
   PersonalDataProtectionService,
@@ -59,9 +59,9 @@ export class VisitorsService {
   }
 
   async findByPhone(phone: string, user: AuthenticatedUser) {
-    const phoneHmac = this.dataProtection.lookupHmac(phone, "PHONE_HASH_PEPPER");
+    const phoneHmacs = this.dataProtection.phoneLookupHmacCandidates(phone);
     const personalData = await this.db.query.visitorPersonalData.findFirst({
-      where: eq(visitorPersonalData.phoneLookupHmac, phoneHmac),
+      where: inArray(visitorPersonalData.phoneLookupHmac, phoneHmacs),
     });
     if (!personalData) return null;
 

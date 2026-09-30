@@ -17,7 +17,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { DataTableFeatures } from "@/lib/data-table-features";
 
-import type { BuffrRole } from "./data";
+import type { BuffrRole } from "./types";
 
 type RoleTableRow = ReturnType<ReactTable<DataTableFeatures, BuffrRole>["getRowModel"]>["rows"][number];
 

@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Post } from "@nestjs/common";
+import { Controller, Get, Param, Post, Query, StreamableFile } from "@nestjs/common";
 
 import { AuditLog } from "../../common/decorators/audit-log.decorator";
 import { type AuthenticatedUser, CurrentUser } from "../../common/decorators/current-user.decorator";
@@ -15,14 +15,31 @@ export class EvidenceController {
   @RequirePermission(PERMISSIONS.EVIDENCE_EXPORT)
   @RequireVerifiedEmail()
   @AuditLog({ action: "evidence_pack.generate", resourceType: "evidence_pack" })
-  generate(@CurrentUser() user: AuthenticatedUser) {
-    return this.evidenceService.generate(user);
+  generate(
+    @Query("from") from: string | undefined,
+    @Query("to") to: string | undefined,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.evidenceService.generate(user, { from, to });
   }
 
   @Get()
   @RequirePermission(PERMISSIONS.EVIDENCE_EXPORT)
   list(@CurrentUser() user: AuthenticatedUser) {
     return this.evidenceService.list(user);
+  }
+
+  // Declared before ":id" so the literal path wins.
+  @Get(":id/download")
+  @RequirePermission(PERMISSIONS.EVIDENCE_EXPORT)
+  @RequireVerifiedEmail()
+  @AuditLog({ action: "evidence_pack.download", resourceType: "evidence_pack" })
+  async download(@Param("id") id: string, @CurrentUser() user: AuthenticatedUser) {
+    const content = await this.evidenceService.getContent(id, user);
+    return new StreamableFile(content, {
+      type: "application/json",
+      disposition: `attachment; filename="evidence-pack-${id}.json"`,
+    });
   }
 
   @Get(":id")

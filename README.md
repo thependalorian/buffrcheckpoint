@@ -12,3 +12,5 @@ Namibia-built digital visitor and access-management platform.
 | `shared/` | Shared TypeScript |
 
 Canonical product and engineering doc: [`buffrcheckpoint.md`](./buffrcheckpoint.md).
+
+**Acceptance (A0–A3):** `./scripts/acceptance-gate.sh status` · `./scripts/acceptance-gate.sh run a0 --auto-only` · see §17.4 in the blueprint.

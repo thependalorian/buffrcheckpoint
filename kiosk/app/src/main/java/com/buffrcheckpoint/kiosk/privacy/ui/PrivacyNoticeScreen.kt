@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.buffrcheckpoint.kiosk.privacy.PrivacyNoticeViewModel
+import com.buffrcheckpoint.kiosk.ui.OrgBrandingHeader
 
 @Composable
 fun PrivacyNoticeScreen(
@@ -35,6 +36,11 @@ fun PrivacyNoticeScreen(
         Column(
             modifier = Modifier.weight(1f).verticalScroll(rememberScrollState()),
         ) {
+            OrgBrandingHeader(
+                experience = state.experience,
+                compact = true,
+                modifier = Modifier.padding(bottom = 16.dp),
+            )
             Text("Privacy notice", style = MaterialTheme.typography.headlineMedium)
             Text(
                 text = state.policyTitle,

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Query } from "@nestjs/common";
+import { Body, Controller, Get, Param, Post, Query, StreamableFile } from "@nestjs/common";
 import { IsString, IsUUID, MaxLength, MinLength } from "class-validator";
 
 import { AuditLog } from "../../common/decorators/audit-log.decorator";
@@ -75,6 +75,44 @@ export class VisitsController {
     @CurrentUser() user: AuthenticatedUser,
   ) {
     return this.visitsService.listRoster(siteId ?? "", user, open !== "false");
+  }
+
+  // Date-range, paginated visit search — answers "who visited on date X"
+  // without the roster endpoint's 200-row cap. Declared before ":id" so the
+  // literal path wins.
+  @Get("roster/search")
+  @RequirePermission(PERMISSIONS.VISIT_READ_SITE)
+  searchRoster(
+    @Query("siteId") siteId: string | undefined,
+    @Query("from") from: string | undefined,
+    @Query("to") to: string | undefined,
+    @Query("limit") limit: string | undefined,
+    @Query("cursor") cursor: string | undefined,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.visitsService.searchRoster(user, {
+      siteId,
+      from,
+      to,
+      limit: limit ? Number(limit) : undefined,
+      cursor,
+    });
+  }
+
+  @Get("roster/export")
+  @RequirePermission(PERMISSIONS.VISIT_READ_SITE)
+  @AuditLog({ action: "visit.roster.export", resourceType: "visit" })
+  async exportRoster(
+    @Query("siteId") siteId: string | undefined,
+    @Query("from") from: string | undefined,
+    @Query("to") to: string | undefined,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    const csv = await this.visitsService.exportRosterCsv(user, { siteId, from, to });
+    return new StreamableFile(Buffer.from(csv, "utf8"), {
+      type: "text/csv",
+      disposition: `attachment; filename="visitor-roster.csv"`,
+    });
   }
 
   @Get(":id")

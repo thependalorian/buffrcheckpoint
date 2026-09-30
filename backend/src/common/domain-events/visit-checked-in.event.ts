@@ -12,6 +12,9 @@ export class VisitCheckedInEvent {
     public readonly subject: string,
     public readonly message: string,
     public readonly html: string,
+    public readonly visitorName: string,
+    public readonly siteLabel: string,
+    public readonly detailBlock: string,
   ) {}
 }
 

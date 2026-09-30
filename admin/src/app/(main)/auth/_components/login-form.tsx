@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authCopy } from "@/lib/copy/auth";
 import { AnalyticsEvents, track } from "@/lib/observability/track";
+import { safeNextPath } from "@/lib/auth/safe-next-path";
 
 export function LoginForm() {
   const router = useRouter();
@@ -40,6 +41,9 @@ export function LoginForm() {
       if (result.mfaRequired && result.mfaChallengeToken) {
         track(AnalyticsEvents.loginMfaRequired);
         sessionStorage.setItem("buffr.mfaChallengeToken", result.mfaChallengeToken);
+        const next = searchParams.get("next");
+        if (next) sessionStorage.setItem("buffr.mfaNextPath", next);
+        else sessionStorage.removeItem("buffr.mfaNextPath");
         router.push("/auth/mfa/challenge");
         return;
       }
@@ -54,7 +58,9 @@ export function LoginForm() {
         return;
       }
       track(AnalyticsEvents.loginSucceeded);
-      const fallback = searchParams.get("next") ?? result.nextPath ?? "/dashboard/default";
+      const fallback = safeNextPath(
+        searchParams.get("next") ?? result.nextPath ?? "/dashboard/overview",
+      );
       router.push(fallback);
       router.refresh();
     } finally {

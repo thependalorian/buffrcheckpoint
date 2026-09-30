@@ -18,7 +18,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { DataTableFeatures } from "@/lib/data-table-features";
 
-import type { UserRow } from "./data";
+import type { UserRow } from "./types";
 
 const statusOptions = [
   { value: "all", label: "All" },

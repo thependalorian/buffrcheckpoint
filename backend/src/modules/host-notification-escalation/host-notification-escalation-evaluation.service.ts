@@ -6,7 +6,7 @@ import type { Database } from "../../db/client";
 import { DB } from "../../db/db.module";
 import { hostNotificationEscalationEvents, visitStatusEvents, visitorVisits } from "../../db/schema";
 import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.service";
-import { NotificationsService } from "../notifications/notifications.service";
+import { TemplatedEmailService } from "../notifications/templated-email.service";
 import { HostNotificationEscalationService } from "./host-notification-escalation.service";
 
 @Injectable()
@@ -18,7 +18,7 @@ export class HostNotificationEscalationEvaluationService implements OnModuleInit
     @Inject(DB) private readonly db: Database,
     private readonly typeDefs: TypeDefinitionLookupService,
     private readonly escalationService: HostNotificationEscalationService,
-    private readonly notifications: NotificationsService,
+    private readonly templatedEmail: TemplatedEmailService,
   ) {}
 
   onModuleInit() {
@@ -79,18 +79,23 @@ export class HostNotificationEscalationEvaluationService implements OnModuleInit
       escalationActionCode: actionTypeId,
     });
 
-    const message = `Escalation (${actionCode}) for visit ${visit.id} — host did not respond in time.`;
-
     if (actionCode.startsWith("notify_") && alternateRecipient) {
-      await this.notifications
-        .sendForOrganisation({
-          organisationId: visit.organisationId,
+      await this.templatedEmail.send({
+        templateCode: "host_escalation",
+        organisationId: visit.organisationId,
+        to: alternateRecipient,
+        visitId: visit.id,
+        variables: {
+          actionCode,
           visitId: visit.id,
-          channelCode: "email",
-          recipientReference: alternateRecipient,
-          message,
-        })
-        .catch(() => undefined);
+          siteLabel: visit.siteId,
+          visitorName: "Visitor",
+        },
+        fallback: {
+          subject: `Escalation: visitor still waiting (${actionCode})`,
+          body: `Escalation (${actionCode}) for visit ${visit.id} — host did not respond in time.`,
+        },
+      });
     }
 
     if (actionCode === "hold_entry") {

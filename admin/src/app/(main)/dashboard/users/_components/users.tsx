@@ -8,7 +8,7 @@ import {
   type SortingState,
   useTable,
 } from "@tanstack/react-table";
-import { Cog, Download, Grid, Plus, Rows3, Search, SlidersHorizontal } from "lucide-react";
+import { Cog, Download, Grid, Rows3, Search, SlidersHorizontal } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,11 +18,19 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectVa
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { dataTableFeatures } from "@/lib/data-table-features";
 
-import { filters, type UserRow } from "./data";
+import { filters, type UserRow } from "./types";
 import { usersColumns } from "./users-columns";
 import { UsersTable } from "./users-table";
 
-export function Users({ users }: { users: UserRow[] }) {
+export function Users({
+  users,
+  roles,
+  sites,
+}: {
+  users: UserRow[];
+  roles: Array<{ code: string; label: string }>;
+  sites: Array<{ id: string; name: string }>;
+}) {
   const [rowSelection, setRowSelection] = React.useState({});
   const [sorting, setSorting] = React.useState<SortingState>([{ id: "createdAt", desc: true }]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
@@ -37,7 +45,7 @@ export function Users({ users }: { users: UserRow[] }) {
   const table = useTable({
     features: dataTableFeatures,
     data: users,
-    columns: usersColumns,
+    columns: usersColumns({ roles, sites }),
     state: {
       rowSelection,
       sorting,
@@ -59,6 +67,7 @@ export function Users({ users }: { users: UserRow[] }) {
   const roleFilter = (table.getColumn("roleLabel")?.getFilterValue() as string | undefined) ?? filters.role[0];
   const statusFilter = (table.getColumn("status")?.getFilterValue() as string | undefined) ?? filters.status[0];
   const selectedCount = table.getFilteredSelectedRowModel().rows.length;
+  const roleFilterOptions = ["All", ...Array.from(new Set(users.map((u) => u.roleLabel))).sort()];
 
   function setColumnSelectFilter(columnId: string, value: string) {
     table.getColumn(columnId)?.setFilterValue(value === "All" ? undefined : value);
@@ -99,9 +108,6 @@ export function Users({ users }: { users: UserRow[] }) {
           <Button variant="outline" size="sm">
             <Download /> Export
           </Button>
-          <Button size="sm">
-            <Plus /> Add User
-          </Button>
         </CardAction>
       </CardHeader>
       <CardContent className="flex flex-col gap-4 px-0">
@@ -114,7 +120,7 @@ export function Users({ users }: { users: UserRow[] }) {
               </SelectTrigger>
               <SelectContent position="popper" align="start">
                 <SelectGroup>
-                  {filters.role.map((option) => (
+                  {roleFilterOptions.map((option) => (
                     <SelectItem key={option} value={option}>
                       {option}
                     </SelectItem>

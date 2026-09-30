@@ -59,7 +59,9 @@ export default async function TicketsPage() {
 
       <div className="mt-6">
         <h2 className="mb-2 font-medium text-sm">Open a ticket</h2>
-        <CreateTicketForm orgs={orgs} />
+        <div className="bc-panel">
+          <CreateTicketForm orgs={orgs} />
+        </div>
       </div>
 
       <div className="mt-8">
@@ -70,18 +72,20 @@ export default async function TicketsPage() {
             description="Open a ticket above when a customer issue needs tracking across CRM, billing, or support access."
           />
         ) : (
-          <BulkQueueList
-            kind="ticket"
-            statuses={TICKET_STATUSES}
-            rows={tickets.map((ticket) => ({
-              id: ticket.id,
-              title: ticket.subject,
-              href: `/tickets/${ticket.id}`,
-              subtitle: `${
-                ticket.organisationId ? (orgLabel[ticket.organisationId] ?? ticket.organisationId) : "internal"
-              } · ${new Date(ticket.createdAt).toLocaleString()}`,
-            }))}
-          />
+          <div className="bc-panel overflow-hidden p-0!">
+            <BulkQueueList
+              kind="ticket"
+              statuses={TICKET_STATUSES}
+              rows={tickets.map((ticket) => ({
+                id: ticket.id,
+                title: ticket.subject,
+                href: `/tickets/${ticket.id}`,
+                subtitle: `${
+                  ticket.organisationId ? (orgLabel[ticket.organisationId] ?? ticket.organisationId) : "internal"
+                } · ${new Date(ticket.createdAt).toLocaleString()}`,
+              }))}
+            />
+          </div>
         )}
       </div>
     </div>

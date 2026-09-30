@@ -22,22 +22,58 @@ class LogoDiskCache @Inject constructor(
         if (url.isNullOrBlank()) return null
         val file = cacheFile(url)
         if (file.exists()) {
-            return BitmapFactory.decodeFile(file.absolutePath)
+            val cached = BitmapFactory.decodeFile(file.absolutePath)
+            if (cached != null) return cached
+            file.delete()
         }
         return downloadAndCache(url, file)
     }
 
+    /** Warm the disk cache after a successful experience sync. */
+    fun prefetch(url: String?) {
+        if (url.isNullOrBlank()) return
+        load(url)
+    }
+
+    fun clear() {
+        cacheDir.listFiles()?.forEach { it.delete() }
+    }
+
     private fun downloadAndCache(url: String, file: File): Bitmap? {
         return runCatching {
-            val connection = URL(url).openConnection() as HttpURLConnection
-            connection.connectTimeout = 10_000
-            connection.readTimeout = 10_000
-            connection.inputStream.use { stream ->
-                val bytes = stream.readBytes()
-                file.writeBytes(bytes)
-                BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+            val connection = (URL(url).openConnection() as HttpURLConnection).apply {
+                instanceFollowRedirects = true
+                connectTimeout = 10_000
+                readTimeout = 10_000
+                requestMethod = "GET"
             }
-        }.getOrNull()
+            try {
+                val code = connection.responseCode
+                if (code !in 200..299) {
+                    file.delete()
+                    return null
+                }
+                connection.inputStream.use { stream ->
+                    val bytes = stream.readBytes()
+                    if (bytes.isEmpty()) {
+                        file.delete()
+                        return null
+                    }
+                    val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                    if (bitmap == null) {
+                        file.delete()
+                        return null
+                    }
+                    file.writeBytes(bytes)
+                    bitmap
+                }
+            } finally {
+                connection.disconnect()
+            }
+        }.getOrElse {
+            file.delete()
+            null
+        }
     }
 
     private fun cacheFile(url: String): File {

@@ -13,6 +13,8 @@ import { ConfirmPasswordResetDto, RequestPasswordResetDto } from "./dto/password
 import { RegisterDto } from "./dto/register.dto";
 
 const AUTH_THROTTLE = { default: { ttl: 300_000, limit: 10 } };
+// Ops front door: its own, tighter bucket (5 attempts per 15 minutes per IP), separate from customers.
+const PLATFORM_AUTH_THROTTLE = { default: { ttl: 900_000, limit: 5 } };
 
 class VerifyEmailDto {
   @IsString()
@@ -103,7 +105,24 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @Post("mfa/challenge/verify")
   verifyMfaChallenge(@Body() dto: VerifyMfaChallengeDto) {
-    return this.authService.verifyMfaChallenge(dto.challengeToken, dto.code ?? "", dto.recoveryCode);
+    return this.authService.verifyMfaChallenge(dto.challengeToken, dto.code ?? "", dto.recoveryCode, "admin");
+  }
+
+  /** Platform Ops Console sign-in (buffrcheckpoint.md §9.2a). platform_support only; MFA mandatory. */
+  @Public()
+  @Throttle(PLATFORM_AUTH_THROTTLE)
+  @HttpCode(HttpStatus.OK)
+  @Post("platform/login")
+  platformLogin(@Body() dto: LoginDto) {
+    return this.authService.platformLogin(dto.email, dto.password);
+  }
+
+  @Public()
+  @Throttle(PLATFORM_AUTH_THROTTLE)
+  @HttpCode(HttpStatus.OK)
+  @Post("platform/mfa/challenge/verify")
+  verifyPlatformMfaChallenge(@Body() dto: VerifyMfaChallengeDto) {
+    return this.authService.verifyMfaChallenge(dto.challengeToken, dto.code ?? "", dto.recoveryCode, "ops");
   }
 
   @Get("onboarding")

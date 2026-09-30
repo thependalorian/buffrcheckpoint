@@ -19,8 +19,7 @@ import {
   typeDefinition,
 } from "../../db/schema";
 import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.service";
-import { NotificationsService } from "../notifications/notifications.service";
-import { PlatformNotificationTemplateService } from "../platform-configuration/platform-notification-template.service";
+import { TemplatedEmailService } from "../notifications/templated-email.service";
 
 const GRANT_MAX_DURATION_MS = 8 * 60 * 60 * 1000; // 8h ceiling
 const SESSION_DURATION_MS = 30 * 60 * 1000; // support sessions are short — re-minted from the same grant if more time is needed
@@ -49,8 +48,7 @@ export class SupportSessionsService {
     private readonly typeDefs: TypeDefinitionLookupService,
     private readonly permissionEvaluation: ScopedPermissionEvaluationService,
     private readonly jwt: JwtService,
-    private readonly notifications: NotificationsService,
-    private readonly templates: PlatformNotificationTemplateService,
+    private readonly templatedEmail: TemplatedEmailService,
   ) {}
 
   async requestGrant(input: RequestGrantInput, user: AuthenticatedUser) {
@@ -113,34 +111,26 @@ export class SupportSessionsService {
       where: and(inArray(applicationUsers.id, adminUserIds), isNull(applicationUsers.deletedAt)),
     });
 
-    // Copy comes from platform_notification_template (ops-editable, migration
-    // 0029); the fallback is the literal text this method used before that
-    // table existed, so an unseeded database still sends the same email.
-    const rendered = await this.templates.render(
-      "support_access_request",
-      { organisationName },
-      {
-        subject: "Action needed: Buffr Checkpoint support-access request",
-        body: [
-          "Buffr Checkpoint's internal support team has requested time-boxed access to {{organisationName}}'s account for support purposes.",
-          "Review and approve or deny this request from your admin dashboard under Support Access.",
-          "No access is granted until you approve it, and it automatically expires after the approved window.",
-        ].join("\n\n"),
-      },
-    );
-    const message = note ? `${rendered.body}\n\nNote: ${note}` : rendered.body;
-
+    // Copy comes from platform_notification_template (ops-editable);
+    // TemplatedEmailService applies the Buffr Checkpoint brand shell.
+    const noteSuffix = note ? `\n\nNote: ${note}` : "";
     await Promise.all(
       users.map((u) =>
-        this.notifications
-          .sendForOrganisation({
-            organisationId,
-            channelCode: "email",
-            recipientReference: u.email,
-            subject: rendered.subject,
-            message,
-          })
-          .catch(() => undefined),
+        this.templatedEmail.send({
+          templateCode: "support_access_request",
+          organisationId,
+          to: u.email,
+          variables: { organisationName },
+          bodySuffix: noteSuffix,
+          fallback: {
+            subject: "Action needed: Buffr Checkpoint support-access request",
+            body: [
+              `Buffr Checkpoint's internal support team has requested time-boxed access to ${organisationName}'s account for support purposes.`,
+              "Review and approve or deny this request from your admin dashboard under Support Access.",
+              "No access is granted until you approve it, and it automatically expires after the approved window.",
+            ].join("\n\n"),
+          },
+        }),
       ),
     );
   }
@@ -399,6 +389,8 @@ export class SupportSessionsService {
         mfaEnabled: true,
         supportSessionId: sessionId,
         supportGrantId: grant.id,
+        // Support sessions act inside the customer admin app.
+        aud: "admin",
       },
       { expiresIn: Math.round((expiresAt.getTime() - now.getTime()) / 1000) },
     );

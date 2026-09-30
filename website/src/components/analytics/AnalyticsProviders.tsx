@@ -37,7 +37,7 @@ function PageViewTracker() {
 
 function CookieConsentBanner({ onChoice }: { onChoice: (value: AnalyticsConsent) => void }) {
   return (
-    <div className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-background/95 p-4 shadow-lg backdrop-blur">
+    <div className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-background/95 p-4 backdrop-blur">
       <div className="mx-auto flex max-w-4xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground">
           We use privacy-preserving product analytics only after you accept. No visitor names or phone numbers are

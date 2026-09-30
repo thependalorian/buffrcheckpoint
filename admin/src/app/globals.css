@@ -113,6 +113,11 @@
 
 html {
   overscroll-behavior: none;
+  overflow-x: clip;
+}
+
+body {
+  overflow-x: clip;
 }
 
 /* Toggled during preference changes (theme/layout switches) to suppress

@@ -1,11 +1,11 @@
 -- Published site experience for kiosk demo site (§11.7.7)
 -- Site: 74c72c99-93dc-4b33-934b-9b365e9924cf ("Demo Front Desk")
--- Org:  47c8b69b-5d9c-499d-a759-debc33e87c5e
+-- Org:  b51f0704-12a7-45d4-8b0d-3642785b6e77 (Buffr Analytics)
 
 -- Idempotent: skip if a published branding profile already exists for this site.
 DO $$
 DECLARE
-  v_org UUID := '47c8b69b-5d9c-499d-a759-debc33e87c5e';
+  v_org UUID := 'b51f0704-12a7-45d4-8b0d-3642785b6e77';
   v_site UUID := '74c72c99-93dc-4b33-934b-9b365e9924cf';
   v_published UUID;
   v_branding_profile UUID := 'b1111111-1111-4111-8111-111111111101';

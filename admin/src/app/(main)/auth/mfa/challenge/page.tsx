@@ -7,7 +7,7 @@ import { AuthCardHeader, AuthLayout } from "../../_components/auth-layout";
 import { MfaChallengeForm } from "../../_components/mfa-challenge-form";
 
 export const metadata: Metadata = {
-  title: "Authenticator check · Buffr Checkpoint",
+  title: "Authenticator check · Checkpoint",
 };
 
 export default function MfaChallengePage() {

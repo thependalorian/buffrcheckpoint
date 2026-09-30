@@ -62,7 +62,7 @@ export function CompleteStepButton({
       track(AnalyticsEvents.onboardingStepCompleted, { step_code: stepCode });
       if (result.complete || result.status === "live") {
         track(AnalyticsEvents.onboardingLive);
-        router.push("/dashboard/default");
+        router.push("/dashboard/overview");
       } else {
         router.push(nextHref);
       }

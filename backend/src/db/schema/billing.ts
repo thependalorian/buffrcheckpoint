@@ -1,7 +1,51 @@
-import { boolean, char, index, integer, numeric, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import {
+  boolean,
+  char,
+  index,
+  integer,
+  jsonb,
+  numeric,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from "drizzle-orm/pg-core";
 
 import { organisations } from "./organisations";
 import { typeDefinition } from "./type-definitions";
+
+// Platform-wide priced catalog (plans + add-ons). Same tenancy exception as
+// platform_configuration_setting — Buffr's list prices, not per-tenant.
+// One list: kind_code distinguishes plan vs add-on; each row has its own cost.
+export const subscriptionCatalogItem = pgTable(
+  "subscription_catalog_item",
+  {
+    id: uuid("id").primaryKey(),
+    kindCode: uuid("kind_code")
+      .notNull()
+      .references(() => typeDefinition.id),
+    itemCode: uuid("item_code")
+      .notNull()
+      .references(() => typeDefinition.id),
+    tagline: text("tagline").notNull().default(""),
+    monthlyAmount: numeric("monthly_amount", { precision: 15, scale: 2 }).notNull(),
+    currencyCode: char("currency_code", { length: 3 }).notNull().default("NAD"),
+    annualMonthsCharged: integer("annual_months_charged").notNull().default(10),
+    // Sites covered by monthly_amount; extra sites bill at extra_site_monthly_amount (NULL = not allowed).
+    includedSites: integer("included_sites").notNull().default(1),
+    extraSiteMonthlyAmount: numeric("extra_site_monthly_amount", { precision: 15, scale: 2 }),
+    featuresJson: jsonb("features_json").$type<string[]>().notNull().default([]),
+    isFeatured: boolean("is_featured").notNull().default(false),
+    isPublic: boolean("is_public").notNull().default(true),
+    sortOrder: integer("sort_order").notNull().default(0),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (t) => [
+    uniqueIndex("idx_subscription_catalog_item_kind_code").on(t.kindCode, t.itemCode),
+    index("idx_subscription_catalog_item_kind").on(t.kindCode),
+  ],
+);
 
 // Billing — manual EFT + Proof of Payment (POP) reconciliation. No PSP
 // partnership exists yet (confirmed with George): invoice shows Buffr
@@ -19,6 +63,10 @@ export const organisationSubscription = pgTable(
     planCode: uuid("plan_code")
       .notNull()
       .references(() => typeDefinition.id),
+    billingPeriodCode: uuid("billing_period_code")
+      .notNull()
+      .references(() => typeDefinition.id),
+    // Contracted monthly equivalent = plan + extra sites + active add-ons (annual pro-rates).
     mrrAmount: numeric("mrr_amount", { precision: 15, scale: 2 }).notNull(),
     currencyCode: char("currency_code", { length: 3 }).notNull().default("NAD"),
     statusCode: uuid("status_code")
@@ -28,6 +76,8 @@ export const organisationSubscription = pgTable(
     // billing.service.ts refuses an 'active' transition while the org's
     // latest KYB status isn't 'verified'.
     kybGatePassed: boolean("kyb_gate_passed").notNull().default(false),
+    // Licensed sites (billing seat count). Changes are logged in organisationSubscriptionSiteQuantityLog.
+    siteQuantity: integer("site_quantity").notNull().default(1),
     startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
     currentPeriodEnd: timestamp("current_period_end", { withTimezone: true }),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
@@ -51,6 +101,74 @@ export const organisationSubscriptionStatusEvents = pgTable(
     note: text("note"),
   },
   (t) => [index("idx_organisation_subscription_status_events_sub").on(t.subscriptionId, t.occurredAt)],
+);
+
+// Selected add-ons on a subscription — pick from subscription_catalog_item
+// (kind=addon) only. Each row snapshots its own monthly cost at attach time.
+export const organisationSubscriptionAddon = pgTable(
+  "organisation_subscription_addon",
+  {
+    id: uuid("id").primaryKey(),
+    organisationId: uuid("organisation_id")
+      .notNull()
+      .references(() => organisations.id),
+    subscriptionId: uuid("subscription_id")
+      .notNull()
+      .references(() => organisationSubscription.id),
+    catalogItemId: uuid("catalog_item_id")
+      .notNull()
+      .references(() => subscriptionCatalogItem.id),
+    monthlyAmount: numeric("monthly_amount", { precision: 15, scale: 2 }).notNull(),
+    currencyCode: char("currency_code", { length: 3 }).notNull().default("NAD"),
+    statusCode: uuid("status_code")
+      .notNull()
+      .references(() => typeDefinition.id),
+    startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
+    deletedAt: timestamp("deleted_at", { withTimezone: true }),
+  },
+  (t) => [
+    index("idx_organisation_subscription_addon_org").on(t.organisationId),
+    index("idx_organisation_subscription_addon_sub").on(t.subscriptionId),
+  ],
+);
+
+export const organisationSubscriptionAddonStatusLog = pgTable(
+  "organisation_subscription_addon_status_log",
+  {
+    id: uuid("id").primaryKey(),
+    subscriptionAddonId: uuid("subscription_addon_id")
+      .notNull()
+      .references(() => organisationSubscriptionAddon.id),
+    fromStatusCode: uuid("from_status_code").references(() => typeDefinition.id),
+    toStatusCode: uuid("to_status_code")
+      .notNull()
+      .references(() => typeDefinition.id),
+    occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull().defaultNow(),
+    actorId: uuid("actor_id"),
+    note: text("note"),
+  },
+  (t) => [index("idx_organisation_subscription_addon_status_log_addon").on(t.subscriptionAddonId, t.occurredAt)],
+);
+
+export const organisationSubscriptionSiteQuantityLog = pgTable(
+  "organisation_subscription_site_quantity_log",
+  {
+    id: uuid("id").primaryKey(),
+    organisationId: uuid("organisation_id")
+      .notNull()
+      .references(() => organisations.id),
+    subscriptionId: uuid("subscription_id")
+      .notNull()
+      .references(() => organisationSubscription.id),
+    fromQuantity: integer("from_quantity"),
+    toQuantity: integer("to_quantity").notNull(),
+    occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull().defaultNow(),
+    actorId: uuid("actor_id"),
+    note: text("note"),
+  },
+  (t) => [
+    index("idx_org_subscription_site_quantity_log_org_sub").on(t.organisationId, t.subscriptionId, t.occurredAt),
+  ],
 );
 
 export const invoice = pgTable(
@@ -156,8 +274,10 @@ export const paymentReconciliationLog = pgTable(
   (t) => [index("idx_payment_reconciliation_log_txn").on(t.paymentTransactionId)],
 );
 
+export type SubscriptionCatalogItem = typeof subscriptionCatalogItem.$inferSelect;
 export type OrganisationSubscription = typeof organisationSubscription.$inferSelect;
 export type NewOrganisationSubscription = typeof organisationSubscription.$inferInsert;
+export type OrganisationSubscriptionAddon = typeof organisationSubscriptionAddon.$inferSelect;
 export type Invoice = typeof invoice.$inferSelect;
 export type NewInvoice = typeof invoice.$inferInsert;
 export type PaymentTransaction = typeof paymentTransaction.$inferSelect;

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -12,10 +13,16 @@ interface CapabilityRow {
   label: string;
   platformStatus: string;
   orgEnabled: boolean;
+  configureHref?: string;
 }
 
 interface CapabilityEnablementPanelProps {
   capabilities: CapabilityRow[];
+}
+
+function canOrgEnable(code: string, platformStatus: string): boolean {
+  if (platformStatus === "live") return true;
+  return code === "cimso_innterchange" && platformStatus === "targeted";
 }
 
 export function CapabilityEnablementPanel({ capabilities }: CapabilityEnablementPanelProps) {
@@ -26,7 +33,11 @@ export function CapabilityEnablementPanel({ capabilities }: CapabilityEnablement
     setPendingCode(code);
     setError(null);
     try {
-      await updateOrganisationCapabilityAction({ capabilityCode: code, enabled });
+      await updateOrganisationCapabilityAction({
+        capabilityCode: code,
+        enabled,
+        configurationReference: code === "cimso_innterchange" && enabled ? "pms:cimso" : undefined,
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update capability.");
     } finally {
@@ -50,22 +61,31 @@ export function CapabilityEnablementPanel({ capabilities }: CapabilityEnablement
             {capabilities.map((capability) => (
               <TableRow key={capability.code}>
                 <TableCell className="p-3 font-medium">{capability.label}</TableCell>
-                <TableCell className="p-3 capitalize">{capability.platformStatus.replaceAll("_", " ")}</TableCell>
+                <TableCell className="p-3 capitalize">
+                  {capability.platformStatus.replaceAll("_", " ")}
+                </TableCell>
                 <TableCell className="p-3">
-                  {capability.platformStatus === "live" ? (
-                    <Button
-                      type="button"
-                      variant={capability.orgEnabled ? "default" : "outline"}
-                      size="sm"
-                      disabled={pendingCode === capability.code}
-                      onClick={() => toggleCapability(capability.code, !capability.orgEnabled)}
-                    >
-                      {pendingCode === capability.code
-                        ? "Saving…"
-                        : capability.orgEnabled
-                          ? "Enabled"
-                          : "Enable for organisation"}
-                    </Button>
+                  {canOrgEnable(capability.code, capability.platformStatus) ? (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button
+                        type="button"
+                        variant={capability.orgEnabled ? "default" : "outline"}
+                        size="sm"
+                        disabled={pendingCode === capability.code}
+                        onClick={() => toggleCapability(capability.code, !capability.orgEnabled)}
+                      >
+                        {pendingCode === capability.code
+                          ? "Saving…"
+                          : capability.orgEnabled
+                            ? "Enabled"
+                            : "Enable for organisation"}
+                      </Button>
+                      {capability.orgEnabled && capability.configureHref ? (
+                        <Button asChild type="button" variant="outline" size="sm">
+                          <Link href={capability.configureHref}>Configure</Link>
+                        </Button>
+                      ) : null}
+                    </div>
                   ) : (
                     <span className="text-sm text-muted-foreground">Not available at platform level</span>
                   )}

@@ -9,8 +9,8 @@ import { OnboardingService } from "./onboarding.service";
 export class OnboardingController {
   constructor(private readonly onboardingService: OnboardingService) {}
 
-  // The only entry point for a brand-new customer (Section 17.1's "Paper
-  // Register Exposure Review" sales motion ends here). Supersedes the
+  // The only entry point for a brand-new customer (Section 17.1's
+  // self-serve, payment-gated signup starts here). Supersedes the
   // previous two-call client-orchestrated flow (POST /organisations then
   // POST /auth/register) — the client calls this one endpoint and never
   // orchestrates tenant creation itself.

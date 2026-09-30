@@ -1,23 +1,35 @@
-import { Badge } from "@/components/ui/badge";
+import { cache } from "react";
 
 type PublicCapabilityStatusValue = "not_available" | "targeted" | "live";
 
-type PublicCapabilityStatusResponse = {
+export type PublicCapabilityStatusResponse = {
   diginamVerification: PublicCapabilityStatusValue;
   nationalEidNfc: PublicCapabilityStatusValue;
   nfcBadgeCheckIn: PublicCapabilityStatusValue;
   ussd: PublicCapabilityStatusValue;
   qrInvitationCheckIn: PublicCapabilityStatusValue;
   smsContactConfirmation: PublicCapabilityStatusValue;
+  cimsoInnterchange: PublicCapabilityStatusValue;
 };
 
-type CapabilityCode =
+export type CapabilityCode =
   | "diginam_verification"
   | "national_eid_nfc"
   | "nfc_badge_checkin"
   | "ussd"
   | "qr_invitation_checkin"
-  | "sms_contact_confirmation";
+  | "sms_contact_confirmation"
+  | "cimso_innterchange";
+
+const FALLBACK: PublicCapabilityStatusResponse = {
+  diginamVerification: "not_available",
+  nationalEidNfc: "not_available",
+  nfcBadgeCheckIn: "not_available",
+  ussd: "not_available",
+  qrInvitationCheckIn: "not_available",
+  smsContactConfirmation: "not_available",
+  cimsoInnterchange: "not_available",
+};
 
 const RESPONSE_KEYS: Record<CapabilityCode, keyof PublicCapabilityStatusResponse> = {
   diginam_verification: "diginamVerification",
@@ -26,6 +38,7 @@ const RESPONSE_KEYS: Record<CapabilityCode, keyof PublicCapabilityStatusResponse
   ussd: "ussd",
   qr_invitation_checkin: "qrInvitationCheckIn",
   sms_contact_confirmation: "smsContactConfirmation",
+  cimso_innterchange: "cimsoInnterchange",
 };
 
 const LABELS: Record<PublicCapabilityStatusValue, string> = {
@@ -34,51 +47,56 @@ const LABELS: Record<PublicCapabilityStatusValue, string> = {
   live: "Live",
 };
 
-// text-ash (#9a9a94, ~2.57:1 on --color-cloud) and text-sodium-yellow
-// (#e2a603, ~1.97:1) both fail WCAG AA as text — border color stays the
-// brand shade (borders aren't subject to text-contrast rules), text color
-// uses the darker "ink" pairing (--color-slate at 4.84:1, --color-sodium-
-// yellow-ink at 4.88:1) so the status label itself stays legible.
-const CLASSES: Record<PublicCapabilityStatusValue, string> = {
-  not_available: "border-ash/40 text-slate",
-  targeted: "border-sodium-yellow/40 text-sodium-yellow-ink",
-  live: "border-status-live/40 text-status-live",
+const STYLES: Record<PublicCapabilityStatusValue, string> = {
+  not_available: "border-border bg-muted text-muted-foreground",
+  targeted:
+    "border-[var(--color-sodium-yellow)] bg-[color-mix(in_srgb,var(--color-sodium-yellow)_12%,transparent)] text-[var(--color-sodium-yellow-ink)]",
+  live: "border-[color-mix(in_srgb,var(--color-status-live)_35%,transparent)] bg-[color-mix(in_srgb,var(--color-status-live)_10%,transparent)] text-[var(--color-status-live)]",
 };
 
-async function fetchCapabilityStatus(capabilityCode: CapabilityCode): Promise<PublicCapabilityStatusValue> {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
-  try {
-    const res = await fetch(`${apiUrl}/public/capability-status`, { next: { revalidate: 300 } });
-    if (!res.ok) return "not_available";
-    const body: PublicCapabilityStatusResponse = await res.json();
-    return body[RESPONSE_KEYS[capabilityCode]] ?? "not_available";
-  } catch {
-    return "not_available";
-  }
+function apiBase(): string {
+  return (process.env.NEXT_PUBLIC_API_URL ?? "https://api.buffrcheckpoint.com").replace(/\/$/, "");
 }
 
-export async function fetchPublicCapabilityStatus(): Promise<PublicCapabilityStatusResponse | null> {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+export const fetchPublicCapabilityStatus = cache(async (): Promise<PublicCapabilityStatusResponse> => {
   try {
-    const res = await fetch(`${apiUrl}/public/capability-status`, { next: { revalidate: 300 } });
-    if (!res.ok) return null;
-    return (await res.json()) as PublicCapabilityStatusResponse;
+    const res = await fetch(`${apiBase()}/public/capability-status`, {
+      next: { revalidate: 300 },
+      signal: AbortSignal.timeout(4000),
+    });
+    if (!res.ok) return FALLBACK;
+    const json = (await res.json()) as Partial<PublicCapabilityStatusResponse>;
+    return { ...FALLBACK, ...json };
   } catch {
-    return null;
+    return FALLBACK;
   }
-}
+});
 
 export async function CapabilityStatusBadge({
   capabilityCode,
   label,
 }: {
   capabilityCode: CapabilityCode;
-  label: string;
+  label?: string;
 }) {
-  const status = await fetchCapabilityStatus(capabilityCode);
+  const caps = await fetchPublicCapabilityStatus();
+  const status = caps[RESPONSE_KEYS[capabilityCode]];
+
   return (
-    <Badge variant="outline" className={CLASSES[status]}>
-      {label}: {LABELS[status]}
-    </Badge>
+    <span
+      className={`inline-flex max-w-full items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium ${STYLES[status]}`}
+      role="status"
+      aria-live="polite"
+    >
+      <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-current" />
+      <span>
+        {label ? `${label}: ` : ""}
+        {LABELS[status]}
+      </span>
+    </span>
   );
+}
+
+export function capabilityStatusLabel(status: PublicCapabilityStatusValue): string {
+  return LABELS[status];
 }
