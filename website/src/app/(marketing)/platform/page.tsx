@@ -168,7 +168,7 @@ export default function PlatformPage() {
                   width={card.image.width}
                   height={card.image.height}
                   sizes="(max-width: 768px) 100vw, 33vw"
-                  className="h-40 w-full border-b border-border object-cover object-left-top"
+                  className="h-56 w-full border-b border-border object-cover object-left-top sm:h-64 lg:h-[17.5rem]"
                 />
                 <div className="p-6">
                   <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{card.who}</p>
