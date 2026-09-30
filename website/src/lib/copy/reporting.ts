@@ -40,9 +40,9 @@ export const reportingCopy = {
     },
     channels: {
       src: "/screenshots/analytics-channels.png",
-      width: 1695,
-      height: 640,
-      alt: "Share of check-ins by channel, led by guests checking in on their own phone.",
+      width: 1696,
+      height: 652,
+      alt: "Share of check-ins by channel, led by QR code check-in.",
       caption: "How guests check in, and what to change at the desk.",
     },
     visitorTypes: {
@@ -77,9 +77,4 @@ export const reportingCopy = {
       answer: "Anonymised regional arrival statistics, with small counts withheld, are available on request.",
     },
   ],
-  homeBand: {
-    title: "Reports your auditor can check.",
-    body: "Busy hours, arrival forecasts and check-in mix, built from counts rather than guest details, and reconciled every hour.",
-    link: "How we report",
-  },
 } as const;

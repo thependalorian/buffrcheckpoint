@@ -7,7 +7,7 @@ export const WEEKDAYS_SHORT = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] 
 
 /** Clearer names for arrival channels than the internal type labels. */
 export const CHANNEL_LABELS: Record<string, string> = {
-  qr: "Own phone (QR code)",
+  qr: "QR code",
   assisted: "Receptionist-assisted",
   kiosk: "Reception tablet",
   nfc_badge: "Badge",
@@ -37,7 +37,7 @@ export const analyticsCopy = {
   kpis: {
     checkIns: "Check-ins",
     avgMinutes: "Average time on site",
-    ownPhone: "Checked in on own phone",
+    ownPhone: "Checked in by QR code",
     offline: "Captured offline",
     minutes: (n: number) => `${n} min`,
     percent: (n: number) => `${n}%`,
@@ -75,7 +75,7 @@ export const analyticsCopy = {
   channels: {
     question: "How do guests check in?",
     finding: (label: string, pct: number) => `${label}: ${pct}% of check-ins`,
-    why: "Every guest who checks in on their own phone frees the desk for the ones who need help.",
+    why: "Every guest who checks in with the QR code frees the desk for the ones who need help.",
     next: "Place the QR code where guests queue, and keep assisted check-in for those without a phone.",
     empty: "No check-ins in this period yet.",
   },
