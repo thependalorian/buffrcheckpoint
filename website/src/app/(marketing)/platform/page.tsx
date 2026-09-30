@@ -159,21 +159,28 @@ export default function PlatformPage() {
           </div>
 
           <h3 className="mt-16 font-heading text-xl font-medium text-foreground">{reportingCopy.audiencesTitle}</h3>
-          <div className="mt-6 grid min-w-0 gap-4 md:grid-cols-3">
-            {reportingCopy.audiences.map((card) => (
-              <div key={card.who} className={`flex min-w-0 flex-col overflow-hidden p-0! ${marketingCapabilityCard}`}>
-                <Image
-                  src={card.image.src}
-                  alt={card.image.alt}
-                  width={card.image.width}
-                  height={card.image.height}
-                  sizes="(max-width: 768px) 100vw, 33vw"
-                  className="h-56 w-full border-b border-border object-cover object-left-top sm:h-64 lg:h-[17.5rem]"
-                />
-                <div className="p-6">
+          <div className="mt-6 space-y-6">
+            {reportingCopy.audiences.map((card, index) => (
+              <div
+                key={card.who}
+                className={`grid min-w-0 overflow-hidden p-0! ${index % 2 === 1 ? "md:grid-cols-[2fr_3fr]" : "md:grid-cols-[3fr_2fr]"} ${marketingCapabilityCard}`}
+              >
+                <div
+                  className={`flex items-center border-b border-border bg-[color-mix(in_srgb,var(--color-cloud)_70%,var(--color-pure-white))] p-4 sm:p-6 md:border-b-0 ${index % 2 === 1 ? "md:order-2 md:border-l" : "md:border-r"}`}
+                >
+                  <Image
+                    src={card.image.src}
+                    alt={card.image.alt}
+                    width={card.image.width}
+                    height={card.image.height}
+                    sizes="(max-width: 768px) 100vw, 60vw"
+                    className="h-auto w-full rounded-lg border border-border bg-background"
+                  />
+                </div>
+                <div className="flex flex-col justify-center p-6 sm:p-8">
                   <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{card.who}</p>
-                  <p className="mt-2 font-heading text-base font-medium text-foreground">{card.question}</p>
-                  <p className="mt-2 text-sm text-muted-foreground">{card.answer}</p>
+                  <p className="mt-3 font-heading text-xl font-medium text-foreground">{card.question}</p>
+                  <p className="mt-3 text-sm text-muted-foreground">{card.answer}</p>
                 </div>
               </div>
             ))}

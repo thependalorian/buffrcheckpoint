@@ -59,7 +59,7 @@ export const reportingCopy = {
       who: "Head office and lodge groups",
       image: {
         src: "/screenshots/analytics-site-filter.png",
-        width: 1826,
+        width: 1766,
         height: 660,
         alt: "Analytics filtered to one site, with the Download CSV button.",
       },
@@ -70,8 +70,8 @@ export const reportingCopy = {
       who: "Auditors and compliance officers",
       image: {
         src: "/screenshots/evidence-report.png",
-        width: 2336,
-        height: 640,
+        width: 1910,
+        height: 610,
         alt: "Evidence pack report header with visits in period, audited actions, people with access and an intact audit hash chain.",
       },
       question: "Who was on the property on the night of 14 March, and who viewed that record?",
