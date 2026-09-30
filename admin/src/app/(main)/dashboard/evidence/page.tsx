@@ -66,9 +66,22 @@ export default async function EvidencePacksPage() {
                     </TableCell>
                     <TableCell className="p-3">
                       {pack.fileReference ? (
-                        <a href={`/api/evidence/${pack.id}/download`} className="text-primary text-xs hover:underline">
-                          Download
-                        </a>
+                        <span className="flex gap-3">
+                          <a
+                            href={`/api/evidence/${pack.id}/report`}
+                            target="_blank"
+                            rel="noopener"
+                            className="text-primary text-xs hover:underline"
+                          >
+                            Open report
+                          </a>
+                          <a
+                            href={`/api/evidence/${pack.id}/download`}
+                            className="text-primary text-xs hover:underline"
+                          >
+                            Download JSON
+                          </a>
+                        </span>
                       ) : (
                         <span className="text-muted-foreground text-xs">Pending</span>
                       )}

@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 import type { Metadata } from "next";
 
 import { MarketingHero } from "@/components/marketing/marketing-hero";
@@ -157,12 +159,22 @@ export default function PlatformPage() {
           </div>
 
           <h3 className="mt-16 font-heading text-xl font-medium text-foreground">{reportingCopy.audiencesTitle}</h3>
-          <div className="mt-6 grid min-w-0 gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-6 grid min-w-0 gap-4 md:grid-cols-3">
             {reportingCopy.audiences.map((card) => (
-              <div key={card.who} className={`min-w-0 ${marketingCapabilityCard}`}>
-                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{card.who}</p>
-                <p className="mt-2 font-heading text-base font-medium text-foreground">{card.question}</p>
-                <p className="mt-2 text-sm text-muted-foreground">{card.answer}</p>
+              <div key={card.who} className={`flex min-w-0 flex-col overflow-hidden p-0! ${marketingCapabilityCard}`}>
+                <Image
+                  src={card.image.src}
+                  alt={card.image.alt}
+                  width={card.image.width}
+                  height={card.image.height}
+                  sizes="(max-width: 768px) 100vw, 33vw"
+                  className="h-40 w-full border-b border-border object-cover object-left-top"
+                />
+                <div className="p-6">
+                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{card.who}</p>
+                  <p className="mt-2 font-heading text-base font-medium text-foreground">{card.question}</p>
+                  <p className="mt-2 text-sm text-muted-foreground">{card.answer}</p>
+                </div>
               </div>
             ))}
           </div>

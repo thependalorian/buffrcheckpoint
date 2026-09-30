@@ -1,21 +1,26 @@
 import { Inject, Injectable, NotFoundException } from "@nestjs/common";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 
 import { createArtifactStore } from "../../common/artifacts/artifact-store";
 import type { AuthenticatedUser } from "../../common/decorators/current-user.decorator";
 import type { Database } from "../../db/client";
 import { DB } from "../../db/db.module";
 import {
+  applicationUsers,
   auditEvents,
   evidencePack,
   evidencePackStatusLog,
   organisationMemberships,
+  organisations,
   retentionPolicies,
   roleDefinitions,
+  sites,
+  typeDefinition,
 } from "../../db/schema";
 import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.service";
 import { VisitsService } from "../visits/visits.service";
-import { randomUUID } from "node:crypto";
+import { renderEvidenceReportHtml } from "./evidence-report";
+import { createHash, randomUUID } from "node:crypto";
 
 const ARTIFACT_NAMESPACE = "evidence-packs";
 
@@ -64,8 +69,11 @@ export class EvidenceService {
         where: eq(organisationMemberships.organisationId, user.organisationId),
       }),
       this.db.query.retentionPolicies.findMany({ where: eq(retentionPolicies.organisationId, user.organisationId) }),
+      // Most recent 500 in time order, so the extract is one continuous
+      // stretch of the hash chain an auditor can verify.
       this.db.query.auditEvents.findMany({
         where: eq(auditEvents.organisationId, user.organisationId),
+        orderBy: [desc(auditEvents.occurredAt)],
         limit: 500,
       }),
       this.db.query.roleDefinitions.findMany({ where: eq(roleDefinitions.organisationId, user.organisationId) }),
@@ -122,6 +130,41 @@ export class EvidenceService {
     const pack = await this.getById(evidencePackId, user);
     if (!pack.fileReference) throw new NotFoundException("Evidence pack has not finished generating");
     return this.artifacts.readFile(pack.fileReference, `${pack.id}.json`);
+  }
+
+  /**
+   * Auditor-readable HTML view of a pack: names and labels instead of IDs,
+   * plus the SHA-256 of the exact JSON the download endpoint returns.
+   */
+  async renderReport(evidencePackId: string, user: AuthenticatedUser): Promise<string> {
+    const raw = (await this.getContent(evidencePackId, user)).toString("utf8");
+    const sha256 = createHash("sha256").update(raw, "utf8").digest("hex");
+    const memberships = await this.db.query.organisationMemberships.findMany({
+      where: eq(organisationMemberships.organisationId, user.organisationId),
+      columns: { userId: true },
+    });
+    const userIds = [...new Set(memberships.map((m) => m.userId))];
+    const [org, types, users, siteRows] = await Promise.all([
+      this.db.query.organisations.findFirst({ where: eq(organisations.id, user.organisationId) }),
+      this.db.select({ id: typeDefinition.id, label: typeDefinition.label }).from(typeDefinition),
+      userIds.length
+        ? this.db
+            .select({ id: applicationUsers.id, email: applicationUsers.email })
+            .from(applicationUsers)
+            .where(inArray(applicationUsers.id, userIds))
+        : Promise.resolve([]),
+      this.db
+        .select({ id: sites.id, name: sites.name })
+        .from(sites)
+        .where(eq(sites.organisationId, user.organisationId)),
+    ]);
+    return renderEvidenceReportHtml(evidencePackId, raw, sha256, {
+      organisationName: org?.tradingName || org?.legalName || "Organisation",
+      typeLabels: new Map(types.map((t) => [t.id, t.label])),
+      userEmails: new Map(users.map((u) => [u.id, u.email])),
+      siteNames: new Map(siteRows.map((r) => [r.id, r.name])),
+      timeZone: org?.defaultTimezone || "Africa/Windhoek",
+    });
   }
 
   private async logStatus(evidencePackId: string, statusCode: string, actorId: string, reason: string) {

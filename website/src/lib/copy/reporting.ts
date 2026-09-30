@@ -7,27 +7,27 @@ export const REPORTING_ANCHOR = "reporting";
 export const reportingCopy = {
   title: "Reporting you can defend",
   intro:
-    "A chart is only useful if someone can act on it and an auditor can check it. Checkpoint reports are built from your own check-in records, and every number can be traced back to them.",
+    "Checkpoint turns your own check-in records into decisions your team can act on and figures an auditor can trace back to the source.",
   principles: [
     {
-      title: "Every chart answers one question",
-      body: "Each panel names the question, states the finding and says what to do next. For example: busiest hour, Monday 10:00 to 11:00, keep a receptionist free.",
+      title: "Every chart leads with a finding",
+      body: "Each panel names the question, states what the data shows and suggests the next step, such as the busiest hour of the week and when to add a receptionist.",
     },
     {
-      title: "Counts, never guest details",
-      body: "Reports are built from counts. No report view holds a name, phone number or ID number, so a report cannot leak one.",
+      title: "Built from counts",
+      body: "Reports use counts of arrivals, so managers see the patterns while guest details stay in the protected visitor record.",
     },
     {
-      title: "The numbers reconcile",
-      body: "Every hourly refresh checks that each check-in is counted exactly once. If the totals disagree, the refresh fails visibly instead of drifting quietly.",
+      title: "Numbers that reconcile",
+      body: "Every hourly refresh confirms each check-in is counted exactly once, so the dashboard, the export and the audit trail agree.",
     },
     {
-      title: "Forecasts show their error",
-      body: "Arrival forecasts are tested against a simple rule, same day last week, and show a likely range. With fewer than 28 days of history there is no forecast, only a note saying so.",
+      title: "Forecasts with a likely range",
+      body: "Arrival forecasts come with a likely range and are measured against last week's pattern, so you know how far to rely on them. They start once a site has four weeks of history.",
     },
     {
-      title: "Empty is not zero",
-      body: "A day with no records shows as empty, not as a quiet day. Shared statistics withhold small counts so no property or guest can be singled out.",
+      title: "Clear gaps, safe sharing",
+      body: "Days without records show clearly as gaps, and shared regional statistics group small numbers so every property and guest stays anonymous.",
     },
   ],
   figures: {
@@ -56,23 +56,36 @@ export const reportingCopy = {
   audiencesTitle: "Who the reports are for",
   audiences: [
     {
-      who: "Front desk manager",
-      question: "When do I need a second receptionist?",
-      answer: "Busy hours and the arrivals forecast show the peaks before they happen.",
-    },
-    {
       who: "Head office and lodge groups",
+      image: {
+        src: "/screenshots/analytics-site-filter.png",
+        width: 1826,
+        height: 660,
+        alt: "Analytics filtered to one site, with the Download CSV button.",
+      },
       question: "How do my sites compare?",
       answer: "Filter by site and download the daily counts as a spreadsheet for your own reporting.",
     },
     {
       who: "Auditors and compliance officers",
+      image: {
+        src: "/screenshots/evidence-report.png",
+        width: 2336,
+        height: 640,
+        alt: "Evidence pack report header with visits in period, audited actions, people with access and an intact audit hash chain.",
+      },
       question: "Who was on the property on the night of 14 March, and who viewed that record?",
       answer:
         "The audit trail and evidence packs answer in minutes, not by paging through a book. Evidence packs are on the Assure plan.",
     },
     {
       who: "Tourism bodies",
+      image: {
+        src: "/screenshots/ops-arrivals-by-region.png",
+        width: 1708,
+        height: 934,
+        alt: "Anonymised arrivals by region, with small counts shown as fewer than 5.",
+      },
       question: "How many arrivals by region?",
       answer: "Anonymised regional arrival statistics, with small counts withheld, are available on request.",
     },

@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Post, Query, StreamableFile } from "@nestjs/common";
+import { Controller, Get, Header, Param, Post, Query, StreamableFile } from "@nestjs/common";
 
 import { AuditLog } from "../../common/decorators/audit-log.decorator";
 import { type AuthenticatedUser, CurrentUser } from "../../common/decorators/current-user.decorator";
@@ -40,6 +40,15 @@ export class EvidenceController {
       type: "application/json",
       disposition: `attachment; filename="evidence-pack-${id}.json"`,
     });
+  }
+
+  @Get(":id/report")
+  @RequirePermission(PERMISSIONS.EVIDENCE_EXPORT)
+  @RequireVerifiedEmail()
+  @AuditLog({ action: "evidence_pack.report", resourceType: "evidence_pack" })
+  @Header("Content-Type", "text/html; charset=utf-8")
+  report(@Param("id") id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.evidenceService.renderReport(id, user);
   }
 
   @Get(":id")

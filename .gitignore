@@ -69,3 +69,6 @@ e2e-screenshots/
 .venv/
 __pycache__/
 .pytest_cache/
+
+# Local artifact store output (ARTIFACT_STORE=local)
+backend/generated-packages/
