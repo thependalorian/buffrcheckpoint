@@ -2592,6 +2592,12 @@ index; 0043 added 2 retention tables, 3 indexes, 4 type codes and the
 payment routes live (enabled route needs auth; result route 503 until Adumo is
 configured), all five security headers present on the three web apps.
 
+**Redeployed 1 October 2026** at `d053fda` (merged to `main`): API, website,
+admin and ops console. Checked: API health 200; integration health, audit
+export and payment register routes live and refusing unauthenticated calls
+(401); admin and ops download relays 401 without a session; all three web
+hosts 200.
+
 #### Security headers (v2026-10-01)
 
 The website, admin and ops console send, on every route (`headers()` in each
