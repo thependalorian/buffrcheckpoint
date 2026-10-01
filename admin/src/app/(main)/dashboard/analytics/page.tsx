@@ -163,11 +163,18 @@ export default async function AnalyticsPage({
         title={copy.title}
         description={copy.description}
         action={
-          <Button asChild variant="outline" size="sm">
-            <a href={`/api/analytics/export?${query}`} title={copy.exportHint}>
-              {copy.export}
-            </a>
-          </Button>
+          <div className="flex gap-2">
+            <Button asChild variant="outline" size="sm">
+              <a href={`/api/analytics/export?${query}`} title={copy.exportHint}>
+                {copy.export}
+              </a>
+            </Button>
+            <Button asChild variant="outline" size="sm">
+              <a href={`/api/analytics/export?${query}&format=xlsx`} title={copy.exportHint}>
+                {copy.exportXlsx}
+              </a>
+            </Button>
+          </div>
         }
       />
 

@@ -4,6 +4,7 @@ import { IsString, IsUUID, MaxLength, MinLength } from "class-validator";
 import { AuditLog } from "../../common/decorators/audit-log.decorator";
 import { type AuthenticatedUser, CurrentUser } from "../../common/decorators/current-user.decorator";
 import { RequirePermission } from "../../common/decorators/require-permission.decorator";
+import { EXPORT_CONTENT_TYPE, parseExportFormat, serialiseExport } from "../../common/export/tabular";
 import { PERMISSIONS } from "../../common/rbac/permissions";
 import { CheckInDto } from "./dto/check-in.dto";
 import { VisitAccessDecisionDto } from "./dto/visit-access-decision.dto";
@@ -106,12 +107,14 @@ export class VisitsController {
     @Query("siteId") siteId: string | undefined,
     @Query("from") from: string | undefined,
     @Query("to") to: string | undefined,
+    @Query("format") format: string | undefined,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    const csv = await this.visitsService.exportRosterCsv(user, { siteId, from, to });
-    return new StreamableFile(Buffer.from(csv, "utf8"), {
-      type: "text/csv",
-      disposition: `attachment; filename="visitor-roster.csv"`,
+    const exportFormat = parseExportFormat(format);
+    const table = await this.visitsService.exportRoster(user, { siteId, from, to });
+    return new StreamableFile(await serialiseExport(table, exportFormat, "Visitor roster"), {
+      type: EXPORT_CONTENT_TYPE[exportFormat],
+      disposition: `attachment; filename="visitor-roster.${exportFormat}"`,
     });
   }
 

@@ -4,7 +4,7 @@ import { backendUrl } from "@/lib/auth/backend-url";
 import { getSessionToken } from "@/lib/auth/session";
 
 /**
- * Relays the aggregated analytics CSV (counts only) to the browser with the
+ * Relays the aggregated analytics export (counts only, CSV or XLSX via ?format=) to the browser with the
  * session token attached server-side — same pattern as
  * app/api/visits/roster/export/route.ts.
  */
@@ -14,8 +14,10 @@ export async function GET(request: Request) {
     return NextResponse.json({ message: "Not authenticated" }, { status: 401 });
   }
 
-  const { search } = new URL(request.url);
-  const upstream = await fetch(backendUrl(`/analytics/export.csv${search}`), {
+  const url = new URL(request.url);
+  const format = url.searchParams.get("format") === "xlsx" ? "xlsx" : "csv";
+  url.searchParams.delete("format");
+  const upstream = await fetch(backendUrl(`/analytics/export.${format}${url.search}`), {
     headers: { Authorization: `Bearer ${token}` },
     cache: "no-store",
   });

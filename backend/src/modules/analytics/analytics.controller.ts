@@ -1,8 +1,9 @@
-import { BadRequestException, Controller, Get, Header, Query } from "@nestjs/common";
+import { BadRequestException, Controller, Get, Query, StreamableFile } from "@nestjs/common";
 
 import { AuditLog } from "../../common/decorators/audit-log.decorator";
 import { type AuthenticatedUser, CurrentUser } from "../../common/decorators/current-user.decorator";
 import { RequirePermission } from "../../common/decorators/require-permission.decorator";
+import { EXPORT_CONTENT_TYPE, type ExportFormat, serialiseExport } from "../../common/export/tabular";
 import { PERMISSIONS } from "../../common/rbac/permissions";
 import { dateRange } from "../analytics-etl/local-date";
 import { AnalyticsService, type MixDimension } from "./analytics.service";
@@ -103,18 +104,44 @@ export class AnalyticsController {
     return this.analyticsService.forecast(this.analyticsService.scopeFor(user, siteId), bounded);
   }
 
+  // Same aggregated counts in two formats; both are audit-logged under the
+  // same action so the evidence trail does not depend on the format chosen.
   @Get("export.csv")
   @RequirePermission(PERMISSIONS.VISIT_READ_ORG)
   @AuditLog({ action: "analytics.export", resourceType: "visit_daily_fact" })
-  @Header("Content-Type", "text/csv; charset=utf-8")
-  @Header("Content-Disposition", 'attachment; filename="checkpoint-visit-analytics.csv"')
   exportCsv(
     @Query("from") from: string | undefined,
     @Query("to") to: string | undefined,
     @Query("siteId") siteId: string | undefined,
     @CurrentUser() user: AuthenticatedUser,
   ) {
+    return this.exportAs("csv", from, to, siteId, user);
+  }
+
+  @Get("export.xlsx")
+  @RequirePermission(PERMISSIONS.VISIT_READ_ORG)
+  @AuditLog({ action: "analytics.export", resourceType: "visit_daily_fact" })
+  exportXlsx(
+    @Query("from") from: string | undefined,
+    @Query("to") to: string | undefined,
+    @Query("siteId") siteId: string | undefined,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.exportAs("xlsx", from, to, siteId, user);
+  }
+
+  private async exportAs(
+    format: ExportFormat,
+    from: string | undefined,
+    to: string | undefined,
+    siteId: string | undefined,
+    user: AuthenticatedUser,
+  ) {
     const r = this.range(from, to);
-    return this.analyticsService.exportCsv(this.analyticsService.scopeFor(user, siteId), r.from, r.to);
+    const table = await this.analyticsService.exportTable(this.analyticsService.scopeFor(user, siteId), r.from, r.to);
+    return new StreamableFile(await serialiseExport(table, format, "Visit analytics"), {
+      type: EXPORT_CONTENT_TYPE[format],
+      disposition: `attachment; filename="checkpoint-visit-analytics.${format}"`,
+    });
   }
 }

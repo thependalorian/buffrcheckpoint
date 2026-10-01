@@ -10,6 +10,7 @@ import {
 } from "../../common/data-protection/personal-data-protection.service";
 import type { AuthenticatedUser } from "../../common/decorators/current-user.decorator";
 import { VISIT_CHECKED_IN_EVENT, VisitCheckedInEvent } from "../../common/domain-events/visit-checked-in.event";
+import type { TabularExport } from "../../common/export/tabular";
 import type { Database } from "../../db/client";
 import { DB } from "../../db/db.module";
 import {
@@ -201,12 +202,7 @@ export class VisitsService {
     };
   }
 
-  async getPublicCheckInForm(
-    siteId: string,
-    referenceId: string,
-    visitorTypeCode: string,
-    languageCode?: string,
-  ) {
+  async getPublicCheckInForm(siteId: string, referenceId: string, visitorTypeCode: string, languageCode?: string) {
     const validated = await this.siteQrReferences.validatePublicCheckInReference(siteId, referenceId);
     return this.visitorPolicy.resolveEffectiveForm(
       validated.organisationId,
@@ -972,10 +968,10 @@ export class VisitsService {
   }
 
   /** CSV export for the same date-range search, no pagination cap — "pull everyone who visited last Tuesday" as a file a front-desk lead can hand to an auditor. */
-  async exportRosterCsv(
+  async exportRoster(
     user: AuthenticatedUser,
     input: { siteId?: string; from?: string; to?: string },
-  ): Promise<string> {
+  ): Promise<TabularExport> {
     const conditions: SQL[] = [eq(visitorVisits.organisationId, user.organisationId), isNull(visitorVisits.deletedAt)];
     if (input.siteId) conditions.push(eq(visitorVisits.siteId, input.siteId));
     if (input.from) conditions.push(gte(visitorVisits.checkedInAt, new Date(input.from)));
@@ -987,22 +983,17 @@ export class VisitsService {
     });
     const rows = await this.resolveRosterRows(visits);
 
-    const header = "visitor_name,visitor_type,host_name,status,checked_in_at,checked_out_at\n";
-    const body = rows
-      .map((r) =>
-        [
-          r.visitorDisplayName,
-          r.visitorTypeCode,
-          r.hostDisplayName ?? "",
-          r.visitStatusCode,
-          r.checkedInAt,
-          r.checkedOutAt ?? "",
-        ]
-          .map((field) => `"${String(field).replaceAll('"', '""')}"`)
-          .join(","),
-      )
-      .join("\n");
-    return header + body + "\n";
+    return {
+      headers: ["visitor_name", "visitor_type", "host_name", "status", "checked_in_at", "checked_out_at"],
+      rows: rows.map((r) => [
+        r.visitorDisplayName,
+        r.visitorTypeCode,
+        r.hostDisplayName ?? null,
+        r.visitStatusCode,
+        String(r.checkedInAt),
+        r.checkedOutAt ? String(r.checkedOutAt) : null,
+      ]),
+    };
   }
 
   async getById(visitId: string, user: AuthenticatedUser) {

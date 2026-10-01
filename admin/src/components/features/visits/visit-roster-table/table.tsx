@@ -36,6 +36,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { IDENTITY_ASSURANCE_LEVEL_CODES, IDENTITY_ASSURANCE_LEVEL_LABELS } from "@/lib/canonical-codes";
+import { visitRosterCopy } from "@/lib/copy/visits";
 import { dataTableFeatures } from "@/lib/data-table-features";
 
 import { visitRosterColumns } from "./columns";
@@ -281,20 +282,22 @@ export function VisitRosterTable({
               </DropdownMenuRadioGroup>
             </DropdownMenuContent>
           </DropdownMenu>
-          {dateRange ? (
-            <Button variant="outline" size="sm" asChild>
-              <a
-                href={`/api/visits/roster/export${
-                  dateRange.from || dateRange.to
-                    ? `?${new URLSearchParams({ ...(dateRange.from ? { from: dateRange.from } : {}), ...(dateRange.to ? { to: dateRange.to } : {}) })}`
-                    : ""
-                }`}
-              >
-                <Download />
-                Download CSV
-              </a>
-            </Button>
-          ) : null}
+          {dateRange
+            ? (["csv", "xlsx"] as const).map((format) => (
+                <Button key={format} variant="outline" size="sm" asChild>
+                  <a
+                    href={`/api/visits/roster/export?${new URLSearchParams({
+                      ...(dateRange.from ? { from: dateRange.from } : {}),
+                      ...(dateRange.to ? { to: dateRange.to } : {}),
+                      ...(format === "xlsx" ? { format } : {}),
+                    })}`}
+                  >
+                    <Download />
+                    {format === "xlsx" ? visitRosterCopy.exportXlsx : visitRosterCopy.exportCsv}
+                  </a>
+                </Button>
+              ))
+            : null}
         </div>
       </div>
 

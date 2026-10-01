@@ -33,6 +33,7 @@ export const analyticsCopy = {
     ],
   },
   export: "Download CSV",
+  exportXlsx: "Download Excel",
   exportHint: "Daily counts by site, visitor type and channel, for auditors and head office.",
   kpis: {
     checkIns: "Check-ins",

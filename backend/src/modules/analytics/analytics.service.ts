@@ -2,6 +2,7 @@ import { Inject, Injectable } from "@nestjs/common";
 import { and, eq, gte, isNull, type SQL, sql } from "drizzle-orm";
 
 import type { AuthenticatedUser } from "../../common/decorators/current-user.decorator";
+import type { TabularCell, TabularExport } from "../../common/export/tabular";
 import type { Database } from "../../db/client";
 import { DB } from "../../db/db.module";
 import { auditEvents, visitorVisits } from "../../db/schema";
@@ -249,7 +250,7 @@ export class AnalyticsService {
   }
 
   /** Aggregated daily facts as CSV for auditors and head offices. Counts only. */
-  async exportCsv(scope: AnalyticsScope, from: string, to: string): Promise<string> {
+  async exportTable(scope: AnalyticsScope, from: string, to: string): Promise<TabularExport> {
     const result = await this.db.execute(sql`
       SELECT f.local_date::text AS date, s.name AS site, vt.label AS visitor_type, ch.label AS channel,
              COALESCE(pc.label, 'Not recorded') AS purpose,
@@ -267,7 +268,7 @@ export class AnalyticsService {
       HAVING sum(f.check_in_count) > 0
       ORDER BY 1, 2, 3, 4, 5
     `);
-    const header = [
+    const headers = [
       "date",
       "site",
       "visitor_type",
@@ -277,13 +278,11 @@ export class AnalyticsService {
       "check_outs",
       "offline_captures",
     ];
-    const csvCell = (value: unknown) => {
-      const text = String(value ?? "");
-      return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+    const cell = (value: unknown): TabularCell =>
+      value === null || value === undefined ? null : typeof value === "number" ? value : String(value);
+    return {
+      headers,
+      rows: (result.rows as Record<string, unknown>[]).map((row) => headers.map((key) => cell(row[key]))),
     };
-    const lines = (result.rows as Record<string, unknown>[]).map((row) =>
-      header.map((key) => csvCell(row[key])).join(","),
-    );
-    return [header.join(","), ...lines].join("\n");
   }
 }
