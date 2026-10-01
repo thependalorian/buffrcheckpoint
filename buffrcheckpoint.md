@@ -376,7 +376,7 @@
 | Site QR create/rotate + printable kit | FULL | v0.20 — **Core default channel** (admin public site QR → phone `/check-in`); tablet not required |
 | Forms (defs + versions + fields + publish) | FULL | v0.20; v0.28 admin builder + minimisation + i18n |
 | Form AI suggest/translate (admin) | FULL (gated) | `FormAiService` + §11.9.14; `FORM_AI_ENABLED`; never auto-publish |
-| Retention purge/archive job | NOT STARTED | Policies configurable; no cron/scheduler executes disposition yet |
+| Retention purge/archive job | FULL (worker opt-in) | `retention-disposition` module + migration 0043. Disposes visits past the effective policy (site, else org default), skips active legal holds (unreadable hold scopes fail closed), crypto-shreds personal data of subjects with no live visits or credentials, and reconciles candidates = disposed + held. Worker runs only with `RETENTION_DISPOSITION_ENABLED=true`; `POST /platform/retention/runs` defaults to a dry run |
 | Access / retention policies | FULL | v0.20 |
 | Privacy notice document lifecycle | FULL | v0.20 |
 | Devices MDM + credentials issue/revoke/validate | FULL | v0.20 |
@@ -2395,12 +2395,15 @@ Validation layers, applied in the pipeline rather than after it:
 | Device compliance register | System administrator | Live screen | Live |
 | Emergency roll call | Security, emergency coordinators | Live screen | Real-time |
 | Evidence pack | Auditor, regulator | JSON `GET /evidence/:id/download`; readable HTML report `GET /evidence/:id/report` (print to PDF) | On demand |
-| Analytics | Property admin | Live screen; CSV `GET /analytics/export.csv` (aggregates, audit-logged) | Hourly refresh |
+| Analytics | Property admin | Live screen; CSV `GET /analytics/export.csv` or XLSX `GET /analytics/export.xlsx` (aggregates, audit-logged) | Hourly refresh |
 | Platform analytics | Ops | Live screen (ETL health, arrival statistics, trends) | Hourly refresh |
 
-Correction to the guide: there is no XLSX export and no server-rendered PDF
-evidence pack today. CSV is the spreadsheet format; the evidence report is
-HTML printable to PDF.
+Correction to the guide: there is no server-rendered PDF evidence pack
+today; the evidence report is HTML printable to PDF. XLSX sits alongside CSV
+for the visitor roster (`GET /visits/roster/export?format=xlsx`) and
+analytics exports. CSV text cells that start with `= + - @` are
+apostrophe-prefixed so a visitor-supplied name cannot run as a spreadsheet
+formula.
 
 **Target KPIs** (targets, not measured results):
 
@@ -2511,7 +2514,7 @@ Output must be empty apart from permitted test fixtures.
 
 | Item | Status | Path |
 |---|---|---|
-| Retention purge/archive scheduler | Not started | Scheduled disposition job |
+| Retention purge/archive scheduler | **Built** (2026-10-01) | Opt-in worker (`RETENTION_DISPOSITION_ENABLED`); dry-run first. Analytics backfills count live visits only, so disposed history drops out of rebuilt facts |
 | DigiNam relying-party adapter | Not started | Approved relying-party arrangement and tested interface |
 | National e-ID NFC adapter | Not started | Official protocol and interoperability testing |
 | SMS confirmation gateway | Not started | Live provider contract |
@@ -2521,8 +2524,8 @@ Output must be empty apart from permitted test fixtures.
 | Analytics ETL and dashboards | **Built** (2026-09-30) | §11.1b; the guide listed this as deferred |
 | Evidence report | **Built** (2026-09-30) | Readable HTML from the JSON pack |
 | Card payments | In progress | Adumo Online Virtual hosted page; recurring tokens later |
-| XLSX export | Not built | CSV covers spreadsheets today |
-| Live dashboard push (WebSocket/SSE) | Not built | Pages read fresh data per request |
+| XLSX export | **Built** (2026-10-01) | Roster and analytics, same audit actions as CSV |
+| Live dashboard push (WebSocket/SSE) | **Built** (2026-10-01) | `GET /visits/roster/stream` (ids only, tenant-filtered) drives Front Desk and Emergency refresh; in-process emitter, single instance only |
 
 ## 11.2 Recommended stack
 

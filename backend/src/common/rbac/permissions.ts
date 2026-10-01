@@ -33,6 +33,8 @@ export const PERMISSIONS = {
   PLATFORM_DASHBOARD_READ: "platform.dashboard.read",
   // Analytics ETL backfills — db/migrations/0041_analytics_etl.sql.
   PLATFORM_ANALYTICS_MANAGE: "platform.analytics.manage",
+  // Retention disposition runs — db/migrations/0043_retention_disposition.sql.
+  PLATFORM_RETENTION_MANAGE: "platform.retention.manage",
   PLATFORM_ORG_HEALTH_READ: "platform.org_health.read",
   PLATFORM_INCIDENT_MANAGE: "platform.incident.manage",
   PLATFORM_TICKET_MANAGE: "platform.ticket.manage",

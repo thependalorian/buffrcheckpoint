@@ -50,6 +50,7 @@ import { PlatformSearchModule } from "./modules/platform-search/platform-search.
 import { PlatformStaffModule } from "./modules/platform-staff/platform-staff.module";
 import { RbacModule } from "./modules/rbac/rbac.module";
 import { RegionsModule } from "./modules/regions/regions.module";
+import { RetentionDispositionModule } from "./modules/retention-disposition/retention-disposition.module";
 import { RetentionPolicyModule } from "./modules/retention-policy/retention-policy.module";
 import { ScheduleModule } from "./modules/schedule/schedule.module";
 import { SecurityZonesModule } from "./modules/security-zones/security-zones.module";
@@ -103,6 +104,7 @@ import { VisitsModule } from "./modules/visits/visits.module";
     AuditModule,
     DevicesModule,
     RetentionPolicyModule,
+    RetentionDispositionModule,
     TypeDefinitionsModule,
     InvitationsModule,
     ScheduleModule,

@@ -64,6 +64,18 @@ export class LegalHoldsService {
     return Promise.all(holds.map(async (hold) => ({ ...hold, active: await this.isActive(hold.id) })));
   }
 
+  // System read for the retention disposition job (no request user): the
+  // scopes of every currently active hold in one organisation.
+  async activeHoldScopes(organisationId: string): Promise<Array<{ id: string; scope: Record<string, unknown> }>> {
+    const holds = await this.db.query.legalHolds.findMany({
+      where: and(eq(legalHolds.organisationId, organisationId), isNull(legalHolds.deletedAt)),
+    });
+    const active = await Promise.all(holds.map(async (hold) => ((await this.isActive(hold.id)) ? hold : null)));
+    return active
+      .filter((hold): hold is NonNullable<typeof hold> => hold !== null)
+      .map((hold) => ({ id: hold.id, scope: (hold.scope ?? {}) as Record<string, unknown> }));
+  }
+
   // Section 8.9's data lifecycle journey: retention/deletion checks a
   // legal_hold before archiving/deleting a record — this is the release
   // step, letting an org's deletion jobs proceed again for that scope.

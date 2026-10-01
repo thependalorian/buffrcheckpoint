@@ -28,6 +28,7 @@ export * from "./platform-configuration";
 export * from "./platform-ops";
 export * from "./pms-integrations";
 export * from "./rbac";
+export * from "./retention-disposition";
 export * from "./visitor-wait-queue";
 export * from "./secure-onboarding";
 export * from "./sms-contact-confirmation";
