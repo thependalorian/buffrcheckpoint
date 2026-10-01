@@ -1,11 +1,11 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { and, desc, eq, gte, lt, lte, or, type SQL } from "drizzle-orm";
 
+import { type AppendAuditEventInput, appendAuditEvent, computeAuditEventHash } from "../../common/audit/audit-chain";
 import type { AuthenticatedUser } from "../../common/decorators/current-user.decorator";
 import type { Database } from "../../db/client";
 import { DB } from "../../db/db.module";
 import { auditEvents } from "../../db/schema";
-import { createHash } from "node:crypto";
 
 const DEFAULT_PAGE_SIZE = 50;
 const MAX_PAGE_SIZE = 200;
@@ -61,6 +61,12 @@ export class AuditService {
     return { events: page, nextCursor };
   }
 
+  // System-initiated events (workers, gateway callbacks) that have no
+  // request user to hang an @AuditLog interceptor off.
+  append(input: AppendAuditEventInput) {
+    return appendAuditEvent(this.db, input);
+  }
+
   // Verifies the hash chain hasn't been tampered with — each row's
   // eventHash must match a fresh hash of its own fields + the previous
   // row's hash. Section 20.2's "annual control-effectiveness report" is
@@ -77,16 +83,7 @@ export class AuditService {
       if (event.prevEventHash !== expectedPrevHash) {
         return { valid: false, brokenAtEventId: event.id };
       }
-      const payload: string = JSON.stringify({
-        organisationId: event.organisationId,
-        actorId: event.actorId,
-        actionCode: event.actionCode,
-        resourceType: event.resourceType,
-        resourceId: event.resourceId,
-        occurredAt: event.occurredAt.toISOString(),
-        prevEventHash: event.prevEventHash,
-      });
-      const recomputed: string = createHash("sha256").update(payload).digest("hex");
+      const recomputed = computeAuditEventHash(event);
       if (recomputed !== event.eventHash) {
         return { valid: false, brokenAtEventId: event.id };
       }

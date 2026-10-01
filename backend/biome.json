@@ -78,5 +78,13 @@
       "attributePosition": "auto",
       "bracketSpacing": true
     }
-  }
+  },
+  "overrides": [
+    {
+      "includes": ["**/*.spec.ts", "test/**"],
+      "javascript": {
+        "globals": ["jest", "describe", "it", "test", "expect", "beforeAll", "beforeEach", "afterAll", "afterEach"]
+      }
+    }
+  ]
 }

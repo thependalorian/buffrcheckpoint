@@ -1,15 +1,13 @@
 import { type CallHandler, type ExecutionContext, Inject, Injectable, type NestInterceptor } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
-import { desc, eq } from "drizzle-orm";
 import type { Observable } from "rxjs";
 import { from, mergeMap } from "rxjs";
 
 import type { Database } from "../../db/client";
 import { DB } from "../../db/db.module";
-import { auditEvents } from "../../db/schema";
+import { appendAuditEvent } from "../audit/audit-chain";
 import { AUDIT_LOG_KEY, type AuditLogMetadata } from "../decorators/audit-log.decorator";
 import type { AuthenticatedUser } from "../decorators/current-user.decorator";
-import { createHash, randomUUID } from "node:crypto";
 
 // Section 9.2 rule 3: "Every sensitive read, export, correction, and
 // deletion must create an immutable audit event." The chain is
@@ -64,36 +62,12 @@ export class AuditInterceptor implements NestInterceptor {
     request: { params?: Record<string, string> },
     result: unknown,
   ): Promise<void> {
-    const previous = await this.db.query.auditEvents.findFirst({
-      where: eq(auditEvents.organisationId, user.organisationId),
-      orderBy: [desc(auditEvents.occurredAt)],
-    });
-
-    const resourceId = (result as { id?: string })?.id ?? request.params?.id ?? null;
-    const occurredAt = new Date();
-    const prevEventHash = previous?.eventHash ?? null;
-
-    const payload: string = JSON.stringify({
+    await appendAuditEvent(this.db, {
       organisationId: user.organisationId,
       actorId: user.userId,
       actionCode: metadata.action,
       resourceType: metadata.resourceType,
-      resourceId,
-      occurredAt: occurredAt.toISOString(),
-      prevEventHash,
-    });
-    const eventHash: string = createHash("sha256").update(payload).digest("hex");
-
-    await this.db.insert(auditEvents).values({
-      id: randomUUID(),
-      organisationId: user.organisationId,
-      actorId: user.userId,
-      actionCode: metadata.action,
-      resourceType: metadata.resourceType,
-      resourceId,
-      occurredAt,
-      prevEventHash,
-      eventHash,
+      resourceId: (result as { id?: string })?.id ?? request.params?.id ?? null,
     });
   }
 }
