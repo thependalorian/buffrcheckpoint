@@ -2575,10 +2575,10 @@ Output must be empty apart from permitted test fixtures.
 | Contractor induction schema (Release 1.5) | Not started | Safety induction workflow |
 | Analytics ETL and dashboards | **Built** (2026-09-30) | §11.1b; the guide listed this as deferred |
 | Evidence report | **Built** (2026-09-30) | Readable HTML from the JSON pack |
-| Card payments | **Built** (2026-10-01), off until Adumo merchant credentials are set | Adumo Online Virtual hosted page: `POST /platform/billing/invoices/:id/card-payment`, result at `POST /public/payments/adumo/result` (signed token verified; reference and amount matched; applied once), migration `0042_card_payments.sql`. Tested against Adumo staging with test cards on a Neon branch. Recurring tokens later. |
+| Card payments | **Built and deployed** (2026-10-01); off until Adumo merchant credentials are set (result route answers 503 meanwhile) | Adumo Online Virtual hosted page: `POST /platform/billing/invoices/:id/card-payment`, result at `POST /public/payments/adumo/result` (signed token verified; reference and amount matched; applied once), migration `0042_card_payments.sql`. Tested against Adumo staging with test cards on a Neon branch. Recurring tokens later. |
 | XLSX export | **Built** (2026-10-01) | Roster and analytics, same audit actions as CSV |
 | Live dashboard push (WebSocket/SSE) | **Built** (2026-10-01) | `GET /visits/roster/stream` (ids only, tenant-filtered) drives Front Desk and Emergency refresh; in-process emitter, single instance only |
-| Web security headers | **Built** (2026-10-01) | See "Security headers" below |
+| Web security headers | **Built and deployed** (2026-10-01); verified on all three live sites | See "Security headers" below |
 
 **Production database state (1 October 2026).** Migrations `0041_analytics_etl`,
 `0042_card_payments` and `0043_retention_disposition` are applied to the
@@ -2586,6 +2586,11 @@ production Neon branch (`falling-frog-15538162`, main). Each was checked after
 applying: 0042 added 3 type codes, 4 payment columns and the unique processor
 index; 0043 added 2 retention tables, 3 indexes, 4 type codes and the
 `platform.retention.manage` grant.
+
+**Deployed 1 October 2026:** API (Railway), website, admin and ops console
+(Vercel) at commit `bf504ca`. Checked after deploy: API health 200, card
+payment routes live (enabled route needs auth; result route 503 until Adumo is
+configured), all five security headers present on the three web apps.
 
 #### Security headers (v2026-10-01)
 
