@@ -1,6 +1,12 @@
-import { BadRequestException, Inject, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  Inject,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import { and, asc, count, desc, eq, inArray, isNull } from "drizzle-orm";
-import { randomUUID } from "node:crypto";
 
 import { createArtifactStore } from "../../common/artifacts/artifact-store";
 import type { AuthenticatedUser } from "../../common/decorators/current-user.decorator";
@@ -9,14 +15,15 @@ import { DB } from "../../db/db.module";
 import {
   applicationUsers,
   invoice,
+  invoiceCreditNote,
   invoiceLineItem,
   organisationMemberships,
-  organisations,
   organisationSubscription,
   organisationSubscriptionAddon,
   organisationSubscriptionAddonStatusLog,
   organisationSubscriptionSiteQuantityLog,
   organisationSubscriptionStatusEvents,
+  organisations,
   paymentReconciliationLog,
   paymentTransaction,
   roleDefinitions,
@@ -28,6 +35,13 @@ import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.ser
 import { DocumentRendererService } from "../documents/document-renderer.service";
 import { KybService } from "../kyb/kyb.service";
 import { TemplatedEmailService } from "../notifications/templated-email.service";
+import { AdumoService, adumoAmount } from "./adumo.service";
+import { randomUUID } from "node:crypto";
+
+// reviewed_by on a card payment's reconciliation row: the nil UUID marks an
+// automated reconciliation (Adumo's signed response token verified server-side),
+// as opposed to a platform_support reviewer confirming a proof of payment.
+export const AUTOMATED_REVIEWER_ID = "00000000-0000-0000-0000-000000000000";
 
 export interface CreateInvoiceInput {
   organisationId: string;
@@ -110,13 +124,16 @@ export class BillingService {
     private readonly kyb: KybService,
     private readonly documents: DocumentRendererService,
     private readonly templatedEmail: TemplatedEmailService,
+    private readonly adumo: AdumoService,
   ) {}
 
   /** Public / ops catalog — one list; filter by kind when needed. */
   async listCatalog(opts?: { kind?: CatalogKind; publicOnly?: boolean }): Promise<PublicCatalogItem[]> {
     const conditions = [isNull(subscriptionCatalogItem.deletedAt)];
     if (opts?.kind) {
-      conditions.push(eq(subscriptionCatalogItem.kindCode, await this.typeDefs.id("subscription_catalog_kind", opts.kind)));
+      conditions.push(
+        eq(subscriptionCatalogItem.kindCode, await this.typeDefs.id("subscription_catalog_kind", opts.kind)),
+      );
     }
     if (opts?.publicOnly) {
       conditions.push(eq(subscriptionCatalogItem.isPublic, true));
@@ -552,7 +569,11 @@ export class BillingService {
       invoiceUrl: `${adminBase}/dashboard/billing?invoice=${detail.id}`,
     };
     if (format === "html") {
-      return { contentType: "text/html; charset=utf-8", filename: `${detail.invoiceNumber}.html`, content: Buffer.from(this.documents.renderInvoiceHtml(input), "utf8") };
+      return {
+        contentType: "text/html; charset=utf-8",
+        filename: `${detail.invoiceNumber}.html`,
+        content: Buffer.from(this.documents.renderInvoiceHtml(input), "utf8"),
+      };
     }
     return {
       contentType: "application/pdf",
@@ -577,7 +598,11 @@ export class BillingService {
       receiptUrl: `${adminBase}/dashboard/billing?invoice=${detail.id}`,
     };
     if (format === "html") {
-      return { contentType: "text/html; charset=utf-8", filename: `${receiptNumber}.html`, content: Buffer.from(this.documents.renderReceiptHtml(input), "utf8") };
+      return {
+        contentType: "text/html; charset=utf-8",
+        filename: `${receiptNumber}.html`,
+        content: Buffer.from(this.documents.renderReceiptHtml(input), "utf8"),
+      };
     }
     return {
       contentType: "application/pdf",
@@ -665,10 +690,13 @@ export class BillingService {
   }
 
   async listInvoicesForOrganisation(organisationId: string) {
-    return this.db.query.invoice.findMany({
+    const rows = await this.db.query.invoice.findMany({
       where: and(eq(invoice.organisationId, organisationId), isNull(invoice.deletedAt)),
       orderBy: desc(invoice.issuedAt),
     });
+    // statusKey (draft/sent/paid/overdue/void) lets the customer page decide
+    // whether an invoice is still payable without resolving type ids itself.
+    return Promise.all(rows.map(async (row) => ({ ...row, statusKey: await this.typeDefs.codeById(row.statusCode) })));
   }
 
   async getInvoiceById(invoiceId: string, organisationId?: string) {
@@ -707,6 +735,12 @@ export class BillingService {
   async submitProofOfPayment(dto: SubmitPopInput, user: AuthenticatedUser) {
     const invoiceRow = await this.db.query.invoice.findFirst({ where: eq(invoice.id, dto.invoiceId) });
     if (!invoiceRow) throw new NotFoundException("Invoice not found");
+    // The invoice id arrives in the body, so TenantScopeGuard cannot check it:
+    // a customer may only attach proof of payment to its own organisation's
+    // invoice (a support-session token carries the target organisation).
+    if (invoiceRow.organisationId !== user.organisationId) {
+      throw new ForbiddenException("Invoice belongs to another organisation");
+    }
 
     const stored = await artifactStore.writePackage(
       "payment-pop",
@@ -822,6 +856,133 @@ export class BillingService {
     return { requested: paymentTransactionIds.length, updated, failed };
   }
 
+  /** Whether card payments are configured on this deployment (Adumo credentials present). */
+  cardPaymentsEnabled() {
+    return { enabled: this.adumo.isConfigured() };
+  }
+
+  /**
+   * Starts a card payment for an unpaid invoice of the caller's own
+   * organisation. The amount always comes from the server-side invoice (never
+   * the client): invoice amount less confirmed payments and credit notes.
+   * Inserts a payment_transaction at 'initiated' and returns the signed form
+   * post for Adumo's hosted page; its id is the merchant reference.
+   */
+  async startCardPayment(invoiceId: string, user: AuthenticatedUser) {
+    const row = await this.db.query.invoice.findFirst({
+      where: and(eq(invoice.id, invoiceId), isNull(invoice.deletedAt)),
+    });
+    if (!row) throw new NotFoundException("Invoice not found");
+    if (row.organisationId !== user.organisationId)
+      throw new ForbiddenException("Invoice belongs to another organisation");
+
+    const [paidStatus, voidStatus, confirmedStatus] = await Promise.all([
+      this.typeDefs.id("invoice_status", "paid"),
+      this.typeDefs.id("invoice_status", "void"),
+      this.typeDefs.id("payment_status", "confirmed"),
+    ]);
+    if (row.statusCode === paidStatus || row.statusCode === voidStatus) {
+      throw new ConflictException("This invoice is not open for payment");
+    }
+
+    const [payments, credits] = await Promise.all([
+      this.db.query.paymentTransaction.findMany({
+        where: and(eq(paymentTransaction.invoiceId, invoiceId), eq(paymentTransaction.statusCode, confirmedStatus)),
+      }),
+      this.db.query.invoiceCreditNote.findMany({ where: eq(invoiceCreditNote.invoiceId, invoiceId) }),
+    ]);
+    const settled = [...payments, ...credits].reduce((sum, p) => sum + Number(p.amount), 0);
+    const outstanding = Math.round((Number(row.amount) - settled) * 100) / 100;
+    if (outstanding <= 0) throw new ConflictException("Nothing is outstanding on this invoice");
+
+    const [initiatedStatus, cardMethod] = await Promise.all([
+      this.typeDefs.id("payment_status", "initiated"),
+      this.typeDefs.id("payment_method", "card"),
+    ]);
+    const paymentId = randomUUID();
+    const amount = adumoAmount(outstanding);
+    const checkout = this.adumo.buildCheckout(paymentId, amount, `Buffr Checkpoint invoice ${row.invoiceNumber}`);
+    await this.db.insert(paymentTransaction).values({
+      id: paymentId,
+      organisationId: row.organisationId,
+      invoiceId: row.id,
+      amount,
+      currencyCode: row.currencyCode,
+      statusCode: initiatedStatus,
+      paymentMethodCode: cardMethod,
+      submittedBy: user.userId,
+    });
+    return { paymentTransactionId: paymentId, invoiceId: row.id, amount, currencyCode: row.currencyCode, ...checkout };
+  }
+
+  /**
+   * Single entry point for Adumo results: the browser return (relayed by the
+   * admin app) and the server-to-server notification both land here. Trusts
+   * only the verified _RESPONSE_TOKEN: signature, merchant, reference (our
+   * payment id) and amount must all match. The status change is a
+   * conditional update from 'initiated', so a result is applied exactly once
+   * even when the redirect and the webhook arrive together.
+   */
+  async handleAdumoResult(fields: Record<string, unknown>) {
+    const token = typeof fields._RESPONSE_TOKEN === "string" ? fields._RESPONSE_TOKEN : undefined;
+    const claims = this.adumo.verifyResponseToken(token);
+
+    const txn = await this.db.query.paymentTransaction.findFirst({ where: eq(paymentTransaction.id, claims.mref) });
+    if (!txn) throw new NotFoundException("Payment not found");
+    if (adumoAmount(claims.amount) !== adumoAmount(String(txn.amount))) {
+      throw new BadRequestException("Payment amount does not match the invoice payment");
+    }
+
+    const [initiatedStatus, confirmedStatus, failedStatus] = await Promise.all([
+      this.typeDefs.id("payment_status", "initiated"),
+      this.typeDefs.id("payment_status", "confirmed"),
+      this.typeDefs.id("payment_status", "failed"),
+    ]);
+    const succeeded = claims.result === 0 || claims.result === 1;
+    const posted = (key: string) => (typeof fields[key] === "string" ? (fields[key] as string).slice(0, 255) : null);
+    const maskedPan = posted("_PANHASHED");
+
+    const updated = await this.db
+      .update(paymentTransaction)
+      .set({
+        statusCode: succeeded ? confirmedStatus : failedStatus,
+        processorTransactionIndex: claims.transactionIndex,
+        processorStatus: posted("_STATUS"),
+        processorResultCode: String(claims.result),
+        // Keep only first 6 and last 4 digits even if a longer value is posted.
+        cardMaskedPan:
+          maskedPan && /^\d{6}.*\d{4}$/.test(maskedPan) ? `${maskedPan.slice(0, 6)}******${maskedPan.slice(-4)}` : null,
+      })
+      .where(and(eq(paymentTransaction.id, txn.id), eq(paymentTransaction.statusCode, initiatedStatus)))
+      .returning({ id: paymentTransaction.id });
+
+    if (updated.length === 0) {
+      // Already applied by the other channel (redirect or webhook).
+      const current = await this.db.query.paymentTransaction.findFirst({ where: eq(paymentTransaction.id, txn.id) });
+      return {
+        status: current?.statusCode === confirmedStatus ? "succeeded" : "failed",
+        invoiceId: txn.invoiceId,
+        duplicate: true,
+      };
+    }
+
+    await this.db.insert(paymentReconciliationLog).values({
+      id: randomUUID(),
+      paymentTransactionId: txn.id,
+      reviewedBy: AUTOMATED_REVIEWER_ID,
+      decision: succeeded ? "confirmed" : "rejected",
+      note: `Adumo card payment ${succeeded ? "approved" : "not approved"} (result ${claims.result}, status ${posted("_STATUS") ?? "unknown"}); transaction index ${claims.transactionIndex}; response token verified`,
+    });
+
+    if (succeeded && txn.invoiceId) {
+      const paidStatus = await this.typeDefs.id("invoice_status", "paid");
+      await this.db.update(invoice).set({ statusCode: paidStatus }).where(eq(invoice.id, txn.invoiceId));
+      await this.notifyPaymentConfirmed(txn.invoiceId, String(txn.amount), txn.currencyCode).catch(() => undefined);
+    }
+
+    return { status: succeeded ? "succeeded" : "failed", invoiceId: txn.invoiceId, duplicate: false };
+  }
+
   async portfolioRollup() {
     const subs = await this.db.query.organisationSubscription.findMany({
       where: isNull(organisationSubscription.deletedAt),
@@ -878,7 +1039,8 @@ export class BillingService {
       throw new BadRequestException("Site quantity must be a whole number of at least 1");
     }
     if (planItem.extraSiteMonthlyAmount === null && siteQuantity > planItem.includedSites) {
-      const label = (await this.db.query.typeDefinition.findFirst({ where: eq(typeDefinition.id, planItemCode) }))?.label;
+      const label = (await this.db.query.typeDefinition.findFirst({ where: eq(typeDefinition.id, planItemCode) }))
+        ?.label;
       throw new BadRequestException(
         `The ${label ?? "selected"} plan covers ${planItem.includedSites} site${planItem.includedSites === 1 ? "" : "s"}. Choose Network or Assure to license more.`,
       );
@@ -986,11 +1148,7 @@ export class BillingService {
     );
   }
 
-  private async notifyPopReceived(
-    invoiceRow: typeof invoice.$inferSelect,
-    amount: string,
-    user: AuthenticatedUser,
-  ) {
+  private async notifyPopReceived(invoiceRow: typeof invoice.$inferSelect, amount: string, user: AuthenticatedUser) {
     const org = await this.db.query.organisations.findFirst({ where: eq(organisations.id, invoiceRow.organisationId) });
     const opsInbox = TemplatedEmailService.resolveOpsInbox();
     const opsBase = (process.env.PUBLIC_OPS_BASE_URL ?? "https://ops.buffrcheckpoint.com").replace(/\/$/, "");

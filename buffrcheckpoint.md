@@ -2350,6 +2350,27 @@ reviews and confirms → reconciliation recorded. Card: Adumo redirects back →
 server validates the response token → payment recorded against the invoice →
 subscription activates through the same payment-gated go-live path as EFT.
 
+**As built (2026-10-01).** Customer clicks "Pay by card" on an open invoice →
+admin `GET /api/billing/card-payment/:invoiceId` asks the API to start the
+payment (amount = invoice less confirmed payments and credit notes; a
+`payment_transaction` at `initiated`, method `card`, whose id is the Adumo
+merchant reference) and auto-posts the signed form to Adumo → Adumo posts the
+result to admin `POST /api/billing/card-payment/return`, which relays it to
+`POST /public/payments/adumo/result` → the API verifies the HS256 response
+token (signature, merchant and application ids, expiry), matches reference and
+amount, and moves the payment from `initiated` to `confirmed` or `failed` in
+one conditional update, so the browser return and Adumo's `notificationURL`
+webhook cannot both apply it. Confirmed: reconciliation row (reviewer
+`00000000-0000-0000-0000-000000000000` = automated), invoice paid, receipt
+email. Failed: reconciliation row `rejected`, invoice stays open. Stored: Adumo
+transaction index, status, result code and masked PAN only. Subscription
+go-live is unchanged (ops, with KYB). The card button shows only when the API
+reports card payments configured and the invoice is not paid or void. The
+sandbox merchant authorises in ZAR; a Namibian merchant account should
+authorise in NAD (set `AuthoriseCurrencyCode` if multi-currency is enabled).
+The proof-of-payment endpoint now also checks that the invoice belongs to the
+caller's organisation.
+
 #### CRM for visitor management
 
 Checkpoint's CRM is a **visitor relationship and presence** system, not a
@@ -2523,7 +2544,7 @@ Output must be empty apart from permitted test fixtures.
 | Contractor induction schema (Release 1.5) | Not started | Safety induction workflow |
 | Analytics ETL and dashboards | **Built** (2026-09-30) | §11.1b; the guide listed this as deferred |
 | Evidence report | **Built** (2026-09-30) | Readable HTML from the JSON pack |
-| Card payments | In progress | Adumo Online Virtual hosted page; recurring tokens later |
+| Card payments | **Built** (2026-10-01), off until Adumo merchant credentials are set | Adumo Online Virtual hosted page: `POST /platform/billing/invoices/:id/card-payment`, result at `POST /public/payments/adumo/result` (signed token verified; reference and amount matched; applied once), migration `0042_card_payments.sql`. Tested against Adumo staging with test cards on a Neon branch. Recurring tokens later. |
 | XLSX export | **Built** (2026-10-01) | Roster and analytics, same audit actions as CSV |
 | Live dashboard push (WebSocket/SSE) | **Built** (2026-10-01) | `GET /visits/roster/stream` (ids only, tenant-filtered) drives Front Desk and Emergency refresh; in-process emitter, single instance only |
 

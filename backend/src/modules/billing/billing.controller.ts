@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Param, Patch, Post, Query, Res, StreamableFile } from "@nestjs/common";
+import { Throttle } from "@nestjs/throttler";
 import type { Response } from "express";
 
 import { AuditLog } from "../../common/decorators/audit-log.decorator";
@@ -169,10 +170,7 @@ export class BillingController {
 
   @Get("platform/billing/invoices/:invoiceId/customer")
   @RequirePermission(PERMISSIONS.VISIT_READ_ORG)
-  getInvoiceCustomer(
-    @Param("invoiceId") invoiceId: string,
-    @Query("organisationId") organisationId: string,
-  ) {
+  getInvoiceCustomer(@Param("invoiceId") invoiceId: string, @Query("organisationId") organisationId: string) {
     return this.service.getInvoiceById(invoiceId, organisationId);
   }
 
@@ -188,6 +186,34 @@ export class BillingController {
       type: doc.contentType,
       disposition: `attachment; filename="${doc.filename.replace(/"/g, "")}"`,
     });
+  }
+
+  @Get("platform/billing/payments/card/enabled")
+  @RequirePermission(PERMISSIONS.VISIT_READ_ORG)
+  cardPaymentsEnabled() {
+    return this.service.cardPaymentsEnabled();
+  }
+
+  // Customer starts a card payment for one of its own invoices. The amount
+  // comes from the invoice server-side; the response is the signed form post
+  // for Adumo's hosted page.
+  @Post("platform/billing/invoices/:invoiceId/card-payment")
+  @RequirePermission(PERMISSIONS.VISIT_READ_ORG)
+  @AuditLog({ action: "payment_transaction.card_start", resourceType: "invoice" })
+  startCardPayment(@Param("invoiceId") invoiceId: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.service.startCardPayment(invoiceId, user);
+  }
+
+  // Adumo result (browser return relayed by admin, or Adumo's own
+  // notificationURL webhook). Public: the signed _RESPONSE_TOKEN is the
+  // authentication and is verified before anything changes. The body is a
+  // plain record on purpose so the global whitelist does not reject Adumo's
+  // posted fields; only the token's verified claims are trusted.
+  @Public()
+  @Post("public/payments/adumo/result")
+  @Throttle({ default: { ttl: 60_000, limit: 30 } })
+  adumoResult(@Body() body: Record<string, unknown>) {
+    return this.service.handleAdumoResult(body ?? {});
   }
 
   @Post("platform/billing/payments/pop")

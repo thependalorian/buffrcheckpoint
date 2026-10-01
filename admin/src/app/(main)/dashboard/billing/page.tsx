@@ -1,10 +1,12 @@
 import Link from "next/link";
 
-import { PopUploadForm } from "./_components/pop-upload-form";
-import { DashboardErrorState } from "@/components/dashboard-state";
 import { DashboardPageHeader } from "@/components/dashboard-page-header";
+import { DashboardErrorState } from "@/components/dashboard-state";
 import { api } from "@/lib/api/client";
 import { getCurrentUser } from "@/lib/auth/me";
+import { billingCopy, type CardPaymentResult } from "@/lib/copy/billing";
+
+import { PopUploadForm } from "./_components/pop-upload-form";
 
 interface Invoice {
   id: string;
@@ -12,6 +14,7 @@ interface Invoice {
   amount: string;
   currencyCode: string;
   statusCode: string;
+  statusKey?: string | null;
   issuedAt: string;
   dueAt: string | null;
 }
@@ -20,9 +23,18 @@ interface Invoice {
 // all. Subscription management and payment review stay platform-side (the
 // Ops Console's /billing screen), per the manual EFT + POP model — see
 // buffrcheckpoint.md Section 11.9.1a.
-export default async function BillingPage() {
+export default async function BillingPage({ searchParams }: { searchParams: Promise<{ payment?: string }> }) {
   const me = await getCurrentUser();
   if (!me) return null;
+  const { payment } = await searchParams;
+  const paymentResult =
+    payment && payment in billingCopy.result ? billingCopy.result[payment as CardPaymentResult] : null;
+  let cardEnabled = false;
+  try {
+    cardEnabled = (await api.get<{ enabled: boolean }>("/platform/billing/payments/card/enabled")).enabled;
+  } catch {
+    cardEnabled = false;
+  }
 
   let invoices: Invoice[] = [];
   let error: string | null = null;
@@ -36,8 +48,16 @@ export default async function BillingPage() {
     <div className="space-y-6">
       <DashboardPageHeader
         title="Billing"
-        description="Invoices are settled by bank transfer to Buffr Financial Services CC — upload your proof of payment against the invoice below once paid. Go-live and operational dashboard use require an active or trial subscription after Buffr ops reviews your POP (and KYB)."
+        description={cardEnabled ? billingCopy.descriptionWithCard : billingCopy.descriptionBankOnly}
       />
+      {paymentResult ? (
+        <p
+          role="status"
+          className={`rounded-xl border p-4 text-sm ${payment === "succeeded" ? "border-[var(--color-status-live)] text-foreground" : "border-border text-foreground"}`}
+        >
+          {paymentResult}
+        </p>
+      ) : null}
       {error ? (
         <DashboardErrorState message={error} />
       ) : invoices.length === 0 ? (
@@ -57,6 +77,17 @@ export default async function BillingPage() {
                   </p>
                 </div>
               </div>
+              {cardEnabled && invoice.statusKey !== "paid" && invoice.statusKey !== "void" ? (
+                <div className="mt-3 flex flex-wrap items-center gap-3">
+                  <a
+                    href={`/api/billing/card-payment/${invoice.id}`}
+                    className="inline-flex items-center rounded-md bg-primary px-4 py-2 font-medium text-primary-foreground text-sm"
+                  >
+                    {billingCopy.payByCard}
+                  </a>
+                  <span className="text-muted-foreground text-xs">{billingCopy.payByCardHint}</span>
+                </div>
+              ) : null}
               <div className="mt-3">
                 <PopUploadForm invoiceId={invoice.id} amount={invoice.amount} />
               </div>

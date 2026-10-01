@@ -166,9 +166,7 @@ export const organisationSubscriptionSiteQuantityLog = pgTable(
     actorId: uuid("actor_id"),
     note: text("note"),
   },
-  (t) => [
-    index("idx_org_subscription_site_quantity_log_org_sub").on(t.organisationId, t.subscriptionId, t.occurredAt),
-  ],
+  (t) => [index("idx_org_subscription_site_quantity_log_org_sub").on(t.organisationId, t.subscriptionId, t.occurredAt)],
 );
 
 export const invoice = pgTable(
@@ -188,10 +186,7 @@ export const invoice = pgTable(
     dueAt: timestamp("due_at", { withTimezone: true }),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
-  (t) => [
-    uniqueIndex("idx_invoice_number").on(t.invoiceNumber),
-    index("idx_invoice_org").on(t.organisationId),
-  ],
+  (t) => [uniqueIndex("idx_invoice_number").on(t.invoiceNumber), index("idx_invoice_org").on(t.organisationId)],
 );
 
 export const invoiceLineItem = pgTable(
@@ -247,6 +242,13 @@ export const paymentTransaction = pgTable(
     popDocumentReference: text("pop_document_reference"),
     submittedBy: uuid("submitted_by"),
     supersedesTransactionId: uuid("supersedes_transaction_id"),
+    // Card payments (Adumo Online, db/migrations/0042). Never card data:
+    // only the processor's transaction index, status, result code and the
+    // masked PAN (first 6 and last 4 digits).
+    processorTransactionIndex: text("processor_transaction_index"),
+    processorStatus: text("processor_status"),
+    processorResultCode: text("processor_result_code"),
+    cardMaskedPan: text("card_masked_pan"),
     occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
