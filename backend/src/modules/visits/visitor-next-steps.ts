@@ -21,11 +21,7 @@ export type VisitorNextSteps = {
   confirmationCode?: string | null;
 };
 
-const BADGE_USUALLY_REQUIRED = new Set([
-  "contractor",
-  "temporary_staff",
-  "restricted_site",
-]);
+const BADGE_USUALLY_REQUIRED = new Set(["contractor", "temporary_staff", "restricted_site"]);
 
 export function resolveVisitorNextSteps(input: {
   visitorFirstName: string;
