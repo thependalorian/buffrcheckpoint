@@ -27,13 +27,13 @@ jobs:
             typecheck: npx tsc --noEmit -p tsconfig.build.json
             test: npx jest --ci
           - app: admin
-            typecheck: npx tsc --noEmit
+            typecheck: npx next typegen && npx tsc --noEmit
             test: npx vitest run
           - app: ops-console
-            typecheck: npx tsc --noEmit
+            typecheck: npx next typegen && npx tsc --noEmit
             test: ""
           - app: website
-            typecheck: npx tsc --noEmit
+            typecheck: npx next typegen && npx tsc --noEmit
             test: npx vitest run
     defaults:
       run:
