@@ -1,9 +1,11 @@
-import type { VisitRosterRow } from "@/components/features/visits/visit-roster-table/schema";
-import { VisitRosterTable } from "@/components/features/visits/visit-roster-table/table";
-import { EmergencyTriggerPanel } from "./_components/emergency-trigger-panel";
 import { DashboardPageHeader } from "@/components/dashboard-page-header";
 import { DashboardErrorState } from "@/components/dashboard-state";
+import { RosterLiveRefresh } from "@/components/features/visits/roster-live-refresh";
+import type { VisitRosterRow } from "@/components/features/visits/visit-roster-table/schema";
+import { VisitRosterTable } from "@/components/features/visits/visit-roster-table/table";
 import { api } from "@/lib/api/client";
+
+import { EmergencyTriggerPanel } from "./_components/emergency-trigger-panel";
 
 export default async function EmergencyPage() {
   let rows: VisitRosterRow[] = [];
@@ -23,6 +25,7 @@ export default async function EmergencyPage() {
       <DashboardPageHeader
         title="Emergency Roster"
         description="Trigger a roll-call snapshot and review who is currently on site."
+        action={<RosterLiveRefresh />}
       />
       {sites.length > 0 ? <EmergencyTriggerPanel sites={sites} /> : null}
       {error ? <DashboardErrorState message={error} /> : <VisitRosterTable data={rows} />}

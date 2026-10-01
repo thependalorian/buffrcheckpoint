@@ -1,7 +1,8 @@
-import type { VisitRosterRow } from "@/components/features/visits/visit-roster-table/schema";
-import { VisitRosterTable } from "@/components/features/visits/visit-roster-table/table";
 import { DashboardPageHeader } from "@/components/dashboard-page-header";
 import { DashboardErrorState } from "@/components/dashboard-state";
+import { RosterLiveRefresh } from "@/components/features/visits/roster-live-refresh";
+import type { VisitRosterRow } from "@/components/features/visits/visit-roster-table/schema";
+import { VisitRosterTable } from "@/components/features/visits/visit-roster-table/table";
 import { api } from "@/lib/api/client";
 
 type QueueRow = {
@@ -34,6 +35,7 @@ export default async function FrontDeskPage() {
       <DashboardPageHeader
         title="Front Desk"
         description="Live on-site roster, reception wait queue, pending approvals, assisted check-in, and check-out."
+        action={<RosterLiveRefresh />}
       />
       {error ? (
         <DashboardErrorState message={error} />

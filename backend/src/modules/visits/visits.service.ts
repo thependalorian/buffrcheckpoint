@@ -10,6 +10,11 @@ import {
 } from "../../common/data-protection/personal-data-protection.service";
 import type { AuthenticatedUser } from "../../common/decorators/current-user.decorator";
 import { VISIT_CHECKED_IN_EVENT, VisitCheckedInEvent } from "../../common/domain-events/visit-checked-in.event";
+import {
+  VISIT_ROSTER_CHANGED_EVENT,
+  VisitRosterChangedEvent,
+  type VisitRosterChangeReason,
+} from "../../common/domain-events/visit-roster-changed.event";
 import type { TabularExport } from "../../common/export/tabular";
 import type { Database } from "../../db/client";
 import { DB } from "../../db/db.module";
@@ -600,6 +605,7 @@ export class VisitsService {
           ),
         );
       }
+      this.emitRosterChanged(inserted[0], "checked_in");
       return { ...inserted[0], queue };
     }
 
@@ -659,6 +665,7 @@ export class VisitsService {
         actorId: user.userId,
       });
       await this.waitQueue.completeForVisit(visitId, user).catch(() => undefined);
+      this.emitRosterChanged(updated[0], "checked_out");
       return updated[0];
     }
 
@@ -790,6 +797,7 @@ export class VisitsService {
       actorId: user.userId,
     });
 
+    this.emitRosterChanged(updated, "approved");
     return updated;
   }
 
@@ -824,7 +832,18 @@ export class VisitsService {
       actorId: user.userId,
     });
 
+    this.emitRosterChanged(updated, "rejected");
     return updated;
+  }
+
+  private emitRosterChanged(
+    visit: { organisationId: string; siteId: string; id: string },
+    reason: VisitRosterChangeReason,
+  ) {
+    this.events.emit(
+      VISIT_ROSTER_CHANGED_EVENT,
+      new VisitRosterChangedEvent(visit.organisationId, visit.siteId, visit.id, reason),
+    );
   }
 
   // Section 10.4's front-desk dashboard "ON SITE NOW" list.

@@ -1,13 +1,18 @@
 import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from "@nestjs/common";
+import { EventEmitter2 } from "@nestjs/event-emitter";
 import { and, eq, isNull } from "drizzle-orm";
-import { randomUUID } from "node:crypto";
 
+import {
+  VISIT_ROSTER_CHANGED_EVENT,
+  VisitRosterChangedEvent,
+} from "../../common/domain-events/visit-roster-changed.event";
 import type { Database } from "../../db/client";
 import { DB } from "../../db/db.module";
-import { hostNotificationEscalationEvents, visitStatusEvents, visitorVisits } from "../../db/schema";
+import { hostNotificationEscalationEvents, visitorVisits, visitStatusEvents } from "../../db/schema";
 import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.service";
 import { TemplatedEmailService } from "../notifications/templated-email.service";
 import { HostNotificationEscalationService } from "./host-notification-escalation.service";
+import { randomUUID } from "node:crypto";
 
 @Injectable()
 export class HostNotificationEscalationEvaluationService implements OnModuleInit, OnModuleDestroy {
@@ -19,6 +24,7 @@ export class HostNotificationEscalationEvaluationService implements OnModuleInit
     private readonly typeDefs: TypeDefinitionLookupService,
     private readonly escalationService: HostNotificationEscalationService,
     private readonly templatedEmail: TemplatedEmailService,
+    private readonly events: EventEmitter2,
   ) {}
 
   onModuleInit() {
@@ -38,7 +44,11 @@ export class HostNotificationEscalationEvaluationService implements OnModuleInit
   async evaluateDueEscalations() {
     const checkedInStatus = await this.typeDefs.id("visit_status", "checked_in");
     const openVisits = await this.db.query.visitorVisits.findMany({
-      where: and(eq(visitorVisits.statusCode, checkedInStatus), isNull(visitorVisits.deletedAt), isNull(visitorVisits.checkedOutAt)),
+      where: and(
+        eq(visitorVisits.statusCode, checkedInStatus),
+        isNull(visitorVisits.deletedAt),
+        isNull(visitorVisits.checkedOutAt),
+      ),
       limit: 200,
     });
 
@@ -58,7 +68,12 @@ export class HostNotificationEscalationEvaluationService implements OnModuleInit
       const elapsedSeconds = (Date.now() - visit.checkedInAt.getTime()) / 1000;
       if (elapsedSeconds < policy.version.waitSeconds) continue;
 
-      await this.applyEscalation(visit, policy.version.id, policy.escalationActionCode, policy.version.alternateRecipientReference);
+      await this.applyEscalation(
+        visit,
+        policy.version.id,
+        policy.escalationActionCode,
+        policy.version.alternateRecipientReference,
+      );
     }
   }
 
@@ -101,33 +116,36 @@ export class HostNotificationEscalationEvaluationService implements OnModuleInit
     if (actionCode === "hold_entry") {
       const pendingStatus = await this.typeDefs.id("visit_status", "pending_approval");
       if (visit.statusCode !== pendingStatus) {
-        await this.db
-          .update(visitorVisits)
-          .set({ statusCode: pendingStatus })
-          .where(eq(visitorVisits.id, visit.id));
+        await this.db.update(visitorVisits).set({ statusCode: pendingStatus }).where(eq(visitorVisits.id, visit.id));
         await this.db.insert(visitStatusEvents).values({
           id: randomUUID(),
           visitId: visit.id,
           toStatusCode: pendingStatus,
           occurredAt: new Date(),
         });
+        this.emitRosterChanged(visit);
       }
     }
 
     if (actionCode === "auto_admit_low_risk") {
       const admittedStatus = await this.typeDefs.id("visit_status", "admitted");
-      await this.db
-        .update(visitorVisits)
-        .set({ statusCode: admittedStatus })
-        .where(eq(visitorVisits.id, visit.id));
+      await this.db.update(visitorVisits).set({ statusCode: admittedStatus }).where(eq(visitorVisits.id, visit.id));
       await this.db.insert(visitStatusEvents).values({
         id: randomUUID(),
         visitId: visit.id,
         toStatusCode: admittedStatus,
         occurredAt: new Date(),
       });
+      this.emitRosterChanged(visit);
     }
 
     this.logger.log(`Applied escalation ${actionCode} for visit ${visit.id}`);
+  }
+
+  private emitRosterChanged(visit: { organisationId: string; siteId: string; id: string }) {
+    this.events.emit(
+      VISIT_ROSTER_CHANGED_EVENT,
+      new VisitRosterChangedEvent(visit.organisationId, visit.siteId, visit.id, "escalated"),
+    );
   }
 }

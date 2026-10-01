@@ -1,5 +1,7 @@
-import { Body, Controller, Get, Param, Post, Query, StreamableFile } from "@nestjs/common";
+import { Body, Controller, Get, type MessageEvent, Param, Post, Query, Sse, StreamableFile } from "@nestjs/common";
+import { EventEmitter2 } from "@nestjs/event-emitter";
 import { IsString, IsUUID, MaxLength, MinLength } from "class-validator";
+import type { Observable } from "rxjs";
 
 import { AuditLog } from "../../common/decorators/audit-log.decorator";
 import { type AuthenticatedUser, CurrentUser } from "../../common/decorators/current-user.decorator";
@@ -8,6 +10,7 @@ import { EXPORT_CONTENT_TYPE, parseExportFormat, serialiseExport } from "../../c
 import { PERMISSIONS } from "../../common/rbac/permissions";
 import { CheckInDto } from "./dto/check-in.dto";
 import { VisitAccessDecisionDto } from "./dto/visit-access-decision.dto";
+import { rosterStream } from "./roster-stream";
 import { VisitsService } from "./visits.service";
 
 class SignOutByPhoneBody {
@@ -22,7 +25,10 @@ class SignOutByPhoneBody {
 
 @Controller("visits")
 export class VisitsController {
-  constructor(private readonly visitsService: VisitsService) {}
+  constructor(
+    private readonly visitsService: VisitsService,
+    private readonly events: EventEmitter2,
+  ) {}
 
   @Post("check-in")
   @RequirePermission(PERMISSIONS.VISIT_WRITE)
@@ -98,6 +104,18 @@ export class VisitsController {
       limit: limit ? Number(limit) : undefined,
       cursor,
     });
+  }
+
+  // Server-sent "roster changed" signals for open front-desk and emergency
+  // screens (ids only); clients re-fetch /visits/roster on each event.
+  // Declared before ":id" so the literal path wins.
+  @Sse("roster/stream")
+  @RequirePermission(PERMISSIONS.VISIT_READ_SITE)
+  streamRoster(
+    @Query("siteId") siteId: string | undefined,
+    @CurrentUser() user: AuthenticatedUser,
+  ): Observable<MessageEvent> {
+    return rosterStream(this.events, user, siteId);
   }
 
   @Get("roster/export")

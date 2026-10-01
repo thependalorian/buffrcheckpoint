@@ -1,7 +1,13 @@
 import { Inject, Injectable, NotFoundException } from "@nestjs/common";
+import { EventEmitter2 } from "@nestjs/event-emitter";
 import { and, eq, isNull } from "drizzle-orm";
 
 import type { AuthenticatedUser } from "../../common/decorators/current-user.decorator";
+import {
+  VISIT_ROSTER_CHANGED_EVENT,
+  VisitRosterChangedEvent,
+  type VisitRosterChangeReason,
+} from "../../common/domain-events/visit-roster-changed.event";
 import type { Database } from "../../db/client";
 import { DB } from "../../db/db.module";
 import { emergencyRollCallEntries, emergencyRollCallEvents, visitorVisits } from "../../db/schema";
@@ -9,7 +15,17 @@ import { randomUUID } from "node:crypto";
 
 @Injectable()
 export class EmergencyService {
-  constructor(@Inject(DB) private readonly db: Database) {}
+  constructor(
+    @Inject(DB) private readonly db: Database,
+    private readonly events: EventEmitter2,
+  ) {}
+
+  private emitRosterChanged(event: { organisationId: string; siteId: string }, reason: VisitRosterChangeReason) {
+    this.events.emit(
+      VISIT_ROSTER_CHANGED_EVENT,
+      new VisitRosterChangedEvent(event.organisationId, event.siteId, null, reason),
+    );
+  }
 
   // Section 8.6's emergency/evacuation journey: "live on-site visitor
   // roster generated" — this snapshots every currently-open visit at the
@@ -46,6 +62,7 @@ export class EmergencyService {
       );
     }
 
+    this.emitRosterChanged(createdEvent, "emergency_triggered");
     return { emergencyEvent: createdEvent, rosterSize: openVisits.length };
   }
 
@@ -81,6 +98,7 @@ export class EmergencyService {
       )
       .returning();
     if (!updated) throw new NotFoundException("Emergency event not found");
+    this.emitRosterChanged(updated, "emergency_resolved");
     return updated;
   }
 }
