@@ -1,9 +1,10 @@
 import Link from "next/link";
 
-import { DashboardErrorState } from "@/components/dashboard-state";
 import { DashboardPageHeader } from "@/components/dashboard-page-header";
+import { DashboardErrorState } from "@/components/dashboard-state";
 import { api } from "@/lib/api/client";
 import { getCurrentUser } from "@/lib/auth/me";
+import { billingCopy } from "@/lib/copy/billing";
 
 import { PopUploadForm } from "../_components/pop-upload-form";
 
@@ -36,6 +37,7 @@ interface InvoiceDetail {
   amount: string;
   currencyCode: string;
   statusCode: string;
+  statusKey?: string | null;
   issuedAt: string;
   dueAt: string | null;
   lineItems: LineItem[];
@@ -43,21 +45,27 @@ interface InvoiceDetail {
   reconciliationLog: Reconciliation[];
 }
 
-export default async function CustomerInvoiceDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+interface PaymentInstructions {
+  bankName: string;
+  accountName: string;
+  accountNumber: string | null;
+  branchCode: string | null;
+  complete: boolean;
+}
+
+export default async function CustomerInvoiceDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const me = await getCurrentUser();
   if (!me) return null;
   const { id } = await params;
 
   let invoice: InvoiceDetail | null = null;
+  let bank: PaymentInstructions | null = null;
   let error: string | null = null;
   try {
-    invoice = await api.get<InvoiceDetail>(
-      `/platform/billing/invoices/${id}/customer?organisationId=${me.activeOrganisation.id}`,
-    );
+    [invoice, bank] = await Promise.all([
+      api.get<InvoiceDetail>(`/platform/billing/invoices/${id}/customer?organisationId=${me.activeOrganisation.id}`),
+      api.get<PaymentInstructions>("/platform/billing/payment-instructions").catch(() => null),
+    ]);
   } catch (err) {
     error = err instanceof Error ? err.message : "Failed to load invoice.";
   }
@@ -75,7 +83,7 @@ export default async function CustomerInvoiceDetailPage({
     <div className="space-y-6">
       <DashboardPageHeader
         title={invoice.invoiceNumber}
-        description={`${invoice.currencyCode} ${invoice.amount} · ${invoice.statusCode}`}
+        description={`${invoice.currencyCode} ${invoice.amount} · ${invoice.statusKey ?? invoice.statusCode}`}
       />
       <Link href="/dashboard/billing" className="text-muted-foreground text-sm hover:underline">
         ← All invoices
@@ -131,6 +139,31 @@ export default async function CustomerInvoiceDetailPage({
           </ul>
         )}
       </section>
+
+      {invoice.statusKey !== "paid" && invoice.statusKey !== "void" ? (
+        <section>
+          <h2 className="font-medium text-sm">{billingCopy.bankTransfer.heading}</h2>
+          {bank?.complete ? (
+            <dl className="mt-2 grid max-w-md grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
+              <dt className="text-muted-foreground">{billingCopy.bankTransfer.bank}</dt>
+              <dd>{bank.bankName}</dd>
+              <dt className="text-muted-foreground">{billingCopy.bankTransfer.accountName}</dt>
+              <dd>{bank.accountName}</dd>
+              <dt className="text-muted-foreground">{billingCopy.bankTransfer.accountNumber}</dt>
+              <dd className="tabular-nums">{bank.accountNumber}</dd>
+              <dt className="text-muted-foreground">{billingCopy.bankTransfer.branchCode}</dt>
+              <dd className="tabular-nums">{bank.branchCode}</dd>
+              <dt className="text-muted-foreground">{billingCopy.bankTransfer.reference}</dt>
+              <dd className="font-medium">{invoice.invoiceNumber}</dd>
+            </dl>
+          ) : (
+            <p className="mt-2 text-muted-foreground text-sm">{billingCopy.bankTransfer.incomplete}</p>
+          )}
+          {bank?.complete ? (
+            <p className="mt-2 text-muted-foreground text-xs">{billingCopy.bankTransfer.referenceHint}</p>
+          ) : null}
+        </section>
+      ) : null}
 
       <section>
         <h2 className="mb-2 font-medium text-sm">Upload proof of payment</h2>

@@ -5,6 +5,17 @@ export const billingCopy = {
     "Invoices are settled by bank transfer to Buffr Financial Services CC — upload your proof of payment against the invoice below once paid. Go-live and operational dashboard use require an active or trial subscription after Buffr ops reviews your POP (and KYB).",
   descriptionWithCard:
     "Pay each invoice by card on Adumo Online's secure page, or by bank transfer to Buffr Financial Services CC with your proof of payment uploaded below. Go-live and operational dashboard use require an active or trial subscription after Buffr ops confirms payment (and KYB).",
+  bankTransfer: {
+    heading: "Pay by bank transfer",
+    bank: "Bank",
+    accountName: "Account name",
+    accountNumber: "Account number",
+    branchCode: "Branch code",
+    reference: "Payment reference",
+    referenceHint: "Use the invoice number as your reference, then upload your proof of payment below.",
+    incomplete:
+      "Bank details are being updated. Contact team@buffranalytics.com with the invoice number and we will send them.",
+  },
   payByCard: "Pay by card",
   payByCardHint: "Pay securely on Adumo Online's page. We never see your card details.",
   redirecting: {

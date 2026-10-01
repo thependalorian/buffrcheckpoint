@@ -9,6 +9,7 @@ import { Public } from "../../common/decorators/public.decorator";
 import { RequirePermission } from "../../common/decorators/require-permission.decorator";
 import { EXPORT_CONTENT_TYPE, parseExportFormat, serialiseExport } from "../../common/export/tabular";
 import { PERMISSIONS } from "../../common/rbac/permissions";
+import { bankPaymentInstructions } from "../documents/document-renderer.service";
 import {
   BillingService,
   type CreateInvoiceInput,
@@ -187,6 +188,14 @@ export class BillingController {
       type: doc.contentType,
       disposition: `attachment; filename="${doc.filename.replace(/"/g, "")}"`,
     });
+  }
+
+  // Bank transfer details for the customer's invoice page (no secrets: the
+  // same details printed on every invoice).
+  @Get("platform/billing/payment-instructions")
+  @RequirePermission(PERMISSIONS.VISIT_READ_ORG)
+  paymentInstructions() {
+    return bankPaymentInstructions();
   }
 
   @Get("platform/billing/payments/card/enabled")

@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 
-import { escapeHtml, BRAND_COLORS } from "../notifications/branded-email-layout";
+import { BRAND_COLORS, escapeHtml } from "../notifications/branded-email-layout";
 import { buildSimplePdf } from "./simple-pdf";
 
 export interface BillingParty {
@@ -35,6 +35,23 @@ export interface ReceiptDocumentInput {
   amount: string;
   paymentMethodLabel: string;
   receiptUrl?: string;
+}
+
+/**
+ * Bank details customers need to pay by transfer. `complete` is false when the
+ * account number or branch code is not configured: invoices then go out
+ * without them, which the ops integration health panel reports.
+ */
+export function bankPaymentInstructions(env: NodeJS.ProcessEnv = process.env) {
+  const accountNumber = env.BILLING_BANK_ACCOUNT_NUMBER?.trim() || null;
+  const branchCode = env.BILLING_BANK_BRANCH_CODE?.trim() || null;
+  return {
+    bankName: env.BILLING_BANK_NAME?.trim() || "Bank Windhoek",
+    accountName: env.BILLING_BANK_ACCOUNT_NAME?.trim() || "Buffr Financial Services CC",
+    accountNumber,
+    branchCode,
+    complete: Boolean(accountNumber && branchCode),
+  };
 }
 
 @Injectable()
@@ -125,9 +142,7 @@ export class DocumentRendererService {
       `Issued: ${input.issuedAt.toISOString().slice(0, 10)}`,
       `Due: ${input.dueAt ? input.dueAt.toISOString().slice(0, 10) : "On receipt"}`,
       "",
-      ...input.lineItems.map(
-        (li) => `${li.description}  x${li.quantity}  ${li.amount} ${input.currencyCode}`,
-      ),
+      ...input.lineItems.map((li) => `${li.description}  x${li.quantity}  ${li.amount} ${input.currencyCode}`),
       "",
       `Total due: ${input.amount} ${input.currencyCode}`,
       "",

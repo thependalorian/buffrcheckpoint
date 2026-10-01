@@ -2635,6 +2635,13 @@ apply. These engineering and operations items do:
 | Deploy and monitoring runbook | **Done** (2026-10-01); uptime monitor still to set up | Below |
 | Decision log (ADRs) | **Done** (2026-10-01) | Below |
 
+**Invoice bank details (2026-10-01).** If `BILLING_BANK_ACCOUNT_NUMBER` or
+`BILLING_BANK_BRANCH_CODE` is missing, the API logs an error at startup and
+the ops integration health panel shows "Invoice bank details: down". The
+admin invoice page shows the bank details and the invoice number as the
+payment reference (`GET /platform/billing/payment-instructions`); when they
+are not configured it tells the customer to contact the team instead.
+
 Still open from this list: scheduled reports, visitor feedback and live anomaly
 rules. Visitor feedback needs a new table (and its status log), which is a
 schema decision for George under the Wiebe rules; anomaly rules need agreed
@@ -2699,8 +2706,12 @@ for u in https://buffrcheckpoint.com https://admin.buffrcheckpoint.com/auth/logi
 Then open the ops overview: integration health should show nothing down, and
 the service level panel shows any target missed.
 
-Monitoring today: Sentry on the API, website and admin (`SENTRY_DSN`,
-`NEXT_PUBLIC_SENTRY_DSN`); the ops console has no Sentry yet. Alert rules to
+Monitoring today: Sentry on the API, website, admin and ops console
+(`SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN`). The ops console is stricter than
+admin because it shows data across organisations: no Session Replay, no local
+variables on server stack frames, and the same PII scrubber in `beforeSend`.
+Ops reports nothing until `NEXT_PUBLIC_SENTRY_DSN` is set on its Vercel
+project. Alert rules to
 set in Sentry: a new issue in production, and more than 10 errors in 5 minutes
 on the API. Not yet in place: an external uptime monitor on `/health` and the
 three web hosts (every 1 minute, alert after 2 failures).

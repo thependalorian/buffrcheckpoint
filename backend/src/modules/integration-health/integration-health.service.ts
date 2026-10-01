@@ -7,6 +7,7 @@ import { DB } from "../../db/db.token";
 import { analyticsEtlRun, notificationDeliveryInstructions, pmsSyncRunLog } from "../../db/schema";
 import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.service";
 import { adumoConfigFromEnv } from "../billing/adumo.service";
+import { bankPaymentInstructions } from "../documents/document-renderer.service";
 
 export type IntegrationStatus = "healthy" | "degraded" | "down" | "not_configured";
 
@@ -53,6 +54,7 @@ export class IntegrationHealthService {
       this.analyticsEtl(),
       this.cimso(),
       this.cardPayments(),
+      Promise.resolve(this.invoiceBankDetails()),
     ]);
     return { checkedAt: new Date().toISOString(), integrations };
   }
@@ -198,6 +200,25 @@ export class IntegrationHealthService {
       status: failedRuns === 0 ? "healthy" : failedRuns === total ? "down" : "degraded",
       latencyMs: null,
       detail: `${total} sync runs in 24 hours, ${failedRuns} failed`,
+    };
+  }
+
+  private invoiceBankDetails(): IntegrationHealth {
+    const name = "Invoice bank details";
+    const bank = bankPaymentInstructions();
+    if (bank.complete)
+      return { name, status: "healthy", latencyMs: null, detail: `${bank.bankName}, account and branch set` };
+    const missing = [
+      !bank.accountNumber && "BILLING_BANK_ACCOUNT_NUMBER",
+      !bank.branchCode && "BILLING_BANK_BRANCH_CODE",
+    ]
+      .filter(Boolean)
+      .join(", ");
+    return {
+      name,
+      status: "down",
+      latencyMs: null,
+      detail: `Invoices go out without bank details. Not set: ${missing}`,
     };
   }
 

@@ -4,7 +4,9 @@ import {
   ForbiddenException,
   Inject,
   Injectable,
+  Logger,
   NotFoundException,
+  type OnModuleInit,
 } from "@nestjs/common";
 import { and, asc, count, desc, eq, gte, inArray, isNull, lte } from "drizzle-orm";
 
@@ -33,7 +35,7 @@ import {
   typeDefinition,
 } from "../../db/schema";
 import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.service";
-import { DocumentRendererService } from "../documents/document-renderer.service";
+import { bankPaymentInstructions, DocumentRendererService } from "../documents/document-renderer.service";
 import { KybService } from "../kyb/kyb.service";
 import { TemplatedEmailService } from "../notifications/templated-email.service";
 import { AdumoService, adumoAmount } from "./adumo.service";
@@ -118,7 +120,17 @@ export function planMonthlyForSites(plan: PlanPricing, siteQuantity: number): nu
 // Services CC's bank details; customer pays off-platform and uploads a POP;
 // platform_support manually reviews. No card data touched anywhere.
 @Injectable()
-export class BillingService {
+export class BillingService implements OnModuleInit {
+  private readonly logger = new Logger(BillingService.name);
+
+  onModuleInit() {
+    if (!bankPaymentInstructions().complete) {
+      this.logger.error(
+        "BILLING_BANK_ACCOUNT_NUMBER or BILLING_BANK_BRANCH_CODE is not set: invoices will go out without bank details",
+      );
+    }
+  }
+
   constructor(
     @Inject(DB) private readonly db: Database,
     private readonly typeDefs: TypeDefinitionLookupService,
@@ -726,6 +738,7 @@ export class BillingService {
 
     return {
       ...row,
+      statusKey: await this.typeDefs.codeById(row.statusCode),
       lineItems,
       payments,
       reconciliationLog,
