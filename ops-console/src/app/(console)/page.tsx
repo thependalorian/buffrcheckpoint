@@ -3,7 +3,9 @@ import Link from "next/link";
 import { BcStatRow, BcStatTile } from "@/components/bc-panel";
 import { TrendChart, type TrendPoint } from "@/components/charts/TrendChart";
 import { DashboardErrorState } from "@/components/dashboard-state";
+import { IntegrationHealthPanel, type IntegrationHealthRow } from "@/components/integration-health-panel";
 import { NamibiaMap } from "@/components/map/NamibiaMap";
+import { ServiceTargetsPanel, type ServiceTargetValues } from "@/components/service-targets-panel";
 import { Button } from "@/components/ui/button";
 import { apiFetch, loadOrError } from "@/lib/api";
 
@@ -24,6 +26,35 @@ interface RegionRow {
 interface VolumeTrendRow {
   period: string;
   count: number;
+}
+
+async function loadTargetValues(openIncidents: number): Promise<ServiceTargetValues> {
+  const [delivery, runs, devices] = await Promise.all([
+    loadOrError(() => apiFetch<{ total: number; sent: number }[]>("/platform/dashboard/notification-delivery-trend")),
+    loadOrError(() =>
+      apiFetch<{ sourceVisitCount: number | null; factVisitCount: number | null; status: string | null }[]>(
+        "/platform/analytics/etl-runs",
+      ),
+    ),
+    loadOrError(() =>
+      apiFetch<{ statusCode: string; count: number }[]>("/platform/dashboard/device-compliance-shares"),
+    ),
+  ]);
+  const recentDelivery = (delivery.data ?? []).slice(-4);
+  const total = recentDelivery.reduce((a, r) => a + r.total, 0);
+  const sent = recentDelivery.reduce((a, r) => a + r.sent, 0);
+  const lastRun = (runs.data ?? []).find((r) => r.sourceVisitCount !== null && r.factVisitCount !== null);
+  const deviceRows = devices.data ?? [];
+  const deviceTotal = deviceRows.reduce((a, r) => a + r.count, 0);
+  const approved = deviceRows.find((r) => r.statusCode === "approved_for_deployment")?.count ?? 0;
+  return {
+    notificationDeliveryRate: total > 0 ? sent / total : null,
+    etlReconciliationDifference: lastRun
+      ? Math.abs((lastRun.sourceVisitCount ?? 0) - (lastRun.factVisitCount ?? 0))
+      : null,
+    openIncidents,
+    deviceComplianceRate: deviceTotal > 0 ? approved / deviceTotal : null,
+  };
 }
 
 function toTrendPoints(rows: VolumeTrendRow[]): TrendPoint[] {
@@ -54,6 +85,12 @@ export default async function OverviewPage() {
   }
 
   const { kpis, regions, incidentTrend, ticketTrend } = result.data;
+  const [targetValues, health] = await Promise.all([
+    loadTargetValues(kpis.openIncidentCount),
+    loadOrError(() =>
+      apiFetch<{ checkedAt: string; integrations: IntegrationHealthRow[] }>("/platform/integrations/health"),
+    ),
+  ]);
   const values = Object.fromEntries(regions.map((r) => [r.regionCode, r.siteCount || null]));
 
   return (
@@ -92,13 +129,17 @@ export default async function OverviewPage() {
       </div>
 
       <p className="mt-4 text-sm text-muted-foreground">
-        MTD visit volume:{" "}
-        <span className="font-medium tabular-nums text-foreground">{kpis.mtdVisitVolume}</span>
+        MTD visit volume: <span className="font-medium tabular-nums text-foreground">{kpis.mtdVisitVolume}</span>
         {" · "}
-        Active devices:{" "}
-        <span className="font-medium tabular-nums text-foreground">{kpis.activeDeviceCount}</span>
+        Active devices: <span className="font-medium tabular-nums text-foreground">{kpis.activeDeviceCount}</span>
       </p>
 
+      <div className="mt-6">
+        <ServiceTargetsPanel values={targetValues} />
+      </div>
+      <div className="mt-6">
+        <IntegrationHealthPanel rows={health.data?.integrations ?? []} checkedAt={health.data?.checkedAt ?? null} />
+      </div>
       <div className="mt-6 grid gap-4 sm:grid-cols-2">
         <TrendChart
           title="Incidents opened, weekly"

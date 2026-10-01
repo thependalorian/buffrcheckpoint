@@ -32,6 +32,7 @@ import { EvidenceModule } from "./modules/evidence/evidence.module";
 import { HostNotificationEscalationModule } from "./modules/host-notification-escalation/host-notification-escalation.module";
 import { HostsModule } from "./modules/hosts/hosts.module";
 import { IdentityVerificationModule } from "./modules/identity-verification/identity-verification.module";
+import { IntegrationHealthModule } from "./modules/integration-health/integration-health.module";
 import { CimsoModule } from "./modules/integrations/cimso/cimso.module";
 import { TelecomsModule } from "./modules/integrations/telecoms/telecoms.module";
 import { InvitationsModule } from "./modules/invitations/invitations.module";
@@ -113,6 +114,7 @@ import { VisitsModule } from "./modules/visits/visits.module";
     VisitorPolicyModule,
     AnalyticsModule,
     AnalyticsEtlModule,
+    IntegrationHealthModule,
     SiteBrandingModule,
     KioskExperienceModule,
     SiteQrReferencesModule,

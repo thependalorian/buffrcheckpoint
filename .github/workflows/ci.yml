@@ -1,0 +1,74 @@
+# Checks every push and pull request. Blocking: typecheck, tests, build and the
+# secrets scan. Lint and the dependency audit report without blocking until the
+# existing lint findings are cleared (buffrcheckpoint.md 11.1c, CI pipeline).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  app:
+    name: ${{ matrix.app }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - app: backend
+            typecheck: npx tsc --noEmit -p tsconfig.build.json
+            test: npx jest --ci
+          - app: admin
+            typecheck: npx tsc --noEmit
+            test: npx vitest run
+          - app: ops-console
+            typecheck: npx tsc --noEmit
+            test: ""
+          - app: website
+            typecheck: npx tsc --noEmit
+            test: npx vitest run
+    defaults:
+      run:
+        working-directory: ${{ matrix.app }}
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: ${{ matrix.app }}/package-lock.json
+      - run: npm ci
+      - name: Typecheck
+        run: ${{ matrix.typecheck }}
+      - name: Test
+        if: matrix.test != ''
+        run: ${{ matrix.test }}
+      - name: Build
+        run: npm run build
+      - name: Lint (reporting)
+        continue-on-error: true
+        run: npx biome ci .
+      - name: Dependency audit (reporting)
+        continue-on-error: true
+        run: npm audit --omit=dev --audit-level=high
+
+  secrets:
+    name: secrets scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

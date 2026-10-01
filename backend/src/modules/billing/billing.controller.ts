@@ -7,6 +7,7 @@ import { type AuthenticatedUser, CurrentUser } from "../../common/decorators/cur
 import { PlatformScoped } from "../../common/decorators/platform-scoped.decorator";
 import { Public } from "../../common/decorators/public.decorator";
 import { RequirePermission } from "../../common/decorators/require-permission.decorator";
+import { EXPORT_CONTENT_TYPE, parseExportFormat, serialiseExport } from "../../common/export/tabular";
 import { PERMISSIONS } from "../../common/rbac/permissions";
 import {
   BillingService,
@@ -221,6 +222,23 @@ export class BillingController {
   @AuditLog({ action: "payment_transaction.submit_pop", resourceType: "payment_transaction" })
   submitPop(@Body() dto: SubmitPopInput, @CurrentUser() user: AuthenticatedUser) {
     return this.service.submitProofOfPayment(dto, user);
+  }
+
+  @Get("platform/billing/payments/export")
+  @RequirePermission(PERMISSIONS.PLATFORM_BILLING_MANAGE)
+  @PlatformScoped()
+  @AuditLog({ action: "payment_register.export", resourceType: "payment_transaction" })
+  async exportPaymentRegister(
+    @Query("from") from: string | undefined,
+    @Query("to") to: string | undefined,
+    @Query("format") format: string | undefined,
+  ) {
+    const exportFormat = parseExportFormat(format);
+    const table = await this.service.paymentRegister({ from, to });
+    return new StreamableFile(await serialiseExport(table, exportFormat, "Payment register"), {
+      type: EXPORT_CONTENT_TYPE[exportFormat],
+      disposition: `attachment; filename="payment-register.${exportFormat}"`,
+    });
   }
 
   @Get("platform/billing/payments/pending-review")

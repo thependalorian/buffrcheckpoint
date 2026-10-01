@@ -51,10 +51,23 @@ export default async function BillingPage() {
 
   return (
     <div>
-      <h1 className="font-heading font-light text-2xl text-foreground">Billing</h1>
-      <p className="mt-1 text-muted-foreground text-sm">
-        Manual EFT + Proof of Payment reconciliation — no PSP partnership yet.
-      </p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="font-heading font-light text-2xl text-foreground">Billing</h1>
+          <p className="mt-1 text-muted-foreground text-sm">
+            Bank transfer with proof-of-payment review, and card payments through Adumo Online (validated automatically
+            when enabled).
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <a href="/api/payment-register?format=csv" className="rounded-md border border-border px-3 py-1.5 text-sm">
+            Payment register (CSV)
+          </a>
+          <a href="/api/payment-register?format=xlsx" className="rounded-md border border-border px-3 py-1.5 text-sm">
+            Payment register (Excel)
+          </a>
+        </div>
+      </div>
 
       <div className="mt-6">
         <BcStatRow>

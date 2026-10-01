@@ -25,6 +25,22 @@ export default async function AuditLogPage({
       <DashboardPageHeader
         title="Audit Log"
         description="Immutable sensitive-read, export, correction, deletion, and role-change events."
+        action={
+          <div className="flex gap-2">
+            <a
+              href={`/api/audit/export?format=csv${from ? `&from=${encodeURIComponent(from)}` : ""}${to ? `&to=${encodeURIComponent(to)}` : ""}`}
+              className="rounded-md border border-border px-3 py-1.5 text-sm"
+            >
+              Download CSV
+            </a>
+            <a
+              href={`/api/audit/export?format=xlsx${from ? `&from=${encodeURIComponent(from)}` : ""}${to ? `&to=${encodeURIComponent(to)}` : ""}`}
+              className="rounded-md border border-border px-3 py-1.5 text-sm"
+            >
+              Download Excel
+            </a>
+          </div>
+        }
       />
       {error ? (
         <DashboardErrorState message={error} />

@@ -1,14 +1,16 @@
 import { Inject, Injectable } from "@nestjs/common";
-import { and, desc, eq, gte, lt, lte, or, type SQL } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, lt, lte, or, type SQL } from "drizzle-orm";
 
 import { type AppendAuditEventInput, appendAuditEvent, computeAuditEventHash } from "../../common/audit/audit-chain";
 import type { AuthenticatedUser } from "../../common/decorators/current-user.decorator";
+import type { TabularExport } from "../../common/export/tabular";
 import type { Database } from "../../db/client";
 import { DB } from "../../db/db.module";
-import { auditEvents } from "../../db/schema";
+import { applicationUsers, auditEvents } from "../../db/schema";
 
 const DEFAULT_PAGE_SIZE = 50;
 const MAX_PAGE_SIZE = 200;
+const MAX_EXPORT_ROWS = 10_000;
 
 export interface ListAuditEventsInput {
   from?: string;
@@ -59,6 +61,45 @@ export class AuditService {
     const nextCursor = hasMore && last ? `${last.occurredAt.toISOString()}_${last.id}` : null;
 
     return { events: page, nextCursor };
+  }
+
+  /**
+   * Audit log as a table for CSV/XLSX download: newest first, capped at
+   * MAX_EXPORT_ROWS, actor shown as an email (or "system"). The hash columns
+   * let an auditor check the chain outside the product.
+   */
+  async exportForOrganisation(
+    user: AuthenticatedUser,
+    input: { from?: string; to?: string } = {},
+  ): Promise<TabularExport> {
+    const conditions: SQL[] = [eq(auditEvents.organisationId, user.organisationId)];
+    if (input.from) conditions.push(gte(auditEvents.occurredAt, new Date(input.from)));
+    if (input.to) conditions.push(lte(auditEvents.occurredAt, new Date(input.to)));
+    const rows = await this.db.query.auditEvents.findMany({
+      where: and(...conditions),
+      orderBy: [desc(auditEvents.occurredAt), desc(auditEvents.id)],
+      limit: MAX_EXPORT_ROWS,
+    });
+    const actorIds = [...new Set(rows.map((r) => r.actorId).filter((id): id is string => Boolean(id)))];
+    const actors = actorIds.length
+      ? await this.db
+          .select({ id: applicationUsers.id, email: applicationUsers.email })
+          .from(applicationUsers)
+          .where(inArray(applicationUsers.id, actorIds))
+      : [];
+    const emailById = new Map(actors.map((a) => [a.id, a.email]));
+    return {
+      headers: ["occurred_at", "actor", "action", "resource_type", "resource_id", "event_hash", "prev_event_hash"],
+      rows: rows.map((r) => [
+        r.occurredAt.toISOString(),
+        r.actorId ? (emailById.get(r.actorId) ?? r.actorId) : "system",
+        r.actionCode,
+        r.resourceType,
+        r.resourceId ?? null,
+        r.eventHash ?? null,
+        r.prevEventHash ?? null,
+      ]),
+    };
   }
 
   // System-initiated events (workers, gateway callbacks) that have no

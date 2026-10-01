@@ -2618,16 +2618,115 @@ apply. These engineering and operations items do:
 
 | Item | Status | What it means for Checkpoint |
 |---|---|---|
-| CI pipeline | Not started | No `.github/workflows`: run tests, typecheck and lint on every push; secrets scan (gitleaks), dependency audit, SAST |
-| Integration health panel | Not started | Ops view of Resend, Neon storage, CiMSO and Adumo status and p95 latency |
+| CI pipeline | **Built** (2026-10-01) | `.github/workflows/ci.yml`: per app, typecheck, tests, build (blocking); gitleaks secrets scan (blocking); Biome lint and `npm audit` reporting only until existing lint findings are cleared. SAST not yet added |
+| Integration health panel | **Built** (2026-10-01) | `GET /platform/integrations/health`; ops overview panel. Live probes (5 s timeout, never throws): database, document storage, Resend, notification outbox (24 h), analytics ETL freshness, CiMSO sync runs (24 h), Adumo gateway. Latency is per check, not p95 |
 | Scheduled reports | Not started | Daily ops summary email; monthly PDF for site managers and the board |
-| More exports | Not started | Audit log CSV; billing and payment register for ops |
+| More exports | **Built** (2026-10-01) | Audit log CSV/XLSX (`GET /audit/events/export`, admin Audit Log page, verified email required, includes hash chain columns); payment register CSV/XLSX for ops (`GET /platform/billing/payments/export`, ops Billing page). Both audited |
 | Visitor feedback | Not started | Post-visit micro-survey so the ≥4/5 satisfaction target can be measured |
-| KPI targets in context | Not started | Ops KPI tiles show target and pass/fail, not only counts |
+| KPI targets in context | **Built** (2026-10-01) | Ops overview "Service levels against targets": notification delivery (≥98%, last 4 weeks), ETL reconciliation (difference 0), open incidents (0), devices approved (100%). Targets in `ops-console/src/lib/targets.ts`; "no data" is never shown as met |
 | Live anomaly rules | Not started | Alerts for suspicious check-in patterns (same phone repeatedly, after-hours restricted zones), fed by the roster stream |
-| Notification matrix | Not started (docs) | One table of event, channel, template key and fallback |
-| Deploy and monitoring runbook | Not started (docs) | Rollback per platform, Sentry alert thresholds, uptime monitor |
-| Decision log (ADRs) | Not started (docs) | Standing decisions listed as numbered records |
+| Notification matrix | **Done** (2026-10-01) | Below |
+| Deploy and monitoring runbook | **Done** (2026-10-01); uptime monitor still to set up | Below |
+| Decision log (ADRs) | **Done** (2026-10-01) | Below |
+
+Still open from this list: scheduled reports, visitor feedback and live anomaly
+rules. Visitor feedback needs a new table (and its status log), which is a
+schema decision for George under the Wiebe rules; anomaly rules need agreed
+thresholds per site; scheduled reports need the recipients and format agreed.
+
+#### Notification matrix (v2026-10-01)
+
+Every message goes through the notification outbox
+(`notification_delivery_instructions`): written first, then delivered by the
+dispatcher. A failed send retries with exponential backoff (30 s doubling,
+capped at 1 hour) up to 5 attempts, then the row is marked `failed` and shows
+in the ops integration health panel. Email (Resend) is the only live channel;
+SMS, USSD and WhatsApp are registered channel codes with no provider yet, so
+there is no automatic channel fallback today. The fallback for a host who
+misses an arrival is the escalation rule, not another channel.
+
+| Event | Template | Recipient | Channel | Raised in |
+|---|---|---|---|---|
+| Visitor checked in | `host_visitor_arrived` | Host | Email | `notifications/visit-checked-in.listener.ts` |
+| Host has not acknowledged | `host_escalation` | Escalation contact | Email | `host-notification-escalation/` |
+| Email verification | `email_verification` | User | Email | `auth/auth.service.ts` |
+| Password reset | `password_reset` | User | Email | `auth/auth.service.ts` |
+| Password changed | `password_changed` | User | Email | `auth/auth.service.ts` |
+| MFA enabled | `mfa_enabled` | User | Email | `auth/auth.service.ts` |
+| Account locked | `account_lockout` | User | Email | `auth/auth.service.ts` |
+| Suspension warning | `suspension_warning` | Organisation owner | Email | `auth/auth.service.ts` |
+| Organisation created | `org_welcome` | Organisation owner | Email | `onboarding/onboarding.service.ts` |
+| Organisation created | `ops_new_organisation` | Ops | Email | `onboarding/onboarding.service.ts` |
+| KYB submitted | `kyb_submitted_ack` | Organisation owner | Email | `kyb/kyb.service.ts` |
+| Invoice issued | `invoice_issued` | Billing contact | Email (PDF attached) | `billing/billing.service.ts` |
+| Invoice overdue | `invoice_reminder` | Billing contact | Email | `billing/billing.service.ts` |
+| Proof of payment uploaded | `pop_received_ack` | Billing contact | Email | `billing/billing.service.ts` |
+| Proof of payment uploaded | `pop_received_ops` | Ops | Email | `billing/billing.service.ts` |
+| Proof of payment rejected | `pop_rejected` | Billing contact | Email | `billing/billing.service.ts` |
+| Payment confirmed (EFT or card) | `payment_confirmed` | Billing contact | Email | `billing/billing.service.ts` |
+| Receipt issued | `receipt_issued` | Billing contact | Email (PDF attached) | `billing/billing.service.ts` |
+| Subscription activated | `subscription_activated` | Organisation owner | Email | `billing/billing.service.ts` |
+| Support access requested | `support_access_request` | Organisation owner | Email | `support-sessions/support-sessions.service.ts` |
+| Ops staff invited | `platform_staff_invitation` | New staff member | Email | `platform-staff/platform-staff.service.ts` |
+| Website enquiry | `ops_contact_enquiry` | Ops | Email | `contact/contact.service.ts` |
+| Website enquiry | `ops_contact_ack` | Enquirer | Email | `contact/contact.service.ts` |
+
+#### Deploy, rollback and monitoring runbook (v2026-10-01)
+
+| Surface | Host | Deploy | Rollback |
+|---|---|---|---|
+| API | Railway, service `api` | `cd backend && railway up --service api --detach` | Railway dashboard: previous deployment, "Redeploy" |
+| Website | Vercel `buffrcheckpoint.com` | `cd website && vercel --prod --yes` | `vercel rollback` or promote the previous deployment in the dashboard |
+| Admin | Vercel `admin.buffrcheckpoint.com` | `cd admin && vercel --prod --yes` | As website |
+| Ops console | Vercel `ops.buffrcheckpoint.com` | `cd ops-console && vercel --prod --yes` | As website |
+| Database | Neon `falling-frog-15538162`, branch main | Apply `backend/db/migrations/NNNN_*.sql` in order; test on a Neon branch first | Migrations are forward-only. To undo data damage, restore the branch to a point in time in Neon (history window) or write a corrective migration |
+
+Order for a release with a migration: migration first (every migration is
+additive, so the running code keeps working), then the API, then the web
+apps. After every deploy:
+
+```bash
+curl -s -o /dev/null -w "api %{http_code}\n" https://api.buffrcheckpoint.com/health
+for u in https://buffrcheckpoint.com https://admin.buffrcheckpoint.com/auth/login https://ops.buffrcheckpoint.com/login; do curl -s -o /dev/null -w "$u %{http_code}\n" "$u"; done
+```
+
+Then open the ops overview: integration health should show nothing down, and
+the service level panel shows any target missed.
+
+Monitoring today: Sentry on the API, website and admin (`SENTRY_DSN`,
+`NEXT_PUBLIC_SENTRY_DSN`); the ops console has no Sentry yet. Alert rules to
+set in Sentry: a new issue in production, and more than 10 errors in 5 minutes
+on the API. Not yet in place: an external uptime monitor on `/health` and the
+three web hosts (every 1 minute, alert after 2 failures).
+
+Environment variables are set per platform, never committed. The API's
+variables live in Railway; each web app's in its Vercel project. Optional
+features stay off until their variables are set: card payments
+(`ADUMO_MERCHANT_ID`, `ADUMO_APPLICATION_ID`, `ADUMO_JWT_SECRET`), retention
+disposition (`RETENTION_DISPOSITION_ENABLED`), CiMSO (`CIMSO_*`), form AI
+(`FORM_AI_ENABLED`, `NEON_AI_GATEWAY_*`), telecom webhooks
+(`TELECOM_WEBHOOK_SECRET`).
+
+#### Decision log (v2026-10-01)
+
+Standing decisions. A change to any of these is a new numbered entry, not an
+edit.
+
+| No. | Decision | Why |
+|---|---|---|
+| D-01 | Wiebe schema rules: type codes in `type_definition`, a status log beside every stateful table, soft deletes, client-generated UUIDs, NUMERIC money | Adding a value is an insert, history is never lost, retries are safe |
+| D-02 | No database triggers, stored procedures or cascades; all business logic in the API | One place to read and test behaviour |
+| D-03 | Tenancy column on every operational table; every index starts with it | Isolation between organisations is structural, not a filter someone can forget |
+| D-04 | Audit events are hash-chained and append-only | Tampering is detectable; the chain can be checked outside the product (export includes hashes) |
+| D-05 | Visitor personal data is encrypted per subject; disposal is crypto-shredding | Retention can be honoured without breaking audit or aggregate history |
+| D-06 | Bank transfer with proof of payment is the default; card payments use Adumo Online's hosted page, never handling card data | Keeps Checkpoint out of PCI card-data scope |
+| D-07 | A card result is trusted only from Adumo's signed token, matched on reference and amount, applied once | The posted result alone can be forged |
+| D-08 | Analytics read from PII-free fact tables built by the ETL, in Africa/Windhoek local time, reconciled on every run | Same numbers everywhere; a run that does not reconcile is marked failed |
+| D-09 | Cross-organisation statistics suppress any cell below 5 | Small counts can identify a property or a person |
+| D-10 | Retention disposition is opt-in per environment and has a dry run | Deleting and shredding cannot be undone |
+| D-11 | Live roster push uses an in-process event stream (one API instance) | Simple until there is more than one instance; then move to a shared bus |
+| D-12 | Baseline security headers on every web app; a full script CSP comes later, in report-only mode first | Protection now without breaking Next.js or third-party scripts |
+| D-13 | Every export (CSV or XLSX) goes through one helper and is audit-logged | Formula injection is handled once; every download leaves a record |
 
 ## 11.2 Recommended stack
 

@@ -6,10 +6,11 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
-import { and, asc, count, desc, eq, inArray, isNull } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, inArray, isNull, lte } from "drizzle-orm";
 
 import { createArtifactStore } from "../../common/artifacts/artifact-store";
 import type { AuthenticatedUser } from "../../common/decorators/current-user.decorator";
+import type { TabularExport } from "../../common/export/tabular";
 import type { Database } from "../../db/client";
 import { DB } from "../../db/db.module";
 import {
@@ -981,6 +982,76 @@ export class BillingService {
     }
 
     return { status: succeeded ? "succeeded" : "failed", invoiceId: txn.invoiceId, duplicate: false };
+  }
+
+  /**
+   * Payment register for ops (CSV/XLSX): every payment row with organisation,
+   * invoice, method, status, processor result and its latest reconciliation
+   * decision. Card rows carry only the masked PAN and Adumo's transaction index.
+   */
+  async paymentRegister(input: { from?: string; to?: string } = {}): Promise<TabularExport> {
+    const conditions = [];
+    if (input.from) conditions.push(gte(paymentTransaction.occurredAt, new Date(input.from)));
+    if (input.to) conditions.push(lte(paymentTransaction.occurredAt, new Date(input.to)));
+    const payments = await this.db.query.paymentTransaction.findMany({
+      where: conditions.length ? and(...conditions) : undefined,
+      orderBy: desc(paymentTransaction.occurredAt),
+      limit: 20_000,
+    });
+    const invoiceIds = [...new Set(payments.map((p) => p.invoiceId).filter((id): id is string => Boolean(id)))];
+    const orgIds = [...new Set(payments.map((p) => p.organisationId))];
+    const paymentIds = payments.map((p) => p.id);
+    const [invoices, orgs, recon] = await Promise.all([
+      invoiceIds.length ? this.db.query.invoice.findMany({ where: inArray(invoice.id, invoiceIds) }) : [],
+      orgIds.length ? this.db.query.organisations.findMany({ where: inArray(organisations.id, orgIds) }) : [],
+      paymentIds.length
+        ? this.db.query.paymentReconciliationLog.findMany({
+            where: inArray(paymentReconciliationLog.paymentTransactionId, paymentIds),
+            orderBy: desc(paymentReconciliationLog.reconciledAt),
+          })
+        : [],
+    ]);
+    const invoiceNumber = new Map(invoices.map((i) => [i.id, i.invoiceNumber]));
+    const orgName = new Map(orgs.map((o) => [o.id, o.tradingName || o.legalName]));
+    const latestRecon = new Map<string, (typeof recon)[number]>();
+    for (const r of recon) if (!latestRecon.has(r.paymentTransactionId)) latestRecon.set(r.paymentTransactionId, r);
+    const code = async (id: string) => (await this.typeDefs.codeById(id)) ?? id;
+    const rows = await Promise.all(
+      payments.map(async (p) => {
+        const r = latestRecon.get(p.id);
+        return [
+          p.occurredAt.toISOString(),
+          orgName.get(p.organisationId) ?? p.organisationId,
+          p.invoiceId ? (invoiceNumber.get(p.invoiceId) ?? p.invoiceId) : null,
+          Number(p.amount),
+          p.currencyCode,
+          await code(p.paymentMethodCode),
+          await code(p.statusCode),
+          p.processorStatus ?? null,
+          p.cardMaskedPan ?? null,
+          p.processorTransactionIndex ?? null,
+          r ? r.decision : null,
+          r ? r.reconciledAt.toISOString() : null,
+        ] as (string | number | null)[];
+      }),
+    );
+    return {
+      headers: [
+        "occurred_at",
+        "organisation",
+        "invoice_number",
+        "amount",
+        "currency",
+        "method",
+        "status",
+        "processor_status",
+        "card_masked_pan",
+        "processor_transaction_index",
+        "reconciliation_decision",
+        "reconciled_at",
+      ],
+      rows,
+    };
   }
 
   async portfolioRollup() {
