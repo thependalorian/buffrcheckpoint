@@ -1,6 +1,34 @@
 # Buffr Checkpoint
 ## Business Plan, Product Architecture & Operating Blueprint
-**Version 0.31 — Sector-agnostic product; existing-system integrations**
+**Version 0.32 — Analytics, retention, card payments, live rosters**
+
+> **What changed in v0.32 (2026-10-01, guide gaps closed):**
+> 1. **Analytics ETL and dashboards** (§11.1b, built 2026-09-30) — PII-free
+>    daily/hourly fact tables, reconciled hourly runs, admin analytics and
+>    Ops Console arrival statistics with small-cell suppression.
+> 2. **Architecture guide merged** as §11.1c (CRM, ETL, payments, reporting,
+>    dashboards, UI), with its claims corrected against the build.
+> 3. **Retention disposition job → FULL (opt-in).** Migration 0043 +
+>    `retention-disposition` module: disposes visits past the effective
+>    policy, skips active legal holds (unreadable scopes fail closed),
+>    crypto-shreds subjects with no live visits or credentials, reconciles
+>    candidates = disposed + held, audit-logs each run. Off unless
+>    `RETENTION_DISPOSITION_ENABLED=true`; `POST /platform/retention/runs`
+>    defaults to a dry run. Review a dry run before enabling in production.
+> 4. **Card payments (Adumo Online Virtual) → FULL, credential-gated.**
+>    Migration 0042: signed hosted-page form, response token verified,
+>    reference and amount matched, applied once; reconciliation row on every
+>    outcome. Off until Adumo merchant credentials are set. The
+>    proof-of-payment endpoint now checks invoice ownership (tenant fix).
+> 5. **XLSX export** next to CSV for the visitor roster and analytics, with
+>    the same audit actions; CSV cells are guarded against formula injection.
+> 6. **Live Front Desk and Emergency rosters.** `GET /visits/roster/stream`
+>    (Server-Sent Events, ids only, tenant-filtered) triggers a page refresh
+>    on check-in, check-out, approve/reject, escalation and emergency events;
+>    falls back to a 30-second refresh if the stream drops. In-process
+>    emitter: valid while the API runs as a single instance.
+> 7. **Audit chain** — background jobs and gateway callbacks write to the
+>    same hash-linked chain via `common/audit/audit-chain.ts`.
 
 > **What changed in v0.31 (2026-09-24, integrations + market framing):**
 > 1. **Sector-agnostic product.** Buffr Checkpoint replaces paper visitor
@@ -378,6 +406,9 @@
 | Form AI suggest/translate (admin) | FULL (gated) | `FormAiService` + §11.9.14; `FORM_AI_ENABLED`; never auto-publish |
 | Retention purge/archive job | FULL (worker opt-in) | `retention-disposition` module + migration 0043. Disposes visits past the effective policy (site, else org default), skips active legal holds (unreadable hold scopes fail closed), crypto-shreds personal data of subjects with no live visits or credentials, and reconciles candidates = disposed + held. Worker runs only with `RETENTION_DISPOSITION_ENABLED=true`; `POST /platform/retention/runs` defaults to a dry run |
 | Access / retention policies | FULL | v0.20 |
+| Roster and analytics export (CSV + XLSX) | FULL | v0.32 `GET /visits/roster/export?format=xlsx`, `GET /analytics/export.xlsx`; same audit actions as CSV |
+| Live roster push (Front Desk / Emergency) | FULL | v0.32 SSE `GET /visits/roster/stream`; single API instance only (in-process emitter) |
+| Card payments (Adumo Online Virtual) | FULL (credential-gated) | v0.32 migration 0042; off until Adumo merchant credentials are set; recurring tokens not built |
 | Privacy notice document lifecycle | FULL | v0.20 |
 | Devices MDM + credentials issue/revoke/validate | FULL | v0.20 |
 | Credential site entitlements CRUD | FULL | v0.22 `GET/POST /credentials/:id/entitlements` |
@@ -8516,7 +8547,9 @@ Industry mapping (names only; Checkpoint owns the gates):
    configured, emergency roster, audit/DSAR paths that claim FULL.
 2. **Out of UAT sell claims** until the capability register is `live` and
    a separate gate passes: DigiNam adapter, National e-ID NFC, live
-   USSD, live SMS MT, retention purge cron, badge-print hardware.
+   USSD, live SMS MT, badge-print hardware. Retention disposition is
+   built (v0.32) but counts as a sell claim only once a reviewed dry run
+   has passed and the worker is enabled for that environment.
 3. **No silent paper return.** If a scenario forces paper, log it as a
    pilot KPI failure (`paper-register fallbacks`), not as “workaround.”
 4. **Decision, not a bug dump.** Each stage ends with
