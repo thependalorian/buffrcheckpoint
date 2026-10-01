@@ -2641,6 +2641,10 @@ the ops integration health panel shows "Invoice bank details: down". The
 admin invoice page shows the bank details and the invoice number as the
 payment reference (`GET /platform/billing/payment-instructions`); when they
 are not configured it tells the customer to contact the team instead.
+Configured in Railway on 1 October 2026 from Bank Windhoek's account
+confirmation letter (29 August 2025): Bank Windhoek, Ongwediva branch,
+Buffr Financial Services CC, branch code 485-673, registration CC/2024/09322.
+The API started without the missing-details error.
 
 Still open from this list: scheduled reports, visitor feedback and live anomaly
 rules. Visitor feedback needs a new table (and its status log), which is a
