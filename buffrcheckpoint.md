@@ -2270,6 +2270,260 @@ and a repeat backfill all reconciled 18 source visits to 18 daily and 18
 hourly fact counts; suppression, forecast refusal below 28 days, CSV content
 and ops-only route guards confirmed.
 
+**Evidence report (v2026-09-30).** `GET /evidence/:id/report` renders an
+auditor-readable HTML view of a stored pack (printable to PDF from the
+browser): visits in period, audited actions, people with access, retention,
+and an audit hash-chain check. The check treats a row as linked when its
+`prev_event_hash` matches any event hash in the extract, because concurrent
+requests can share a predecessor (a fork, not tampering). The footer prints
+the SHA-256 of the exact JSON returned by `GET /evidence/:id/download`. The
+pack's audit extract is the most recent 500 events in time order.
+
+### 11.1c Architecture guide: CRM, ETL, payments, reporting, dashboards and UI (v2026-10-01)
+
+Merged from the "Complete System Architecture Guide" supplied on 1 October
+2026. Where the guide repeats material this document already holds, the row
+below points to the canonical section instead of restating it. Where the
+guide disagreed with what is built or verified, the correction is stated
+inline and the built system wins.
+
+**Where each part of the guide already lives**
+
+| Guide part | Canonical home in this document | Notes |
+|---|---|---|
+| ETA, PKI, CRAN Root CA journey, relying-party boundary | Regulatory sections citing GN 75/2020, GN 182/2026 (GG 8949), GN 335/2025, GN 953/2025, CRAN GN 401/2026; NPKI direction notes | s20 and Chapter 5 in force from 15 June 2026 per GN 182/2026 (source PDF listed in the sources table). Kiosk tap/draw remains acknowledgement evidence, never a recognised electronic signature. |
+| Data protection landscape and minimisation | Privacy and data-minimisation rules; §5.2 visitor and protected PII model | No Act in force; never claim "fully compliant". |
+| Core data model, visitor vs visit, envelopes, lookup HMACs | §5 Full canonical data model | Unchanged. |
+| DigiNam / national e-ID / USSD / SMS | §4.4 Capability status; §10 DigiNam and national e-ID capability rule | Roadmap capabilities only; not in marketing until the register says live. |
+| Hosting and data residency | §11 Hosting and public-claim correction | No "hosted in Namibia" claim. |
+| Kiosk and admin visual strategy | §11.6.5 Visual, Image Placement and Product Demonstration Strategy | Unchanged. |
+| Analytics ETL, fact tables, endpoints, forecast | §11.1b Analytics and ETL | The guide's table sketches differ from the deployed schema. Migration `0041_analytics_etl.sql` is authoritative: `dwell_minutes_total NUMERIC(14,2)`, `dwell_sample_count`, `etl_run_id` on facts, and `type_definition` codes (`etl_run_status`, `etl_run_kind`) instead of text status columns. |
+
+#### Payments architecture
+
+**Namibian context (from the guide; confirm before quoting externally).**
+Cash remains the most used payment method, followed by cards, EFT and
+e-money. NamPay is replacing the EFT value chain with ISO 20022 messaging and
+new debit-order and credit-transfer streams, migrated over about 18 months.
+Wallets (PayToday, MobiPay, MTC Maris, EWallet, BluWallet) are growing.
+
+**Card payments partner: Adumo Online (Virtual hosted payment page).** The
+merchant posts a form to Adumo's hosted page; the cardholder enters card
+details on Adumo's page, so Checkpoint never handles card data.
+
+| Item | Detail |
+|---|---|
+| Account | Internet Merchant Account (distinct from card-present/POS) |
+| Initialise URL (staging) | `https://staging-apiv3.adumoonline.com/product/payment/v1/initialisevirtual` |
+| Initialise URL (production) | `https://apiv3.adumoonline.com/product/payment/v1/initialisevirtual` |
+| Identifiers | Merchant ID and Application ID (GUIDs) from the Adumo Merchant Portal |
+| Signing secret | JWT secret from the Merchant Portal |
+| Request token | JWT carrying `mref` (merchant reference), `amount`, `auid` (application UID), `cuid` (merchant UID) |
+| Mandatory request fields | `MerchantID`, `ApplicationID`, `Amount`, `Token`, `RedirectSuccessfulURL`, `RedirectFailedURL`; `MerchantReference` carries the invoice number |
+| Response fields used | `_RESULT` (0 success, -1 failed, 1 success with warning), `_STATUS` (APPROVED / DECLINED / USER_CANCELLED), `_MERCHANTREFERENCE`, `_TRANSACTIONINDEX`, `_AMOUNT`, `_CURRENCYCODE`, `_PAYMETHOD`, `_PANHASHED` (first 6 and last 4 only), `_RESPONSE_TOKEN` |
+
+Rules:
+
+- **Credentials live only in environment variables** (`ADUMO_MERCHANT_ID`,
+  `ADUMO_APPLICATION_ID`, `ADUMO_JWT_SECRET`, `ADUMO_BASE_URL`). Adumo's
+  published sandbox test values are for local testing only and are never
+  committed to the repository or this document.
+- **Validate every response token** before trusting a payment: the JWT
+  signature must verify with the secret, and the token's reference and amount
+  must match the invoice. `_RESULT` alone is never enough (Adumo warns that
+  skipping these checks can cause financial loss).
+- **Never trust client-supplied amounts.** The amount posted to Adumo comes
+  from the server-side invoice, as with the subscription catalog (MRR is
+  computed in application code from `planCode`, site quantity and add-ons).
+- **Store no card data.** Persist only the transaction index, masked PAN, pay
+  method and result alongside the invoice payment record.
+
+| Use case | Method | Integration |
+|---|---|---|
+| Subscription billing (Site / Network / Assure) | EFT, or card via Adumo | Hosted payment page from the invoice; recurring tokens later |
+| Hardware purchase or lease | EFT | Invoice and proof-of-payment upload |
+| Assurance retainer | EFT | Invoice and proof-of-payment upload |
+
+**Reconciliation flow.** Invoice generated and shown in admin Billing →
+customer pays. EFT: customer uploads proof of payment → platform support
+reviews and confirms → reconciliation recorded. Card: Adumo redirects back →
+server validates the response token → payment recorded against the invoice →
+subscription activates through the same payment-gated go-live path as EFT.
+
+#### CRM for visitor management
+
+Checkpoint's CRM is a **visitor relationship and presence** system, not a
+sales pipeline: the core entity is the visit. Returning visitors are
+recognised by proving they hold a credential or reference (NFC badge,
+pre-registration QR, visit reference plus phone OTP, front-desk assisted
+lookup), never by searching a list of previous visitors. The platform-side
+sales CRM (contacts, deals, activity) lives in the ops console and is
+separate from visitor data.
+
+CiMSO INNterchange is the first existing-system adapter: fixed 32-byte header
+plus JSON payload (optionally Zlib-compressed) over TCP/IP with optional TLS.
+Visitor-relevant messages: Get Bookings (1101/1102), Get Booking (1103/1104),
+Set Booking (1105/1106), Unit Type Info (6/7), Get Facilities (501/502), Get
+Staff (58/59). The adapter synchronises expected arrivals, hosts and room
+assignments; it never replaces the PMS. `pms_*` tables are tenant-namespaced.
+
+#### ETL quality and design patterns
+
+Validation layers, applied in the pipeline rather than after it:
+
+1. **Schema conformance:** types, nullability, constraints (migration-defined).
+2. **Referential integrity:** fact rows reference organisations, sites and type definitions.
+3. **Statistical checks:** value ranges and anomaly flags (to add as volume grows).
+4. **Cross-store consistency:** raw non-deleted visits in the window must equal `sum(check_in_count)` in `visit_daily_fact`, or the run fails with both numbers recorded. Built.
+5. **Freshness:** ops ETL panel shows the last run; stale runs are visible. Built.
+
+| Pattern | Use | Checkpoint |
+|---|---|---|
+| Batch | Hourly or nightly rollups | Built: hourly incremental plus backfill |
+| Streaming | Sub-minute needs | Not used; on-site roster reads live rows |
+| Hybrid | Live plus historical | Built: live roster and overview chart, historical facts |
+| Idempotency | Safe re-runs | Built: zero the window, then upsert on a unique grain |
+| Watermarking | Late-arriving data | Built: window widened to days touched by visits accepted since the last successful run |
+
+#### Reporting
+
+| Report | Audience | Format as built | Frequency |
+|---|---|---|---|
+| Visitor roster | Front desk, security | Live screen; CSV `GET /visits/roster/export` | Real-time |
+| Visitor history | Site manager, compliance | Date-range search; CSV | On demand |
+| Compliance dashboard | Compliance officer | Live screen | Live |
+| Device compliance register | System administrator | Live screen | Live |
+| Emergency roll call | Security, emergency coordinators | Live screen | Real-time |
+| Evidence pack | Auditor, regulator | JSON `GET /evidence/:id/download`; readable HTML report `GET /evidence/:id/report` (print to PDF) | On demand |
+| Analytics | Property admin | Live screen; CSV `GET /analytics/export.csv` (aggregates, audit-logged) | Hourly refresh |
+| Platform analytics | Ops | Live screen (ETL health, arrival statistics, trends) | Hourly refresh |
+
+Correction to the guide: there is no XLSX export and no server-rendered PDF
+evidence pack today. CSV is the spreadsheet format; the evidence report is
+HTML printable to PDF.
+
+**Target KPIs** (targets, not measured results):
+
+| Area | Metric | Target |
+|---|---|---|
+| Visitor funnel | Check-in completion (completed / started) | ≥90% |
+| Visitor funnel | Median check-in duration | ≤2 min |
+| Visitor funnel | Host notification delivered / attempted | ≥95% |
+| Visitor funnel | Offline sync success | ≥99% |
+| Visitor funnel | Paper-register fallbacks per week | Trending down |
+| Compliance | Retention actions executed within policy window | 100% (scheduler not yet built) |
+| Compliance | Data subject request resolution | ≤30 days |
+| Compliance | Audit events with hash chain intact | 100% |
+| Compliance | Devices `approved_for_deployment` before activation | 100% |
+| Platform | API availability | ≥99.9% |
+| Platform | Notification delivery (sent / queued) | ≥98% |
+| Platform | ETL reconciliation difference | 0 |
+
+**Evidence pack components for regulated clients** (what the pack should grow
+to include; today's pack holds the RBAC matrix, retention report, audit
+extract and visitor access extract): architecture diagram, data-flow map,
+device inventory, patch and MDM compliance report, offline-sync exception
+report, incident register, vulnerability-management summary, supplier
+register, disaster-recovery test evidence, identity-verification
+configuration status, annual control-effectiveness report.
+
+#### Dashboards
+
+| Dashboard | Audience | Key content | Refresh |
+|---|---|---|---|
+| Front desk | Reception, security | On site now, pending approval, expected today, check-out actions | Live |
+| Overview | Property admin | Four KPIs, 90-day visit activity, on-site roster | Live |
+| Analytics | Property admin | KPIs, arrivals trend with forecast band, busy-hours heatmap, channel and visitor-type shares | Hourly |
+| Compliance | Compliance officer | Retention actions due, open data requests, privileged access events, offline sync exceptions | Live |
+| Device compliance register | System administrator | Model, CRAN status, MDM status, firmware, review date | Live |
+| Emergency roster | Security | On site by site and zone, host, roll-call status | Live |
+| Ops console | Platform support | Organisation health, churn queue, CRM, billing, KYB, ETL health, arrival statistics | Live / hourly |
+
+Layout rules: one chart, one message, with a finding as the title; actual
+before forecast; at most four KPI tiles in a row, with one primary metric;
+mix content types in a viewport (KPIs, chart, table); top-down reading order;
+group views by task; five to seven panels per screen at most.
+
+| Component | Where | Purpose |
+|---|---|---|
+| `TrendWithForecast` | Admin analytics | Arrivals line, dashed forecast, shaded likely range |
+| `BusyHoursHeatmap` | Admin analytics | Weekday by hour; empty cells stay blank |
+| `ShareBars` | Admin analytics; ops | Ranked horizontal bars, lead item emphasised; never a pie chart |
+| `TrendChart` | Ops | Line with end label and % change |
+| `ScoreScatter` | Ops | Health score against MRR |
+
+#### UI patterns for scores, predictions and errors
+
+Applies wherever the product shows a score or a model output (health score,
+forecast, any future classifier):
+
+- **Trust calibration:** show a confidence label or range (the forecast band
+  and its backtest error are the current example); cite the source under
+  every chart; hedge generated text.
+- **Explainability:** name the inputs that drove a score (the health-score
+  inputs are stored on each snapshot), give a plain one-sentence reason.
+- **Progressive autonomy:** start at suggestion or approve-then-act. Identity
+  decisions on the kiosk stay at levels 1–2; automatic check-in after a valid
+  NFC badge may run act-then-review with an undo.
+- **Graceful failure:** say an error happened, never blame the user, keep it
+  brief, give the next step, and return control. This matches the copy rules
+  already applied to check-in and billing errors.
+
+#### Data science guidance (for future models)
+
+No machine-learning model runs in production today: the health score is a
+weighted scorecard and the forecast is a seasonal mean with a backtest. When
+models are added, follow CRISP-DM (business understanding, data
+understanding, preparation on PII-free rollups, modelling, evaluation by
+expected value, deployment), evaluate on holdout data with k-fold
+cross-validation, check learning and fitting curves, regularise (L1/L2) or
+prune trees, and prefer ensembles for high-variance models. Candidate uses:
+visitor-type prediction from booking source, channel, host department and
+time of day (naive Bayes evidence lifts as a baseline); dwell-time
+regression; capacity clustering; anomaly detection on offline sync and device
+compliance.
+
+#### Public-sector tender pack (Public Procurement Act 15 of 2015)
+
+Company registration and tax documents; technical architecture; security
+architecture; CRAN equipment compliance register; data-flow map; privacy and
+retention model; offline and business-continuity design; RBAC matrix;
+identity-verification integration status statement; SLA and support model;
+hardware asset lifecycle plan; supplier register; data portability and exit
+plan; implementation methodology; training plan; annual assurance-report
+template.
+
+#### Quality gates: no production stubs
+
+Every production endpoint performs the control it claims. Forbidden in
+`backend/src`: in-memory arrays standing in for storage, static
+`{ valid: false }` validation, no-op jobs returning `{ processed: 0 }`, empty
+guards, client-controlled tenant prefixes, raw identity payloads. Release
+check:
+
+```bash
+rg "TODO|FIXME|private .*\[\].*= \[\]|return \{ processed: 0 \}|return \{ valid: false \}|storage\.example\.com|@UseGuards\(\)" backend/src
+```
+
+Output must be empty apart from permitted test fixtures.
+
+#### Open work (status corrected against the build, 1 October 2026)
+
+| Item | Status | Path |
+|---|---|---|
+| Retention purge/archive scheduler | Not started | Scheduled disposition job |
+| DigiNam relying-party adapter | Not started | Approved relying-party arrangement and tested interface |
+| National e-ID NFC adapter | Not started | Official protocol and interoperability testing |
+| SMS confirmation gateway | Not started | Live provider contract |
+| USSD aggregator | Not started | Licensed operator or aggregator arrangement |
+| Badge printing | Not started | Printer SDK and device path |
+| Contractor induction schema (Release 1.5) | Not started | Safety induction workflow |
+| Analytics ETL and dashboards | **Built** (2026-09-30) | §11.1b; the guide listed this as deferred |
+| Evidence report | **Built** (2026-09-30) | Readable HTML from the JSON pack |
+| Card payments | In progress | Adumo Online Virtual hosted page; recurring tokens later |
+| XLSX export | Not built | CSV covers spreadsheets today |
+| Live dashboard push (WebSocket/SSE) | Not built | Pages read fresh data per request |
+
 ## 11.2 Recommended stack
 
 | Layer | Recommendation | Reason |
