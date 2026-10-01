@@ -2578,6 +2578,51 @@ Output must be empty apart from permitted test fixtures.
 | Card payments | **Built** (2026-10-01), off until Adumo merchant credentials are set | Adumo Online Virtual hosted page: `POST /platform/billing/invoices/:id/card-payment`, result at `POST /public/payments/adumo/result` (signed token verified; reference and amount matched; applied once), migration `0042_card_payments.sql`. Tested against Adumo staging with test cards on a Neon branch. Recurring tokens later. |
 | XLSX export | **Built** (2026-10-01) | Roster and analytics, same audit actions as CSV |
 | Live dashboard push (WebSocket/SSE) | **Built** (2026-10-01) | `GET /visits/roster/stream` (ids only, tenant-filtered) drives Front Desk and Emergency refresh; in-process emitter, single instance only |
+| Web security headers | **Built** (2026-10-01) | See "Security headers" below |
+
+**Production database state (1 October 2026).** Migrations `0041_analytics_etl`,
+`0042_card_payments` and `0043_retention_disposition` are applied to the
+production Neon branch (`falling-frog-15538162`, main). Each was checked after
+applying: 0042 added 3 type codes, 4 payment columns and the unique processor
+index; 0043 added 2 retention tables, 3 indexes, 4 type codes and the
+`platform.retention.manage` grant.
+
+#### Security headers (v2026-10-01)
+
+The website, admin and ops console send, on every route (`headers()` in each
+`next.config`): `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`,
+`Referrer-Policy: strict-origin-when-cross-origin`,
+`Permissions-Policy: camera=(), microphone=(), geolocation=()` (no page uses
+them), and a baseline `Content-Security-Policy` of `frame-ancestors 'none';
+object-src 'none'; base-uri 'self'; form-action 'self'`. Admin's `form-action`
+also allows `https://*.adumoonline.com`, because the card hand-off posts to
+Adumo and Adumo redirects to its gateway host. HSTS comes from Vercel. The API
+already sets its headers with `helmet`. A full `script-src` policy is a
+separate step: it needs nonces for Next.js inline scripts and allowances for
+Sentry and PostHog, and should start in report-only mode. Check after a deploy:
+
+```bash
+for u in https://buffrcheckpoint.com https://admin.buffrcheckpoint.com/auth/login https://ops.buffrcheckpoint.com/login; do curl -sI "$u" | grep -iE "x-frame|content-security|x-content-type|referrer-policy|permissions-policy"; done
+```
+
+#### Gaps identified from The Reserve Club PRD (2026-10-01)
+
+Read against `the-reserve-club/prd.md`. Reserve-specific material (member and
+operator apps, credit ledger, card issuing, WhatsApp-first messaging) does not
+apply. These engineering and operations items do:
+
+| Item | Status | What it means for Checkpoint |
+|---|---|---|
+| CI pipeline | Not started | No `.github/workflows`: run tests, typecheck and lint on every push; secrets scan (gitleaks), dependency audit, SAST |
+| Integration health panel | Not started | Ops view of Resend, Neon storage, CiMSO and Adumo status and p95 latency |
+| Scheduled reports | Not started | Daily ops summary email; monthly PDF for site managers and the board |
+| More exports | Not started | Audit log CSV; billing and payment register for ops |
+| Visitor feedback | Not started | Post-visit micro-survey so the ≥4/5 satisfaction target can be measured |
+| KPI targets in context | Not started | Ops KPI tiles show target and pass/fail, not only counts |
+| Live anomaly rules | Not started | Alerts for suspicious check-in patterns (same phone repeatedly, after-hours restricted zones), fed by the roster stream |
+| Notification matrix | Not started (docs) | One table of event, channel, template key and fallback |
+| Deploy and monitoring runbook | Not started (docs) | Rollback per platform, Sentry alert thresholds, uptime monitor |
+| Decision log (ADRs) | Not started (docs) | Standing decisions listed as numbered records |
 
 ## 11.2 Recommended stack
 
