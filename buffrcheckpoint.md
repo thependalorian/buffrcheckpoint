@@ -2626,6 +2626,15 @@ export and payment register routes live and refusing unauthenticated calls
 (401); admin and ops download relays 401 without a session; all three web
 hosts 200.
 
+**Redeployed 2 October 2026** at `e84991b` (merged to `main`, CI green):
+API, website, admin and ops console, after migrations 0044-0047. Checked:
+`/health` returns `{"status":"ok","database":"ok"}`; the survey options route
+is public and serves the five ratings; a forged survey token gets 401; the
+anomaly, report, satisfaction and integration routes refuse unauthenticated
+calls (401); `/check-out`, admin and ops sign-in pages return 200; the API log
+shows "Scheduled reports worker started". The first ops daily summary goes
+out at 07:00 Windhoek, the first weekly digests on Monday 5 October.
+
 #### Security headers (v2026-10-01)
 
 The website, admin and ops console send, on every route (`headers()` in each
@@ -2657,11 +2666,11 @@ and runbook, the §11.8.10 launch gate) but that had no implementation at the
 | Integration health panel | **Built** (2026-10-01; extended 2026-10-02) | `GET /platform/integrations/health`; ops overview panel. Live probes (5 s timeout, never throws): database, document storage, Resend, notification outbox (24 h), analytics ETL freshness, CiMSO sync runs (24 h), Adumo gateway, invoice bank details, anomaly alerts (24 h count), scheduled report runs (7 days). Latency is per check, not p95 |
 | Exports (CSV and XLSX) | **Built** (2026-10-01) | Audit log (`GET /audit/events/export`, verified email required, hash-chain columns); payment register for ops (`GET /platform/billing/payments/export`); roster (`GET /visits/roster/export?format=xlsx`); analytics (`GET /analytics/export.xlsx`). All audit-logged through one helper with the formula-injection guard (D-13) |
 | KPI targets in context | **Built** (2026-10-01; satisfaction row 2026-10-02) | Ops overview "Service levels against targets": notification delivery (≥98%, 4 weeks), ETL reconciliation (difference 0), open incidents (0), devices approved (100%), visitor satisfaction (average ≥ 4.0 of 5 over 28 days, needs 10 ratings). Targets in `ops-console/src/lib/targets.ts`; "no data" is never shown as met |
-| Health check for uptime monitors | **Built** (2026-10-02) | `GET /health` now probes the database (3 s) and returns 503 `{status: "degraded", database: "down"}` when it fails, so a monitor cannot see 200 during a database outage |
+| Health check for uptime monitors | **Built and deployed** (2026-10-02) | `GET /health` now probes the database (3 s) and returns 503 `{status: "degraded", database: "down"}` when it fails, so a monitor cannot see 200 during a database outage |
 | Ops console Sentry | **Built** (2026-10-01; tenant scrubbing 2026-10-02) | Same setup as admin, stricter: no Session Replay, no local variables, and the scrubber also redacts organisation names, amounts, KYB, bank and support-session fields. DSN set on the Vercel ops project (`SENTRY_ENVIRONMENT=production-ops`) |
-| Visitor satisfaction micro-survey (§8.7) | **Built** (2026-10-02), migration `0044` | See below |
-| Live anomaly alerts (§11.1b) | **Built** (2026-10-02), migration `0045` | See below |
-| Scheduled reports (§11.1c reporting) | **Built** (2026-10-02), migration `0046` | See below |
+| Visitor satisfaction micro-survey (§8.7) | **Built and deployed** (2026-10-02), migration `0044`; kiosk screen ships with the next kiosk build | See below |
+| Live anomaly alerts (§11.1b) | **Built and deployed** (2026-10-02), migration `0045` | See below |
+| Scheduled reports (§11.1c reporting) | **Built and deployed** (2026-10-02), migration `0046`; worker on (`SCHEDULED_REPORTS_ENABLED=true`) | See below |
 | Notification matrix, runbook, decision log | **Done** (2026-10-01; updated 2026-10-02) | Below |
 | Uptime monitor | Open: needs an account | Better Stack or UptimeRobot, see the runbook below. No code needed |
 | Authenticated walkthrough | Open | Checklist below |
