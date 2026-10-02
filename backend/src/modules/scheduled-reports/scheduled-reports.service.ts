@@ -53,6 +53,14 @@ export const REPORT_RECIPIENT_ROLES = [
 
 const ORGANISATION_REPORTS: OrganisationReportCode[] = ["site_manager_digest", "board_compliance_monthly"];
 
+// RFC 2606 / 6761 reserved names never deliver; sending to them only creates
+// bounces and failed outbox rows. Demo and seed accounts use them.
+const RESERVED_EMAIL_DOMAIN = /@(?:[^@]+\.)?(?:example\.(?:com|net|org)|[^@]+\.(?:test|example|invalid|localhost))$/i;
+
+export function isDeliverableAddress(email: string): boolean {
+  return !RESERVED_EMAIL_DOMAIN.test(email.trim());
+}
+
 function n(value: unknown): number {
   return Number(value ?? 0);
 }
@@ -291,7 +299,7 @@ export class ScheduledReportsService {
            sql`, `,
          )})
     `);
-    return (result.rows as { email: string }[]).map((r) => r.email);
+    return (result.rows as { email: string }[]).map((r) => r.email).filter(isDeliverableAddress);
   }
 
   // ---- Ops daily summary ---------------------------------------------------

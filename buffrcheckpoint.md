@@ -2587,6 +2587,34 @@ applying: 0042 added 3 type codes, 4 payment columns and the unique processor
 index; 0043 added 2 retention tables, 3 indexes, 4 type codes and the
 `platform.retention.manage` grant.
 
+**Production database state (2 October 2026).** Migrations `0044_visit_survey`,
+`0045_anomaly_rules`, `0046_scheduled_reports` and `0047_index_integrity` are
+applied to production, each run twice (idempotent) after a Neon branch test.
+Checked: 8 new tables, 24 type codes, the 4 key unique and partial indexes,
+and the 8 indexes of 0047. All 47 migration files are now reflected in
+production: every table and column they define exists.
+
+**Migration 0047 (index integrity, 2 October 2026).** An audit of production
+against every migration file found that the 0008 canonical rename recreated
+the tables but not some of their 0001 indexes. 0047 restores the open-visits
+index behind the live roster (`idx_visitor_visits_org_site_open`) and the
+unique live credential reference per organisation
+(`uq_access_credentials_org_reference`; production had no duplicates), and
+adds an `organisation_id`-leading index to the five tenant tables that had
+none (credential entitlements and use events, feature-phone sessions, the
+notification outbox, contact enquiries). After 0047, every table with an
+`organisation_id` column has an index that starts with it. In the same pass,
+credential validation now ignores soft-deleted credentials in the lookup
+itself, so a revoked credential can never shadow a live one with the same
+reference.
+
+**Scheduled report recipients in production (2 October 2026).** Addresses on
+reserved test domains (`*.test`, `example.com` and the other RFC 2606 names)
+are skipped in code, since they cannot receive mail. The two "Test Bank
+Namibia" demo organisations have both reports switched off (settings rows,
+reversible on the admin Scheduled Reports page) because their users are on
+`testbank.na`, a real domain.
+
 **Deployed 1 October 2026:** API (Railway), website, admin and ops console
 (Vercel) at commit `bf504ca`. Checked after deploy: API health 200, card
 payment routes live (enabled route needs auth; result route 503 until Adumo is

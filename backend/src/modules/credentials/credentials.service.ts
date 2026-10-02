@@ -1,6 +1,5 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 import { and, desc, eq, isNull } from "drizzle-orm";
-import { randomBytes, randomUUID } from "node:crypto";
 
 import type { AuthenticatedUser } from "../../common/decorators/current-user.decorator";
 import type { Database } from "../../db/client";
@@ -17,6 +16,7 @@ import {
 import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.service";
 import { DevicesService } from "../devices/devices.service";
 import type { ValidateCredentialDto } from "./dto/validate-credential.dto";
+import { randomBytes, randomUUID } from "node:crypto";
 
 export interface IssueCredentialInput {
   holderTypeCode: string;
@@ -92,11 +92,7 @@ export class CredentialsService {
     });
   }
 
-  async addEntitlement(
-    credentialId: string,
-    input: { siteId: string; zoneId?: string },
-    user: AuthenticatedUser,
-  ) {
+  async addEntitlement(credentialId: string, input: { siteId: string; zoneId?: string }, user: AuthenticatedUser) {
     await this.assertCredentialOwned(credentialId, user);
     const [created] = await this.db
       .insert(credentialSiteEntitlements)
@@ -133,10 +129,7 @@ export class CredentialsService {
 
   private async assertCredentialOwned(credentialId: string, user: AuthenticatedUser) {
     const found = await this.db.query.accessCredentials.findFirst({
-      where: and(
-        eq(accessCredentials.id, credentialId),
-        eq(accessCredentials.organisationId, user.organisationId),
-      ),
+      where: and(eq(accessCredentials.id, credentialId), eq(accessCredentials.organisationId, user.organisationId)),
     });
     if (!found) throw new NotFoundException("Credential not found");
     return found;
@@ -203,13 +196,14 @@ export class CredentialsService {
       }
       sessionId = session.id;
 
-      device = await this.db.query.managedKioskDevices.findFirst({
-        where: and(
-          eq(managedKioskDevices.id, session.deviceId),
-          eq(managedKioskDevices.organisationId, user.organisationId),
-          isNull(managedKioskDevices.deletedAt),
-        ),
-      }) ?? null;
+      device =
+        (await this.db.query.managedKioskDevices.findFirst({
+          where: and(
+            eq(managedKioskDevices.id, session.deviceId),
+            eq(managedKioskDevices.organisationId, user.organisationId),
+            isNull(managedKioskDevices.deletedAt),
+          ),
+        })) ?? null;
       if (!device) {
         return { valid: false, reason: "device_not_enrolled" };
       }
@@ -225,14 +219,33 @@ export class CredentialsService {
       where: and(
         eq(accessCredentials.credentialReferenceHmac, credentialReference),
         eq(accessCredentials.organisationId, user.organisationId),
+        // A revoked (soft-deleted) row must never shadow a live credential
+        // that reuses the same reference.
+        isNull(accessCredentials.deletedAt),
       ),
     });
-    if (!found || found.deletedAt) {
-      await this.recordUseEvent(found?.id ?? null, device?.id ?? null, sessionId, device?.siteId ?? user.siteId, dto.requestedZoneReference ?? null, "not_found", user.organisationId);
+    if (!found) {
+      await this.recordUseEvent(
+        null,
+        device?.id ?? null,
+        sessionId,
+        device?.siteId ?? user.siteId,
+        dto.requestedZoneReference ?? null,
+        "not_found",
+        user.organisationId,
+      );
       return { valid: false, reason: "not_found" };
     }
     if (found.validUntil && found.validUntil.getTime() < Date.now()) {
-      await this.recordUseEvent(found.id, device?.id ?? null, sessionId, device?.siteId ?? user.siteId, dto.requestedZoneReference ?? null, "expired", user.organisationId);
+      await this.recordUseEvent(
+        found.id,
+        device?.id ?? null,
+        sessionId,
+        device?.siteId ?? user.siteId,
+        dto.requestedZoneReference ?? null,
+        "expired",
+        user.organisationId,
+      );
       return { valid: false, reason: "expired" };
     }
 
@@ -245,21 +258,34 @@ export class CredentialsService {
       .limit(1);
 
     if (latestStatus?.code !== "active") {
-      await this.recordUseEvent(found.id, device?.id ?? null, sessionId, device?.siteId ?? user.siteId, dto.requestedZoneReference ?? null, "revoked", user.organisationId);
+      await this.recordUseEvent(
+        found.id,
+        device?.id ?? null,
+        sessionId,
+        device?.siteId ?? user.siteId,
+        dto.requestedZoneReference ?? null,
+        "revoked",
+        user.organisationId,
+      );
       return { valid: false, reason: "revoked" };
     }
 
     const entitlements = await this.db.query.credentialSiteEntitlements.findMany({
-      where: and(
-        eq(credentialSiteEntitlements.credentialId, found.id),
-        isNull(credentialSiteEntitlements.deletedAt),
-      ),
+      where: and(eq(credentialSiteEntitlements.credentialId, found.id), isNull(credentialSiteEntitlements.deletedAt)),
     });
     const effectiveSiteId = device?.siteId ?? user.siteId;
     if (entitlements.length > 0 && effectiveSiteId) {
       const siteOk = entitlements.some((e) => e.siteId === effectiveSiteId);
       if (!siteOk) {
-        await this.recordUseEvent(found.id, device?.id ?? null, sessionId, effectiveSiteId, dto.requestedZoneReference ?? null, "site_not_entitled", user.organisationId);
+        await this.recordUseEvent(
+          found.id,
+          device?.id ?? null,
+          sessionId,
+          effectiveSiteId,
+          dto.requestedZoneReference ?? null,
+          "site_not_entitled",
+          user.organisationId,
+        );
         return { valid: false, reason: "site_not_entitled" };
       }
       if (dto.requestedZoneReference) {
@@ -267,7 +293,15 @@ export class CredentialsService {
           (e) => e.siteId === effectiveSiteId && (e.zoneId === null || e.zoneId === dto.requestedZoneReference),
         );
         if (!zoneOk) {
-          await this.recordUseEvent(found.id, device?.id ?? null, sessionId, effectiveSiteId, dto.requestedZoneReference, "zone_not_entitled", user.organisationId);
+          await this.recordUseEvent(
+            found.id,
+            device?.id ?? null,
+            sessionId,
+            effectiveSiteId,
+            dto.requestedZoneReference,
+            "zone_not_entitled",
+            user.organisationId,
+          );
           return { valid: false, reason: "zone_not_entitled" };
         }
       }
@@ -286,7 +320,15 @@ export class CredentialsService {
       return { valid: false, reason: "assurance_threshold_not_met" };
     }
 
-    await this.recordUseEvent(found.id, device?.id ?? null, sessionId, device?.siteId ?? user.siteId, dto.requestedZoneReference ?? null, "valid", user.organisationId);
+    await this.recordUseEvent(
+      found.id,
+      device?.id ?? null,
+      sessionId,
+      device?.siteId ?? user.siteId,
+      dto.requestedZoneReference ?? null,
+      "valid",
+      user.organisationId,
+    );
 
     const [holderTypeRow] = await this.db
       .select({ holderTypeCode: typeDefinition.code })

@@ -38,3 +38,15 @@ describe("scheduled report periods", () => {
     expect(isoWeekKey("2027-01-01")).toBe("2026-W53");
   });
 });
+
+import { isDeliverableAddress } from "./scheduled-reports.service";
+
+describe("report recipients", () => {
+  it("skips reserved test domains", () => {
+    expect(isDeliverableAddress("owner@buffrcheckpoint.test")).toBe(false);
+    expect(isDeliverableAddress("a@example.com")).toBe(false);
+    expect(isDeliverableAddress("a@mail.example.org")).toBe(false);
+    expect(isDeliverableAddress("team@buffranalytics.com")).toBe(true);
+    expect(isDeliverableAddress("someone@testbank.na")).toBe(true);
+  });
+});
