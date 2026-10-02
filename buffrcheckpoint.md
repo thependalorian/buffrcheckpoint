@@ -2644,6 +2644,23 @@ calls (401); `/check-out`, admin and ops sign-in pages return 200; the API log
 shows "Scheduled reports worker started". The first ops daily summary goes
 out at 07:00 Windhoek, the first weekly digests on Monday 5 October.
 
+**Redeployed 2 October 2026 (second pass)** at `0fe6bc4` (CI green, all six
+jobs including the migration replay): migration `0048` applied to production
+twice (1 table, 3 type codes, 1 index); API, admin and ops console deployed.
+Checked: alert review route live (401 unauthenticated), `/health` reports the
+database ok, report worker restarted, sign-in and `/check-out` pages 200. The
+first ops daily summary was delivered at 07:02 Windhoek.
+
+**Neon housekeeping (2 October 2026).** The two test branches used to
+validate 0044-0048 (`test-0044`, `test-0044-0046`) were deleted after
+confirming nothing referenced them (no repo, env or Vercel references; the
+Vercel database variables predate them). Neither was a clean rollback point:
+both were modified during testing. A manual snapshot of production after
+0048, `post-0048-2026-10-02` (`snap-curly-shape-b1j0b8pm`), is the named
+rollback point; the free plan allows one manual snapshot, and point-in-time
+restore keeps 6 hours of history (`history_retention_seconds` 21600). The
+project now has only the `main` branch.
+
 #### Security headers (v2026-10-01)
 
 The website, admin and ops console send, on every route (`headers()` in each
