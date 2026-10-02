@@ -1,7 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
+
 import { useSearchParams } from "next/navigation";
+
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -11,6 +13,7 @@ import { apiBaseUrl } from "@/lib/api";
 import { AnalyticsEvents, track } from "@/lib/observability/track";
 
 import { CheckInBrandedShell } from "../check-in/check-in-branded-shell";
+import { VisitSurvey } from "./visit-survey";
 
 export default function CheckOutClient() {
   const params = useSearchParams();
@@ -22,6 +25,7 @@ export default function CheckOutClient() {
     confirmationCode: string;
     siteName: string;
     checkedOutAt: string;
+    surveyToken: string | null;
   } | null>(null);
 
   const canSubmit = useMemo(
@@ -51,7 +55,7 @@ export default function CheckOutClient() {
         const body = (await res.json().catch(() => null)) as { message?: string | string[] } | null;
         const message = Array.isArray(body?.message)
           ? body.message.join(", ")
-          : body?.message || "Sign-out failed. See reception.";
+          : (body?.message ?? "Sign-out failed. See reception.");
         throw new Error(message);
       }
       const data = (await res.json()) as {
@@ -60,14 +64,16 @@ export default function CheckOutClient() {
         checkedOutAt: string;
         remainingOpenVisits?: number;
         message?: string;
+        surveyToken?: string;
       };
       setDone({
         confirmationCode: data.confirmationCode,
-        siteName: data.siteName || "this site",
+        siteName: data.siteName ?? "this site",
         checkedOutAt: data.checkedOutAt,
+        surveyToken: data.surveyToken ?? null,
       });
       track(AnalyticsEvents.checkOutCompleted);
-      toast.success(data.message || "Signed out.");
+      toast.success(data.message ?? "Signed out.");
     } catch (error) {
       track(AnalyticsEvents.checkOutFailed);
       toast.error(error instanceof Error ? error.message : "Sign-out failed.");
@@ -102,6 +108,7 @@ export default function CheckOutClient() {
           <p className="text-sm" style={{ color: "#705C67" }}>
             Return your visitor pass to reception if you were issued one.
           </p>
+          {done.surveyToken ? <VisitSurvey token={done.surveyToken} /> : null}
         </div>
       </CheckInBrandedShell>
     );

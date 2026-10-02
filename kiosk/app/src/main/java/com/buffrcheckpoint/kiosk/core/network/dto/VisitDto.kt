@@ -76,6 +76,28 @@ data class SignOutByPhoneResponse(
     val siteId: String,
     val checkedOutAt: String?,
     val confirmationCode: String?,
+    /** Proves this visit for the optional post-visit rating (Section 8.7). */
+    val surveyToken: String? = null,
+)
+
+/** One of the five satisfaction ratings; score is 1 (very poor) to 5 (very good). */
+@JsonClass(generateAdapter = true)
+data class SurveyOptionDto(
+    val code: String,
+    val label: String,
+    val score: Int,
+)
+
+@JsonClass(generateAdapter = true)
+data class SurveySubmitRequest(
+    val token: String,
+    val ratingCode: String,
+)
+
+@JsonClass(generateAdapter = true)
+data class SurveySubmitResponse(
+    val recorded: Boolean,
+    val duplicate: Boolean,
 )
 
 // Mirrors the raw visitorVisits row returned by POST /visits/check-in and

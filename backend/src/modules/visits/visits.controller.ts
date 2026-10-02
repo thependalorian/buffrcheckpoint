@@ -8,6 +8,7 @@ import { type AuthenticatedUser, CurrentUser } from "../../common/decorators/cur
 import { RequirePermission } from "../../common/decorators/require-permission.decorator";
 import { EXPORT_CONTENT_TYPE, parseExportFormat, serialiseExport } from "../../common/export/tabular";
 import { PERMISSIONS } from "../../common/rbac/permissions";
+import { createSurveyToken } from "../visit-survey/survey-token";
 import { CheckInDto } from "./dto/check-in.dto";
 import { VisitAccessDecisionDto } from "./dto/visit-access-decision.dto";
 import { rosterStream } from "./roster-stream";
@@ -39,8 +40,11 @@ export class VisitsController {
   @Post("sign-out-by-phone")
   @RequirePermission(PERMISSIONS.VISIT_CHECKOUT)
   @AuditLog({ action: "visit.sign_out_by_phone", resourceType: "visit" })
-  signOutByPhone(@Body() dto: SignOutByPhoneBody, @CurrentUser() user: AuthenticatedUser) {
-    return this.visitsService.signOutByPhone(dto.siteId, dto.visitorPhone, user);
+  async signOutByPhone(@Body() dto: SignOutByPhoneBody, @CurrentUser() user: AuthenticatedUser) {
+    const result = await this.visitsService.signOutByPhone(dto.siteId, dto.visitorPhone, user);
+    // The kiosk offers the optional satisfaction survey after visitor
+    // sign-out (Section 8.7); the token proves the visit for that one rating.
+    return { ...result, surveyToken: createSurveyToken(result.visitId, "kiosk") };
   }
 
   @Post(":id/check-out")

@@ -132,6 +132,12 @@ export default async function AnalyticsPage({
     );
   }
   const [summary, daily, busy, channels, visitorTypes, forecast, sites] = data;
+  // Optional: a failure here must not blank the whole analytics page.
+  const satisfaction = await api
+    .get<{ responses: number; averageRating: number | null }>(
+      `/analytics/satisfaction${siteId ? `?siteId=${siteId}` : ""}`,
+    )
+    .catch(() => null);
 
   const periodTotal = daily.reduce((a, p) => a + p.count, 0);
   const forecastTotal =
@@ -230,6 +236,12 @@ export default async function AnalyticsPage({
       </BcStatRow>
       <p className="-mt-2 text-muted-foreground text-xs">
         {copy.kpis.checkIns}: {changeLine(summary.checkIns)}
+      </p>
+      <p className="text-sm">
+        <span className="text-muted-foreground">{copy.satisfaction.label}: </span>
+        {satisfaction && satisfaction.averageRating !== null
+          ? copy.satisfaction.value(satisfaction.averageRating, satisfaction.responses)
+          : copy.satisfaction.none}
       </p>
 
       <Figure

@@ -29,7 +29,7 @@ interface VolumeTrendRow {
 }
 
 async function loadTargetValues(openIncidents: number): Promise<ServiceTargetValues> {
-  const [delivery, runs, devices] = await Promise.all([
+  const [delivery, runs, devices, satisfaction] = await Promise.all([
     loadOrError(() => apiFetch<{ total: number; sent: number }[]>("/platform/dashboard/notification-delivery-trend")),
     loadOrError(() =>
       apiFetch<{ sourceVisitCount: number | null; factVisitCount: number | null; status: string | null }[]>(
@@ -38,6 +38,9 @@ async function loadTargetValues(openIncidents: number): Promise<ServiceTargetVal
     ),
     loadOrError(() =>
       apiFetch<{ statusCode: string; count: number }[]>("/platform/dashboard/device-compliance-shares"),
+    ),
+    loadOrError(() =>
+      apiFetch<{ responses: number; averageRating: number | null }>("/platform/dashboard/satisfaction"),
     ),
   ]);
   const recentDelivery = (delivery.data ?? []).slice(-4);
@@ -54,6 +57,7 @@ async function loadTargetValues(openIncidents: number): Promise<ServiceTargetVal
       : null,
     openIncidents,
     deviceComplianceRate: deviceTotal > 0 ? approved / deviceTotal : null,
+    satisfaction: satisfaction.data ?? null,
   };
 }
 
@@ -128,10 +132,10 @@ export default async function OverviewPage() {
         </BcStatRow>
       </div>
 
-      <p className="mt-4 text-sm text-muted-foreground">
-        MTD visit volume: <span className="font-medium tabular-nums text-foreground">{kpis.mtdVisitVolume}</span>
+      <p className="mt-4 text-muted-foreground text-sm">
+        MTD visit volume: <span className="font-medium text-foreground tabular-nums">{kpis.mtdVisitVolume}</span>
         {" · "}
-        Active devices: <span className="font-medium tabular-nums text-foreground">{kpis.activeDeviceCount}</span>
+        Active devices: <span className="font-medium text-foreground tabular-nums">{kpis.activeDeviceCount}</span>
       </p>
 
       <div className="mt-6">
@@ -160,7 +164,7 @@ export default async function OverviewPage() {
       <div className="bc-panel mt-8">
         <div className="bc-panel-header">
           <p className="font-heading font-medium text-lg leading-none">Site density by region</p>
-          <p className="mt-1 text-muted-foreground text-sm font-normal">
+          <p className="mt-1 font-normal text-muted-foreground text-sm">
             Namibian administrative regions — hatched regions have no sites yet.
           </p>
         </div>

@@ -36,6 +36,7 @@ import { KioskExperienceService } from "../kiosk-experience/kiosk-experience.ser
 import { buildHostNotificationHtml } from "../notifications/host-notification-email";
 import { SiteBrandingService } from "../site-branding/site-branding.service";
 import { SiteQrReferencesService } from "../site-qr-references/site-qr-references.service";
+import { createSurveyToken } from "../visit-survey/survey-token";
 import { VisitorDataMinimisationService } from "../visitor-policy/visitor-data-minimisation.service";
 import { VisitorPolicyService } from "../visitor-policy/visitor-policy.service";
 import { VisitorWaitQueueService } from "../visitor-wait-queue/visitor-wait-queue.service";
@@ -759,11 +760,14 @@ export class VisitsService {
         siteName: validated.siteName,
         checkedOutAt: checkedOut.checkedOutAt?.toISOString() ?? new Date().toISOString(),
         confirmationCode: dto.visitId.replace(/-/g, "").slice(0, 8).toUpperCase(),
+        // Section 8.7: the optional satisfaction survey is offered on visitor
+        // sign-out only (never emergency sign-out, which is a staff action).
+        surveyToken: createSurveyToken(checkedOut.id, "qr"),
       };
     }
 
     const result = await this.signOutByPhone(validated.siteId, dto.visitorPhone, systemUser);
-    return { ...result, siteName: validated.siteName };
+    return { ...result, siteName: validated.siteName, surveyToken: createSurveyToken(result.visitId, "qr") };
   }
 
   async approveAccess(visitId: string, _reason: string | undefined, user: AuthenticatedUser) {

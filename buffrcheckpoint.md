@@ -2616,24 +2616,27 @@ Sentry and PostHog, and should start in report-only mode. Check after a deploy:
 for u in https://buffrcheckpoint.com https://admin.buffrcheckpoint.com/auth/login https://ops.buffrcheckpoint.com/login; do curl -sI "$u" | grep -iE "x-frame|content-security|x-content-type|referrer-policy|permissions-policy"; done
 ```
 
-#### Gaps identified from The Reserve Club PRD (2026-10-01)
+#### Gap closure: KPI, reporting and runbook commitments (v2026-10-01; framing corrected v2026-10-02)
 
-Read against `the-reserve-club/prd.md`. Reserve-specific material (member and
-operator apps, credit ledger, card issuing, WhatsApp-first messaging) does not
-apply. These engineering and operations items do:
+Engineering and operations items that this document already commits to (the
+§8.7 sign-out micro-survey, the §11.1b live roster, the §11.1c reporting table
+and runbook, the §11.8.10 launch gate) but that had no implementation at the
+1 October 2026 audit. Each is justified by a commitment in this document.
 
-| Item | Status | What it means for Checkpoint |
+| Item | Status | Closure evidence |
 |---|---|---|
-| CI pipeline | **Built** (2026-10-01) | `.github/workflows/ci.yml`: per app, typecheck, tests, build (blocking); gitleaks secrets scan (blocking); Biome lint and `npm audit` reporting only until existing lint findings are cleared. SAST not yet added |
-| Integration health panel | **Built** (2026-10-01) | `GET /platform/integrations/health`; ops overview panel. Live probes (5 s timeout, never throws): database, document storage, Resend, notification outbox (24 h), analytics ETL freshness, CiMSO sync runs (24 h), Adumo gateway. Latency is per check, not p95 |
-| Scheduled reports | Not started | Daily ops summary email; monthly PDF for site managers and the board |
-| More exports | **Built** (2026-10-01) | Audit log CSV/XLSX (`GET /audit/events/export`, admin Audit Log page, verified email required, includes hash chain columns); payment register CSV/XLSX for ops (`GET /platform/billing/payments/export`, ops Billing page). Both audited |
-| Visitor feedback | Not started | Post-visit micro-survey so the ≥4/5 satisfaction target can be measured |
-| KPI targets in context | **Built** (2026-10-01) | Ops overview "Service levels against targets": notification delivery (≥98%, last 4 weeks), ETL reconciliation (difference 0), open incidents (0), devices approved (100%). Targets in `ops-console/src/lib/targets.ts`; "no data" is never shown as met |
-| Live anomaly rules | Not started | Alerts for suspicious check-in patterns (same phone repeatedly, after-hours restricted zones), fed by the roster stream |
-| Notification matrix | **Done** (2026-10-01) | Below |
-| Deploy and monitoring runbook | **Done** (2026-10-01); uptime monitor still to set up | Below |
-| Decision log (ADRs) | **Done** (2026-10-01) | Below |
+| CI pipeline | **Built** (2026-10-01) | `.github/workflows/ci.yml`: per app, typecheck (with `next typegen` for the Next.js apps), tests, build (blocking); gitleaks secrets scan (blocking); Biome lint and `npm audit` reporting only until the existing lint findings are cleared. SAST not yet added |
+| Integration health panel | **Built** (2026-10-01; extended 2026-10-02) | `GET /platform/integrations/health`; ops overview panel. Live probes (5 s timeout, never throws): database, document storage, Resend, notification outbox (24 h), analytics ETL freshness, CiMSO sync runs (24 h), Adumo gateway, invoice bank details, anomaly alerts (24 h count), scheduled report runs (7 days). Latency is per check, not p95 |
+| Exports (CSV and XLSX) | **Built** (2026-10-01) | Audit log (`GET /audit/events/export`, verified email required, hash-chain columns); payment register for ops (`GET /platform/billing/payments/export`); roster (`GET /visits/roster/export?format=xlsx`); analytics (`GET /analytics/export.xlsx`). All audit-logged through one helper with the formula-injection guard (D-13) |
+| KPI targets in context | **Built** (2026-10-01; satisfaction row 2026-10-02) | Ops overview "Service levels against targets": notification delivery (≥98%, 4 weeks), ETL reconciliation (difference 0), open incidents (0), devices approved (100%), visitor satisfaction (average ≥ 4.0 of 5 over 28 days, needs 10 ratings). Targets in `ops-console/src/lib/targets.ts`; "no data" is never shown as met |
+| Health check for uptime monitors | **Built** (2026-10-02) | `GET /health` now probes the database (3 s) and returns 503 `{status: "degraded", database: "down"}` when it fails, so a monitor cannot see 200 during a database outage |
+| Ops console Sentry | **Built** (2026-10-01; tenant scrubbing 2026-10-02) | Same setup as admin, stricter: no Session Replay, no local variables, and the scrubber also redacts organisation names, amounts, KYB, bank and support-session fields. DSN set on the Vercel ops project (`SENTRY_ENVIRONMENT=production-ops`) |
+| Visitor satisfaction micro-survey (§8.7) | **Built** (2026-10-02), migration `0044` | See below |
+| Live anomaly alerts (§11.1b) | **Built** (2026-10-02), migration `0045` | See below |
+| Scheduled reports (§11.1c reporting) | **Built** (2026-10-02), migration `0046` | See below |
+| Notification matrix, runbook, decision log | **Done** (2026-10-01; updated 2026-10-02) | Below |
+| Uptime monitor | Open: needs an account | Better Stack or UptimeRobot, see the runbook below. No code needed |
+| Authenticated walkthrough | Open | Checklist below |
 
 **Invoice bank details (2026-10-01).** If `BILLING_BANK_ACCOUNT_NUMBER` or
 `BILLING_BANK_BRANCH_CODE` is missing, the API logs an error at startup and
@@ -2646,10 +2649,113 @@ confirmation letter (29 August 2025): Bank Windhoek, Ongwediva branch,
 Buffr Financial Services CC, branch code 485-673, registration CC/2024/09322.
 The API started without the missing-details error.
 
-Still open from this list: scheduled reports, visitor feedback and live anomaly
-rules. Visitor feedback needs a new table (and its status log), which is a
-schema decision for George under the Wiebe rules; anomaly rules need agreed
-thresholds per site; scheduled reports need the recipients and format agreed.
+**Schema sign-off.** George approved the three schemas below on 1 October
+2026 ("approve all three") and the full scope on 2 October 2026, as CLAUDE.md
+§2 requires for new tables. Each migration was applied twice to a Neon branch
+of production (idempotent) before production.
+
+##### Visitor satisfaction micro-survey (migration `0044_visit_survey.sql`)
+
+The commitment: §8.7 "Optional short satisfaction micro-survey is offered".
+The target, adopted on 2 October 2026: average rating of at least 4.0 out of 5
+over 28 days, judged only once there are 10 or more ratings.
+
+- Tables: `visit_survey_responses` (rating as a `satisfaction_rating` type
+  code whose `sort_order` is the score 1-5; `survey_response_status`;
+  `capture_channel`), `visit_survey_response_status_events` (append-only),
+  and `visit_survey_daily_fact` (PII-free rollup).
+- One response per visit (unique on organisation and visit); a repeat submit
+  is accepted and ignored.
+- Offered only at visitor sign-out: web `/check-out` and the kiosk sign-out
+  screen (skip button, returns to the welcome screen after 20 s). Never at
+  check-in and never on emergency sign-out, which is a staff action.
+- Proof of the visit: the sign-out response carries a signed survey token
+  (HMAC with the server pepper, 24 h, records the channel). No table, no
+  visitor data. Forged or expired tokens get 401.
+- Rating only. No free-text comment in v1: a public free-text box collects
+  names and health details outside the encrypted envelope. A comment, if
+  ever added, goes through the protected personal-data envelope in its own
+  additive migration with a per-site switch that defaults to off.
+- Reporting: the analytics ETL rolls ratings into `visit_survey_daily_fact`
+  by the site's local date and reconciles raw responses against the rollup on
+  every run (a mismatch fails the run). Customers see it on the admin
+  Analytics page (`GET /analytics/satisfaction`); ops sees the platform-wide
+  average only (`GET /platform/dashboard/satisfaction`).
+- Retention: the response holds no personal data, so it stays when the visit
+  is disposed.
+
+##### Live anomaly alerts (migration `0045_anomaly_rules.sql`)
+
+The commitment: the §11.1b live roster, "alerts for suspicious check-in
+patterns (same phone repeatedly, after-hours restricted zones)". Two rules,
+evaluated in the API on every check-in from the `visit.roster_changed` signal:
+
+| Rule | Fires when | Default | Per-site override |
+|---|---|---|---|
+| `repeat_phone_window` | The same phone (lookup HMAC) checks in N times within M minutes at one site | N = 3, M = 30 | Yes |
+| `after_hours_restricted_zone` | A check-in to a zone at risk tier 3 (sensitive) or above happens outside the site's visitor hours | Hours 07:00-18:00 site-local, any one check-in | Yes, including the hours |
+
+- `site_anomaly_rule_configurations` holds overrides; a site with no row uses
+  the defaults, so no site is unmonitored. `anomaly_alert_events` is
+  append-only and holds references only (rule, site, visit id, lookup HMAC,
+  non-personal context such as the local time and zone tier).
+- One alert per subject per window: further check-ins inside the same window
+  do not raise more alerts.
+- Alerts never block, delay or deny a visitor (§7.2 guardrail), and a rule
+  failure is logged without affecting the check-in.
+- Where alerts go: the admin **Anomaly Alerts** page for the organisation's
+  own staff (site-scoped users see their site only), with the per-site rule
+  settings (`site.configure` permission). Not email: a live signal belongs on
+  a screen the desk watches. Buffr ops sees only a platform-wide 24-hour count
+  in integration health, because the customer's staff are the ones who act.
+- API: `GET /anomaly-alerts`, `GET /sites/:siteId/anomaly-rules`,
+  `PUT /sites/:siteId/anomaly-rules/:ruleCode` (audited).
+
+##### Scheduled reports (migration `0046_scheduled_reports.sql`)
+
+| Report | Recipients | Format | When (Africa/Windhoek) |
+|---|---|---|---|
+| Ops daily summary | The ops inbox (`CONTACT_OPS_EMAIL`) | Email body plus CSV of every integration check | Daily from 07:00 |
+| Site manager weekly digest | Verified users holding `owner_operator` or `site_manager` (default) | PDF attachment | Mondays from 07:00, covering the previous Monday to Sunday |
+| Board and compliance monthly pack | Verified users holding `owner_operator` or `compliance_audit_officer` (default) | PDF attachment, adds audit and retention figures | 1st of the month from 07:00, covering the previous month |
+
+- Each organisation can switch a report off or change the recipient roles on
+  the admin **Scheduled Reports** page (`membership.manage` permission).
+  Recipients are roles resolved to verified users of the same organisation at
+  send time: never visitors or hosts, never typed-in addresses.
+- Content is totals only from the fact tables and counts: check-ins by site,
+  offline captures, open visits, host-notification delivery, satisfaction,
+  anomaly alerts, and (monthly) audit events and retention runs.
+- `scheduled_report_run` (with its status log) claims each report, organisation
+  and period once, so a restart or a second instance never sends twice. An
+  organisation with no verified recipients is recorded as `skipped` with the
+  reason.
+- Delivery goes through the notification outbox (retry, backoff, status
+  events). The worker is opt-in: `SCHEDULED_REPORTS_ENABLED=true`.
+
+Verified on a Neon branch of production (2 October 2026): both anomaly rules
+fired once each and not again on re-evaluation; survey submit recorded, the
+repeat was ignored and a forged token got 401; the ETL reconciled 18 of 18
+visits and the survey rollup; the Monday and 1st-of-month ticks sent the ops
+summary, 7 weekly digests and 7 monthly packs, skipped 4 organisations with no
+verified recipients, and a second tick in the same period sent nothing.
+
+##### Authenticated verification pass (open)
+
+Code that builds is not the same as screens that work. Run as a real user,
+signed in:
+
+- Ops: Overview (integration health shows no false "down"; Adumo reads "not
+  configured"; service levels), Analytics (ETL runs, arrival statistics with
+  suppression), Billing (payment register CSV and Excel).
+- Admin: Audit Log (CSV and Excel; hash columns present; a cell starting
+  with `=` is neutralised), Analytics (satisfaction line), Anomaly Alerts
+  (list and rule save), Scheduled Reports (toggle and roles), an invoice
+  detail page (bank details and reference).
+- Negative checks: a site-scoped user cannot see another site's alerts or
+  exports; an unverified account gets 403 on exports.
+- Website: `/check-out` shows the rating after sign-out. Kiosk: sign-out shows
+  the rating, Skip works, and it returns on its own after 20 s.
 
 #### Notification matrix (v2026-10-01)
 
@@ -2687,6 +2793,12 @@ misses an arrival is the escalation rule, not another channel.
 | Ops staff invited | `platform_staff_invitation` | New staff member | Email | `platform-staff/platform-staff.service.ts` |
 | Website enquiry | `ops_contact_enquiry` | Ops | Email | `contact/contact.service.ts` |
 | Website enquiry | `ops_contact_ack` | Enquirer | Email | `contact/contact.service.ts` |
+| Daily, 07:00 Windhoek | `scheduled_ops_daily_summary` | Ops inbox | Email (CSV attached) | `scheduled-reports/scheduled-reports.service.ts` |
+| Mondays, 07:00 Windhoek | `scheduled_site_manager_digest` | Organisation roles chosen on the Scheduled Reports page | Email (PDF attached) | `scheduled-reports/scheduled-reports.service.ts` |
+| 1st of the month, 07:00 Windhoek | `scheduled_board_compliance_monthly` | Organisation roles chosen on the Scheduled Reports page | Email (PDF attached) | `scheduled-reports/scheduled-reports.service.ts` |
+
+Anomaly alerts are deliberately not emailed: they appear on the admin Anomaly
+Alerts page, and ops sees a 24-hour count in integration health.
 
 #### Deploy, rollback and monitoring runbook (v2026-10-01)
 
@@ -2710,6 +2822,16 @@ for u in https://buffrcheckpoint.com https://admin.buffrcheckpoint.com/auth/logi
 Then open the ops overview: integration health should show nothing down, and
 the service level panel shows any target missed.
 
+Uptime monitor (to set up in Better Stack or UptimeRobot, 1-minute interval,
+alert after 2 consecutive failures, to email plus SMS or WhatsApp):
+
+| Check | URL | Expect |
+|---|---|---|
+| API | `https://api.buffrcheckpoint.com/health` | 200 and body contains `"database":"ok"` (503 means the database is down) |
+| Website | `https://buffrcheckpoint.com` | 200 |
+| Admin | `https://admin.buffrcheckpoint.com/auth/login` | 200 |
+| Ops console | `https://ops.buffrcheckpoint.com/login` | 200 |
+
 Monitoring today: Sentry on the API, website, admin and ops console
 (`SENTRY_DSN`, `NEXT_PUBLIC_SENTRY_DSN`). The ops console is stricter than
 admin because it shows data across organisations: no Session Replay, no local
@@ -2724,7 +2846,8 @@ Environment variables are set per platform, never committed. The API's
 variables live in Railway; each web app's in its Vercel project. Optional
 features stay off until their variables are set: card payments
 (`ADUMO_MERCHANT_ID`, `ADUMO_APPLICATION_ID`, `ADUMO_JWT_SECRET`), retention
-disposition (`RETENTION_DISPOSITION_ENABLED`), CiMSO (`CIMSO_*`), form AI
+disposition (`RETENTION_DISPOSITION_ENABLED`), scheduled reports
+(`SCHEDULED_REPORTS_ENABLED`), CiMSO (`CIMSO_*`), form AI
 (`FORM_AI_ENABLED`, `NEON_AI_GATEWAY_*`), telecom webhooks
 (`TELECOM_WEBHOOK_SECRET`).
 
@@ -2748,6 +2871,10 @@ edit.
 | D-11 | Live roster push uses an in-process event stream (one API instance) | Simple until there is more than one instance; then move to a shared bus |
 | D-12 | Baseline security headers on every web app; a full script CSP comes later, in report-only mode first | Protection now without breaking Next.js or third-party scripts |
 | D-13 | Every export (CSV or XLSX) goes through one helper and is audit-logged | Formula injection is handled once; every download leaves a record |
+| D-14 | The satisfaction survey is rating-only, offered only at visitor sign-out, proven by a signed token | No free text means no personal data outside the envelope; no table needed to prove the visit |
+| D-15 | Anomaly rules alert people and never block a visitor; alerts go to the customer's admin, not to Buffr ops or email | §7.2 forbids automated denial; the customer's staff act on alerts |
+| D-16 | Scheduled reports go only to verified users of the same organisation, chosen by role | No visitor data and no typed-in address can become a data-egress path |
+| D-17 | Every scheduled job claims its period in a run table before sending | A restart or a second instance never sends the same report twice |
 
 ## 11.2 Recommended stack
 

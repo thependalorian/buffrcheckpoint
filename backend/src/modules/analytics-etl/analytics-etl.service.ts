@@ -195,11 +195,18 @@ export class AnalyticsEtlService {
       });
 
       const rowsWritten = await this.load(runId, windowFrom, windowTo);
-      const { sourceVisitCount, factVisitCount } = await this.reconcile(windowFrom, windowTo);
-      const matches = sourceVisitCount === factVisitCount;
+      const { sourceVisitCount, factVisitCount, feedbackSourceCount, feedbackFactCount } = await this.reconcile(
+        windowFrom,
+        windowTo,
+      );
+      const visitsMatch = sourceVisitCount === factVisitCount;
+      const feedbackMatches = feedbackSourceCount === feedbackFactCount;
+      const matches = visitsMatch && feedbackMatches;
       const errorMessage = matches
         ? null
-        : `Reconciliation failed: ${sourceVisitCount} source visits vs ${factVisitCount} in visit_daily_fact for ${windowFrom} to ${windowTo}`;
+        : visitsMatch
+          ? `Reconciliation failed: ${feedbackSourceCount} survey responses vs ${feedbackFactCount} in visit_survey_daily_fact for ${windowFrom} to ${windowTo}`
+          : `Reconciliation failed: ${sourceVisitCount} source visits vs ${factVisitCount} in visit_daily_fact for ${windowFrom} to ${windowTo}`;
 
       await this.finish(runId, runningCode, matches ? succeededCode : failedCode, {
         rowsWritten,
@@ -278,7 +285,7 @@ export class AnalyticsEtlService {
     const utcFrom = addDays(windowFrom, -1);
     const utcTo = addDays(windowTo, 2);
 
-    const [, daily, , hourly] = await this.db.batch([
+    const [, daily, , hourly, , feedback] = await this.db.batch([
       this.db.execute(sql`
         UPDATE visit_daily_fact
         SET check_in_count = 0, check_out_count = 0, offline_captured_count = 0,
@@ -349,9 +356,40 @@ export class AnalyticsEtlService {
           etl_run_id = EXCLUDED.etl_run_id,
           computed_at = EXCLUDED.computed_at
       `),
+      // Visitor survey ratings by the site's local date of submission (0044).
+      this.db.execute(sql`
+        UPDATE visit_survey_daily_fact
+        SET response_count = 0, rating_total = 0, satisfied_count = 0, etl_run_id = ${runId}, computed_at = NOW()
+        WHERE local_date BETWEEN ${windowFrom}::date AND ${windowTo}::date
+      `),
+      this.db.execute(sql`
+        INSERT INTO visit_survey_daily_fact (
+          id, organisation_id, site_id, local_date, response_count, rating_total, satisfied_count, etl_run_id, computed_at
+        )
+        SELECT
+          gen_random_uuid(), f.organisation_id, f.site_id,
+          (f.submitted_at AT TIME ZONE s.timezone)::date,
+          count(*)::int, sum(r.sort_order)::int, count(*) FILTER (WHERE r.sort_order >= 4)::int,
+          ${runId}, NOW()
+        FROM visit_survey_responses f
+        JOIN sites s ON s.id = f.site_id
+        JOIN type_definition r ON r.id = f.rating_code
+        WHERE f.deleted_at IS NULL
+          AND f.submitted_at >= ${utcFrom}::date
+          AND f.submitted_at < ${utcTo}::date
+          AND (f.submitted_at AT TIME ZONE s.timezone)::date BETWEEN ${windowFrom}::date AND ${windowTo}::date
+        GROUP BY f.organisation_id, f.site_id, (f.submitted_at AT TIME ZONE s.timezone)::date
+        ON CONFLICT (organisation_id, site_id, local_date)
+        DO UPDATE SET
+          response_count = EXCLUDED.response_count,
+          rating_total = EXCLUDED.rating_total,
+          satisfied_count = EXCLUDED.satisfied_count,
+          etl_run_id = EXCLUDED.etl_run_id,
+          computed_at = EXCLUDED.computed_at
+      `),
     ]);
 
-    return (daily.rowCount ?? 0) + (hourly.rowCount ?? 0);
+    return (daily.rowCount ?? 0) + (hourly.rowCount ?? 0) + (feedback.rowCount ?? 0);
   }
 
   private async reconcile(windowFrom: string, windowTo: string) {
@@ -366,9 +404,29 @@ export class AnalyticsEtlService {
         (SELECT COALESCE(sum(check_in_count), 0)::int
            FROM visit_daily_fact
           WHERE local_date BETWEEN ${windowFrom}::date AND ${windowTo}::date
-        ) AS fact_count
+        ) AS fact_count,
+        (SELECT count(*)::int
+           FROM visit_survey_responses f
+           JOIN sites s ON s.id = f.site_id
+          WHERE f.deleted_at IS NULL
+            AND (f.submitted_at AT TIME ZONE s.timezone)::date BETWEEN ${windowFrom}::date AND ${windowTo}::date
+        ) AS feedback_source_count,
+        (SELECT COALESCE(sum(response_count), 0)::int
+           FROM visit_survey_daily_fact
+          WHERE local_date BETWEEN ${windowFrom}::date AND ${windowTo}::date
+        ) AS feedback_fact_count
     `);
-    const row = result.rows[0] as { source_count: number; fact_count: number };
-    return { sourceVisitCount: Number(row.source_count), factVisitCount: Number(row.fact_count) };
+    const row = result.rows[0] as {
+      source_count: number;
+      fact_count: number;
+      feedback_source_count: number;
+      feedback_fact_count: number;
+    };
+    return {
+      sourceVisitCount: Number(row.source_count),
+      factVisitCount: Number(row.fact_count),
+      feedbackSourceCount: Number(row.feedback_source_count),
+      feedbackFactCount: Number(row.feedback_fact_count),
+    };
   }
 }

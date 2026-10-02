@@ -29,7 +29,7 @@ describe("AppController (e2e)", () => {
     return request(app.getHttpServer())
       .get("/health")
       .expect(200)
-      .expect({ status: "ok", service: "buffrcheckpoint-backend" });
+      .expect({ status: "ok", service: "buffrcheckpoint-backend", database: "ok" });
   });
 
   it("a protected route without a token is rejected", () => {

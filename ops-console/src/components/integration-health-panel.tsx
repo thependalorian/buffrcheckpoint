@@ -12,6 +12,12 @@ const STATUS_TEXT: Record<IntegrationHealthRow["status"], string> = {
   not_configured: "Not configured",
 };
 
+function healthSummary(total: number, problems: number): string {
+  if (total === 0) return "Health check unavailable.";
+  if (problems === 0) return "No integration is down or degraded.";
+  return `${problems} ${problems === 1 ? "integration needs" : "integrations need"} attention.`;
+}
+
 /** Live status of every external dependency, probed when the page loads. */
 export function IntegrationHealthPanel({
   rows,
@@ -26,11 +32,7 @@ export function IntegrationHealthPanel({
       <div className="bc-panel-header">
         <p className="font-heading font-medium text-lg leading-none">Integration health</p>
         <p className="mt-1 font-normal text-muted-foreground text-sm">
-          {rows.length === 0
-            ? "Health check unavailable."
-            : problems === 0
-              ? "No integration is down or degraded."
-              : `${problems} integration${problems === 1 ? "" : "s"} need attention.`}
+          {healthSummary(rows.length, problems)}
           {checkedAt ? ` Checked ${new Date(checkedAt).toLocaleTimeString()}.` : ""}
         </p>
       </div>

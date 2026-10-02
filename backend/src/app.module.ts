@@ -16,6 +16,7 @@ import { AccessPoliciesModule } from "./modules/access-policies/access-policies.
 import { AccessReviewsModule } from "./modules/access-reviews/access-reviews.module";
 import { AnalyticsModule } from "./modules/analytics/analytics.module";
 import { AnalyticsEtlModule } from "./modules/analytics-etl/analytics-etl.module";
+import { AnomalyRulesModule } from "./modules/anomaly-rules/anomaly-rules.module";
 import { AuditModule } from "./modules/audit/audit.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { JwtAuthGuard } from "./modules/auth/guards/jwt-auth.guard";
@@ -54,6 +55,7 @@ import { RegionsModule } from "./modules/regions/regions.module";
 import { RetentionDispositionModule } from "./modules/retention-disposition/retention-disposition.module";
 import { RetentionPolicyModule } from "./modules/retention-policy/retention-policy.module";
 import { ScheduleModule } from "./modules/schedule/schedule.module";
+import { ScheduledReportsModule } from "./modules/scheduled-reports/scheduled-reports.module";
 import { SecurityZonesModule } from "./modules/security-zones/security-zones.module";
 import { SiteBrandingModule } from "./modules/site-branding/site-branding.module";
 import { SiteQrReferencesModule } from "./modules/site-qr-references/site-qr-references.module";
@@ -61,6 +63,7 @@ import { SitesModule } from "./modules/sites/sites.module";
 import { SupportSessionsModule } from "./modules/support-sessions/support-sessions.module";
 import { SupportTicketsModule } from "./modules/support-tickets/support-tickets.module";
 import { TypeDefinitionsModule } from "./modules/type-definitions/type-definitions.module";
+import { VisitSurveyModule } from "./modules/visit-survey/visit-survey.module";
 import { VisitorPolicyModule } from "./modules/visitor-policy/visitor-policy.module";
 import { VisitorWaitQueueModule } from "./modules/visitor-wait-queue/visitor-wait-queue.module";
 import { VisitorsModule } from "./modules/visitors/visitors.module";
@@ -115,6 +118,9 @@ import { VisitsModule } from "./modules/visits/visits.module";
     AnalyticsModule,
     AnalyticsEtlModule,
     IntegrationHealthModule,
+    VisitSurveyModule,
+    AnomalyRulesModule,
+    ScheduledReportsModule,
     SiteBrandingModule,
     KioskExperienceModule,
     SiteQrReferencesModule,

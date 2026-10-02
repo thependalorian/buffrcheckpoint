@@ -46,6 +46,12 @@ export const analyticsCopy = {
     noPrevious: "No previous period to compare",
     none: "Not enough data",
   },
+  satisfaction: {
+    label: "Visitor satisfaction, last 28 days",
+    value: (average: number, responses: number) =>
+      `${average.toFixed(1)} out of 5 from ${responses} ${responses === 1 ? "rating" : "ratings"} (target 4.0 or higher)`,
+    none: "No ratings yet. Visitors are asked for an optional rating when they sign out.",
+  },
   trend: {
     question: "How many arrivals should the desk plan for?",
     finding: (total: number, busiest: string | null) =>

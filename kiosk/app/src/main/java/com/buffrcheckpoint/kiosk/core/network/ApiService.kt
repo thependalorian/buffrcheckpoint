@@ -20,6 +20,9 @@ import com.buffrcheckpoint.kiosk.core.network.dto.ValidateCredentialResponse
 import com.buffrcheckpoint.kiosk.core.network.dto.EffectiveCheckInFormDto
 import com.buffrcheckpoint.kiosk.core.network.dto.SignOutByPhoneRequest
 import com.buffrcheckpoint.kiosk.core.network.dto.SignOutByPhoneResponse
+import com.buffrcheckpoint.kiosk.core.network.dto.SurveyOptionDto
+import com.buffrcheckpoint.kiosk.core.network.dto.SurveySubmitRequest
+import com.buffrcheckpoint.kiosk.core.network.dto.SurveySubmitResponse
 import com.buffrcheckpoint.kiosk.core.network.dto.VisitResponse
 import com.buffrcheckpoint.kiosk.core.network.dto.VisitRosterRowDto
 import retrofit2.http.Body
@@ -50,6 +53,12 @@ interface ApiService {
 
     @POST("visits/sign-out-by-phone")
     suspend fun signOutByPhone(@Body request: SignOutByPhoneRequest): SignOutByPhoneResponse
+
+    @GET("public/visit-survey/options")
+    suspend fun surveyOptions(): List<SurveyOptionDto>
+
+    @POST("public/visit-survey")
+    suspend fun submitSurvey(@Body request: SurveySubmitRequest): SurveySubmitResponse
 
     @GET("visitor-policy/forms/effective")
     suspend fun effectiveCheckInForm(

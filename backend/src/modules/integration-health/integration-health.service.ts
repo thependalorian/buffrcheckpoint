@@ -55,6 +55,8 @@ export class IntegrationHealthService {
       this.cimso(),
       this.cardPayments(),
       Promise.resolve(this.invoiceBankDetails()),
+      this.anomalyAlerts(),
+      this.scheduledReports(),
     ]);
     return { checkedAt: new Date().toISOString(), integrations };
   }
@@ -201,6 +203,45 @@ export class IntegrationHealthService {
       latencyMs: null,
       detail: `${total} sync runs in 24 hours, ${failedRuns} failed`,
     };
+  }
+
+  // Count only, platform-wide: the alerts themselves belong to each
+  // organisation's admin Anomalies page.
+  private async anomalyAlerts(): Promise<IntegrationHealth> {
+    const name = "Anomaly alerts (24 h)";
+    try {
+      const result = await this.db.execute(
+        sql`SELECT count(*)::int AS n FROM anomaly_alert_events WHERE occurred_at >= NOW() - INTERVAL '24 hours'`,
+      );
+      const total = Number((result.rows[0] as { n: number }).n);
+      return { name, status: "healthy", latencyMs: null, detail: `${total} raised across all sites` };
+    } catch (error) {
+      return { name, status: "degraded", latencyMs: null, detail: message(error) };
+    }
+  }
+
+  private async scheduledReports(): Promise<IntegrationHealth> {
+    const name = "Scheduled reports";
+    if (process.env.SCHEDULED_REPORTS_ENABLED !== "true") {
+      return { name, status: "not_configured", latencyMs: null, detail: "SCHEDULED_REPORTS_ENABLED is not true" };
+    }
+    try {
+      const result = await this.db.execute(sql`
+        SELECT count(*) FILTER (WHERE t.code = 'failed')::int AS failed, count(*)::int AS total
+          FROM scheduled_report_run r JOIN type_definition t ON t.id = r.status_code
+         WHERE r.started_at >= NOW() - INTERVAL '7 days'
+      `);
+      const row = result.rows[0] as { failed: number; total: number };
+      const failed = Number(row.failed);
+      return {
+        name,
+        status: failed > 0 ? "degraded" : "healthy",
+        latencyMs: null,
+        detail: `${Number(row.total)} runs in 7 days, ${failed} failed`,
+      };
+    } catch (error) {
+      return { name, status: "degraded", latencyMs: null, detail: message(error) };
+    }
   }
 
   private invoiceBankDetails(): IntegrationHealth {

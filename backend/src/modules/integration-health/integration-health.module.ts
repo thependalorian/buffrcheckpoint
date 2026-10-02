@@ -6,5 +6,6 @@ import { IntegrationHealthService } from "./integration-health.service";
 @Module({
   controllers: [IntegrationHealthController],
   providers: [IntegrationHealthService],
+  exports: [IntegrationHealthService],
 })
 export class IntegrationHealthModule {}
