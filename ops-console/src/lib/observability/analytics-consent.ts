@@ -10,10 +10,7 @@ export function readAnalyticsConsent(storage?: Pick<Storage, "getItem">): Analyt
   return null;
 }
 
-export function writeAnalyticsConsent(
-  value: AnalyticsConsent,
-  storage?: Pick<Storage, "setItem">,
-): void {
+export function writeAnalyticsConsent(value: AnalyticsConsent, storage?: Pick<Storage, "setItem">): void {
   const store = storage ?? (typeof window !== "undefined" ? window.localStorage : undefined);
   if (!store) return;
   store.setItem(ANALYTICS_CONSENT_KEY, value);

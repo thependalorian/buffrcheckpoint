@@ -1,18 +1,14 @@
 package com.buffrcheckpoint.kiosk.checkout.ui
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -40,41 +36,13 @@ fun VisitorSignOutScreen(
             delay(SURVEY_AUTO_RETURN_MS)
             onDone()
         }
-        Column(modifier = Modifier.fillMaxSize().padding(24.dp)) {
-            state.successMessage?.let {
-                Text(it, style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.primary)
-            }
-            Text(
-                "How was your visit today?",
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(top = 24.dp),
-            )
-            Text(
-                "Optional. One tap, no personal details.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 4.dp),
-            )
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier.padding(top = 20.dp),
-            ) {
-                state.surveyOptions.forEach { option ->
-                    OutlinedButton(
-                        onClick = { viewModel.submitRating(option.code, onDone) },
-                        enabled = !state.surveySubmitting,
-                    ) {
-                        Column {
-                            Text(option.score.toString(), style = MaterialTheme.typography.titleLarge)
-                            Text(option.label, style = MaterialTheme.typography.labelSmall)
-                        }
-                    }
-                }
-            }
-            TextButton(onClick = onDone, modifier = Modifier.padding(top = 20.dp)) {
-                Text("Skip")
-            }
-        }
+        VisitSurveyPrompt(
+            successMessage = state.successMessage,
+            options = state.surveyOptions,
+            submitting = state.surveySubmitting,
+            onRate = { code -> viewModel.submitRating(code, onDone) },
+            onSkip = onDone,
+        )
         return
     }
 

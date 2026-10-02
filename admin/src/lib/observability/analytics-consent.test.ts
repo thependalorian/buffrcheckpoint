@@ -1,6 +1,6 @@
-import { hasAcceptedAnalyticsConsent, readAnalyticsConsent, writeAnalyticsConsent } from "./analytics-consent";
-
 import { describe, expect, it } from "vitest";
+
+import { hasAcceptedAnalyticsConsent, readAnalyticsConsent, writeAnalyticsConsent } from "./analytics-consent";
 
 describe("analytics consent storage", () => {
   it("reads and writes accepted/declined without other values", () => {

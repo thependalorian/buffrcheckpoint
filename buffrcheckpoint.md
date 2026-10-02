@@ -2579,6 +2579,15 @@ Output must be empty apart from permitted test fixtures.
 | XLSX export | **Built** (2026-10-01) | Roster and analytics, same audit actions as CSV |
 | Live dashboard push (WebSocket/SSE) | **Built** (2026-10-01) | `GET /visits/roster/stream` (ids only, tenant-filtered) drives Front Desk and Emergency refresh; in-process emitter, single instance only |
 | Web security headers | **Built and deployed** (2026-10-01); verified on all three live sites | See "Security headers" below |
+| Index integrity audit (post-0008 rename) | **Built** (2026-10-02) | Migration `0047_index_integrity.sql`. Verified by replaying all migrations into an empty Postgres and diffing against production: 333 of 333 indexes, 1,140 of 1,140 columns and 527 of 527 constraints identical; 0 triggers, 0 cascades, 0 CHECK constraints. CI now replays every migration on each push |
+| Migration replay from scratch | **Fixed** (2026-10-02) | `0009_canonical_rename_cleanup.sql` dropped `visit_invitation` before `visit`, which references it, so a fresh environment could not be built. Drop order corrected; end state identical |
+| Reserved-email-domain guard on scheduled reports | **Built** (2026-10-02) | `scheduled-reports.service.ts`; RFC 2606/6761 names (`*.test`, `example.com` and similar) skipped; unit-tested |
+| Tenant-with-real-domain audit | **Done** (2026-10-02) | Report recipients come only from `application_users`. All 11 production organisations are test organisations; their user domains are `buffranalytics.com` (Buffr's own), reserved test domains, or `testbank.na` (both Test Bank Namibia organisations have reports switched off). No customer domain is involved yet. Rerun before each new demo account: `SELECT o.id, coalesce(o.trading_name, o.legal_name), string_agg(DISTINCT split_part(lower(u.email), '@', 2), ',') FROM organisations o JOIN application_users u ON u.organisation_id = o.id AND u.deleted_at IS NULL WHERE o.deleted_at IS NULL GROUP BY 1, 2;` |
+| Soft-delete shadowing guard | **Built** (2026-10-02) | `src/common/guards-static/soft-delete-lookups.spec.ts` fails the build when a business-key `findFirst` on a soft-deletable table ignores `deleted_at`. Two deliberate exceptions are listed with reasons (staff reinstatement; registration, where the email unique index spans deleted rows). Proven by removing the credential fix: the test failed, then passed when restored |
+| Anomaly alert review (acknowledge, dismiss, reopen) | **Built** (2026-10-02) | Migration `0048_anomaly_alert_review.sql`; see the anomaly section below |
+| Ops Sentry tenant scrubbing, verified | **Built** (2026-10-02) | `ops-console/src/lib/observability/scrub-pii.test.ts` sends a fake organisation name, amount, KYB reference, session id, invoice number and MRR through every event field and asserts none survive. The scrubber now covers extra, contexts, tags, request data and breadcrumb data (admin too) |
+| First scheduled report delivered | **Confirmed** (2026-10-02) | Ops daily summary run `succeeded` at 07:01:59 Windhoek; outbox row `pending > sent` at 07:02:03 |
+| Kiosk survey on emulator | **Verified** (2026-10-02) | Unit tests (4) for the sign-out view model; Compose UI tests (2) on the Pixel Tablet emulator (Android 15): all five ratings render, a tap reports the code, Skip finishes. Ships with the next scheduled kiosk build |
 
 **Production database state (1 October 2026).** Migrations `0041_analytics_etl`,
 `0042_card_payments` and `0043_retention_disposition` are applied to the
@@ -2672,8 +2681,8 @@ and runbook, the §11.8.10 launch gate) but that had no implementation at the
 | Live anomaly alerts (§11.1b) | **Built and deployed** (2026-10-02), migration `0045` | See below |
 | Scheduled reports (§11.1c reporting) | **Built and deployed** (2026-10-02), migration `0046`; worker on (`SCHEDULED_REPORTS_ENABLED=true`) | See below |
 | Notification matrix, runbook, decision log | **Done** (2026-10-01; updated 2026-10-02) | Below |
-| Uptime monitor | Open: needs an account | Better Stack or UptimeRobot, see the runbook below. No code needed |
-| Authenticated walkthrough | Open | Checklist below |
+| Uptime monitor | Open: George creating the Better Stack account | See the runbook below. No code needed |
+| Authenticated walkthrough | Open: waiting on sign-in | Checklist below. Nothing goes past pilot without it |
 
 **Invoice bank details (2026-10-01).** If `BILLING_BANK_ACCOUNT_NUMBER` or
 `BILLING_BANK_BRANCH_CODE` is missing, the API logs an error at startup and
@@ -2745,7 +2754,15 @@ evaluated in the API on every check-in from the `visit.roster_changed` signal:
   settings (`site.configure` permission). Not email: a live signal belongs on
   a screen the desk watches. Buffr ops sees only a platform-wide 24-hour count
   in integration health, because the customer's staff are the ones who act.
-- API: `GET /anomaly-alerts`, `GET /sites/:siteId/anomaly-rules`,
+- Review (migration `0048_anomaly_alert_review.sql`): staff acknowledge,
+  dismiss or reopen an alert. Alerts stay append-only, so each review is a new
+  row in `anomaly_alert_status_events` and the current state is the latest
+  row (none means open). The admin page lists open alerts by default with an
+  Open / All filter. Verified on a Neon branch: acknowledge and dismiss
+  removed both alerts from the open list, reopen restored one, an unknown
+  status got 400, another organisation 404 and another site 403.
+- API: `GET /anomaly-alerts?state=open|all`, `POST /anomaly-alerts/:id/review`
+  (audited), `GET /sites/:siteId/anomaly-rules`,
   `PUT /sites/:siteId/anomaly-rules/:ruleCode` (audited).
 
 ##### Scheduled reports (migration `0046_scheduled_reports.sql`)
@@ -2858,6 +2875,13 @@ for u in https://buffrcheckpoint.com https://admin.buffrcheckpoint.com/auth/logi
 
 Then open the ops overview: integration health should show nothing down, and
 the service level panel shows any target missed.
+
+**Health check semantics (2026-10-02):** `GET /health` returns
+`200 {"status":"ok","service":"buffrcheckpoint-backend","database":"ok"}` when
+the database responds within 3 seconds, and
+`503 {"status":"degraded","service":"buffrcheckpoint-backend","database":"down"}`
+when it does not. Uptime monitors must alert on any non-200. This closes the
+"200 with a dead database" failure mode.
 
 Uptime monitor (to set up in Better Stack or UptimeRobot, 1-minute interval,
 alert after 2 consecutive failures, to email plus SMS or WhatsApp):

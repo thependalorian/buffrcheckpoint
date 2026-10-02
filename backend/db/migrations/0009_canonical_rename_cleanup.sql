@@ -70,9 +70,12 @@ DROP TABLE form_template_version;
 DROP TABLE form_template;
 
 DROP TABLE visit_status_log;
+-- visit references visit_invitation, so it is dropped first (order corrected
+-- 2026-10-02: the original order failed on a from-scratch replay; the end
+-- state is identical).
+DROP TABLE visit;
 DROP TABLE visit_invitation_status_log;
 DROP TABLE visit_invitation;
-DROP TABLE visit;
 
 DROP TABLE visitor;
 

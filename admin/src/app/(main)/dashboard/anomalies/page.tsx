@@ -1,9 +1,12 @@
+import Link from "next/link";
+
 import { DashboardPageHeader } from "@/components/dashboard-page-header";
 import { DashboardErrorState } from "@/components/dashboard-state";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { api } from "@/lib/api/client";
 import { anomaliesCopy, describeAlert } from "@/lib/copy/anomalies";
 
+import { AlertReviewButtons } from "./_components/alert-review-buttons";
 import { type AnomalyRule, SiteRulesForm } from "./_components/site-rules-form";
 
 interface AlertRow {
@@ -13,6 +16,7 @@ interface AlertRow {
   ruleLabel: string;
   payload: Record<string, string | number | null> | null;
   occurredAt: string;
+  state: string;
 }
 
 interface SiteRow {
@@ -20,11 +24,16 @@ interface SiteRow {
   name: string;
 }
 
-export default async function AnomaliesPage() {
+export default async function AnomaliesPage({ searchParams }: { searchParams: Promise<{ state?: string }> }) {
+  const { state: stateParam } = await searchParams;
+  const state = stateParam === "all" ? "all" : "open";
   let alerts: AlertRow[] = [];
+  let openCount = 0;
   let error: string | null = null;
   try {
-    alerts = (await api.get<{ alerts: AlertRow[] }>("/anomaly-alerts?days=7")).alerts;
+    const result = await api.get<{ alerts: AlertRow[]; openCount: number }>(`/anomaly-alerts?days=7&state=${state}`);
+    alerts = result.alerts;
+    openCount = result.openCount;
   } catch (err) {
     error = err instanceof Error ? err.message : "Failed to load anomaly alerts.";
   }
@@ -47,7 +56,20 @@ export default async function AnomaliesPage() {
         <DashboardErrorState message={error} />
       ) : (
         <section className="space-y-2">
-          <h2 className="font-medium text-sm">{anomaliesCopy.listHeading}</h2>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="font-medium text-sm">{anomaliesCopy.listHeading(openCount)}</h2>
+            <div className="flex gap-3 text-sm">
+              {(["open", "all"] as const).map((value) => (
+                <Link
+                  key={value}
+                  href={`/dashboard/anomalies?state=${value}`}
+                  className={value === state ? "font-medium underline" : "text-muted-foreground hover:underline"}
+                >
+                  {anomaliesCopy.filters[value]}
+                </Link>
+              ))}
+            </div>
+          </div>
           <div className="rounded-lg border border-border">
             <Table>
               <TableHeader>
@@ -56,13 +78,15 @@ export default async function AnomaliesPage() {
                   <TableHead>{anomaliesCopy.columns.site}</TableHead>
                   <TableHead>{anomaliesCopy.columns.rule}</TableHead>
                   <TableHead>{anomaliesCopy.columns.detail}</TableHead>
+                  <TableHead>{anomaliesCopy.columns.state}</TableHead>
+                  <TableHead>{anomaliesCopy.columns.actions}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {alerts.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-muted-foreground">
-                      {anomaliesCopy.empty}
+                    <TableCell colSpan={6} className="text-muted-foreground">
+                      {state === "open" ? anomaliesCopy.emptyOpen : anomaliesCopy.empty}
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -75,6 +99,10 @@ export default async function AnomaliesPage() {
                       <TableCell>{alert.ruleLabel}</TableCell>
                       <TableCell className="text-muted-foreground">
                         {describeAlert(alert.ruleCode, alert.payload)}
+                      </TableCell>
+                      <TableCell>{anomaliesCopy.states[alert.state] ?? alert.state}</TableCell>
+                      <TableCell>
+                        <AlertReviewButtons alertId={alert.id} state={alert.state} />
                       </TableCell>
                     </TableRow>
                   ))

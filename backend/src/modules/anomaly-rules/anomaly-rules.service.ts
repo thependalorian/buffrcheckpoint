@@ -1,6 +1,6 @@
 import { BadRequestException, ForbiddenException, Inject, Injectable, Logger, NotFoundException } from "@nestjs/common";
 import { OnEvent } from "@nestjs/event-emitter";
-import { and, count, desc, eq, gte, inArray, isNull, sql } from "drizzle-orm";
+import { and, count, eq, gte, inArray, isNull, sql } from "drizzle-orm";
 
 import type { AuthenticatedUser } from "../../common/decorators/current-user.decorator";
 import {
@@ -11,6 +11,7 @@ import type { Database } from "../../db/client";
 import { DB } from "../../db/db.token";
 import {
   anomalyAlertEvents,
+  anomalyAlertStatusEvents,
   securityZones,
   siteAnomalyRuleConfigurations,
   sites,
@@ -214,35 +215,73 @@ export class AnomalyRulesService {
     return site;
   }
 
-  /** Alerts for the user's organisation (narrowed to their site when site-scoped), newest first. */
-  async listAlerts(user: AuthenticatedUser, input: { siteId?: string; days?: number }) {
+  /**
+   * Alerts for the user's organisation (narrowed to their site when
+   * site-scoped), newest first, each with its current review state: the
+   * latest status event, or "open" when there is none.
+   */
+  async listAlerts(user: AuthenticatedUser, input: { siteId?: string; days?: number; state?: string }) {
     const days = Math.min(Math.max(input.days ?? 7, 1), 90);
     const siteId = user.siteId ?? input.siteId;
     const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
-    const rows = await this.db
-      .select({
-        id: anomalyAlertEvents.id,
-        siteId: anomalyAlertEvents.siteId,
-        siteName: sites.name,
-        ruleCode: typeDefinition.code,
-        ruleLabel: typeDefinition.label,
-        visitId: anomalyAlertEvents.visitId,
-        payload: anomalyAlertEvents.payloadJsonb,
-        occurredAt: anomalyAlertEvents.occurredAt,
-      })
-      .from(anomalyAlertEvents)
-      .innerJoin(sites, eq(sites.id, anomalyAlertEvents.siteId))
-      .innerJoin(typeDefinition, eq(typeDefinition.id, anomalyAlertEvents.ruleCode))
-      .where(
-        and(
-          eq(anomalyAlertEvents.organisationId, user.organisationId),
-          gte(anomalyAlertEvents.occurredAt, since),
-          ...(siteId ? [eq(anomalyAlertEvents.siteId, siteId)] : []),
-        ),
-      )
-      .orderBy(desc(anomalyAlertEvents.occurredAt))
-      .limit(500);
-    return { days, alerts: rows };
+    const result = await this.db.execute(sql`
+      SELECT a.id, a.site_id AS "siteId", s.name AS "siteName", r.code AS "ruleCode", r.label AS "ruleLabel",
+             a.visit_id AS "visitId", a.payload_jsonb AS payload, a.occurred_at AS "occurredAt",
+             COALESCE(st.code, 'open') AS state, latest.occurred_at AS "reviewedAt"
+        FROM anomaly_alert_events a
+        JOIN sites s ON s.id = a.site_id
+        JOIN type_definition r ON r.id = a.rule_code
+        LEFT JOIN LATERAL (
+          SELECT e.to_status_code, e.occurred_at
+            FROM anomaly_alert_status_events e
+           WHERE e.organisation_id = a.organisation_id AND e.alert_id = a.id
+           ORDER BY e.occurred_at DESC
+           LIMIT 1
+        ) latest ON TRUE
+        LEFT JOIN type_definition st ON st.id = latest.to_status_code
+       WHERE a.organisation_id = ${user.organisationId}
+         AND a.occurred_at >= ${since}
+         ${siteId ? sql`AND a.site_id = ${siteId}` : sql``}
+       ORDER BY a.occurred_at DESC
+       LIMIT 500
+    `);
+    type Row = {
+      id: string;
+      siteId: string;
+      siteName: string;
+      ruleCode: string;
+      ruleLabel: string;
+      visitId: string | null;
+      payload: Record<string, string | number | null> | null;
+      occurredAt: string;
+      state: string;
+      reviewedAt: string | null;
+    };
+    // "reopened" is open again.
+    const rows = (result.rows as Row[]).map((r) => ({ ...r, state: r.state === "reopened" ? "open" : r.state }));
+    const alerts = input.state && input.state !== "all" ? rows.filter((r) => r.state === input.state) : rows;
+    return { days, openCount: rows.filter((r) => r.state === "open").length, alerts };
+  }
+
+  /** Acknowledge, dismiss or reopen an alert: one append-only row per review. */
+  async reviewAlert(user: AuthenticatedUser, alertId: string, status: string, note?: string) {
+    if (!["acknowledged", "dismissed", "reopened"].includes(status)) {
+      throw new BadRequestException("Status must be acknowledged, dismissed or reopened");
+    }
+    const alert = await this.db.query.anomalyAlertEvents.findFirst({
+      where: and(eq(anomalyAlertEvents.id, alertId), eq(anomalyAlertEvents.organisationId, user.organisationId)),
+    });
+    if (!alert) throw new NotFoundException("Alert not found");
+    if (user.siteId && user.siteId !== alert.siteId) throw new ForbiddenException("Alert outside your site");
+    await this.db.insert(anomalyAlertStatusEvents).values({
+      id: randomUUID(),
+      organisationId: user.organisationId,
+      alertId,
+      toStatusCode: await this.typeDefs.id("anomaly_alert_status", status),
+      actorId: user.userId,
+      note: note?.trim().slice(0, 500) || null,
+    });
+    return { id: alertId, state: status === "reopened" ? "open" : status };
   }
 
   async getRules(user: AuthenticatedUser, siteId: string) {

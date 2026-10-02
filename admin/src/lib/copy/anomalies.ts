@@ -4,9 +4,15 @@ export const anomaliesCopy = {
   title: "Anomaly Alerts",
   description:
     "Unusual check-in patterns, raised as they happen. Alerts are for your team to review. They never block or delay a visitor.",
-  listHeading: "Alerts in the last 7 days",
+  listHeading: (open: number) =>
+    open === 1 ? "1 open alert in the last 7 days" : `${open} open alerts in the last 7 days`,
   empty: "No alerts in the last 7 days.",
-  columns: { when: "When", site: "Site", rule: "What happened", detail: "Detail" },
+  emptyOpen: "No open alerts. Everything raised in the last 7 days has been reviewed.",
+  filters: { open: "Open", all: "All" },
+  columns: { when: "When", site: "Site", rule: "What happened", detail: "Detail", state: "Status", actions: "" },
+  states: { open: "Open", acknowledged: "Acknowledged", dismissed: "Dismissed" } as Record<string, string>,
+  actions: { acknowledge: "Acknowledge", dismiss: "Dismiss", reopen: "Reopen" },
+  reviewed: "Updated",
   rulesHeading: "Rules for each site",
   rulesDescription:
     "Sites without changes use the defaults: 3 check-ins from the same phone within 30 minutes, and any check-in to a sensitive or restricted zone outside 07:00 to 18:00.",

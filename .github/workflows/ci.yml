@@ -31,7 +31,7 @@ jobs:
             test: npx vitest run
           - app: ops-console
             typecheck: npx next typegen && npx tsc --noEmit
-            test: ""
+            test: npx vitest run
           - app: website
             typecheck: npx next typegen && npx tsc --noEmit
             test: npx vitest run
@@ -61,6 +61,40 @@ jobs:
       - name: Dependency audit (reporting)
         continue-on-error: true
         run: npm audit --omit=dev --audit-level=high
+
+  migrations:
+    # Every migration must replay cleanly on an empty database: that is how a
+    # new environment or a disaster-recovery rebuild is created. Production was
+    # verified identical to such a replay on 2026-10-02 (indexes, columns,
+    # constraints).
+    name: migrations replay
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: replay
+          POSTGRES_PASSWORD: replay
+          POSTGRES_DB: replay
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U replay" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PGHOST: localhost
+      PGUSER: replay
+      PGPASSWORD: replay
+      PGDATABASE: replay
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create runtime roles
+        run: psql -v ON_ERROR_STOP=1 -c "CREATE ROLE buffr_checkpoint_app; CREATE ROLE buffr_checkpoint_runtime;"
+      - name: Replay migrations in order
+        run: for f in backend/db/migrations/*.sql; do echo "$f"; psql -v ON_ERROR_STOP=1 -q -f "$f"; done
+      - name: Wiebe guards (no triggers, cascades or CHECK lists)
+        run: |
+          test "$(psql -tA -c "select count(*) from pg_trigger where not tgisinternal")" = "0"
+          test "$(psql -tA -c "select count(*) from pg_constraint where connamespace='public'::regnamespace and confdeltype='c'")" = "0"
+          test "$(psql -tA -c "select count(*) from pg_constraint where connamespace='public'::regnamespace and contype='c'")" = "0"
 
   secrets:
     name: secrets scan

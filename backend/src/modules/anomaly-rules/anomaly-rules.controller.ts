@@ -1,5 +1,5 @@
-import { Body, Controller, Get, Param, Put, Query } from "@nestjs/common";
-import { IsBoolean, IsInt, IsOptional, IsString, Matches } from "class-validator";
+import { Body, Controller, Get, Param, Post, Put, Query } from "@nestjs/common";
+import { IsBoolean, IsIn, IsInt, IsOptional, IsString, Matches, MaxLength } from "class-validator";
 
 import { AuditLog } from "../../common/decorators/audit-log.decorator";
 import { type AuthenticatedUser, CurrentUser } from "../../common/decorators/current-user.decorator";
@@ -30,6 +30,16 @@ class UpdateAnomalyRuleBody {
   windowEndLocal?: string;
 }
 
+class ReviewAlertBody {
+  @IsIn(["acknowledged", "dismissed", "reopened"])
+  status!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  note?: string;
+}
+
 @Controller()
 export class AnomalyRulesController {
   constructor(private readonly anomalies: AnomalyRulesService) {}
@@ -39,9 +49,17 @@ export class AnomalyRulesController {
   list(
     @Query("siteId") siteId: string | undefined,
     @Query("days") days: string | undefined,
+    @Query("state") state: string | undefined,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.anomalies.listAlerts(user, { siteId, days: days ? Number(days) : undefined });
+    return this.anomalies.listAlerts(user, { siteId, days: days ? Number(days) : undefined, state });
+  }
+
+  @Post("anomaly-alerts/:alertId/review")
+  @RequirePermission(PERMISSIONS.VISIT_READ_SITE)
+  @AuditLog({ action: "anomaly_alert.review", resourceType: "anomaly_alert" })
+  review(@Param("alertId") alertId: string, @Body() body: ReviewAlertBody, @CurrentUser() user: AuthenticatedUser) {
+    return this.anomalies.reviewAlert(user, alertId, body.status, body.note);
   }
 
   @Get("sites/:siteId/anomaly-rules")

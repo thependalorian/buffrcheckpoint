@@ -50,3 +50,21 @@ export const anomalyAlertEvents = pgTable(
   },
   (t) => [index("idx_anomaly_alert_events_org_site_occurred").on(t.organisationId, t.siteId, t.occurredAt)],
 );
+
+// Review states (migration 0048). Append-only; latest row is the alert's
+// current state, no row means open.
+export const anomalyAlertStatusEvents = pgTable("anomaly_alert_status_events", {
+  id: uuid("id").primaryKey(),
+  organisationId: uuid("organisation_id")
+    .notNull()
+    .references(() => organisations.id),
+  alertId: uuid("alert_id")
+    .notNull()
+    .references(() => anomalyAlertEvents.id),
+  toStatusCode: uuid("to_status_code")
+    .notNull()
+    .references(() => typeDefinition.id),
+  actorId: uuid("actor_id"),
+  note: text("note"),
+  occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull().defaultNow(),
+});

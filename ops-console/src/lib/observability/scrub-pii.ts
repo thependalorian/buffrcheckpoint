@@ -31,17 +31,36 @@ export function scrubPiiRecord(record: Record<string, unknown>): Record<string, 
   return out;
 }
 
+function scrubObject(value: unknown): unknown {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? scrubPiiRecord(value as Record<string, unknown>)
+    : value;
+}
+
+/**
+ * Redacts sensitive keys everywhere Sentry carries structured data: extra,
+ * contexts, tags, request data, and each breadcrumb's data. Free-text
+ * messages are not parsed; code must not put such values into messages.
+ */
 export function scrubPiiFromSentryEvent<T extends Record<string, unknown>>(event: T): T {
   const next = { ...event } as Record<string, unknown>;
-  if (next.extra && typeof next.extra === "object") {
-    next.extra = scrubPiiRecord(next.extra as Record<string, unknown>);
-  }
+  next.extra = scrubObject(next.extra);
+  next.contexts = scrubObject(next.contexts);
+  next.tags = scrubObject(next.tags);
   if (next.request && typeof next.request === "object") {
     const request = { ...(next.request as Record<string, unknown>) };
-    if (request.data && typeof request.data === "object") {
-      request.data = scrubPiiRecord(request.data as Record<string, unknown>);
-    }
+    request.data = scrubObject(request.data);
     next.request = request;
+  }
+  if (Array.isArray(next.breadcrumbs)) {
+    next.breadcrumbs = next.breadcrumbs.map((crumb) =>
+      crumb && typeof crumb === "object"
+        ? { ...(crumb as Record<string, unknown>), data: scrubObject((crumb as Record<string, unknown>).data) }
+        : crumb,
+    );
+  }
+  for (const key of ["extra", "contexts", "tags"]) {
+    if (next[key] === undefined) delete next[key];
   }
   return next as T;
 }

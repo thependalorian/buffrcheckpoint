@@ -23,3 +23,16 @@ export async function saveAnomalyRuleAction(
   revalidatePath("/dashboard/anomalies");
   return {};
 }
+
+export async function reviewAnomalyAlertAction(
+  alertId: string,
+  status: "acknowledged" | "dismissed" | "reopened",
+): Promise<{ error?: string }> {
+  try {
+    await api.post(`/anomaly-alerts/${alertId}/review`, { status });
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : "Could not update the alert" };
+  }
+  revalidatePath("/dashboard/anomalies");
+  return {};
+}
