@@ -32,13 +32,7 @@ type UnitNode = {
   children: UnitNode[];
 };
 
-export function DirectoryToolbar({
-  mode,
-  availableModes,
-}: {
-  mode: string;
-  availableModes: CodeOption[];
-}) {
+export function DirectoryToolbar({ mode, availableModes }: { mode: string; availableModes: CodeOption[] }) {
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
@@ -46,8 +40,8 @@ export function DirectoryToolbar({
   return (
     <div className="space-y-3 rounded-lg border bg-card p-4">
       <p className="text-sm text-muted-foreground">
-        Choose how this organisation is structured. BIAN is optional — use a custom tree, the BIAN
-        Service Landscape template, or a hybrid of both.
+        Choose how this organisation is structured. BIAN is optional — use a custom tree, the BIAN Service Landscape
+        template, or a hybrid of both.
       </p>
       <div className="flex flex-wrap items-center gap-2">
         <Label htmlFor="directoryMode" className="text-sm">
@@ -144,8 +138,7 @@ export function CreateUnitSheet({
         <SheetHeader>
           <SheetTitle>Add organisation unit</SheetTitle>
           <SheetDescription>
-            Add any department, team, or BIAN-tagged unit. BIAN area is optional for custom
-            structures.
+            Add any department, team, or BIAN-tagged unit. BIAN area is optional for custom structures.
           </SheetDescription>
         </SheetHeader>
         <form

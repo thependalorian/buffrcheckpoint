@@ -1,7 +1,7 @@
 import { Injectable } from "@nestjs/common";
 
-import { CimsoInnterchangeClient } from "../cimso-innterchange.client";
 import type { CimsoFrontDeskEvent } from "../cimso.types";
+import { CimsoInnterchangeClient } from "../cimso-innterchange.client";
 import { visitToFrontDeskEvent } from "../mappers/visit-to-front-desk-event";
 
 /** Interface type 4 — front desk check-in / check-out. */

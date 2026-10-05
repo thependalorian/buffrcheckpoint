@@ -53,5 +53,4 @@ export const hostNotificationEscalationPolicyVersions = pgTable(
 );
 
 export type HostNotificationEscalationPolicy = typeof hostNotificationEscalationPolicies.$inferSelect;
-export type HostNotificationEscalationPolicyVersion =
-  typeof hostNotificationEscalationPolicyVersions.$inferSelect;
+export type HostNotificationEscalationPolicyVersion = typeof hostNotificationEscalationPolicyVersions.$inferSelect;

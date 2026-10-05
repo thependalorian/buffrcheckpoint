@@ -1,5 +1,7 @@
 import { backendUrl } from "@/lib/auth/backend-url";
+import { getRequestId } from "@/lib/auth/me";
 import { getSessionToken } from "@/lib/auth/session";
+import { REQUEST_ID_HEADER } from "@/lib/auth/session-gate";
 
 // Server-only typed client for every dashboard page's data fetch.
 // Previously this read NEXT_PUBLIC_API_URL and sent no auth header — wrong
@@ -10,7 +12,7 @@ import { getSessionToken } from "@/lib/auth/session";
 // dashboard page can use one typed client instead of hand-rolling fetch +
 // auth-header plumbing per page.
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const token = await getSessionToken();
+  const [token, requestId] = await Promise.all([getSessionToken(), getRequestId()]);
   const url = backendUrl(path);
 
   const response = await fetch(url, {
@@ -19,6 +21,7 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     headers: {
       "Content-Type": "application/json",
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(requestId ? { [REQUEST_ID_HEADER]: requestId } : {}),
       ...options.headers,
     },
   });

@@ -1,4 +1,12 @@
-import { IsIn, IsOptional, IsString, IsUUID, Validate, ValidatorConstraint, ValidatorConstraintInterface } from "class-validator";
+import {
+  IsIn,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Validate,
+  ValidatorConstraint,
+  ValidatorConstraintInterface,
+} from "class-validator";
 
 const BANNED_RAW_IDENTITY_KEYS = [
   "identityPayload",

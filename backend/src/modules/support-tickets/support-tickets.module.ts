@@ -1,8 +1,8 @@
 import { Module } from "@nestjs/common";
 
-import { SupportTicketsCustomerController } from "./support-tickets-customer.controller";
 import { SupportTicketsController } from "./support-tickets.controller";
 import { SupportTicketsService } from "./support-tickets.service";
+import { SupportTicketsCustomerController } from "./support-tickets-customer.controller";
 
 // Split out of the former platform-control-plane bundle (see
 // ../rename-map.tsv) — ticketing workflow changes independently of

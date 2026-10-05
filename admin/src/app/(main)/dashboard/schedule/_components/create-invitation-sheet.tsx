@@ -35,10 +35,7 @@ export function CreateInvitationSheet({ sites, hosts }: CreateInvitationSheetPro
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
-  const hostsForSite = useMemo(
-    () => hosts.filter((host) => !siteId || host.siteId === siteId),
-    [hosts, siteId],
-  );
+  const hostsForSite = useMemo(() => hosts.filter((host) => !siteId || host.siteId === siteId), [hosts, siteId]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();

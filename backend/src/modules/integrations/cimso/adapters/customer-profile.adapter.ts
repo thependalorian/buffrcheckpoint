@@ -7,10 +7,7 @@ import { CimsoInnterchangeClient } from "../cimso-innterchange.client";
 export class CimsoCustomerProfileAdapter {
   constructor(private readonly client: CimsoInnterchangeClient) {}
 
-  async syncProfiles(_params: {
-    siteExternalId?: string;
-    sinceIso?: string;
-  }): Promise<{
+  async syncProfiles(_params: { siteExternalId?: string; sinceIso?: string }): Promise<{
     afterNdaRequired: boolean;
     profilesSeen: number;
   }> {

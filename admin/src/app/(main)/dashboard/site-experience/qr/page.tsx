@@ -4,6 +4,7 @@ import { DashboardPageHeader } from "@/components/dashboard-page-header";
 import { DashboardErrorState, TableEmptyRow } from "@/components/dashboard-state";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { api } from "@/lib/api/client";
+import { listSiteOptions } from "@/lib/sites/site-options";
 
 interface SiteQrRow {
   id: string;
@@ -14,6 +15,7 @@ interface SiteQrRow {
 }
 
 export default async function SiteQrPage() {
+  const sites = await listSiteOptions();
   let references: SiteQrRow[] = [];
   let error: string | null = null;
   try {
@@ -27,7 +29,7 @@ export default async function SiteQrPage() {
       <DashboardPageHeader
         title="Site QR Codes"
         description="Typed QR references with printable check-in kits and append-only rotation history."
-        action={<QrSetupSheet />}
+        action={<QrSetupSheet sites={sites} />}
       />
       {error ? (
         <DashboardErrorState message={error} />

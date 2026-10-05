@@ -46,12 +46,6 @@ export function QrCodeImage({ value, size = 192, alt = "QR code", className }: Q
   }
 
   return (
-    <img
-      src={dataUrl}
-      alt={alt}
-      width={size}
-      height={size}
-      className={className ?? "rounded-md border bg-white p-2"}
-    />
+    <img src={dataUrl} alt={alt} width={size} height={size} className={className ?? "rounded-md border bg-white p-2"} />
   );
 }

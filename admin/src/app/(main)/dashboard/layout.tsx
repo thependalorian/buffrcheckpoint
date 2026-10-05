@@ -25,7 +25,6 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
   ]);
 
   const onboardingIncomplete = currentUser?.onboarding?.complete !== true;
-  const onboardingNextPath = currentUser?.onboarding?.nextPath ?? "/onboarding";
 
   return (
     <SidebarProvider
@@ -75,7 +74,7 @@ export default async function Layout({ children }: Readonly<{ children: ReactNod
           </div>
         </header>
         <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden p-4 has-data-[content-padding=false]:p-0 md:p-6 md:has-data-[content-padding=false]:p-0">
-          {onboardingIncomplete ? <OnboardingConfigBanner nextPath={onboardingNextPath} /> : null}
+          {onboardingIncomplete ? <OnboardingConfigBanner nextPath="/onboarding" /> : null}
           {children}
         </div>
       </SidebarInset>

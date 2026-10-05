@@ -1,10 +1,4 @@
-import {
-  BadRequestException,
-  ForbiddenException,
-  Inject,
-  Injectable,
-  NotFoundException,
-} from "@nestjs/common";
+import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 import {
   IsArray,
   IsBoolean,
@@ -19,7 +13,6 @@ import {
   Min,
 } from "class-validator";
 import { and, desc, eq, isNull } from "drizzle-orm";
-import { randomUUID } from "node:crypto";
 
 import type { AuthenticatedUser } from "../../../common/decorators/current-user.decorator";
 import type { Database } from "../../../db/client";
@@ -39,7 +32,6 @@ import { CapabilityStatusService } from "../../capability-status/capability-stat
 import { InvitationsService } from "../../invitations/invitations.service";
 import { CimsoFrontDeskAdapter } from "./adapters/front-desk.adapter";
 import { CimsoReservationsAdapter } from "./adapters/reservations.adapter";
-import { CimsoInnterchangeClient } from "./cimso-innterchange.client";
 import {
   CIMSO_HOSPITALITY_DEFAULT_TYPES,
   type CimsoConnectionStatus,
@@ -47,7 +39,9 @@ import {
   type CimsoFrontDeskEvent,
   type CimsoInterfaceTypeId,
 } from "./cimso.types";
+import { CimsoInnterchangeClient } from "./cimso-innterchange.client";
 import { reservationToInvitationDraft } from "./mappers/reservation-to-invitation";
+import { randomUUID } from "node:crypto";
 
 const PROVIDER = "cimso_innterchange" as const;
 const CAPABILITY_CODE = "cimso_innterchange" as const;
@@ -157,7 +151,10 @@ export class CimsoIntegrationService {
     private readonly invitations: InvitationsService,
   ) {}
 
-  async getStatus(user: AuthenticatedUser, siteId?: string): Promise<
+  async getStatus(
+    user: AuthenticatedUser,
+    siteId?: string,
+  ): Promise<
     CimsoConnectionStatus & {
       orgEnabled: boolean;
       platformPublicStatus: string;
@@ -197,9 +194,7 @@ export class CimsoIntegrationService {
       : null;
     const envReady = this.client.isReady();
     const transportConfigured = rowTransport?.transportConfigured ?? envReady;
-    const envStatus: CimsoConnectionStatusCode = transportConfigured
-      ? "configured"
-      : "awaiting_property_credentials";
+    const envStatus: CimsoConnectionStatusCode = transportConfigured ? "configured" : "awaiting_property_credentials";
     const statusCode = (primary?.statusCode as CimsoConnectionStatusCode | undefined) ?? envStatus;
 
     return {
@@ -235,9 +230,7 @@ export class CimsoIntegrationService {
       await this.assertDefaultHost(dto.defaultHostId, dto.siteId, user.organisationId);
     }
 
-    const types = dto.enabledInterfaceTypes?.length
-      ? dto.enabledInterfaceTypes
-      : CIMSO_HOSPITALITY_DEFAULT_TYPES;
+    const types = dto.enabledInterfaceTypes?.length ? dto.enabledInterfaceTypes : CIMSO_HOSPITALITY_DEFAULT_TYPES;
     const allowed = new Set(CIMSO_HOSPITALITY_DEFAULT_TYPES);
     for (const t of types) {
       if (!allowed.has(t)) {
@@ -262,8 +255,7 @@ export class CimsoIntegrationService {
     const tcpPort = dto.tcpPort ?? existing?.tcpPort ?? null;
     const tlsEnabled = dto.tlsEnabled ?? existing?.tlsEnabled ?? true;
     const clientLoginId = dto.clientLoginId?.trim() || existing?.clientLoginId || null;
-    const credentialsSecretRef =
-      dto.credentialsSecretRef?.trim() || existing?.credentialsSecretRef || null;
+    const credentialsSecretRef = dto.credentialsSecretRef?.trim() || existing?.credentialsSecretRef || null;
     const defaultHostId = dto.defaultHostId ?? existing?.defaultHostId ?? null;
 
     const transport = this.resolveConnectionTransport({
@@ -533,9 +525,7 @@ export class CimsoIntegrationService {
         continue;
       }
 
-      const visitorReference =
-        draft.guestDisplayName?.trim() ||
-        `cimso:${draft.externalReservationId}`;
+      const visitorReference = draft.guestDisplayName?.trim() || `cimso:${draft.externalReservationId}`;
       const arrival = draft.arrivalDate ? new Date(draft.arrivalDate) : new Date();
       let departure = draft.departureDate
         ? new Date(draft.departureDate)
@@ -613,9 +603,7 @@ export class CimsoIntegrationService {
     const platform = await this.capabilityStatus.listPublic();
     const publicStatus = platform.cimsoInnterchange;
     if (publicStatus !== "targeted" && publicStatus !== "live") {
-      throw new ForbiddenException(
-        "CiMSO INNterchange is not available at the platform level.",
-      );
+      throw new ForbiddenException("CiMSO INNterchange is not available at the platform level.");
     }
     const orgEnabled = await this.isCimsoOrgEnabled(user);
     if (!orgEnabled) {
@@ -698,9 +686,7 @@ export class CimsoIntegrationService {
       ),
     });
     if (!connection) {
-      throw new NotFoundException(
-        "No CiMSO connection for this site. POST /integrations/cimso/connect first.",
-      );
+      throw new NotFoundException("No CiMSO connection for this site. POST /integrations/cimso/connect first.");
     }
     return connection;
   }
@@ -724,9 +710,7 @@ export class CimsoIntegrationService {
       ),
     });
     if (!host) {
-      throw new BadRequestException(
-        "defaultHostId must be an active host on the same site as the connection.",
-      );
+      throw new BadRequestException("defaultHostId must be an active host on the same site as the connection.");
     }
     return host;
   }

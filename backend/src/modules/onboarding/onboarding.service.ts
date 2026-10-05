@@ -1,7 +1,6 @@
 import { ConflictException, Inject, Injectable } from "@nestjs/common";
 import * as bcrypt from "bcryptjs";
 import { and, eq, isNull } from "drizzle-orm";
-import { createHash, randomUUID } from "node:crypto";
 
 import type { Database } from "../../db/client";
 import { DB } from "../../db/db.module";
@@ -17,6 +16,7 @@ import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.ser
 import { AuthService } from "../auth/auth.service";
 import { TemplatedEmailService } from "../notifications/templated-email.service";
 import type { CreateOrganisationAdminDto } from "./dto/create-organisation-admin.dto";
+import { createHash, randomUUID } from "node:crypto";
 
 const BCRYPT_ROUNDS = 12;
 

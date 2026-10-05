@@ -1,8 +1,8 @@
 import { Module } from "@nestjs/common";
 
 import { IdentityVerificationController } from "./identity-verification.controller";
-import { IdentityVerificationOrchestratorService } from "./identity-verification-orchestrator.service";
 import { IdentityVerificationService } from "./identity-verification.service";
+import { IdentityVerificationOrchestratorService } from "./identity-verification-orchestrator.service";
 import { DiginamRelyingPartyVerificationProvider } from "./providers/diginam-relying-party-verification.provider";
 import { DiscoveryIdentityVerificationProvider } from "./providers/discovery-identity-verification.provider";
 

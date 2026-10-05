@@ -151,13 +151,7 @@ export class PlatformDashboardController {
     @Body() dto: PlatformDeviceStatusDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.devices.setStatusForOrganisation(
-      deviceId,
-      dto.organisationId,
-      dto.statusCode,
-      dto.reason,
-      user.userId,
-    );
+    return this.devices.setStatusForOrganisation(deviceId, dto.organisationId, dto.statusCode, dto.reason, user.userId);
   }
 
   @Get("sites/:siteId")

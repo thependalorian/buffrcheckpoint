@@ -1,6 +1,5 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 import { and, desc, eq, inArray, isNull } from "drizzle-orm";
-import { randomUUID } from "node:crypto";
 
 import type { AuthenticatedUser } from "../../common/decorators/current-user.decorator";
 import type { Database } from "../../db/client";
@@ -13,6 +12,7 @@ import {
   typeDefinition,
 } from "../../db/schema";
 import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.service";
+import { randomUUID } from "node:crypto";
 
 export interface RecordReviewInput {
   reviewedUserId: string;
@@ -52,9 +52,7 @@ export class AccessReviewsService {
       .from(organisationMemberships)
       .innerJoin(roleDefinitions, eq(organisationMemberships.roleId, roleDefinitions.id))
       .innerJoin(typeDefinition, eq(roleDefinitions.roleCode, typeDefinition.id))
-      .where(
-        and(eq(organisationMemberships.organisationId, organisationId), isNull(organisationMemberships.deletedAt)),
-      )
+      .where(and(eq(organisationMemberships.organisationId, organisationId), isNull(organisationMemberships.deletedAt)))
       .orderBy(desc(organisationMemberships.assignedAt));
 
     if (memberships.length === 0) return [];

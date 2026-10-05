@@ -19,9 +19,7 @@ export interface DigitalIdentityVerificationOutcome {
 }
 
 export interface DigitalIdentityVerificationProvider {
-  verifyVisitorIdentity(
-    request: DigitalIdentityVerificationRequest,
-  ): Promise<DigitalIdentityVerificationOutcome>;
+  verifyVisitorIdentity(request: DigitalIdentityVerificationRequest): Promise<DigitalIdentityVerificationOutcome>;
 }
 
 export const DIGITAL_IDENTITY_PROVIDER = Symbol("DIGITAL_IDENTITY_PROVIDER");

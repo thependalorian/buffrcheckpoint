@@ -39,5 +39,5 @@ export function generateOpaqueToken(bytes = 32): string {
 
 /** Strip spaces/dashes so pasted authenticator codes still verify. */
 export function normalizeTotpCode(raw: string): string {
-  return raw.replace(/[\s\-]/g, "").trim();
+  return raw.replace(/[\s-]/g, "").trim();
 }

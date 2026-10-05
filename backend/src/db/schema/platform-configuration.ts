@@ -1,7 +1,7 @@
 import { index, jsonb, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 
-import { applicationUsers, organisationMemberships } from "./rbac";
 import { organisations } from "./organisations";
+import { applicationUsers, organisationMemberships } from "./rbac";
 import { typeDefinition } from "./type-definitions";
 
 // Platform-wide operational config (migration 0029). Same tenancy exception

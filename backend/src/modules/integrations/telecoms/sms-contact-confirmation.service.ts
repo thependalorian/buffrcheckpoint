@@ -1,11 +1,11 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { eq } from "drizzle-orm";
-import { createHmac, randomUUID } from "node:crypto";
 
 import type { Database } from "../../../db/client";
 import { DB } from "../../../db/db.module";
 import { smsContactConfirmationEvents, telecommunicationsProviderArrangements } from "../../../db/schema";
 import { CapabilityStatusService } from "../../capability-status/capability-status.service";
+import { createHmac, randomUUID } from "node:crypto";
 
 export interface SmsContactConfirmationInput {
   organisationId: string;
@@ -85,9 +85,7 @@ export class SmsContactConfirmationService {
       delivered: false,
       outcomeCode,
       messageReference,
-      failureReason:
-        message ??
-        "SMS contact confirmation is scaffolded only until provider arrangement is approved.",
+      failureReason: message ?? "SMS contact confirmation is scaffolded only until provider arrangement is approved.",
     };
   }
 }

@@ -1,4 +1,4 @@
-import { IsArray, IsOptional, IsString, IsUUID } from "class-validator";
+import { IsArray, IsOptional, IsString, IsUUID, MaxLength } from "class-validator";
 
 export class CreateSiteBrandingProfileDto {
   @IsOptional()
@@ -17,6 +17,7 @@ export class CreateSiteBrandingProfileDto {
 export class CreateSiteBrandingVersionDto {
   @IsOptional()
   @IsString()
+  @MaxLength(300)
   logoArtifactId?: string;
 
   @IsOptional()
@@ -56,4 +57,15 @@ export class CreateSiteBrandingVersionDto {
   @IsArray()
   @IsString({ each: true })
   captureChannelCodes?: string[];
+}
+
+export class SetupSiteBrandingDto extends CreateSiteBrandingVersionDto {
+  @IsOptional()
+  @IsUUID()
+  siteId?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  profileName?: string;
 }

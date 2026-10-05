@@ -1,16 +1,12 @@
 import { Inject, Injectable, NotFoundException } from "@nestjs/common";
 import { and, asc, eq, isNull, sql } from "drizzle-orm";
-import { randomUUID } from "node:crypto";
 
 import type { AuthenticatedUser } from "../../common/decorators/current-user.decorator";
 import type { Database } from "../../db/client";
 import { DB } from "../../db/db.module";
-import {
-  siteHosts,
-  visitorWaitQueueEntries,
-  visitorWaitQueueEntryStatusEvents,
-} from "../../db/schema";
+import { siteHosts, visitorWaitQueueEntries, visitorWaitQueueEntryStatusEvents } from "../../db/schema";
 import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.service";
+import { randomUUID } from "node:crypto";
 
 export interface EnqueueResult {
   queueEntryId: string;
@@ -155,10 +151,7 @@ export class VisitorWaitQueueService {
     if (toStatus === "called") patch.calledAt = now;
     if (toStatus === "completed" || toStatus === "cancelled") patch.completedAt = now;
 
-    await this.db
-      .update(visitorWaitQueueEntries)
-      .set(patch)
-      .where(eq(visitorWaitQueueEntries.id, entryId));
+    await this.db.update(visitorWaitQueueEntries).set(patch).where(eq(visitorWaitQueueEntries.id, entryId));
 
     await this.db.insert(visitorWaitQueueEntryStatusEvents).values({
       id: randomUUID(),

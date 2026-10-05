@@ -16,6 +16,7 @@ import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.ser
 import { buildSimplePdf } from "../documents/simple-pdf";
 import { IntegrationHealthService } from "../integration-health/integration-health.service";
 import { TemplatedEmailService } from "../notifications/templated-email.service";
+import { isRealVisit } from "../visits/test-visit-filter";
 import { type DueReport, dueReports, type ScheduledReportCode } from "./report-periods";
 import { randomUUID } from "node:crypto";
 
@@ -429,7 +430,8 @@ export class ScheduledReportsService {
           (SELECT COALESCE(sum(rating_total), 0)::int FROM visit_survey_daily_fact
             WHERE organisation_id = ${organisationId} AND local_date BETWEEN ${due.from}::date AND ${due.to}::date) AS survey_rating_total,
           (SELECT count(*)::int FROM visitor_visits
-            WHERE organisation_id = ${organisationId} AND deleted_at IS NULL AND checked_out_at IS NULL) AS open_visits,
+            WHERE organisation_id = ${organisationId} AND deleted_at IS NULL AND checked_out_at IS NULL
+              AND ${isRealVisit(sql`arrival_channel_code`)}) AS open_visits,
           (SELECT count(*) FILTER (WHERE sent_at IS NOT NULL)::int FROM notification_delivery_instructions
             WHERE organisation_id = ${organisationId}
               AND next_attempt_at >= (${due.from}::date AT TIME ZONE 'Africa/Windhoek')

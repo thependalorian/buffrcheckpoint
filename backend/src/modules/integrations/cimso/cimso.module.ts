@@ -5,9 +5,9 @@ import { InvitationsModule } from "../../invitations/invitations.module";
 import { CimsoCustomerProfileAdapter } from "./adapters/customer-profile.adapter";
 import { CimsoFrontDeskAdapter } from "./adapters/front-desk.adapter";
 import { CimsoReservationsAdapter } from "./adapters/reservations.adapter";
+import { CimsoController } from "./cimso.controller";
 import { CimsoInnterchangeClient } from "./cimso-innterchange.client";
 import { CimsoIntegrationService } from "./cimso-integration.service";
-import { CimsoController } from "./cimso.controller";
 
 @Module({
   imports: [CapabilityStatusModule, InvitationsModule],

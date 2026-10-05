@@ -192,7 +192,7 @@ export class VisitsService {
       .sort((a, b) => a.label.localeCompare(b.label));
 
     const branding = await this.resolvePublicBranding(validated.organisationId, validated.siteId);
-    const displaySiteName = branding?.siteDisplayName || validated.siteName;
+    const displaySiteName = branding?.siteDisplayName?.trim() || validated.siteName;
 
     return {
       siteId: validated.siteId,
@@ -269,7 +269,7 @@ export class VisitsService {
     };
 
     const branding = await this.resolvePublicBranding(validated.organisationId, validated.siteId);
-    const displaySiteName = branding?.siteDisplayName || validated.siteName;
+    const displaySiteName = branding?.siteDisplayName?.trim() || validated.siteName;
 
     const visit = await this.insertCheckIn(
       {
@@ -749,7 +749,7 @@ export class VisitsService {
           where: eq(visitorPersonalData.visitorId, visit.visitorId),
         });
         const phoneHmacs = this.dataProtection.phoneLookupHmacCandidates(dto.visitorPhone);
-        if (!personal || !personal.phoneLookupHmac || !phoneHmacs.includes(personal.phoneLookupHmac)) {
+        if (!personal?.phoneLookupHmac || !phoneHmacs.includes(personal.phoneLookupHmac)) {
           throw new BadRequestException("Phone does not match this visit confirmation");
         }
       }

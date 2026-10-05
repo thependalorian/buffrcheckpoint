@@ -4,10 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { api } from "@/lib/api/client";
 
-export async function createLegalHoldAction(input: {
-  reason: string;
-  scopeJson: string;
-}) {
+export async function createLegalHoldAction(input: { reason: string; scopeJson: string }) {
   let scope: Record<string, unknown> = {};
   try {
     scope = JSON.parse(input.scopeJson || "{}") as Record<string, unknown>;

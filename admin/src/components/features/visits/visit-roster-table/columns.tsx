@@ -6,11 +6,7 @@ import { CircleCheckIcon, UserRound } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  identityAssuranceLevelLabel,
-  isIdentityAssuranceLevelCode,
-  visitStatusLabel,
-} from "@/lib/canonical-codes";
+import { identityAssuranceLevelLabel, isIdentityAssuranceLevelCode, visitStatusLabel } from "@/lib/canonical-codes";
 import type { DataTableFeatures } from "@/lib/data-table-features";
 import { cn } from "@/lib/utils";
 

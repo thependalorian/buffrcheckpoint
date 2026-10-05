@@ -33,7 +33,11 @@ const OPS_ENROLL_PATHS = ["/auth/mfa/enroll/start", "/auth/mfa/enroll/confirm", 
  * session) are treated as ops, everything else as admin. Lets the rollout avoid logging
  * anyone out; those tokens expire within 8h.
  */
-export function deriveAudience(payload: { aud?: unknown; roleCode: string; supportSessionId?: string }): SessionAudience {
+export function deriveAudience(payload: {
+  aud?: unknown;
+  roleCode: string;
+  supportSessionId?: string;
+}): SessionAudience {
   if (payload.aud === "admin" || payload.aud === "ops" || payload.aud === "ops_enroll") return payload.aud;
   return payload.roleCode === "platform_support" && !payload.supportSessionId ? "ops" : "admin";
 }

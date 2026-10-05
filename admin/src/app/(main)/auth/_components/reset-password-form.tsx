@@ -61,7 +61,10 @@ export function ResetPasswordForm() {
       <Button type="submit" disabled={submitting || !token}>
         {submitting ? authCopy.resetPassword.submitting : authCopy.resetPassword.submit}
       </Button>
-      <Link href="/auth/login" className="text-center text-sodium-yellow-ink text-sm underline-offset-4 hover:underline">
+      <Link
+        href="/auth/login"
+        className="text-center text-sodium-yellow-ink text-sm underline-offset-4 hover:underline"
+      >
         {authCopy.forgotPassword.backToSignIn}
       </Link>
     </form>

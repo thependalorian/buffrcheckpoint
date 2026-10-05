@@ -1,5 +1,7 @@
 import { IsEmail, IsString, MinLength } from "class-validator";
 
+import { NormaliseEmail } from "../../../common/decorators/normalise-email.decorator";
+
 export class CreateOrganisationAdminDto {
   @IsString()
   organisationName!: string;
@@ -7,6 +9,7 @@ export class CreateOrganisationAdminDto {
   @IsString()
   sectorCode!: string;
 
+  @NormaliseEmail()
   @IsEmail()
   email!: string;
 

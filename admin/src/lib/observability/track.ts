@@ -33,8 +33,20 @@ export const AnalyticsEvents = {
   passwordResetRequested: "admin_password_reset_requested",
   passwordResetConfirmed: "admin_password_reset_confirmed",
   passwordResetFailed: "admin_password_reset_failed",
+  onboardingStarted: "admin_onboarding_started",
+  onboardingStepViewed: "admin_onboarding_step_viewed",
   onboardingStepCompleted: "admin_onboarding_step_completed",
   onboardingStepBlocked: "admin_onboarding_step_blocked",
+  onboardingStepSkipped: "admin_onboarding_step_skipped",
+  onboardingLaunchRouteChosen: "admin_onboarding_launch_route_chosen",
+  onboardingTestVisitCreated: "admin_onboarding_test_visit_created",
   onboardingLive: "admin_onboarding_live",
+  // North-star milestones (buffrcheckpoint.md §11.9.15.11): one per organisation, codes and timings only.
+  onboardingFirstSite: "admin_onboarding_first_site",
+  onboardingFirstQr: "admin_onboarding_first_qr",
+  onboardingFirstTestVisit: "admin_onboarding_first_test_visit",
+  onboardingTestVisitCheckedOut: "admin_onboarding_test_visit_checked_out",
+  /** Click on an onboarding link to the next page rendering, for the p95 feedback measure. */
+  onboardingNavigationMs: "admin_onboarding_navigation_ms",
   frontDeskCheckout: "admin_front_desk_checkout",
 } as const;

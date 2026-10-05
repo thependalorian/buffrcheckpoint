@@ -1,6 +1,6 @@
 -- Buffr Checkpoint — Capability Status v0.4 seed data
 -- Source of truth: buffrcheckpoint.md Section 4a.7, v0.4 hardening-pass point 1.
--- Applied directly to Neon project bold-cloud-47505421 via MCP on 2026-09-09.
+-- Applied directly via MCP on 2026-09-09 (Oregon); carried into falling-frog-15538162 by the 2026-09-25 Frankfurt move.
 
 INSERT INTO type_definition (id, domain, code, label, sort_order) VALUES
   (gen_random_uuid(), 'capability_code', 'nfc_badge_checkin', 'NFC Badge/Token Check-In', 3),

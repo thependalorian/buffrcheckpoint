@@ -1,12 +1,12 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 import { and, desc, eq, isNull } from "drizzle-orm";
-import { randomUUID } from "node:crypto";
 
 import type { AuthenticatedUser } from "../../common/decorators/current-user.decorator";
 import type { Database } from "../../db/client";
 import { DB } from "../../db/db.module";
 import { platformConfigurationSetting, platformConfigurationSettingStatusLog } from "../../db/schema";
 import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.service";
+import { randomUUID } from "node:crypto";
 
 export const HEALTH_SCORE_WEIGHTS_KEY = "organisation_health_score_weights";
 

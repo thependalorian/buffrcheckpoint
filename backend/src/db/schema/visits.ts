@@ -5,8 +5,8 @@ import { visitInvitations } from "./invitations";
 import { kioskExperienceConfigurationVersions } from "./kiosk-experience";
 import { managedKioskDevices } from "./managed-kiosk-devices";
 import { organisations } from "./organisations";
-import { securityZones, sites } from "./sites";
 import { siteBrandingProfileVersions } from "./site-branding";
+import { securityZones, sites } from "./sites";
 import { typeDefinition } from "./type-definitions";
 import { visitorSubjects } from "./visitors";
 
@@ -49,9 +49,7 @@ export const visitorVisits = pgTable(
     offlineCaptured: boolean("offline_captured").notNull().default(false),
     retentionPolicyVersion: integer("retention_policy_version").notNull(),
     idempotencyKey: text("idempotency_key"),
-    brandingProfileVersionId: uuid("branding_profile_version_id").references(
-      () => siteBrandingProfileVersions.id,
-    ),
+    brandingProfileVersionId: uuid("branding_profile_version_id").references(() => siteBrandingProfileVersions.id),
     kioskExperienceConfigurationVersionId: uuid("kiosk_experience_configuration_version_id").references(
       () => kioskExperienceConfigurationVersions.id,
     ),

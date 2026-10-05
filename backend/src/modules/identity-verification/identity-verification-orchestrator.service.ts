@@ -1,16 +1,21 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { and, eq } from "drizzle-orm";
-import { randomUUID } from "node:crypto";
 
 import type { AuthenticatedUser } from "../../common/decorators/current-user.decorator";
 import type { Database } from "../../db/client";
 import { DB } from "../../db/db.module";
-import { platformCapabilityApprovals, typeDefinition, visitorIdentityAssessments, visitorVisits } from "../../db/schema";
+import {
+  platformCapabilityApprovals,
+  typeDefinition,
+  visitorIdentityAssessments,
+  visitorVisits,
+} from "../../db/schema";
 import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.service";
 import type { VerifyIdentityDto } from "./dto/verify-identity.dto";
 import { DiginamRelyingPartyVerificationProvider } from "./providers/diginam-relying-party-verification.provider";
-import { DiscoveryIdentityVerificationProvider } from "./providers/discovery-identity-verification.provider";
 import type { DigitalIdentityVerificationProvider } from "./providers/digital-identity-verification.provider";
+import { DiscoveryIdentityVerificationProvider } from "./providers/discovery-identity-verification.provider";
+import { randomUUID } from "node:crypto";
 
 @Injectable()
 export class IdentityVerificationOrchestratorService {

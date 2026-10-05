@@ -22,7 +22,7 @@ export function MfaSetupForm() {
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
+    void (async () => {
       const response = await fetch("/api/auth/mfa/enroll/start", { method: "POST" });
       if (!response.ok) {
         if (!cancelled) setError(authCopy.errors.generic);
@@ -33,7 +33,9 @@ export function MfaSetupForm() {
         setOtpauthUrl(result.otpauthUrl);
         setSecret(result.secret);
       }
-    })();
+    })().catch(() => {
+      if (!cancelled) setError(authCopy.errors.generic);
+    });
     return () => {
       cancelled = true;
     };

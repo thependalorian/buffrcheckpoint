@@ -1,11 +1,11 @@
 import { Injectable } from "@nestjs/common";
-import { randomUUID } from "node:crypto";
 
 import type {
   DigitalIdentityVerificationOutcome,
   DigitalIdentityVerificationProvider,
   DigitalIdentityVerificationRequest,
 } from "./digital-identity-verification.provider";
+import { randomUUID } from "node:crypto";
 
 // Skeleton only — wired when platform capability status >= approved and
 // CRAN relying-party onboarding note confirms the technical interface.

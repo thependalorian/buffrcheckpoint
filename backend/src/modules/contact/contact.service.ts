@@ -1,12 +1,12 @@
 import { Inject, Injectable, Logger } from "@nestjs/common";
 import { and, eq, isNull } from "drizzle-orm";
-import { randomUUID } from "node:crypto";
 
 import type { Database } from "../../db/client";
 import { DB } from "../../db/db.module";
 import { applicationUsers, contactEnquiries, contactEnquiryStatusLog } from "../../db/schema";
 import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.service";
 import { TemplatedEmailService } from "../notifications/templated-email.service";
+import { randomUUID } from "node:crypto";
 
 @Injectable()
 export class ContactService {
@@ -18,13 +18,7 @@ export class ContactService {
     private readonly templatedEmail: TemplatedEmailService,
   ) {}
 
-  async submit(input: {
-    name: string;
-    email: string;
-    company?: string;
-    message: string;
-    website?: string;
-  }) {
+  async submit(input: { name: string; email: string; company?: string; message: string; website?: string }) {
     if (input.website?.trim()) {
       return { ok: true };
     }
@@ -85,7 +79,10 @@ export class ContactService {
         });
 
         const emailedStatus = await this.typeDefs.id("contact_enquiry_status", "emailed");
-        await this.db.update(contactEnquiries).set({ statusCode: emailedStatus }).where(eq(contactEnquiries.id, enquiryId));
+        await this.db
+          .update(contactEnquiries)
+          .set({ statusCode: emailedStatus })
+          .where(eq(contactEnquiries.id, enquiryId));
         await this.db.insert(contactEnquiryStatusLog).values({
           id: randomUUID(),
           enquiryId,

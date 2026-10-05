@@ -1,8 +1,4 @@
-import {
-  buildInvitationCheckInUrl,
-  generateOpaqueInvitationToken,
-  invitationTokenHmac,
-} from "./invitation-token.util";
+import { buildInvitationCheckInUrl, generateOpaqueInvitationToken, invitationTokenHmac } from "./invitation-token.util";
 
 describe("invitation-token.util", () => {
   it("generates opaque tokens without PII", () => {

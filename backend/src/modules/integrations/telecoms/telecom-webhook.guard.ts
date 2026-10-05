@@ -8,11 +8,11 @@ import {
   UnauthorizedException,
 } from "@nestjs/common";
 import { eq } from "drizzle-orm";
-import { createHmac, timingSafeEqual } from "node:crypto";
 
 import type { Database } from "../../../db/client";
 import { DB } from "../../../db/db.module";
 import { telecommunicationsProviderArrangements } from "../../../db/schema";
+import { createHmac, timingSafeEqual } from "node:crypto";
 
 @Injectable()
 export class TelecomWebhookGuard implements CanActivate {

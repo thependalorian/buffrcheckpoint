@@ -1,9 +1,9 @@
 import { Controller, Get } from "@nestjs/common";
 
 import { type AuthenticatedUser, CurrentUser } from "../../common/decorators/current-user.decorator";
+import { RequireMfa } from "../../common/decorators/require-mfa.decorator";
 import { RequirePermission } from "../../common/decorators/require-permission.decorator";
 import { RequireVerifiedEmail } from "../../common/decorators/require-verified-email.decorator";
-import { RequireMfa } from "../../common/decorators/require-mfa.decorator";
 import { PERMISSIONS } from "../../common/rbac/permissions";
 import { ComplianceService } from "./compliance.service";
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -9,6 +9,22 @@ import { Button } from "@/components/ui/button";
 import { authCopy } from "@/lib/copy/auth";
 
 type VerifyState = "loading" | "success" | "error";
+type VerifyResult = { ok: false } | { ok: true; nextPath: string };
+
+async function consumeToken(token: string): Promise<VerifyResult> {
+  try {
+    const response = await fetch("/api/auth/verify-email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token }),
+    });
+    if (!response.ok) return { ok: false };
+    const result = (await response.json()) as { nextPath?: string };
+    return { ok: true, nextPath: result.nextPath ?? "/auth/mfa/setup" };
+  } catch {
+    return { ok: false };
+  }
+}
 
 export function VerifyEmailClient() {
   const searchParams = useSearchParams();
@@ -16,25 +32,25 @@ export function VerifyEmailClient() {
   const token = searchParams.get("token") ?? "";
   const [state, setState] = useState<VerifyState>(token ? "loading" : "error");
   const [nextPath, setNextPath] = useState("/auth/mfa/setup");
+  // Tokens are single-use: Strict Mode and re-renders re-run the effect, so
+  // every run awaits the one request already sent for this token.
+  const request = useRef<{ token: string; promise: Promise<VerifyResult> } | null>(null);
 
   useEffect(() => {
     if (!token) return;
+    if (request.current?.token !== token) {
+      request.current = { token, promise: consumeToken(token) };
+    }
     let cancelled = false;
-    (async () => {
-      const response = await fetch("/api/auth/verify-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token }),
-      });
+    request.current.promise.then((result) => {
       if (cancelled) return;
-      if (!response.ok) {
+      if (!result.ok) {
         setState("error");
         return;
       }
-      const result = (await response.json()) as { nextPath?: string };
-      setNextPath(result.nextPath ?? "/auth/mfa/setup");
+      setNextPath(result.nextPath);
       setState("success");
-    })();
+    });
     return () => {
       cancelled = true;
     };

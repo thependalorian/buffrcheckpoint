@@ -1,14 +1,17 @@
 /** Resolve branding/policy artifact ids to fetchable URLs for kiosk/admin. */
 export function resolvePublicAssetUrl(artifactId: string | null | undefined): string | null {
   if (!artifactId) return null;
-  if (
-    artifactId.startsWith("http://") ||
-    artifactId.startsWith("https://") ||
-    artifactId.startsWith("data:image/")
-  ) {
+  if (artifactId.startsWith("http://") || artifactId.startsWith("https://") || artifactId.startsWith("data:image/")) {
     return artifactId;
   }
   if (artifactId.startsWith("inline:")) return null;
+
+  // Uploaded branding assets live in private object storage and are served by
+  // the API's public read route (site-branding.controller `assets/...`).
+  if (artifactId.startsWith("asset:site-branding/")) {
+    const apiBase = (process.env.PUBLIC_API_BASE_URL ?? "https://api.buffrcheckpoint.com").replace(/\/$/, "");
+    return `${apiBase}/site-branding/assets/${artifactId.slice("asset:site-branding/".length)}`;
+  }
 
   const base =
     process.env.PUBLIC_ASSET_BASE_URL ??

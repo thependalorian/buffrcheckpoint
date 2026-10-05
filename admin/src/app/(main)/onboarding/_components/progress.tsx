@@ -1,40 +1,37 @@
 import Link from "next/link";
 
-import {
-  STEP_CODE_TO_SLUG,
-  STEP_SLUG_TO_CODE,
-  onboardingCopy,
-  type OnboardingStepSlug,
-} from "@/lib/copy/onboarding";
+import { onboardingCopy, STEP_CODE_TO_SLUG } from "@/lib/copy/onboarding";
+import { deriveStatus, type ReadinessStep } from "@/lib/onboarding/readiness";
 import { cn } from "@/lib/utils";
 
-const ORDERED_SLUGS = Object.keys(STEP_SLUG_TO_CODE) as OnboardingStepSlug[];
-
-export function OnboardingProgress({
-  currentSlug,
-  completedSteps,
-}: {
-  currentSlug: OnboardingStepSlug;
-  completedSteps: string[];
-}) {
+/**
+ * Compact checklist strip for step pages. Every step stays visible with its
+ * status, so nothing appears to vanish when the launch route changes.
+ */
+export function OnboardingProgress({ steps, currentCode }: { steps: ReadinessStep[]; currentCode: string }) {
   return (
     <ol className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-      {ORDERED_SLUGS.map((slug, index) => {
-        const code = STEP_SLUG_TO_CODE[slug];
-        const done = completedSteps.includes(code);
-        const current = slug === currentSlug;
+      {steps.map((step, index) => {
+        const current = step.code === currentCode;
+        const status = deriveStatus(step);
         return (
-          <li key={slug}>
+          <li key={step.code}>
             <Link
-              href={`/onboarding/${slug}`}
+              href={`/onboarding/${STEP_CODE_TO_SLUG[step.code]}`}
+              prefetch={false}
+              aria-current={current ? "step" : undefined}
               className={cn(
                 "flex min-h-11 items-center gap-2 rounded-md border px-3 py-2 text-sm",
                 current && "border-primary bg-primary/5",
-                done && !current && "border-muted-foreground/30 text-muted-foreground",
+                status !== "ready" && !current && "border-muted-foreground/30 text-muted-foreground",
+                status === "not_needed" && "border-dashed",
               )}
             >
               <span className="font-mono text-xs">{index + 1}</span>
-              <span>{onboardingCopy.steps[code].title}</span>
+              <span className="min-w-0 flex-1">{onboardingCopy.steps[step.code].title}</span>
+              {status === "ready" ? null : (
+                <span className="text-xs">{onboardingCopy.overview.statusLabel[status]}</span>
+              )}
             </Link>
           </li>
         );
@@ -42,11 +39,3 @@ export function OnboardingProgress({
     </ol>
   );
 }
-
-export function nextOnboardingHref(currentSlug: OnboardingStepSlug): string {
-  const index = ORDERED_SLUGS.indexOf(currentSlug);
-  const next = ORDERED_SLUGS[Math.min(index + 1, ORDERED_SLUGS.length - 1)];
-  return `/onboarding/${next}`;
-}
-
-export { STEP_CODE_TO_SLUG, STEP_SLUG_TO_CODE, ORDERED_SLUGS };

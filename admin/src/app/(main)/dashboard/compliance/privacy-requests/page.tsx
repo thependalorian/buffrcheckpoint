@@ -1,9 +1,4 @@
-import {
-  CreateDsarSheet,
-  DsarTypeFilter,
-  RequestTypeBadge,
-  ResolveDsarButtons,
-} from "./_components/dsar-controls";
+import { CreateDsarSheet, DsarTypeFilter, RequestTypeBadge, ResolveDsarButtons } from "./_components/dsar-controls";
 import { DashboardPageHeader } from "@/components/dashboard-page-header";
 import { DashboardErrorState, TableEmptyRow } from "@/components/dashboard-state";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -19,11 +14,7 @@ interface DsarRow {
   exportFileReference?: string | null;
 }
 
-export default async function PrivacyRequestsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ type?: string }>;
-}) {
+export default async function PrivacyRequestsPage({ searchParams }: { searchParams: Promise<{ type?: string }> }) {
   const params = await searchParams;
   const typeFilter = params.type?.trim() || undefined;
 

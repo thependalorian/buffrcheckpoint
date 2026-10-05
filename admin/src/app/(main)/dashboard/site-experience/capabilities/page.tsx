@@ -47,9 +47,7 @@ export default async function CapabilitiesPage() {
     error = err instanceof Error ? err.message : "Failed to load capability enablement.";
   }
 
-  const orgEnabledByCode = new Map(
-    orgRows.map((row) => [row.capabilityCode, row.statusCode === "approved"]),
-  );
+  const orgEnabledByCode = new Map(orgRows.map((row) => [row.capabilityCode, row.statusCode === "approved"]));
 
   const capabilities = CAPABILITY_CATALOG.map((item) => ({
     code: item.code,
@@ -65,11 +63,7 @@ export default async function CapabilitiesPage() {
         title="Capability enablement"
         description="Turn platform-available integrations on for your organisation. Platform status is managed by Buffr Checkpoint support. CiMSO can be enabled while platform status is targeted or live."
       />
-      {error ? (
-        <DashboardErrorState message={error} />
-      ) : (
-        <CapabilityEnablementPanel capabilities={capabilities} />
-      )}
+      {error ? <DashboardErrorState message={error} /> : <CapabilityEnablementPanel capabilities={capabilities} />}
     </div>
   );
 }

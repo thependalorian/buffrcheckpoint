@@ -14,13 +14,13 @@
 /* Color tokens */
 :root,
 [data-theme-preset="buffr-checkpoint"] {
-  --color-sodium-yellow: #E0B000;
+  --color-sodium-yellow: #e0b000;
   --color-lime-pulse: #00ff1a;
   --color-carbon: #171717;
   --color-graphite: #e9e7e0;
   --color-slate: #6b6b6b;
   --color-frost: #d9d9d4;
-  --color-cloud: #F5F5F5;
+  --color-cloud: #f5f5f5;
   --color-pure-white: #ffffff;
   --color-ash: #9a9a94;
   --color-charcoal: #111111;
@@ -28,7 +28,7 @@
      canvas — the raw brand gold is ~1.97:1 on --color-cloud (fine as a
      button fill under near-black text, fails WCAG AA as foreground text).
      8a6403 clears 4.88:1. Same fix pattern as --color-status-live below. */
-  --color-sodium-yellow-ink: #8A6B00;
+  --color-sodium-yellow-ink: #8a6b00;
 
   /* Map to existing semantic tokens */
   --background: var(--color-cloud);

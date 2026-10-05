@@ -1,19 +1,10 @@
-import {
-  boolean,
-  index,
-  integer,
-  jsonb,
-  pgTable,
-  text,
-  timestamp,
-  uuid,
-} from "drizzle-orm/pg-core";
+import { boolean, index, integer, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 import { siteHosts } from "./hosts";
+import { visitInvitations } from "./invitations";
 import { organisations } from "./organisations";
 import { securityZones, sites } from "./sites";
 import { typeDefinition } from "./type-definitions";
-import { visitInvitations } from "./invitations";
 import { visitorVisits } from "./visits";
 
 /** Org+site PMS connection (CiMSO INNterchange first; provider_code from type_definition). */
@@ -49,9 +40,7 @@ export const pmsIntegrationConnections = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
-  (t) => [
-    index("idx_pms_connections_org_active").on(t.organisationId),
-  ],
+  (t) => [index("idx_pms_connections_org_active").on(t.organisationId)],
 );
 
 export const pmsIntegrationConnectionStatusLog = pgTable(

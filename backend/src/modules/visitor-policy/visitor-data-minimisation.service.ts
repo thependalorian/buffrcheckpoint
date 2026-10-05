@@ -2,11 +2,11 @@ import { BadRequestException, Injectable } from "@nestjs/common";
 
 import {
   answerScalar,
+  type FormValidationSchema,
   isFieldRequired,
   isFieldVisible,
-  validateAnswerValue,
-  type FormValidationSchema,
   type VisibilityRule,
+  validateAnswerValue,
 } from "./form-rules";
 
 export type MinimisationFormField = {

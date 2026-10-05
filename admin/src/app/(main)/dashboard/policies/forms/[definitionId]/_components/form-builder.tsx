@@ -99,7 +99,7 @@ function SortableFieldRow({
         ::
       </button>
       <button type="button" className="min-w-0 flex-1 text-left" onClick={onSelect}>
-        <div className="truncate font-medium">{field.fieldLabel || field.fieldCode}</div>
+        <div className="truncate font-medium">{field.fieldLabel?.trim() || field.fieldCode}</div>
         <div className="truncate text-xs text-muted-foreground">
           {field.fieldCode} · {field.fieldTypeCode} · {field.dataClassificationCode}
           {field.required ? " · required" : ""}
@@ -122,9 +122,7 @@ export function FormBuilder({
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [versions, setVersions] = useState(initialVersions);
-  const [activeVersionId, setActiveVersionId] = useState<string | null>(
-    initialVersions[0]?.id ?? null,
-  );
+  const [activeVersionId, setActiveVersionId] = useState<string | null>(initialVersions[0]?.id ?? null);
   const [fields, setFields] = useState<FormField[]>([]);
   const [selectedFieldId, setSelectedFieldId] = useState<string | null>(null);
   const [approvalReference, setApprovalReference] = useState("");
@@ -140,9 +138,7 @@ export function FormBuilder({
   const needsJustification = useMemo(
     () =>
       fields.some(
-        (f) =>
-          f.dataClassificationCode === "high_risk" ||
-          f.dataClassificationCode === "verification_evidence",
+        (f) => f.dataClassificationCode === "high_risk" || f.dataClassificationCode === "verification_evidence",
       ),
     [fields],
   );
@@ -282,9 +278,7 @@ export function FormBuilder({
                                 : "text",
                         dataClassificationCode: libraryCode.startsWith("id_")
                           ? "sensitive"
-                          : libraryCode === "visitor_name" ||
-                              libraryCode === "visitor_phone" ||
-                              libraryCode === "host"
+                          : libraryCode === "visitor_name" || libraryCode === "visitor_phone" || libraryCode === "host"
                             ? "core"
                             : "basic",
                         required: ["visitor_name", "visitor_phone", "host"].includes(libraryCode),
@@ -340,8 +334,8 @@ export function FormBuilder({
           <div className="space-y-2 rounded-md border border-dashed p-3">
             <Label htmlFor="ai-intent">Suggest from description</Label>
             <p className="text-muted-foreground text-xs">
-              Admin intent only — do not paste visitor PII. Review every suggested field before
-              publishing. Requires FORM_AI_ENABLED and Neon AI Gateway credentials on the API.
+              Admin intent only — do not paste visitor PII. Review every suggested field before publishing. Requires
+              FORM_AI_ENABLED and Neon AI Gateway credentials on the API.
             </p>
             <Textarea
               id="ai-intent"
@@ -442,11 +436,7 @@ export function FormBuilder({
               onClick={() =>
                 run(async () => {
                   if (!activeVersionId) return;
-                  await publishFormVersionAction(
-                    definition.id,
-                    activeVersionId,
-                    approvalReference.trim() || undefined,
-                  );
+                  await publishFormVersionAction(definition.id, activeVersionId, approvalReference.trim() || undefined);
                   await refreshVersions(activeVersionId);
                   await loadVersion(activeVersionId);
                 })
@@ -573,8 +563,8 @@ export function FormBuilder({
                   placeholder="fieldCode"
                   disabled={!isDraft || pending}
                   defaultValue={
-                    ((selectedField.visibilityRule as { conditions?: Array<{ fieldCode?: string }> })
-                      ?.conditions?.[0]?.fieldCode as string) ?? ""
+                    ((selectedField.visibilityRule as { conditions?: Array<{ fieldCode?: string }> })?.conditions?.[0]
+                      ?.fieldCode as string) ?? ""
                   }
                   id={`vis-code-${selectedField.id}`}
                 />
@@ -582,8 +572,8 @@ export function FormBuilder({
                   placeholder="value"
                   disabled={!isDraft || pending}
                   defaultValue={
-                    ((selectedField.visibilityRule as { conditions?: Array<{ equals?: string }> })
-                      ?.conditions?.[0]?.equals as string) ?? ""
+                    ((selectedField.visibilityRule as { conditions?: Array<{ equals?: string }> })?.conditions?.[0]
+                      ?.equals as string) ?? ""
                   }
                   id={`vis-eq-${selectedField.id}`}
                 />
@@ -593,18 +583,11 @@ export function FormBuilder({
                 variant="outline"
                 disabled={!isDraft || pending}
                 onClick={() => {
-                  const codeEl = document.getElementById(
-                    `vis-code-${selectedField.id}`,
-                  ) as HTMLInputElement | null;
-                  const eqEl = document.getElementById(
-                    `vis-eq-${selectedField.id}`,
-                  ) as HTMLInputElement | null;
+                  const codeEl = document.getElementById(`vis-code-${selectedField.id}`) as HTMLInputElement | null;
+                  const eqEl = document.getElementById(`vis-eq-${selectedField.id}`) as HTMLInputElement | null;
                   const fieldCode = codeEl?.value.trim() ?? "";
                   const equals = eqEl?.value.trim() ?? "";
-                  const visibilityRule =
-                    fieldCode && equals
-                      ? { op: "and", conditions: [{ fieldCode, equals }] }
-                      : {};
+                  const visibilityRule = fieldCode && equals ? { op: "and", conditions: [{ fieldCode, equals }] } : {};
                   updateSelected({ visibilityRule });
                   run(async () => {
                     await updateFormFieldAction(definition.id, selectedField.id, {
@@ -621,20 +604,14 @@ export function FormBuilder({
               <Input
                 disabled={!isDraft || pending}
                 defaultValue={
-                  Array.isArray(
-                    (selectedField.validationSchema as { options?: string[] }).options,
-                  )
-                    ? ((selectedField.validationSchema as { options?: string[] }).options ?? []).join(
-                        ", ",
-                      )
+                  Array.isArray((selectedField.validationSchema as { options?: string[] }).options)
+                    ? ((selectedField.validationSchema as { options?: string[] }).options ?? []).join(", ")
                     : ""
                 }
                 id={`opts-${selectedField.id}`}
                 onBlur={() => {
                   if (!isDraft) return;
-                  const el = document.getElementById(
-                    `opts-${selectedField.id}`,
-                  ) as HTMLInputElement | null;
+                  const el = document.getElementById(`opts-${selectedField.id}`) as HTMLInputElement | null;
                   const options = (el?.value ?? "")
                     .split(",")
                     .map((s) => s.trim())
@@ -682,9 +659,7 @@ export function FormBuilder({
                           ) as HTMLInputElement | null
                         )?.value;
                         const help = (
-                          document.getElementById(
-                            `tr-help-${selectedField.id}-${lang.code}`,
-                          ) as HTMLInputElement | null
+                          document.getElementById(`tr-help-${selectedField.id}-${lang.code}`) as HTMLInputElement | null
                         )?.value;
                         run(async () => {
                           await upsertFieldTranslationAction(definition.id, selectedField.id, {

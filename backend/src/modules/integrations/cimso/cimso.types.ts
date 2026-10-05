@@ -19,8 +19,7 @@ export const CIMSO_INTERFACE_TYPES = {
   BUSINESS_INTELLIGENCE: 11,
 } as const;
 
-export type CimsoInterfaceTypeId =
-  (typeof CIMSO_INTERFACE_TYPES)[keyof typeof CIMSO_INTERFACE_TYPES];
+export type CimsoInterfaceTypeId = (typeof CIMSO_INTERFACE_TYPES)[keyof typeof CIMSO_INTERFACE_TYPES];
 
 /** Beachhead interface types for hospitality PMS (registration 1+3+4). */
 export const CIMSO_HOSPITALITY_DEFAULT_TYPES: CimsoInterfaceTypeId[] = [
@@ -73,8 +72,7 @@ export const CIMSO_BOOKING_STATUS = {
   RESTRICTED: "R",
 } as const;
 
-export type CimsoBookingStatusCode =
-  (typeof CIMSO_BOOKING_STATUS)[keyof typeof CIMSO_BOOKING_STATUS];
+export type CimsoBookingStatusCode = (typeof CIMSO_BOOKING_STATUS)[keyof typeof CIMSO_BOOKING_STATUS];
 
 /** Statuses from which Set Booking Status may request check-in (→ Active). */
 export const CIMSO_CHECK_IN_ALLOWED_FROM: readonly CimsoBookingStatusCode[] = [

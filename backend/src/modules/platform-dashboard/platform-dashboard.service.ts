@@ -20,6 +20,7 @@ import {
   visitorVisits,
 } from "../../db/schema";
 import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.service";
+import { isRealVisit } from "../visits/test-visit-filter";
 
 /** Month buckets from `from` through the current month, inclusive. */
 function monthSeries(from: Date): { label: string; endsBefore: Date }[] {
@@ -72,7 +73,10 @@ export class PlatformDashboardService {
     const [orgCount, siteCount, mtdVisits, activeDevices, openIncidents, highRiskOrgs] = await Promise.all([
       this.db.select({ value: count() }).from(organisations).where(isNull(organisations.deletedAt)),
       this.db.select({ value: count() }).from(sites).where(isNull(sites.deletedAt)),
-      this.db.select({ value: count() }).from(visitorVisits).where(gte(visitorVisits.checkedInAt, monthStart)),
+      this.db
+        .select({ value: count() })
+        .from(visitorVisits)
+        .where(and(gte(visitorVisits.checkedInAt, monthStart), isRealVisit(visitorVisits.arrivalChannelCode))),
       this.db.select({ value: count() }).from(managedKioskDevices).where(isNull(managedKioskDevices.deletedAt)),
       this.openIncidentCount(),
       this.highChurnRiskOrgCount(),

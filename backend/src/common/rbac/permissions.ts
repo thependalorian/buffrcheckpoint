@@ -62,6 +62,11 @@ export const PERMISSIONS = {
   ORGANISATION_KYB_SUBMIT: "organisation.kyb.submit",
   SUPPORT_TICKET_CUSTOMER_MANAGE: "support_ticket.customer.manage",
   ACCESS_REVIEW_MANAGE: "access_review.manage",
+  // Onboarding authority — db/migrations/0049_onboarding_authority.sql.
+  // Customer-side: completing setup steps and approving go-live.
+  ONBOARDING_MANAGE: "organisation.onboarding.manage",
+  // Buffr-internal: reopening setup or overriding a customer's onboarding status.
+  PLATFORM_ONBOARDING_MANAGE: "platform.onboarding.manage",
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Param, Post, Query } from "@nestjs/common";
 
 import { AuditLog } from "../../common/decorators/audit-log.decorator";
+import { AuthenticatedOnly } from "../../common/decorators/authenticated-only.decorator";
 import { type AuthenticatedUser, CurrentUser } from "../../common/decorators/current-user.decorator";
 import { RequirePermission } from "../../common/decorators/require-permission.decorator";
 import { RequireVerifiedEmail } from "../../common/decorators/require-verified-email.decorator";
@@ -20,6 +21,7 @@ export class DsarController {
   // org-resolution design — not specified yet in Section 11.4.4 — before it
   // can be built; noted here rather than faked with a guess.
   @Post()
+  @AuthenticatedOnly()
   create(@Body() dto: CreateDsarDto, @CurrentUser() user: AuthenticatedUser) {
     return this.dsarService.create(dto, user);
   }

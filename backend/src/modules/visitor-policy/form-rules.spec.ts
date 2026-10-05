@@ -17,12 +17,7 @@ describe("form-rules", () => {
     expect(isFieldVisible(rule, { purpose_category: { value: "vehicle" } })).toBe(true);
     expect(isFieldVisible(rule, { purpose_category: { value: "meeting" } })).toBe(false);
 
-    expect(
-      isFieldVisible(
-        { op: "or", conditions: [{ fieldCode: "a", in: ["x", "y"] }] },
-        { a: "y" },
-      ),
-    ).toBe(true);
+    expect(isFieldVisible({ op: "or", conditions: [{ fieldCode: "a", in: ["x", "y"] }] }, { a: "y" })).toBe(true);
 
     expect(isFieldVisible({ conditions: [{ fieldCode: "a", notEmpty: true }] }, { a: "" })).toBe(false);
   });
@@ -49,18 +44,14 @@ describe("VisitorDataMinimisationService", () => {
   const service = new VisitorDataMinimisationService();
 
   it("blocks publish of high_risk without approval reference", () => {
-    expect(() =>
-      service.assertPublishAllowed([{ dataClassificationCode: "high_risk" }], null),
-    ).toThrow(BadRequestException);
-    expect(() =>
-      service.assertPublishAllowed([{ dataClassificationCode: "high_risk" }], "  "),
-    ).toThrow(BadRequestException);
-    expect(() =>
-      service.assertPublishAllowed([{ dataClassificationCode: "high_risk" }], "DPIA-1"),
-    ).not.toThrow();
-    expect(() =>
-      service.assertPublishAllowed([{ dataClassificationCode: "basic" }], null),
-    ).not.toThrow();
+    expect(() => service.assertPublishAllowed([{ dataClassificationCode: "high_risk" }], null)).toThrow(
+      BadRequestException,
+    );
+    expect(() => service.assertPublishAllowed([{ dataClassificationCode: "high_risk" }], "  ")).toThrow(
+      BadRequestException,
+    );
+    expect(() => service.assertPublishAllowed([{ dataClassificationCode: "high_risk" }], "DPIA-1")).not.toThrow();
+    expect(() => service.assertPublishAllowed([{ dataClassificationCode: "basic" }], null)).not.toThrow();
   });
 
   it("rejects unknown field codes and mismatched form versions", () => {

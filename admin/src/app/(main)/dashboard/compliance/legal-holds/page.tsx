@@ -1,7 +1,4 @@
-import {
-  CreateLegalHoldSheet,
-  ReleaseLegalHoldButton,
-} from "./_components/legal-hold-controls";
+import { CreateLegalHoldSheet, ReleaseLegalHoldButton } from "./_components/legal-hold-controls";
 import { DashboardPageHeader } from "@/components/dashboard-page-header";
 import { DashboardErrorState, TableEmptyRow } from "@/components/dashboard-state";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -55,12 +52,8 @@ export default async function LegalHoldsPage() {
                 rows.map((row) => (
                   <TableRow key={row.id}>
                     <TableCell className="p-3 text-sm">{row.active ? "Active" : "Released"}</TableCell>
-                    <TableCell className="p-3 font-mono text-xs">
-                      {JSON.stringify(row.scope)}
-                    </TableCell>
-                    <TableCell className="p-3">
-                      {row.active ? <ReleaseLegalHoldButton id={row.id} /> : "—"}
-                    </TableCell>
+                    <TableCell className="p-3 font-mono text-xs">{JSON.stringify(row.scope)}</TableCell>
+                    <TableCell className="p-3">{row.active ? <ReleaseLegalHoldButton id={row.id} /> : "—"}</TableCell>
                   </TableRow>
                 ))
               )}

@@ -1,11 +1,5 @@
-import {
-  BadRequestException,
-  Inject,
-  Injectable,
-  NotFoundException,
-} from "@nestjs/common";
+import { BadRequestException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 import { and, asc, desc, eq, isNull } from "drizzle-orm";
-import { createHash, randomUUID } from "node:crypto";
 
 import { resolveInlineArtifactText, resolvePublicAssetUrl } from "../../common/assets/public-asset-url";
 import type { AuthenticatedUser } from "../../common/decorators/current-user.decorator";
@@ -13,19 +7,20 @@ import type { Database } from "../../db/client";
 import { DB } from "../../db/db.module";
 import {
   checkInFormDefinitions,
-  checkInFormFieldTranslations,
   checkInFormFields,
+  checkInFormFieldTranslations,
   checkInFormVersions,
-  visitorCategories,
-  visitorPolicyDocuments,
-  visitorPolicyVersions,
   kioskPrivacyPreCheckinAcknowledgements,
-  visitorPolicyAcknowledgements,
   sites,
   typeDefinition,
+  visitorCategories,
+  visitorPolicyAcknowledgements,
+  visitorPolicyDocuments,
+  visitorPolicyVersions,
 } from "../../db/schema";
 import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.service";
 import { VisitorDataMinimisationService } from "./visitor-data-minimisation.service";
+import { createHash, randomUUID } from "node:crypto";
 
 export type EffectiveFormField = {
   fieldCode: string;
@@ -205,9 +200,7 @@ export class VisitorPolicyService {
     if (!field) throw new NotFoundException("Form field not found");
     await this.requireDraftFormVersion(field.formVersionId, user);
     const fieldTypeCode =
-      input.fieldTypeCode !== undefined
-        ? await this.typeDefs.id("field_type", input.fieldTypeCode)
-        : undefined;
+      input.fieldTypeCode !== undefined ? await this.typeDefs.id("field_type", input.fieldTypeCode) : undefined;
     const dataClassificationCode =
       input.dataClassificationCode !== undefined
         ? await this.typeDefs.id("field_class", input.dataClassificationCode)
@@ -243,11 +236,7 @@ export class VisitorPolicyService {
     return updated;
   }
 
-  async reorderFormFields(
-    versionId: string,
-    fieldIdsInOrder: string[],
-    user: AuthenticatedUser,
-  ) {
+  async reorderFormFields(versionId: string, fieldIdsInOrder: string[], user: AuthenticatedUser) {
     await this.requireDraftFormVersion(versionId, user);
     for (let i = 0; i < fieldIdsInOrder.length; i++) {
       await this.db
@@ -287,10 +276,7 @@ export class VisitorPolicyService {
         validationSchema: field.validationSchema ?? {},
       });
       const translations = await this.db.query.checkInFormFieldTranslations.findMany({
-        where: and(
-          eq(checkInFormFieldTranslations.fieldId, field.id),
-          isNull(checkInFormFieldTranslations.deletedAt),
-        ),
+        where: and(eq(checkInFormFieldTranslations.fieldId, field.id), isNull(checkInFormFieldTranslations.deletedAt)),
       });
       for (const tr of translations) {
         await this.db.insert(checkInFormFieldTranslations).values({
@@ -353,11 +339,7 @@ export class VisitorPolicyService {
     return created;
   }
 
-  async setFormVersionApprovalReference(
-    versionId: string,
-    approvalReference: string,
-    user: AuthenticatedUser,
-  ) {
+  async setFormVersionApprovalReference(versionId: string, approvalReference: string, user: AuthenticatedUser) {
     await this.requireDraftFormVersion(versionId, user);
     const [updated] = await this.db
       .update(checkInFormVersions)
@@ -398,11 +380,7 @@ export class VisitorPolicyService {
     };
   }
 
-  async publishFormVersion(
-    versionId: string,
-    user: AuthenticatedUser,
-    options?: { approvalReference?: string },
-  ) {
+  async publishFormVersion(versionId: string, user: AuthenticatedUser, options?: { approvalReference?: string }) {
     const version = await this.requireDraftFormVersion(versionId, user);
     if (options?.approvalReference !== undefined) {
       await this.db
@@ -551,9 +529,7 @@ export class VisitorPolicyService {
 
     let languageId: string | null = null;
     if (languageCode?.trim()) {
-      const lang = typeRows.find(
-        (r) => r.domain === "language_code" && r.code === languageCode.trim(),
-      );
+      const lang = typeRows.find((r) => r.domain === "language_code" && r.code === languageCode.trim());
       languageId = lang?.id ?? null;
     }
 
@@ -598,12 +574,7 @@ export class VisitorPolicyService {
     user: AuthenticatedUser,
     languageCode?: string,
   ): Promise<EffectiveCheckInForm | null> {
-    return this.resolveEffectiveForm(
-      user.organisationId,
-      siteId ?? user.siteId,
-      visitorTypeCode,
-      languageCode,
-    );
+    return this.resolveEffectiveForm(user.organisationId, siteId ?? user.siteId, visitorTypeCode, languageCode);
   }
 
   async createVisitorCategory(
@@ -662,7 +633,10 @@ export class VisitorPolicyService {
 
   async listPolicyDocuments(user: AuthenticatedUser) {
     return this.db.query.visitorPolicyDocuments.findMany({
-      where: and(eq(visitorPolicyDocuments.organisationId, user.organisationId), isNull(visitorPolicyDocuments.deletedAt)),
+      where: and(
+        eq(visitorPolicyDocuments.organisationId, user.organisationId),
+        isNull(visitorPolicyDocuments.deletedAt),
+      ),
     });
   }
 

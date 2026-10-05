@@ -161,6 +161,20 @@
           "required": true
         },
         {
+          "id": "A0-15",
+          "kind": "manual",
+          "title": "QR-first onboarding: register → readiness → site → route → form → QR → test arrival in 15 min; kiosk/CRAN never shown as required; test visit on roster, excluded from analytics and billing",
+          "journey": "11.9.15",
+          "required": true
+        },
+        {
+          "id": "A0-16",
+          "kind": "manual",
+          "title": "Invited staff see only the waiting page; a second admin's save shows 'changed by' copy with refreshed state, never a raw 409",
+          "journey": "11.9.15",
+          "required": true
+        },
+        {
           "id": "A0-EXIT-SIGNOFF",
           "kind": "signoff",
           "title": "A0 sign-off recorded (accept / accept-with-conditions / reject)",

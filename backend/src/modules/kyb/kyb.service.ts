@@ -2,9 +2,7 @@ import { Inject, Injectable, NotFoundException } from "@nestjs/common";
 import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 
 import { createArtifactStore } from "../../common/artifacts/artifact-store";
-import {
-  PersonalDataProtectionService,
-} from "../../common/data-protection/personal-data-protection.service";
+import { PersonalDataProtectionService } from "../../common/data-protection/personal-data-protection.service";
 import type { AuthenticatedUser } from "../../common/decorators/current-user.decorator";
 import type { Database } from "../../db/client";
 import { DB } from "../../db/db.module";

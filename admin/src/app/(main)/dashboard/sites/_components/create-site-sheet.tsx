@@ -4,11 +4,12 @@ import { useState, useTransition } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { createSiteAction } from "../actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+
+import { createSiteAction } from "../actions";
 
 export function CreateSiteSheet() {
   const [open, setOpen] = useState(false);
@@ -24,7 +25,9 @@ export function CreateSiteSheet() {
       <SheetContent>
         <SheetHeader>
           <SheetTitle>Add site</SheetTitle>
-          <SheetDescription>Creates a site under your organisation. Hosts and kiosks attach to this site.</SheetDescription>
+          <SheetDescription>
+            Creates a site under your organisation. Hosts and kiosks attach to this site.
+          </SheetDescription>
         </SheetHeader>
         <form
           className="mt-6 space-y-4"
@@ -35,8 +38,8 @@ export function CreateSiteSheet() {
             const name = String(formData.get("name") ?? "");
             startTransition(async () => {
               const result = await createSiteAction({ name });
-              if ("error" in result) {
-                setError(result.error);
+              if (!result.ok) {
+                setError(result.message);
                 return;
               }
               setOpen(false);

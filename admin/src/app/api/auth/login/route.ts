@@ -25,9 +25,7 @@ export async function POST(request: Request) {
       message?: string | string[];
       retryAfterSeconds?: number;
     };
-    const message = Array.isArray(errorBody.message)
-      ? errorBody.message[0]
-      : errorBody.message;
+    const message = Array.isArray(errorBody.message) ? errorBody.message[0] : errorBody.message;
     return NextResponse.json(
       {
         error:

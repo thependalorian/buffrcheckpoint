@@ -2,11 +2,7 @@ import { NextResponse } from "next/server";
 
 import { backendUrl } from "@/lib/auth/backend-url";
 import { isSameOriginRequest } from "@/lib/auth/csrf";
-import {
-  clearMfaChallengeCookie,
-  getMfaChallengeToken,
-  setSessionCookie,
-} from "@/lib/auth/session";
+import { clearMfaChallengeCookie, getMfaChallengeToken, setSessionCookie } from "@/lib/auth/session";
 
 function nestErrorMessage(errorBody: { message?: unknown }): string {
   const message = errorBody.message;
@@ -26,8 +22,7 @@ export async function POST(request: Request) {
 
   const body = await request.json().catch(() => null);
   const challengeToken =
-    (typeof body?.challengeToken === "string" && body.challengeToken.trim()) ||
-    (await getMfaChallengeToken());
+    (typeof body?.challengeToken === "string" && body.challengeToken.trim()) || (await getMfaChallengeToken());
 
   if (!challengeToken) {
     return NextResponse.json(
@@ -48,10 +43,7 @@ export async function POST(request: Request) {
 
   if (!backendResponse.ok) {
     const errorBody = await backendResponse.json().catch(() => ({}));
-    return NextResponse.json(
-      { error: nestErrorMessage(errorBody) },
-      { status: backendResponse.status },
-    );
+    return NextResponse.json({ error: nestErrorMessage(errorBody) }, { status: backendResponse.status });
   }
 
   const payload = (await backendResponse.json()) as {

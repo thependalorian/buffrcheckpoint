@@ -8,14 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "@/components/ui/native-select";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
 import { connectCimsoAction } from "../actions";
 
@@ -50,10 +43,7 @@ export function CimsoConnectSheet({ sites, hosts }: CimsoConnectSheetProps) {
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
-  const siteHosts = useMemo(
-    () => hosts.filter((h) => h.siteId === siteId && h.active),
-    [hosts, siteId],
-  );
+  const siteHosts = useMemo(() => hosts.filter((h) => h.siteId === siteId && h.active), [hosts, siteId]);
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -64,8 +54,8 @@ export function CimsoConnectSheet({ sites, hosts }: CimsoConnectSheetProps) {
         <SheetHeader>
           <SheetTitle>Connect CiMSO site</SheetTitle>
           <SheetDescription>
-            Per-site TCP settings for INNterchange. Interface types 1, 3, and 4. Password stays in
-            Railway under the secret ref name.
+            Per-site TCP settings for INNterchange. Interface types 1, 3, and 4. Password stays in Railway under the
+            secret ref name.
           </SheetDescription>
         </SheetHeader>
         <form

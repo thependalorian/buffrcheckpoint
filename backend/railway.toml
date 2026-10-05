@@ -11,3 +11,10 @@ restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3
 healthcheckPath = "/health"
 healthcheckTimeout = 120
+
+# One replica in Amsterdam, next to Neon falling-frog-15538162 (aws-eu-central-1).
+# us-west2 put a transatlantic round trip on every query (/auth/me p50 1,041 ms,
+# p95 1,607 ms before the move). Keep a single replica: the session cache and
+# roster stream emitter are in-process.
+[deploy.multiRegionConfig.europe-west4-drams3a]
+numReplicas = 1

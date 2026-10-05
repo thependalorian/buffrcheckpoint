@@ -1,10 +1,13 @@
 import { IsEmail, IsOptional, IsString, IsUUID, MinLength } from "class-validator";
 
+import { NormaliseEmail } from "../../../common/decorators/normalise-email.decorator";
+
 // No organisationId here — the controller always uses the authenticated
 // caller's own organisationId (auth.controller.ts), never a client-supplied
 // one. This DTO is for "an admin adds a teammate to their own org," not
 // tenant creation (that's OnboardingService.createOrganisationAdmin).
 export class RegisterDto {
+  @NormaliseEmail()
   @IsEmail()
   email!: string;
 

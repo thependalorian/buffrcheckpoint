@@ -1,7 +1,6 @@
 import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { and, count, desc, eq, gte, inArray, isNull, lte, ne } from "drizzle-orm";
-import { randomUUID } from "node:crypto";
 
 import { ScopedPermissionEvaluationService } from "../../common/access-control/scoped-permission-evaluation.service";
 import type { AuthenticatedUser } from "../../common/decorators/current-user.decorator";
@@ -13,13 +12,14 @@ import {
   organisations,
   platformSupportAuditEvents,
   platformSupportSession,
-  privilegedAccessGrants,
   privilegedAccessGrantStatusEvents,
+  privilegedAccessGrants,
   roleDefinitions,
   typeDefinition,
 } from "../../db/schema";
 import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.service";
 import { TemplatedEmailService } from "../notifications/templated-email.service";
+import { randomUUID } from "node:crypto";
 
 const GRANT_MAX_DURATION_MS = 8 * 60 * 60 * 1000; // 8h ceiling
 const SESSION_DURATION_MS = 30 * 60 * 1000; // support sessions are short — re-minted from the same grant if more time is needed
@@ -87,7 +87,12 @@ export class SupportSessionsService {
   }
 
   /** Emails every owner_operator/system_administrator of the target org — the actual consent-request notification. */
-  private async notifyOrganisationAdmins(organisationId: string, organisationName: string, grantId: string, note?: string) {
+  private async notifyOrganisationAdmins(
+    organisationId: string,
+    organisationName: string,
+    grantId: string,
+    note?: string,
+  ) {
     const memberships = await this.db.query.organisationMemberships.findMany({
       where: and(eq(organisationMemberships.organisationId, organisationId), isNull(organisationMemberships.deletedAt)),
     });
@@ -193,7 +198,9 @@ export class SupportSessionsService {
     return Promise.all(
       grants.map(async (grant) => {
         const grantSessions = sessions.filter((s) => s.grantId === grant.id);
-        const statusCode = grant.statusCode ? ((await this.typeDefs.codeById(grant.statusCode)) ?? "unknown") : "unknown";
+        const statusCode = grant.statusCode
+          ? ((await this.typeDefs.codeById(grant.statusCode)) ?? "unknown")
+          : "unknown";
         // An 'active' grant whose window has closed is spent, not live — the
         // status_code is only rewritten on an explicit transition.
         const effectiveStatus =
@@ -243,7 +250,9 @@ export class SupportSessionsService {
       actorId: user.userId,
     });
 
-    const grantRow = await this.db.query.privilegedAccessGrants.findFirst({ where: eq(privilegedAccessGrants.id, grantId) });
+    const grantRow = await this.db.query.privilegedAccessGrants.findFirst({
+      where: eq(privilegedAccessGrants.id, grantId),
+    });
     return grantRow ?? null;
   }
 
@@ -267,7 +276,9 @@ export class SupportSessionsService {
       note: reason,
     });
 
-    const grantRow = await this.db.query.privilegedAccessGrants.findFirst({ where: eq(privilegedAccessGrants.id, grantId) });
+    const grantRow = await this.db.query.privilegedAccessGrants.findFirst({
+      where: eq(privilegedAccessGrants.id, grantId),
+    });
     return grantRow ?? null;
   }
 
@@ -300,7 +311,9 @@ export class SupportSessionsService {
     return Promise.all(
       rows.map(async (row) => ({
         ...row,
-        status: row.statusCode ? ((await this.typeDefs.codeById(row.statusCode)) ?? "pending_customer_approval") : "pending_customer_approval",
+        status: row.statusCode
+          ? ((await this.typeDefs.codeById(row.statusCode)) ?? "pending_customer_approval")
+          : "pending_customer_approval",
       })),
     );
   }
@@ -422,12 +435,7 @@ export class SupportSessionsService {
     });
   }
 
-  async listAuditEvents(filters?: {
-    organisationId?: string;
-    action?: string;
-    from?: string;
-    to?: string;
-  }) {
+  async listAuditEvents(filters?: { organisationId?: string; action?: string; from?: string; to?: string }) {
     const clauses = [];
     if (filters?.organisationId) {
       clauses.push(eq(platformSupportAuditEvents.organisationId, filters.organisationId));

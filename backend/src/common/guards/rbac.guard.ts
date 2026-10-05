@@ -7,10 +7,13 @@ import { DB } from "../../db/db.module";
 import { privilegedAccessGrants } from "../../db/schema";
 import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.service";
 import { ScopedPermissionEvaluationService } from "../access-control/scoped-permission-evaluation.service";
+import { AUTHENTICATED_ONLY_KEY } from "../decorators/authenticated-only.decorator";
 import type { AuthenticatedUser } from "../decorators/current-user.decorator";
+import { IS_PUBLIC_KEY } from "../decorators/public.decorator";
+import { REQUIRE_MFA_KEY } from "../decorators/require-mfa.decorator";
 import { PERMISSION_KEY } from "../decorators/require-permission.decorator";
 import { REQUIRE_VERIFIED_EMAIL_KEY } from "../decorators/require-verified-email.decorator";
-import { REQUIRE_MFA_KEY } from "../decorators/require-mfa.decorator";
+import { MUTATING_METHODS } from "./route-policy";
 
 // Section 9.2 rule 1: "Enforce access in the database and API layer, not
 // only in the web interface." This guard is the API-layer half of that
@@ -26,17 +29,25 @@ export class RbacGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    const requiredPermission = this.reflector.getAllAndOverride<string | undefined>(PERMISSION_KEY, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
-
-    if (!requiredPermission) {
-      return true; // route opted out of permission checking explicitly
+    const targets = [context.getHandler(), context.getClass()];
+    if (this.reflector.getAllAndOverride<boolean | undefined>(IS_PUBLIC_KEY, targets)) {
+      return true;
     }
 
+    const requiredPermission = this.reflector.getAllAndOverride<string | undefined>(PERMISSION_KEY, targets);
     const request = context.switchToHttp().getRequest();
     const user = request.user as AuthenticatedUser | undefined;
+
+    if (!requiredPermission) {
+      // §9.2 rule 10: a state-changing route with no declared policy is a
+      // defect, not an implicit allow. Own-account actions opt out explicitly.
+      const authenticatedOnly = this.reflector.getAllAndOverride<boolean | undefined>(AUTHENTICATED_ONLY_KEY, targets);
+      if (MUTATING_METHODS.has(String(request.method).toUpperCase()) && !authenticatedOnly) {
+        throw new ForbiddenException("This action has no declared access policy");
+      }
+      if (user) this.assertVerificationRequirements(targets, user);
+      return true;
+    }
 
     if (!user) {
       throw new ForbiddenException("No authenticated user on request");
@@ -97,23 +108,23 @@ export class RbacGuard implements CanActivate {
       }
     }
 
-    // Verified email is required for privileged actions.
-    const requiresVerifiedEmail = this.reflector.getAllAndOverride<boolean | undefined>(REQUIRE_VERIFIED_EMAIL_KEY, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
-    if (requiresVerifiedEmail && !user.emailVerified) {
+    this.assertVerificationRequirements(targets, user);
+    return true;
+  }
+
+  // Enforced whether or not the route declares a permission.
+  private assertVerificationRequirements(
+    targets: Parameters<Reflector["getAllAndOverride"]>[1],
+    user: AuthenticatedUser,
+  ): void {
+    if (
+      this.reflector.getAllAndOverride<boolean | undefined>(REQUIRE_VERIFIED_EMAIL_KEY, targets) &&
+      !user.emailVerified
+    ) {
       throw new ForbiddenException("This action requires a verified email address");
     }
-
-    const requiresMfa = this.reflector.getAllAndOverride<boolean | undefined>(REQUIRE_MFA_KEY, [
-      context.getHandler(),
-      context.getClass(),
-    ]);
-    if (requiresMfa && !user.mfaEnabled) {
+    if (this.reflector.getAllAndOverride<boolean | undefined>(REQUIRE_MFA_KEY, targets) && !user.mfaEnabled) {
       throw new ForbiddenException("This action requires multi-factor authentication");
     }
-
-    return true;
   }
 }

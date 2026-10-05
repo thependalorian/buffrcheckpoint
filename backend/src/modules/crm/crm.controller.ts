@@ -4,7 +4,7 @@ import { type AuthenticatedUser, CurrentUser } from "../../common/decorators/cur
 import { PlatformScoped } from "../../common/decorators/platform-scoped.decorator";
 import { RequirePermission } from "../../common/decorators/require-permission.decorator";
 import { PERMISSIONS } from "../../common/rbac/permissions";
-import { type CreateContactInput, type CreateDealInput, type UpdateContactInput, CrmService } from "./crm.service";
+import { type CreateContactInput, type CreateDealInput, CrmService, type UpdateContactInput } from "./crm.service";
 
 // Every route here is platform-wide (Ops Console, platform_support-only) —
 // organisationId is always the target org being *viewed*, not the caller's

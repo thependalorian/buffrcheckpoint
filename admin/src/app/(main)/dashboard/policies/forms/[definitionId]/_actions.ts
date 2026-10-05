@@ -40,21 +40,13 @@ export async function cloneVersionAction(definitionId: string, versionId: string
   return created;
 }
 
-export async function addFormFieldAction(
-  definitionId: string,
-  versionId: string,
-  body: Record<string, unknown>,
-) {
+export async function addFormFieldAction(definitionId: string, versionId: string, body: Record<string, unknown>) {
   const created = await api.post(`/visitor-policy/forms/versions/${versionId}/fields`, body);
   revalidateForm(definitionId);
   return created;
 }
 
-export async function updateFormFieldAction(
-  definitionId: string,
-  fieldId: string,
-  body: Record<string, unknown>,
-) {
+export async function updateFormFieldAction(definitionId: string, fieldId: string, body: Record<string, unknown>) {
   const updated = await api.patch(`/visitor-policy/forms/fields/${fieldId}`, body);
   revalidateForm(definitionId);
   return updated;
@@ -65,11 +57,7 @@ export async function deleteFormFieldAction(definitionId: string, fieldId: strin
   revalidateForm(definitionId);
 }
 
-export async function reorderFormFieldsAction(
-  definitionId: string,
-  versionId: string,
-  fieldIds: string[],
-) {
+export async function reorderFormFieldsAction(definitionId: string, versionId: string, fieldIds: string[]) {
   const result = await api.patch(`/visitor-policy/forms/versions/${versionId}/fields/reorder`, {
     fieldIds,
   });
@@ -87,13 +75,9 @@ export async function upsertFieldTranslationAction(
   return result;
 }
 
-export async function publishFormVersionAction(
-  definitionId: string,
-  versionId: string,
-  approvalReference?: string,
-) {
+export async function publishFormVersionAction(definitionId: string, versionId: string, approvalReference?: string) {
   const result = await api.post(`/visitor-policy/forms/versions/${versionId}/publish`, {
-    approvalReference: approvalReference || undefined,
+    approvalReference: approvalReference?.trim() || undefined,
   });
   revalidateForm(definitionId);
   return result;
@@ -122,7 +106,7 @@ export async function suggestFormFieldsAction(body: {
   }>("/visitor-policy/forms/ai/suggest-fields", {
     visitorTypeCode: body.visitorTypeCode,
     intentText: body.intentText,
-    siteId: body.siteId || undefined,
+    siteId: body.siteId?.trim() || undefined,
     existingFieldCodes: body.existingFieldCodes,
   });
 }

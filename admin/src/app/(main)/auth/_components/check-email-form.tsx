@@ -45,13 +45,7 @@ export function CheckEmailForm() {
       <p className="text-muted-foreground text-sm">{authCopy.checkEmail.description}</p>
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="email">Email</Label>
-        <Input
-          id="email"
-          type="email"
-          required
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-        />
+        <Input id="email" type="email" required value={email} onChange={(event) => setEmail(event.target.value)} />
       </div>
       {error ? <p className="text-destructive text-sm">{error}</p> : null}
       {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}

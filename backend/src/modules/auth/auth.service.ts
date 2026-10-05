@@ -1,7 +1,6 @@
 import {
   BadRequestException,
   ConflictException,
-  ForbiddenException,
   HttpException,
   HttpStatus,
   Inject,
@@ -10,11 +9,12 @@ import {
 } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import * as bcrypt from "bcryptjs";
-import { and, eq, gt, isNull } from "drizzle-orm";
+import { and, desc, eq, gt, isNull, sql } from "drizzle-orm";
 import { authenticator } from "otplib";
-import { createHash, randomBytes, randomUUID } from "node:crypto";
 
 import { ScopedPermissionEvaluationService } from "../../common/access-control/scoped-permission-evaluation.service";
+import { ADMIN_SESSION_TTL, OPS_ENROLL_TTL, OPS_SESSION_TTL } from "../../common/auth/session-audience";
+import { sessionCache } from "../../common/auth/session-cache";
 import {
   decryptSecret,
   encryptSecret,
@@ -23,18 +23,17 @@ import {
   normalizeTotpCode,
 } from "../../common/crypto/secret-crypto";
 import type { AuthenticatedUser } from "../../common/decorators/current-user.decorator";
+import { PERMISSIONS } from "../../common/rbac/permissions";
 import type { Database } from "../../db/client";
-import { ADMIN_SESSION_TTL, OPS_ENROLL_TTL, OPS_SESSION_TTL } from "../../common/auth/session-audience";
 import { DB } from "../../db/db.module";
 import {
   applicationUsers,
   emailVerificationTokens,
+  membershipScopes,
   mfaChallengeTokens,
   mfaRecoveryCodes,
-  membershipScopes,
   organisationMemberships,
   organisationOnboardingStates,
-  organisationOnboardingStatusLog,
   organisationSubscription,
   organisations,
   passwordResetTokens,
@@ -44,10 +43,17 @@ import {
 } from "../../db/schema";
 import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.service";
 import { TemplatedEmailService } from "../notifications/templated-email.service";
-import { ONBOARDING_STEPS, REQUIRED_BEFORE_GOLIVE, type OnboardingStepCode } from "../onboarding/onboarding-steps";
+import {
+  currentStep,
+  describeSteps,
+  isLaunchRoute,
+  missingBeforeGolive,
+  sanitizeStepList,
+} from "../onboarding/onboarding-steps";
+import { OnboardingStateService } from "../onboarding-state/onboarding-state.service";
 import { RbacService } from "../rbac/rbac.service";
 import type { ConfirmPasswordResetDto, RequestPasswordResetDto } from "./dto/password-reset.dto";
-import { OnboardingEvidenceService } from "./onboarding-evidence.service";
+import { createHash, randomBytes, randomUUID } from "node:crypto";
 
 const BCRYPT_ROUNDS = 12;
 const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000;
@@ -96,6 +102,8 @@ export interface RegisterInput {
   siteId?: string;
 }
 
+const VERIFY_EMAIL_REPLAY_GRACE_MS = 60_000;
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -104,8 +112,8 @@ export class AuthService {
     private readonly typeDefs: TypeDefinitionLookupService,
     private readonly permissionEvaluation: ScopedPermissionEvaluationService,
     private readonly templatedEmail: TemplatedEmailService,
-    private readonly onboardingEvidence: OnboardingEvidenceService,
     private readonly rbac: RbacService,
+    private readonly onboardingState: OnboardingStateService,
   ) {}
 
   async register(dto: RegisterInput): Promise<{ ok: true; email: string; emailVerificationRequired: true }> {
@@ -224,8 +232,7 @@ export class AuthService {
       this.assertNotLocked(user.lockedUntil);
     }
 
-    const passwordOk =
-      !!user?.passwordHash && (await bcrypt.compare(password, user.passwordHash));
+    const passwordOk = !!user?.passwordHash && (await bcrypt.compare(password, user.passwordHash));
 
     if (!user || !passwordOk) {
       if (user) {
@@ -244,10 +251,18 @@ export class AuthService {
   async verifyEmail(rawToken: string): Promise<AccessTokenResult> {
     const tokenHash = hashOpaqueToken(rawToken, "EMAIL_VERIFICATION_PEPPER");
     const candidate = await this.db.query.emailVerificationTokens.findFirst({
-      where: and(eq(emailVerificationTokens.tokenHash, tokenHash), isNull(emailVerificationTokens.consumedAt)),
+      where: eq(emailVerificationTokens.tokenHash, tokenHash),
     });
-
-    if (!candidate || candidate.expiresAt < new Date()) {
+    const now = new Date();
+    // A link opened twice (mail scanners, double clicks) within the grace
+    // window still signs the same user in instead of showing "expired".
+    const consumedAt = candidate?.consumedAt ?? null;
+    const replay = consumedAt !== null;
+    if (
+      !candidate ||
+      candidate.expiresAt < now ||
+      (consumedAt && now.getTime() - consumedAt.getTime() > VERIFY_EMAIL_REPLAY_GRACE_MS)
+    ) {
       throw new UnauthorizedException("Invalid or expired verification link");
     }
 
@@ -258,26 +273,19 @@ export class AuthService {
       throw new UnauthorizedException("Invalid or expired verification link");
     }
 
-    await this.db
-      .update(applicationUsers)
-      .set({ emailVerifiedAt: new Date() })
-      .where(eq(applicationUsers.id, user.id));
-    await this.db
-      .update(emailVerificationTokens)
-      .set({ consumedAt: new Date() })
-      .where(eq(emailVerificationTokens.id, candidate.id));
-
-    await this.transitionOnboardingStatus(user.organisationId, "email_verified", user.id, "organisation_profile");
+    if (!replay) {
+      await this.db.update(applicationUsers).set({ emailVerifiedAt: now }).where(eq(applicationUsers.id, user.id));
+      await this.db
+        .update(emailVerificationTokens)
+        .set({ consumedAt: now })
+        .where(and(eq(emailVerificationTokens.id, candidate.id), isNull(emailVerificationTokens.consumedAt)));
+      sessionCache.invalidateUser(user.id);
+      await this.onboardingState.advanceIfEarlyStage(user.organisationId, "email_verified", user.id);
+    }
 
     const { roleCode } = await this.resolveSessionRole(user.id);
 
-    return this.issueFullSession(
-      user.id,
-      user.organisationId,
-      roleCode ?? "owner_operator",
-      true,
-      user.mfaEnabled,
-    );
+    return this.issueFullSession(user.id, user.organisationId, roleCode ?? "owner_operator", true, user.mfaEnabled);
   }
 
   async resendEmailVerification(email: string): Promise<{ ok: true }> {
@@ -389,10 +397,8 @@ export class AuthService {
       })),
     );
 
-    await this.db
-      .update(applicationUsers)
-      .set({ mfaEnabled: true })
-      .where(eq(applicationUsers.id, user.userId));
+    await this.db.update(applicationUsers).set({ mfaEnabled: true }).where(eq(applicationUsers.id, user.userId));
+    sessionCache.invalidateUser(user.userId);
 
     await this.templatedEmail.send({
       templateCode: "mfa_enabled",
@@ -411,16 +417,9 @@ export class AuthService {
       return { recoveryCodes, nextPath: session.nextPath, accessToken: session.accessToken };
     }
 
-    await this.transitionOnboardingStatus(user.organisationId, "mfa_enrolled", user.userId, "organisation_profile");
-    await this.transitionOnboardingStatus(user.organisationId, "in_progress", user.userId, "organisation_profile");
+    await this.onboardingState.advanceIfEarlyStage(user.organisationId, "in_progress", user.userId);
 
-    const session = await this.issueFullSession(
-      user.userId,
-      user.organisationId,
-      user.roleCode,
-      true,
-      true,
-    );
+    const session = await this.issueFullSession(user.userId, user.organisationId, user.roleCode, true, true);
 
     return { recoveryCodes, nextPath: session.nextPath, accessToken: session.accessToken };
   }
@@ -493,14 +492,7 @@ export class AuthService {
       throw new UnauthorizedException(INVALID_CREDENTIALS);
     }
 
-    return this.issueFullSession(
-      user.id,
-      user.organisationId,
-      roleCode ?? "owner_operator",
-      true,
-      true,
-      audience,
-    );
+    return this.issueFullSession(user.id, user.organisationId, roleCode ?? "owner_operator", true, true, audience);
   }
 
   async me(authUser: AuthenticatedUser) {
@@ -513,7 +505,9 @@ export class AuthService {
     if (authUser.supportSessionId) {
       const [orgRow, sessionRow] = await Promise.all([
         this.db.query.organisations.findFirst({ where: eq(organisations.id, authUser.organisationId) }),
-        this.db.query.platformSupportSession.findFirst({ where: eq(platformSupportSession.id, authUser.supportSessionId) }),
+        this.db.query.platformSupportSession.findFirst({
+          where: eq(platformSupportSession.id, authUser.supportSessionId),
+        }),
       ]);
       if (!orgRow) throw new UnauthorizedException("Target organisation no longer exists");
       return {
@@ -528,94 +522,202 @@ export class AuthService {
           grantId: authUser.supportGrantId,
           expiresAt: sessionRow?.expiresAt ?? null,
         },
-        onboarding: { status: "live", currentStep: "complete", completedSteps: [], complete: true, nextPath: "/dashboard/overview" },
+        onboarding: {
+          status: "live",
+          currentStep: "complete",
+          completedSteps: [],
+          complete: true,
+          canManage: authUser.permissions.includes(PERMISSIONS.ONBOARDING_MANAGE),
+          nextPath: "/dashboard/overview",
+        },
         subscription: await this.resolveSubscriptionEntitlement(authUser.organisationId),
       };
     }
 
-    const [userRow, orgRow, memberships, onboarding] = await Promise.all([
-      this.db.query.applicationUsers.findFirst({ where: eq(applicationUsers.id, authUser.userId) }),
-      this.db.query.organisations.findFirst({ where: eq(organisations.id, authUser.organisationId) }),
-      this.db.query.organisationMemberships.findMany({
-        where: and(eq(organisationMemberships.userId, authUser.userId), isNull(organisationMemberships.deletedAt)),
-      }),
-      this.db.query.organisationOnboardingStates.findFirst({
-        where: and(
-          eq(organisationOnboardingStates.organisationId, authUser.organisationId),
-          isNull(organisationOnboardingStates.deletedAt),
+    return sessionCache.getOrLoad("me", authUser.userId, authUser.organisationId, () => this.loadMe(authUser));
+  }
+
+  /**
+   * Proxy gate for the admin app: one SQL round trip, cached briefly. Answers
+   * only what routing needs (verification, onboarding position, entitlement).
+   */
+  async sessionGate(authUser: AuthenticatedUser) {
+    if (authUser.supportSessionId) {
+      const [subscription, orgRow] = await Promise.all([
+        this.resolveSubscriptionEntitlement(authUser.organisationId),
+        this.db.query.organisations.findFirst({ where: eq(organisations.id, authUser.organisationId) }),
+      ]);
+      if (!orgRow) throw new UnauthorizedException("Target organisation no longer exists");
+      return {
+        organisationName: orgRow.legalName,
+        emailVerified: true,
+        mfaEnabled: true,
+        onboardingComplete: true,
+        canManageOnboarding: authUser.permissions.includes(PERMISSIONS.ONBOARDING_MANAGE),
+        operationalUseAllowed: subscription.operationalUseAllowed,
+        nextPath: "/dashboard/overview",
+      };
+    }
+    return sessionCache.getOrLoad("gate", authUser.userId, authUser.organisationId, async () => {
+      const core = await this.loadSessionCore(authUser.userId, authUser.organisationId);
+      return {
+        organisationName: core.organisationName,
+        emailVerified: core.emailVerified,
+        mfaEnabled: core.mfaEnabled,
+        onboardingComplete: core.statusCode === "live",
+        canManageOnboarding: core.canManageOnboarding,
+        operationalUseAllowed: core.operationalUseAllowed,
+        nextPath: this.resolveNextPath(
+          core.emailVerified,
+          core.mfaEnabled,
+          core.statusCode,
+          core.stepCode,
+          core.canManageOnboarding,
         ),
-      }),
+      };
+    });
+  }
+
+  private async loadMe(authUser: AuthenticatedUser) {
+    const [core, membershipRows] = await Promise.all([
+      this.loadSessionCore(authUser.userId, authUser.organisationId),
+      this.db.execute(sql`
+        SELECT td.code AS role_code, ms.scope_id
+        FROM organisation_memberships m
+        JOIN role_definitions r ON r.id = m.role_id
+        JOIN type_definition td ON td.id = r.role_code
+        LEFT JOIN membership_scopes ms ON ms.membership_id = m.id
+        WHERE m.user_id = ${authUser.userId} AND m.deleted_at IS NULL
+      `),
     ]);
 
-    if (!userRow || !orgRow) {
-      throw new UnauthorizedException("Account or organisation no longer exists");
-    }
-
-    const roleCodes = await Promise.all(
-      memberships.map(async (membership): Promise<string | null> => {
-        const roleRow = await this.db.query.roleDefinitions.findFirst({
-          where: eq(roleDefinitions.id, membership.roleId),
-        });
-        if (!roleRow) return null;
-        const roleCodeRow = await this.db.query.typeDefinition.findFirst({
-          where: eq(typeDefinition.id, roleRow.roleCode),
-        });
-        return roleCodeRow?.code ?? null;
-      }),
-    );
-    const roles = roleCodes.filter((code): code is string => code !== null);
-    const siteScopeRows =
-      memberships.length === 0
-        ? []
-        : await this.db.query.membershipScopes.findMany({
-            where: (scope, { inArray }) =>
-              inArray(
-                scope.membershipId,
-                memberships.map((m) => m.id),
-              ),
-          });
-    const siteScopes = siteScopeRows.map((scope) => scope.scopeId).filter((id): id is string => id !== null);
+    const rows = membershipRows.rows as Array<{ role_code: string; scope_id: string | null }>;
+    const roles = Array.from(new Set(rows.map((row) => row.role_code)));
+    const siteScopes = Array.from(new Set(rows.map((row) => row.scope_id).filter((id): id is string => !!id)));
     const permissionSets = await Promise.all(
       roles.map((code) => this.permissionEvaluation.permissionsForRoleCode(code)),
     );
     const permissions = Array.from(new Set(permissionSets.flatMap((set) => Array.from(set))));
 
-    const statusRow = onboarding
-      ? await this.db.query.typeDefinition.findFirst({ where: eq(typeDefinition.id, onboarding.statusCode) })
-      : null;
-    const stepRow = onboarding?.currentStepCode
-      ? await this.db.query.typeDefinition.findFirst({ where: eq(typeDefinition.id, onboarding.currentStepCode) })
-      : null;
-
-    const onboardingComplete = statusRow?.code === "live";
-    const nextPath = this.resolveNextPath(userRow.emailVerifiedAt !== null, userRow.mfaEnabled, statusRow?.code, stepRow?.code);
-    const subscription = await this.resolveSubscriptionEntitlement(authUser.organisationId);
-
     return {
       user: {
-        id: userRow.id,
-        email: userRow.email,
-        emailVerified: userRow.emailVerifiedAt !== null,
-        mfaEnabled: userRow.mfaEnabled,
+        id: authUser.userId,
+        email: core.email,
+        emailVerified: core.emailVerified,
+        mfaEnabled: core.mfaEnabled,
       },
-      activeOrganisation: { id: orgRow.id, name: orgRow.legalName },
+      activeOrganisation: { id: authUser.organisationId, name: core.organisationName },
       memberships: [
         {
-          organisationId: orgRow.id,
-          organisationName: orgRow.legalName,
+          organisationId: authUser.organisationId,
+          organisationName: core.organisationName,
           roles,
           siteScopes,
         },
       ],
       permissions,
       onboarding: {
-        status: statusRow?.code ?? "pending_email_verification",
-        currentStep: stepRow?.code ?? "organisation_profile",
-        completedSteps: (onboarding?.completedStepCodes as string[] | undefined) ?? [],
-        complete: onboardingComplete,
-        nextPath,
+        status: core.statusCode ?? "pending_email_verification",
+        currentStep: core.stepCode ?? "organisation_profile",
+        completedSteps: core.progress.completed,
+        skippedSteps: core.progress.skipped,
+        launchRoute: core.progress.route,
+        steps: describeSteps(core.progress),
+        missingBeforeGolive: missingBeforeGolive(core.progress),
+        complete: core.statusCode === "live",
+        canManage: core.canManageOnboarding,
+        nextPath: this.resolveNextPath(
+          core.emailVerified,
+          core.mfaEnabled,
+          core.statusCode,
+          core.stepCode,
+          core.canManageOnboarding,
+        ),
       },
-      subscription,
+      subscription: {
+        operationalUseAllowed: core.operationalUseAllowed,
+        status: core.subscriptionStatus,
+      },
+    };
+  }
+
+  /** User, organisation, onboarding position, authority and entitlement in one statement. */
+  private async loadSessionCore(userId: string, organisationId: string) {
+    const result = await this.db.execute(sql`
+      SELECT
+        u.email,
+        u.email_verified_at IS NOT NULL AS email_verified,
+        u.mfa_enabled,
+        o.legal_name AS organisation_name,
+        st.code AS status_code,
+        sc.code AS step_code,
+        COALESCE(os.completed_step_codes, '[]'::jsonb) AS completed_step_codes,
+        COALESCE(os.skipped_step_codes, '[]'::jsonb) AS skipped_step_codes,
+        lr.code AS launch_route,
+        EXISTS (
+          SELECT 1
+          FROM organisation_memberships m
+          JOIN role_definitions r ON r.id = m.role_id
+          JOIN role_permission_grants g ON g.role_code = r.role_code
+          WHERE m.user_id = u.id
+            AND m.deleted_at IS NULL
+            AND g.permission_code = ${PERMISSIONS.ONBOARDING_MANAGE}
+        ) AS can_manage_onboarding,
+        sub.status AS subscription_status,
+        COALESCE(sub.status IN ('active', 'trial'), FALSE) AS operational_use_allowed
+      FROM application_users u
+      JOIN organisations o ON o.id = ${organisationId}
+      LEFT JOIN organisation_onboarding_states os
+        ON os.organisation_id = o.id AND os.deleted_at IS NULL
+      LEFT JOIN type_definition st ON st.id = os.status_code
+      LEFT JOIN type_definition sc ON sc.id = os.current_step_code
+      LEFT JOIN type_definition lr ON lr.id = os.launch_route_code
+      LEFT JOIN LATERAL (
+        SELECT ss.code AS status
+        FROM organisation_subscription s
+        JOIN type_definition ss ON ss.id = s.status_code
+        WHERE s.organisation_id = o.id AND s.deleted_at IS NULL
+        ORDER BY (ss.code IN ('active', 'trial')) DESC, s.started_at DESC
+        LIMIT 1
+      ) sub ON TRUE
+      WHERE u.id = ${userId} AND u.deleted_at IS NULL
+    `);
+    const row = result.rows[0] as
+      | {
+          email: string;
+          email_verified: boolean;
+          mfa_enabled: boolean;
+          organisation_name: string;
+          status_code: string | null;
+          step_code: string | null;
+          completed_step_codes: string[] | null;
+          skipped_step_codes: string[] | null;
+          launch_route: string | null;
+          can_manage_onboarding: boolean;
+          subscription_status: string | null;
+          operational_use_allowed: boolean;
+        }
+      | undefined;
+    if (!row) {
+      throw new UnauthorizedException("Account or organisation no longer exists");
+    }
+    const progress = {
+      route: isLaunchRoute(row.launch_route) ? row.launch_route : null,
+      completed: sanitizeStepList(row.completed_step_codes),
+      skipped: sanitizeStepList(row.skipped_step_codes),
+    };
+    return {
+      email: row.email,
+      emailVerified: row.email_verified === true,
+      mfaEnabled: row.mfa_enabled === true,
+      organisationName: row.organisation_name,
+      statusCode: row.status_code,
+      // The pointer is derived (first incomplete required step), never trusted from storage.
+      stepCode: row.status_code ? currentStep(progress) : row.step_code,
+      progress,
+      canManageOnboarding: row.can_manage_onboarding === true,
+      subscriptionStatus: row.subscription_status,
+      operationalUseAllowed: row.operational_use_allowed === true,
     };
   }
 
@@ -624,119 +726,11 @@ export class AuthService {
     return me.onboarding;
   }
 
-  async getOnboardingEvidence(user: AuthenticatedUser, stepCode: OnboardingStepCode) {
-    if (!ONBOARDING_STEPS.includes(stepCode)) {
-      throw new BadRequestException("Unknown onboarding step");
-    }
-    const missingEvidence = await this.onboardingEvidence.evaluate(user, stepCode);
-    return { step: stepCode, missingEvidence, satisfied: missingEvidence.length === 0 };
-  }
-
-  async completeOnboardingStep(user: AuthenticatedUser, stepCode: OnboardingStepCode) {
-    if (!ONBOARDING_STEPS.includes(stepCode)) {
-      throw new BadRequestException("Unknown onboarding step");
-    }
-    if (!user.emailVerified) {
-      throw new UnauthorizedException("Verify your email before continuing onboarding");
-    }
-    const account = await this.db.query.applicationUsers.findFirst({
-      where: eq(applicationUsers.id, user.userId),
-    });
-    if (!account?.mfaEnabled && stepCode !== "organisation_profile") {
-      throw new UnauthorizedException("Enroll MFA before continuing onboarding");
-    }
-
-    const state = await this.db.query.organisationOnboardingStates.findFirst({
-      where: and(
-        eq(organisationOnboardingStates.organisationId, user.organisationId),
-        isNull(organisationOnboardingStates.deletedAt),
-      ),
-    });
-    if (!state) {
-      throw new BadRequestException("Onboarding state missing");
-    }
-
-    await this.onboardingEvidence.assertSatisfied(user, stepCode);
-
-    const completed = new Set((state.completedStepCodes as string[] | null) ?? []);
-    if (stepCode === "golive_approval") {
-      const missingPrior = REQUIRED_BEFORE_GOLIVE.filter((step) => !completed.has(step));
-      if (missingPrior.length > 0) {
-        throw new BadRequestException({
-          message: "Onboarding evidence incomplete",
-          missingEvidence: missingPrior.map((step) => `step.${step}`),
-        });
-      }
-    }
-    completed.add(stepCode);
-
-    const stepIndex = ONBOARDING_STEPS.indexOf(stepCode);
-    const nextStep = ONBOARDING_STEPS[Math.min(stepIndex + 1, ONBOARDING_STEPS.length - 1)];
-    const nextStepId = await this.typeDefs.id("onboarding_step_code", nextStep);
-
-    const requiredDone = REQUIRED_BEFORE_GOLIVE.every((step) => completed.has(step));
-    let statusCode = state.statusCode;
-    if (stepCode === "golive_approval") {
-      if (!requiredDone || !account?.mfaEnabled) {
-        throw new BadRequestException("Complete required onboarding steps and MFA before go-live approval");
-      }
-      const entitlement = await this.resolveSubscriptionEntitlement(user.organisationId);
-      if (!entitlement.operationalUseAllowed) {
-        const adminBase = (process.env.PUBLIC_ADMIN_BASE_URL ?? "https://admin.buffrcheckpoint.com").replace(/\/$/, "");
-        const org = await this.db.query.organisations.findFirst({
-          where: eq(organisations.id, user.organisationId),
-        });
-        if (account?.email) {
-          await this.templatedEmail.send({
-            templateCode: "suspension_warning",
-            organisationId: user.organisationId,
-            to: account.email,
-            variables: {
-              organisationName: org?.legalName ?? "your organisation",
-              billingUrl: `${adminBase}/dashboard/billing`,
-            },
-            fallback: {
-              subject: "Action needed: Buffr Checkpoint access may be limited",
-              body: `The subscription for ${org?.legalName ?? "your organisation"} is not active or on trial.\n\nGo-live stays blocked until billing is settled. Billing: ${adminBase}/dashboard/billing`,
-            },
-          });
-        }
-        throw new ForbiddenException(
-          "Go-live requires an active or trial subscription. Pay by EFT, upload proof of payment under Billing, and wait for Buffr ops to activate — or ask ops for a design-partner trial.",
-        );
-      }
-      statusCode = await this.typeDefs.id("organisation_onboarding_status", "live");
-      await this.db
-        .update(organisationOnboardingStates)
-        .set({
-          completedStepCodes: Array.from(completed),
-          currentStepCode: nextStepId,
-          statusCode,
-          goliveApprovedAt: new Date(),
-          goliveApprovedBy: user.userId,
-        })
-        .where(eq(organisationOnboardingStates.id, state.id));
-      await this.appendOnboardingLog(user.organisationId, state.id, state.statusCode, statusCode, user.userId, stepCode);
-    } else {
-      if (requiredDone) {
-        statusCode = await this.typeDefs.id("organisation_onboarding_status", "ready_for_golive");
-      } else {
-        statusCode = await this.typeDefs.id("organisation_onboarding_status", "in_progress");
-      }
-      await this.db
-        .update(organisationOnboardingStates)
-        .set({
-          completedStepCodes: Array.from(completed),
-          currentStepCode: nextStepId,
-          statusCode,
-        })
-        .where(eq(organisationOnboardingStates.id, state.id));
-      if (statusCode !== state.statusCode) {
-        await this.appendOnboardingLog(user.organisationId, state.id, state.statusCode, statusCode, user.userId, stepCode);
-      }
-    }
-
-    return this.getOnboardingStatus(user);
+  /** Acting user's email and organisation name for billing notices; null for support sessions. */
+  async billingContact(user: AuthenticatedUser): Promise<{ email: string; organisationName: string } | null> {
+    if (user.supportSessionId) return null;
+    const core = await this.loadSessionCore(user.userId, user.organisationId);
+    return { email: core.email, organisationName: core.organisationName ?? "your organisation" };
   }
 
   async requestPasswordReset(dto: RequestPasswordResetDto): Promise<{ tokenIssued: boolean }> {
@@ -839,8 +833,7 @@ export class AuthService {
     throw new HttpException(
       {
         statusCode: HttpStatus.TOO_MANY_REQUESTS,
-        message:
-          "Too many failed sign-in attempts. Wait a few minutes or reset your password, then try again.",
+        message: "Too many failed sign-in attempts. Wait a few minutes or reset your password, then try again.",
         retryAfterSeconds,
         error: "Too Many Requests",
       },
@@ -951,7 +944,9 @@ export class AuthService {
     const usable = resolved.filter((row): row is { membershipId: string; roleCode: string } => !!row?.roleCode);
     const platform = usable.find((row) => row.roleCode === "platform_support");
     const chosen = platform ?? usable[0];
-    return chosen ? { roleCode: chosen.roleCode, membershipId: chosen.membershipId } : { roleCode: null, membershipId: null };
+    return chosen
+      ? { roleCode: chosen.roleCode, membershipId: chosen.membershipId }
+      : { roleCode: null, membershipId: null };
   }
 
   private async issueFullSession(
@@ -966,6 +961,7 @@ export class AuthService {
     // successful login path (password-only, post-MFA-challenge) converges
     // here, so this is the one place to record it.
     await this.db.update(applicationUsers).set({ lastLoginAt: new Date() }).where(eq(applicationUsers.id, userId));
+    sessionCache.invalidateUser(userId);
 
     const onboarding = await this.db.query.organisationOnboardingStates.findFirst({
       where: and(
@@ -980,10 +976,18 @@ export class AuthService {
       ? await this.db.query.typeDefinition.findFirst({ where: eq(typeDefinition.id, onboarding.currentStepCode) })
       : null;
     const onboardingComplete = statusRow?.code === "live";
-    const nextPath =
-      audience === "ops" ? "/" : this.resolveNextPath(emailVerified, mfaEnabled, statusRow?.code, stepRow?.code);
-
     const permissions = Array.from(await this.permissionEvaluation.permissionsForRoleCode(roleCode));
+    const nextPath =
+      audience === "ops"
+        ? "/"
+        : this.resolveNextPath(
+            emailVerified,
+            mfaEnabled,
+            statusRow?.code,
+            stepRow?.code,
+            permissions.includes(PERMISSIONS.ONBOARDING_MANAGE),
+          );
+
     const accessToken = this.jwt.sign(
       {
         sub: userId,
@@ -1005,10 +1009,12 @@ export class AuthService {
     mfaEnabled: boolean,
     statusCode?: string | null,
     stepCode?: string | null,
+    canManageOnboarding = true,
   ): string {
     if (!emailVerified) return "/auth/check-email";
     if (!mfaEnabled) return "/auth/mfa/setup";
     if (statusCode === "live") return "/dashboard/overview";
+    if (!canManageOnboarding) return "/onboarding/waiting";
     if (stepCode) return `/onboarding/${stepCode.replace(/_/g, "-")}`;
     return "/onboarding/organisation-profile";
   }
@@ -1021,94 +1027,17 @@ export class AuthService {
     operationalUseAllowed: boolean;
     status: string | null;
   }> {
-    const rows = await this.db
-      .select({
-        statusCode: organisationSubscription.statusCode,
-      })
+    // An active or trial subscription wins; otherwise report the most recent one.
+    const [row] = await this.db
+      .select({ code: typeDefinition.code })
       .from(organisationSubscription)
+      .innerJoin(typeDefinition, eq(typeDefinition.id, organisationSubscription.statusCode))
       .where(
-        and(
-          eq(organisationSubscription.organisationId, organisationId),
-          isNull(organisationSubscription.deletedAt),
-        ),
-      );
-
-    for (const row of rows) {
-      const statusRow = await this.db.query.typeDefinition.findFirst({
-        where: eq(typeDefinition.id, row.statusCode),
-      });
-      const code = statusRow?.code ?? null;
-      if (code === "active" || code === "trial") {
-        return { operationalUseAllowed: true, status: code };
-      }
-    }
-
-    const latest = rows[0];
-    if (!latest) {
-      return { operationalUseAllowed: false, status: null };
-    }
-    const statusRow = await this.db.query.typeDefinition.findFirst({
-      where: eq(typeDefinition.id, latest.statusCode),
-    });
-    return { operationalUseAllowed: false, status: statusRow?.code ?? null };
-  }
-
-  async transitionOnboardingStatus(
-    organisationId: string,
-    toStatus: string,
-    actorId: string | null,
-    stepCode?: string,
-  ): Promise<void> {
-    const state = await this.db.query.organisationOnboardingStates.findFirst({
-      where: and(
-        eq(organisationOnboardingStates.organisationId, organisationId),
-        isNull(organisationOnboardingStates.deletedAt),
-      ),
-    });
-    const toStatusId = await this.typeDefs.id("organisation_onboarding_status", toStatus);
-    const stepId = stepCode ? await this.typeDefs.id("onboarding_step_code", stepCode) : null;
-
-    if (!state) {
-      const id = randomUUID();
-      await this.db.insert(organisationOnboardingStates).values({
-        id,
-        organisationId,
-        statusCode: toStatusId,
-        currentStepCode: stepId,
-        completedStepCodes: [],
-      });
-      await this.appendOnboardingLog(organisationId, id, null, toStatusId, actorId, stepCode);
-      return;
-    }
-
-    await this.db
-      .update(organisationOnboardingStates)
-      .set({
-        statusCode: toStatusId,
-        ...(stepId ? { currentStepCode: stepId } : {}),
-      })
-      .where(eq(organisationOnboardingStates.id, state.id));
-    await this.appendOnboardingLog(organisationId, state.id, state.statusCode, toStatusId, actorId, stepCode);
-  }
-
-  private async appendOnboardingLog(
-    organisationId: string,
-    stateId: string,
-    fromStatusCode: string | null,
-    toStatusCode: string,
-    actorId: string | null,
-    stepCode?: string,
-  ): Promise<void> {
-    const stepId = stepCode ? await this.typeDefs.id("onboarding_step_code", stepCode) : null;
-    await this.db.insert(organisationOnboardingStatusLog).values({
-      id: randomUUID(),
-      organisationId,
-      stateId,
-      fromStatusCode,
-      toStatusCode,
-      stepCode: stepId,
-      actorId,
-      occurredAt: new Date(),
-    });
+        and(eq(organisationSubscription.organisationId, organisationId), isNull(organisationSubscription.deletedAt)),
+      )
+      .orderBy(desc(sql`${typeDefinition.code} IN ('active', 'trial')`), desc(organisationSubscription.startedAt))
+      .limit(1);
+    const status = row?.code ?? null;
+    return { operationalUseAllowed: status === "active" || status === "trial", status };
   }
 }

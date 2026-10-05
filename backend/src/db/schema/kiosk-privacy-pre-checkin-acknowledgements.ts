@@ -1,10 +1,10 @@
 import { index, pgTable, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 
+import { visitorPolicyVersions } from "./consent";
 import { managedKioskDevices } from "./managed-kiosk-devices";
 import { organisations } from "./organisations";
-import { visitorPolicyVersions } from "./consent";
-import { typeDefinition } from "./type-definitions";
 import { sites } from "./sites";
+import { typeDefinition } from "./type-definitions";
 
 /** Append-only — privacy notice shown and accepted before a visit row exists. */
 export const kioskPrivacyPreCheckinAcknowledgements = pgTable(

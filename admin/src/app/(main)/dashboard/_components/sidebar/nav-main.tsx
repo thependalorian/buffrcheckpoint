@@ -182,7 +182,11 @@ function NavLinkItem({ item, isActive, showIconFallback }: NavLinkItemProps) {
         aria-disabled={item.disabled}
         tooltip={item.title}
         isActive={isActive}
-        className={isActive ? "bc-active-soft data-active:bg-[color-mix(in_srgb,var(--color-sodium-yellow)_14%,var(--color-pure-white))]" : undefined}
+        className={
+          isActive
+            ? "bc-active-soft data-active:bg-[color-mix(in_srgb,var(--color-sodium-yellow)_14%,var(--color-pure-white))]"
+            : undefined
+        }
       >
         <Link
           prefetch={false}
@@ -224,7 +228,11 @@ function NavDropdownItem({ item, isActive, isSubItemActive }: NavDropdownItemPro
             tooltip={item.title}
             isActive={isActive}
             disabled={item.disabled}
-            className={isActive ? "bc-active-soft data-active:bg-[color-mix(in_srgb,var(--color-sodium-yellow)_14%,var(--color-pure-white))]" : undefined}
+            className={
+              isActive
+                ? "bc-active-soft data-active:bg-[color-mix(in_srgb,var(--color-sodium-yellow)_14%,var(--color-pure-white))]"
+                : undefined
+            }
           >
             {Icon ? <Icon /> : <CollapsedIconFallback title={item.title} />}
             <span>{item.title}</span>
@@ -270,7 +278,11 @@ function NavCollapsibleItem({ item, isActive, defaultOpen, isSubItemActive }: Na
             tooltip={item.title}
             isActive={isActive}
             disabled={item.disabled}
-            className={isActive ? "bc-active-soft data-active:bg-[color-mix(in_srgb,var(--color-sodium-yellow)_14%,var(--color-pure-white))]" : undefined}
+            className={
+              isActive
+                ? "bc-active-soft data-active:bg-[color-mix(in_srgb,var(--color-sodium-yellow)_14%,var(--color-pure-white))]"
+                : undefined
+            }
           >
             {Icon && <Icon />}
             <span>{item.title}</span>

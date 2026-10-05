@@ -1,8 +1,10 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Query } from "@nestjs/common";
+import { Body, Controller, Get, Headers, HttpCode, HttpStatus, Logger, Post } from "@nestjs/common";
 import { Throttle } from "@nestjs/throttler";
 import { IsEmail, IsOptional, IsString, Length, MinLength } from "class-validator";
 
+import { AuthenticatedOnly } from "../../common/decorators/authenticated-only.decorator";
 import { type AuthenticatedUser, CurrentUser } from "../../common/decorators/current-user.decorator";
+import { NormaliseEmail } from "../../common/decorators/normalise-email.decorator";
 import { Public } from "../../common/decorators/public.decorator";
 import { RequirePermission } from "../../common/decorators/require-permission.decorator";
 import { RequireVerifiedEmail } from "../../common/decorators/require-verified-email.decorator";
@@ -23,6 +25,7 @@ class VerifyEmailDto {
 }
 
 class ResendVerificationDto {
+  @NormaliseEmail()
   @IsEmail()
   email!: string;
 }
@@ -48,13 +51,12 @@ class VerifyMfaChallengeDto {
   recoveryCode?: string;
 }
 
-class CompleteOnboardingStepDto {
-  @IsString()
-  stepCode!: string;
-}
+const REQUEST_ID_HEADER = "x-bc-request-id";
 
 @Controller("auth")
 export class AuthController {
+  private readonly logger = new Logger(AuthController.name);
+
   constructor(private readonly authService: AuthService) {}
 
   @Post("register")
@@ -89,12 +91,14 @@ export class AuthController {
   }
 
   @Post("mfa/enroll/start")
+  @AuthenticatedOnly()
   @RequireVerifiedEmail()
   startMfa(@CurrentUser() user: AuthenticatedUser) {
     return this.authService.startMfaEnrollment(user);
   }
 
   @Post("mfa/enroll/confirm")
+  @AuthenticatedOnly()
   @RequireVerifiedEmail()
   confirmMfa(@Body() dto: ConfirmMfaDto, @CurrentUser() user: AuthenticatedUser) {
     return this.authService.confirmMfaEnrollment(user, dto.code);
@@ -125,24 +129,6 @@ export class AuthController {
     return this.authService.verifyMfaChallenge(dto.challengeToken, dto.code ?? "", dto.recoveryCode, "ops");
   }
 
-  @Get("onboarding")
-  @RequireVerifiedEmail()
-  onboardingStatus(@CurrentUser() user: AuthenticatedUser) {
-    return this.authService.getOnboardingStatus(user);
-  }
-
-  @Get("onboarding/evidence")
-  @RequireVerifiedEmail()
-  onboardingEvidence(@CurrentUser() user: AuthenticatedUser, @Query("step") step: string) {
-    return this.authService.getOnboardingEvidence(user, step as never);
-  }
-
-  @Post("onboarding/complete-step")
-  @RequireVerifiedEmail()
-  completeOnboardingStep(@Body() dto: CompleteOnboardingStepDto, @CurrentUser() user: AuthenticatedUser) {
-    return this.authService.completeOnboardingStep(user, dto.stepCode as never);
-  }
-
   @Public()
   @Throttle(AUTH_THROTTLE)
   @HttpCode(HttpStatus.OK)
@@ -160,7 +146,25 @@ export class AuthController {
   }
 
   @Get("me")
-  me(@CurrentUser() user: AuthenticatedUser) {
-    return this.authService.me(user);
+  me(@CurrentUser() user: AuthenticatedUser, @Headers(REQUEST_ID_HEADER) requestId?: string) {
+    return this.timed("me", requestId, () => this.authService.me(user));
+  }
+
+  /** Admin proxy gate: one cached SQL statement instead of the full /auth/me payload. */
+  @Get("session-gate")
+  sessionGate(@CurrentUser() user: AuthenticatedUser, @Headers(REQUEST_ID_HEADER) requestId?: string) {
+    return this.timed("gate", requestId, () => this.authService.sessionGate(user));
+  }
+
+  // Session-resolution latency per call, grouped by the admin navigation's
+  // request id so p50/p95 and calls-per-navigation come straight from logs.
+  private async timed<T>(kind: string, requestId: string | undefined, run: () => Promise<T>): Promise<T> {
+    const started = performance.now();
+    try {
+      return await run();
+    } finally {
+      const ms = Math.round(performance.now() - started);
+      this.logger.log(`session_resolution kind=${kind} ms=${ms} request_id=${requestId?.slice(0, 64) ?? "none"}`);
+    }
   }
 }

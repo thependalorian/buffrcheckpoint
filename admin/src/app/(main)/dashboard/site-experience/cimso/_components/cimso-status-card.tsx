@@ -5,12 +5,7 @@ interface CimsoStatusCardProps {
   notes: string;
 }
 
-export function CimsoStatusCard({
-  statusCode,
-  transportConfigured,
-  afterNdaRequired,
-  notes,
-}: CimsoStatusCardProps) {
+export function CimsoStatusCard({ statusCode, transportConfigured, afterNdaRequired, notes }: CimsoStatusCardProps) {
   return (
     <div className="rounded-lg border bg-card p-4 space-y-3">
       <div className="grid gap-2 sm:grid-cols-3">
@@ -29,10 +24,9 @@ export function CimsoStatusCard({
       </div>
       <p className="text-muted-foreground text-sm">{notes}</p>
       <p className="text-muted-foreground text-xs">
-        Passwords are never accepted in this form. Set the env var named by each site&apos;s
-        credentials secret ref (for example{" "}
-        <code className="text-xs">CIMSO_SITE_DEMO_CLIENT_PASSWORD</code>) in Railway. Synced
-        reservations become invitations for kiosk and website QR check-in.
+        Passwords are never accepted in this form. Set the env var named by each site&apos;s credentials secret ref (for
+        example <code className="text-xs">CIMSO_SITE_DEMO_CLIENT_PASSWORD</code>) in Railway. Synced reservations become
+        invitations for kiosk and website QR check-in.
       </p>
     </div>
   );

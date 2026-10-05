@@ -11,11 +11,7 @@ import { setSessionCookie } from "@/lib/auth/session";
 // whole point is reusing admin/'s screens, not rebuilding them).
 // SupportSessionBanner (root layout) reads /auth/me's supportSession field
 // to show the persistent "acting on behalf of" banner from here on.
-export default async function SupportSessionPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ token?: string }>;
-}) {
+export default async function SupportSessionPage({ searchParams }: { searchParams: Promise<{ token?: string }> }) {
   const { token } = await searchParams;
   if (!token) {
     redirect("/auth/login");

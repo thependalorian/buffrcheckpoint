@@ -9,8 +9,7 @@ export function getCimsoConfig() {
   const host = (process.env.CIMSO_INNTERCHANGE_HOST ?? "").trim();
   const portRaw = (process.env.CIMSO_INNTERCHANGE_PORT ?? "").trim();
   const port = portRaw ? Number(portRaw) : 0;
-  const tls =
-    (process.env.CIMSO_INNTERCHANGE_TLS ?? "true").trim().toLowerCase() !== "false";
+  const tls = (process.env.CIMSO_INNTERCHANGE_TLS ?? "true").trim().toLowerCase() !== "false";
   const clientLoginId = (process.env.CIMSO_INNTERCHANGE_CLIENT_LOGIN_ID ?? "").trim();
   const clientPassword = (process.env.CIMSO_INNTERCHANGE_CLIENT_PASSWORD ?? "").trim();
   const siteExternalId = (process.env.CIMSO_SITE_EXTERNAL_ID ?? "").trim();
@@ -25,8 +24,7 @@ export function getCimsoConfig() {
   const legacyApiKey = (process.env.CIMSO_INNTERCHANGE_API_KEY ?? "").trim();
 
   const transportConfigured = Boolean(
-    (host && port > 0 && clientLoginId && clientPassword) ||
-      (legacyBaseUrl && legacyApiKey),
+    (host && port > 0 && clientLoginId && clientPassword) || (legacyBaseUrl && legacyApiKey),
   );
 
   return {

@@ -26,11 +26,7 @@ type FieldLibrary = {
   languages: Array<{ code: string; label: string }>;
 };
 
-export default async function FormBuilderPage({
-  params,
-}: {
-  params: Promise<{ definitionId: string }>;
-}) {
+export default async function FormBuilderPage({ params }: { params: Promise<{ definitionId: string }> }) {
   const { definitionId } = await params;
   let definition: FormDefinition | null = null;
   let versions: FormVersion[] = [];

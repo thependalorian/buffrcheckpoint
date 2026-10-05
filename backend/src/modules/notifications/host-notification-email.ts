@@ -38,8 +38,7 @@ export function buildHostNotificationHtml(input: {
     .join("");
 
   const logoUrl =
-    process.env.PUBLIC_BRAND_LOGO_URL?.trim() ||
-    "https://www.buffrcheckpoint.com/branding/logo-horizontal.png";
+    process.env.PUBLIC_BRAND_LOGO_URL?.trim() || "https://www.buffrcheckpoint.com/branding/logo-horizontal.png";
 
   return `<!DOCTYPE html>
 <html>

@@ -32,8 +32,8 @@ export function CreateDsarSheet() {
         <SheetHeader>
           <SheetTitle>New privacy request</SheetTitle>
           <SheetDescription>
-            Log a DSAR for a visitor subject reference or staff email. Account deletion is tracked
-            separately from export/correction so Compliance can prioritise it.
+            Log a DSAR for a visitor subject reference or staff email. Account deletion is tracked separately from
+            export/correction so Compliance can prioritise it.
           </SheetDescription>
         </SheetHeader>
         <form

@@ -48,8 +48,7 @@ export class CimsoInnterchangeClient {
     this.assertReady();
     throw new ServiceUnavailableException({
       code: "CIMSO_TCP_CLIENT_NOT_IMPLEMENTED",
-      message:
-        "Message catalogue known (1101 Get Bookings). TCP framing/handshake client not implemented yet.",
+      message: "Message catalogue known (1101 Get Bookings). TCP framing/handshake client not implemented yet.",
       messageTypeId: CIMSO_MESSAGE_TYPE.GET_BOOKINGS_REQUEST,
     });
   }
@@ -69,8 +68,7 @@ export class CimsoInnterchangeClient {
           : undefined);
     throw new ServiceUnavailableException({
       code: "CIMSO_TCP_CLIENT_NOT_IMPLEMENTED",
-      message:
-        "Message catalogue known (1107 Set Booking Status). TCP framing/handshake client not implemented yet.",
+      message: "Message catalogue known (1107 Set Booking Status). TCP framing/handshake client not implemented yet.",
       messageTypeId: CIMSO_MESSAGE_TYPE.SET_BOOKING_STATUS_REQUEST,
       intendedBookingStatus: status,
       bookingId: event.externalReservationId,

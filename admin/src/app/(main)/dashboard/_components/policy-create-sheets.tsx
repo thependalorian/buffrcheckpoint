@@ -23,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Textarea } from "@/components/ui/textarea";
+import { unwrap } from "@/lib/actions/result";
 
 function useSheetSubmit() {
   const [open, setOpen] = useState(false);
@@ -42,7 +43,9 @@ export function CreateFormSheet({ sites }: { sites: Array<{ id: string; name: st
       <SheetContent>
         <SheetHeader>
           <SheetTitle>Create visitor form</SheetTitle>
-          <SheetDescription>Creates a form definition and an empty draft version. Open the builder to add fields, then publish.</SheetDescription>
+          <SheetDescription>
+            Creates a form definition and an empty draft version. Open the builder to add fields, then publish.
+          </SheetDescription>
         </SheetHeader>
         <form
           className="mt-6 space-y-4"
@@ -52,11 +55,13 @@ export function CreateFormSheet({ sites }: { sites: Array<{ id: string; name: st
             const data = new FormData(event.currentTarget);
             state.startTransition(async () => {
               try {
-                const created = await createFormDefinitionAction({
-                  formName: String(data.get("formName") ?? ""),
-                  visitorCategoryCode: String(data.get("visitorCategoryCode") ?? "general"),
-                  siteId: String(data.get("siteId") ?? "") || undefined,
-                });
+                const created = unwrap(
+                  await createFormDefinitionAction({
+                    formName: String(data.get("formName") ?? ""),
+                    visitorCategoryCode: String(data.get("visitorCategoryCode") ?? "general"),
+                    siteId: String(data.get("siteId") ?? "") || undefined,
+                  }),
+                );
                 state.setOpen(false);
                 state.router.push(`/dashboard/policies/forms/${created.id}`);
               } catch (err) {
@@ -114,10 +119,12 @@ export function CreateAccessPolicySheet({ sites }: { sites: Array<{ id: string; 
             const data = new FormData(event.currentTarget);
             state.startTransition(async () => {
               try {
-                await createAccessPolicyAction({
-                  siteId: String(data.get("siteId") ?? "") || undefined,
-                  configJson: String(data.get("configJson") ?? "{}"),
-                });
+                unwrap(
+                  await createAccessPolicyAction({
+                    siteId: String(data.get("siteId") ?? "") || undefined,
+                    configJson: String(data.get("configJson") ?? "{}"),
+                  }),
+                );
                 state.setOpen(false);
                 state.router.refresh();
               } catch (err) {
@@ -177,10 +184,12 @@ export function CreateRetentionSheet({ sites }: { sites: Array<{ id: string; nam
             const data = new FormData(event.currentTarget);
             state.startTransition(async () => {
               try {
-                await createRetentionPolicyAction({
-                  siteId: String(data.get("siteId") ?? "") || undefined,
-                  retentionDays: Number(data.get("retentionDays") ?? 90),
-                });
+                unwrap(
+                  await createRetentionPolicyAction({
+                    siteId: String(data.get("siteId") ?? "") || undefined,
+                    retentionDays: Number(data.get("retentionDays") ?? 90),
+                  }),
+                );
                 state.setOpen(false);
                 state.router.refresh();
               } catch (err) {
@@ -236,12 +245,14 @@ export function CreatePrivacyNoticeSheet() {
             const data = new FormData(event.currentTarget);
             state.startTransition(async () => {
               try {
-                await createPrivacyDocumentAction({
-                  policyCode: String(data.get("policyCode") ?? "privacy_notice"),
-                  policyName: String(data.get("policyName") ?? "Visitor privacy notice"),
-                  contentText: String(data.get("contentText") ?? ""),
-                  languageCode: String(data.get("languageCode") ?? "en"),
-                });
+                unwrap(
+                  await createPrivacyDocumentAction({
+                    policyCode: String(data.get("policyCode") ?? "privacy_notice"),
+                    policyName: String(data.get("policyName") ?? "Visitor privacy notice"),
+                    contentText: String(data.get("contentText") ?? ""),
+                    languageCode: String(data.get("languageCode") ?? "en"),
+                  }),
+                );
                 state.setOpen(false);
                 state.router.refresh();
               } catch (err) {
@@ -296,12 +307,14 @@ export function CreateDeviceSheet({ sites }: { sites: Array<{ id: string; name: 
             const data = new FormData(event.currentTarget);
             state.startTransition(async () => {
               try {
-                await createDeviceAction({
-                  siteId: String(data.get("siteId") ?? ""),
-                  manufacturer: String(data.get("manufacturer") ?? ""),
-                  model: String(data.get("model") ?? ""),
-                  serialNumber: String(data.get("serialNumber") ?? ""),
-                });
+                unwrap(
+                  await createDeviceAction({
+                    siteId: String(data.get("siteId") ?? ""),
+                    manufacturer: String(data.get("manufacturer") ?? ""),
+                    model: String(data.get("model") ?? ""),
+                    serialNumber: String(data.get("serialNumber") ?? ""),
+                  }),
+                );
                 state.setOpen(false);
                 state.router.refresh();
               } catch (err) {
@@ -374,12 +387,14 @@ export function InviteUserSheet({
             const siteId = String(data.get("siteId") ?? "");
             state.startTransition(async () => {
               try {
-                await inviteUserAction({
-                  email: String(data.get("email") ?? ""),
-                  password: String(data.get("password") ?? ""),
-                  roleCode: String(data.get("roleCode") ?? roleCode),
-                  siteId: siteId || undefined,
-                });
+                unwrap(
+                  await inviteUserAction({
+                    email: String(data.get("email") ?? ""),
+                    password: String(data.get("password") ?? ""),
+                    roleCode: String(data.get("roleCode") ?? roleCode),
+                    siteId: siteId || undefined,
+                  }),
+                );
                 state.setOpen(false);
                 state.router.refresh();
               } catch (err) {
@@ -482,12 +497,14 @@ export function ChangeUserRoleSheet({
             const siteId = String(data.get("siteId") ?? "");
             state.startTransition(async () => {
               try {
-                await changeUserRoleAction({
-                  userId,
-                  newRoleCode: String(data.get("roleCode") ?? roleCode),
-                  reason: String(data.get("reason") ?? ""),
-                  siteId: siteId || undefined,
-                });
+                unwrap(
+                  await changeUserRoleAction({
+                    userId,
+                    newRoleCode: String(data.get("roleCode") ?? roleCode),
+                    reason: String(data.get("reason") ?? ""),
+                    siteId: siteId || undefined,
+                  }),
+                );
                 state.setOpen(false);
                 state.router.refresh();
               } catch (err) {
@@ -586,12 +603,14 @@ export function IssueCredentialSheet() {
               const data = new FormData(event.currentTarget);
               state.startTransition(async () => {
                 try {
-                  const created = await issueCredentialAction({
-                    holderTypeCode: String(data.get("holderTypeCode") ?? "visitor"),
-                    holderId: String(data.get("holderId") ?? ""),
-                    credentialTypeCode: String(data.get("credentialTypeCode") ?? "nfc_badge"),
-                    expiresAt: String(data.get("expiresAt") ?? "") || undefined,
-                  });
+                  const created = unwrap(
+                    await issueCredentialAction({
+                      holderTypeCode: String(data.get("holderTypeCode") ?? "visitor"),
+                      holderId: String(data.get("holderId") ?? ""),
+                      credentialTypeCode: String(data.get("credentialTypeCode") ?? "nfc_badge"),
+                      expiresAt: String(data.get("expiresAt") ?? "") || undefined,
+                    }),
+                  );
                   setIssuedRef(created.credentialReferenceHmac);
                   state.router.refresh();
                 } catch (err) {
@@ -665,7 +684,7 @@ export function RevokeCredentialButton({ credentialId }: { credentialId: string 
           setError(null);
           startTransition(async () => {
             try {
-              await revokeCredentialAction(credentialId, reason.trim());
+              unwrap(await revokeCredentialAction(credentialId, reason.trim()));
               router.refresh();
             } catch (err) {
               setError(err instanceof Error ? err.message : "Revoke failed");
@@ -705,7 +724,9 @@ export function ValidateCredentialSheet() {
             const data = new FormData(event.currentTarget);
             state.startTransition(async () => {
               try {
-                const response = await validateCredentialAction(String(data.get("credentialReferenceHmac") ?? ""));
+                const response = unwrap(
+                  await validateCredentialAction(String(data.get("credentialReferenceHmac") ?? "")),
+                );
                 setResult(
                   response.valid
                     ? `Valid — ${response.credentialId ?? "ok"}`
@@ -745,7 +766,7 @@ export function RetireDeviceButton({ deviceId }: { deviceId: string }) {
         const reason = window.prompt("Retire reason");
         if (!reason?.trim()) return;
         startTransition(async () => {
-          await retireDeviceAction(deviceId, reason.trim());
+          unwrap(await retireDeviceAction(deviceId, reason.trim()));
           router.refresh();
         });
       }}
@@ -771,7 +792,7 @@ export function DeviceStatusButton({ deviceId }: { deviceId: string }) {
         if (!statusCode?.trim()) return;
         const reason = window.prompt("Reason") ?? "admin transition";
         startTransition(async () => {
-          await setDeviceStatusAction(deviceId, statusCode.trim(), reason.trim());
+          unwrap(await setDeviceStatusAction(deviceId, statusCode.trim(), reason.trim()));
           router.refresh();
         });
       }}

@@ -1,8 +1,8 @@
 import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 import { and, asc, count, eq, inArray, isNull } from "drizzle-orm";
-import { randomUUID } from "node:crypto";
 
 import { ScopedPermissionEvaluationService } from "../../common/access-control/scoped-permission-evaluation.service";
+import { sessionCache } from "../../common/auth/session-cache";
 import type { AuthenticatedUser } from "../../common/decorators/current-user.decorator";
 import type { Database } from "../../db/client";
 import { DB } from "../../db/db.module";
@@ -15,6 +15,7 @@ import {
   typeDefinition,
 } from "../../db/schema";
 import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.service";
+import { randomUUID } from "node:crypto";
 
 export interface ChangeRoleInput {
   userId: string;
@@ -115,9 +116,7 @@ export class RbacService {
       ),
     });
     if (!current) {
-      throw new NotFoundException(
-        "No existing role assignment for this user — invite them first with an initial role",
-      );
+      throw new NotFoundException("No existing role assignment for this user — invite them first with an initial role");
     }
 
     const targetRole = await this.resolveRoleDefinition(actingUser.organisationId, input.newRoleCode);
@@ -157,6 +156,7 @@ export class RbacService {
       approvedBy: actingUser.userId,
       reason: input.reason,
     });
+    sessionCache.invalidateUser(input.userId);
 
     return this.getUserDetail(actingUser.organisationId, input.userId);
   }
@@ -200,7 +200,10 @@ export class RbacService {
 
     const scope = membership[0]
       ? await this.db.query.membershipScopes.findFirst({
-          where: and(eq(membershipScopes.membershipId, membership[0].membershipId), eq(membershipScopes.scopeType, "site")),
+          where: and(
+            eq(membershipScopes.membershipId, membership[0].membershipId),
+            eq(membershipScopes.scopeType, "site"),
+          ),
         })
       : null;
 
@@ -265,7 +268,12 @@ export class RbacService {
           label: row.label,
           isSystemRole: row.isSystemRole,
           release: CORE_ROLE_CODES.has(row.roleCode) ? "Site plan" : "Network+",
-          scopeType: row.roleCode === "regional_manager" ? "region" : row.roleCode.includes("site") || row.roleCode === "front_desk_operator" || row.roleCode === "host_staff" ? "site" : "organisation",
+          scopeType:
+            row.roleCode === "regional_manager"
+              ? "region"
+              : row.roleCode.includes("site") || row.roleCode === "front_desk_operator" || row.roleCode === "host_staff"
+                ? "site"
+                : "organisation",
           assignmentCount: countByRoleId.get(row.id) ?? 0,
           permittedActions: permissions,
           lastReview: null as string | null,

@@ -26,11 +26,7 @@ export const siteQrReferences = pgTable(
   },
   (t) => [
     index("idx_site_qr_references_org_site").on(t.organisationId, t.siteId),
-    uniqueIndex("idx_site_qr_references_org_site_type").on(
-      t.organisationId,
-      t.siteId,
-      t.qrTypeCode,
-    ),
+    uniqueIndex("idx_site_qr_references_org_site_type").on(t.organisationId, t.siteId, t.qrTypeCode),
   ],
 );
 
@@ -54,11 +50,7 @@ export const siteQrReferenceRotations = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
-    index("idx_site_qr_reference_rotations_org_site_active").on(
-      t.organisationId,
-      t.siteId,
-      t.activeUntil,
-    ),
+    index("idx_site_qr_reference_rotations_org_site_active").on(t.organisationId, t.siteId, t.activeUntil),
     index("idx_site_qr_reference_rotations_reference").on(t.siteQrReferenceId, t.activeFrom),
   ],
 );

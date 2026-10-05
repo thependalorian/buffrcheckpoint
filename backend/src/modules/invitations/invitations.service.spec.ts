@@ -1,9 +1,6 @@
 import { BadRequestException, NotFoundException } from "@nestjs/common";
 
-import {
-  generateOpaqueInvitationToken,
-  invitationTokenHmac,
-} from "./invitation-token.util";
+import { generateOpaqueInvitationToken, invitationTokenHmac } from "./invitation-token.util";
 import { InvitationsService } from "./invitations.service";
 
 const orgUser = {
@@ -14,6 +11,7 @@ const orgUser = {
   permissions: [] as string[],
   emailVerified: true,
   mfaEnabled: true,
+  audience: "admin" as const,
 };
 
 describe("InvitationsService", () => {

@@ -17,14 +17,15 @@ describe("tabular export", () => {
     const csvLines = toCsv(table).trimEnd().split("\n");
 
     const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.load(await toXlsx(table, "Sheet"));
+    await workbook.xlsx.load((await toXlsx(table, "Sheet")) as unknown as ArrayBuffer);
     const sheet = workbook.getWorksheet("Sheet");
+    if (!sheet) throw new Error("Sheet missing from workbook");
 
     expect(csvLines).toHaveLength(table.rows.length + 1);
-    expect(sheet?.rowCount).toBe(table.rows.length + 1);
+    expect(sheet.rowCount).toBe(table.rows.length + 1);
     expect(csvLines[0]).toBe(table.headers.join(","));
-    expect((sheet?.getRow(1).values as unknown[]).slice(1)).toEqual(table.headers);
-    expect(sheet?.getRow(2).getCell(3).value).toBe(3);
+    expect((sheet.getRow(1).values as unknown[]).slice(1)).toEqual(table.headers);
+    expect(sheet.getRow(2).getCell(3).value).toBe(3);
   });
 
   it("quotes CSV special characters and neutralises formula-leading text", () => {
@@ -37,7 +38,7 @@ describe("tabular export", () => {
 
   it("stores formula-looking text as a plain string in XLSX", async () => {
     const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.load(await toXlsx(table, "Sheet"));
+    await workbook.xlsx.load((await toXlsx(table, "Sheet")) as unknown as ArrayBuffer);
     const cell = workbook.getWorksheet("Sheet")?.getRow(4).getCell(1);
 
     expect(cell?.type).toBe(ExcelJS.ValueType.String);

@@ -19,7 +19,7 @@ export async function createHostAction(input: {
     name,
     department: input.department?.trim() || undefined,
     contactReference: input.contactReference?.trim() || undefined,
-    organisationUnitId: input.organisationUnitId || undefined,
+    organisationUnitId: input.organisationUnitId?.trim() || undefined,
   });
   revalidatePath("/dashboard/hosts");
 }

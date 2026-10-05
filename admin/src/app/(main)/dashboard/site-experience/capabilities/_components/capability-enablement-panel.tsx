@@ -61,9 +61,7 @@ export function CapabilityEnablementPanel({ capabilities }: CapabilityEnablement
             {capabilities.map((capability) => (
               <TableRow key={capability.code}>
                 <TableCell className="p-3 font-medium">{capability.label}</TableCell>
-                <TableCell className="p-3 capitalize">
-                  {capability.platformStatus.replaceAll("_", " ")}
-                </TableCell>
+                <TableCell className="p-3 capitalize">{capability.platformStatus.replaceAll("_", " ")}</TableCell>
                 <TableCell className="p-3">
                   {canOrgEnable(capability.code, capability.platformStatus) ? (
                     <div className="flex flex-wrap items-center gap-2">

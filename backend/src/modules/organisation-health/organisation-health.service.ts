@@ -1,6 +1,5 @@
 import { Inject, Injectable, Logger } from "@nestjs/common";
 import { and, count, desc, eq, gte, inArray, isNull, sql } from "drizzle-orm";
-import { randomUUID } from "node:crypto";
 
 import type { Database } from "../../db/client";
 import { DB } from "../../db/db.module";
@@ -10,12 +9,17 @@ import {
   managedKioskDevices,
   notificationDeliveryInstructions,
   organisationHealthSnapshot,
-  organisations,
   organisationSubscription,
+  organisations,
   visitorVisits,
 } from "../../db/schema";
 import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.service";
-import { type HealthScoreWeights, PlatformConfigurationService } from "../platform-configuration/platform-configuration.service";
+import {
+  type HealthScoreWeights,
+  PlatformConfigurationService,
+} from "../platform-configuration/platform-configuration.service";
+import { isRealVisit } from "../visits/test-visit-filter";
+import { randomUUID } from "node:crypto";
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -61,7 +65,8 @@ export class OrganisationHealthService {
       this.countVisits(organisationId, thisWeekStart, now),
       this.countVisits(organisationId, lastWeekStart, thisWeekStart),
     ]);
-    const visitVolumeTrend = lastWeekVisits === 0 ? (thisWeekVisits > 0 ? 1 : 0) : (thisWeekVisits - lastWeekVisits) / lastWeekVisits;
+    const visitVolumeTrend =
+      lastWeekVisits === 0 ? (thisWeekVisits > 0 ? 1 : 0) : (thisWeekVisits - lastWeekVisits) / lastWeekVisits;
 
     const lastLogin = await this.db.query.applicationUsers.findFirst({
       where: and(eq(applicationUsers.organisationId, organisationId), isNull(applicationUsers.deletedAt)),
@@ -131,10 +136,7 @@ export class OrganisationHealthService {
       Math.min(weights.visitVolumeTrendCeiling, signals.visitVolumeTrend * weights.visitVolumeTrendWeight),
     );
     if (signals.adminLoginRecencyDays !== null) {
-      score -= Math.min(
-        weights.adminLoginRecencyCap,
-        signals.adminLoginRecencyDays * weights.adminLoginRecencyPerDay,
-      );
+      score -= Math.min(weights.adminLoginRecencyCap, signals.adminLoginRecencyDays * weights.adminLoginRecencyPerDay);
     }
     if (signals.notificationFailureRate !== null) {
       score -= signals.notificationFailureRate * weights.notificationFailureWeight;
@@ -154,6 +156,7 @@ export class OrganisationHealthService {
           eq(visitorVisits.organisationId, organisationId),
           gte(visitorVisits.checkedInAt, from),
           sql`${visitorVisits.checkedInAt} < ${to}`,
+          isRealVisit(visitorVisits.arrivalChannelCode),
         ),
       );
     return row?.value ?? 0;
@@ -219,7 +222,9 @@ export class OrganisationHealthService {
       rows.push(row);
     }
 
-    const subs = await this.db.query.organisationSubscription.findMany({ where: isNull(organisationSubscription.deletedAt) });
+    const subs = await this.db.query.organisationSubscription.findMany({
+      where: isNull(organisationSubscription.deletedAt),
+    });
     const mrrByOrg = new Map(subs.map((s) => [s.organisationId, Number(s.mrrAmount)]));
 
     return rows

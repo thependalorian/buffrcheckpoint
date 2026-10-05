@@ -5,8 +5,8 @@ import { RequirePermission } from "../../common/decorators/require-permission.de
 import { PERMISSIONS } from "../../common/rbac/permissions";
 import { RecordVerificationDto } from "./dto/record-verification.dto";
 import { VerifyIdentityDto } from "./dto/verify-identity.dto";
-import { IdentityVerificationOrchestratorService } from "./identity-verification-orchestrator.service";
 import { IdentityVerificationService } from "./identity-verification.service";
+import { IdentityVerificationOrchestratorService } from "./identity-verification-orchestrator.service";
 
 @Controller("identity-verification")
 export class IdentityVerificationController {

@@ -1,4 +1,15 @@
-import { bigint, boolean, index, integer, pgTable, primaryKey, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
+import {
+  bigint,
+  boolean,
+  index,
+  integer,
+  pgTable,
+  primaryKey,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+} from "drizzle-orm/pg-core";
 
 import { organisations } from "./organisations";
 import { typeDefinition } from "./type-definitions";
@@ -116,7 +127,9 @@ export const privilegedAccessGrants = pgTable(
       .notNull()
       .references(() => typeDefinition.id),
     statusCode: uuid("status_code").references(() => typeDefinition.id),
-    requestedDurationMs: bigint("requested_duration_ms", { mode: "number" }).notNull().default(8 * 60 * 60 * 1000),
+    requestedDurationMs: bigint("requested_duration_ms", { mode: "number" })
+      .notNull()
+      .default(8 * 60 * 60 * 1000),
     requestedBy: uuid("requested_by"),
     /** @deprecated superseded by customerApprovedBy — kept for rows created before the consent gate existed. */
     approvedBy: uuid("approved_by"),

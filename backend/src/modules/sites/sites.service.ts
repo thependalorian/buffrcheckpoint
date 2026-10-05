@@ -41,7 +41,10 @@ export class SitesService {
    */
   private async assertSiteLicence(organisationId: string) {
     const sub = await this.db.query.organisationSubscription.findFirst({
-      where: and(eq(organisationSubscription.organisationId, organisationId), isNull(organisationSubscription.deletedAt)),
+      where: and(
+        eq(organisationSubscription.organisationId, organisationId),
+        isNull(organisationSubscription.deletedAt),
+      ),
       orderBy: desc(organisationSubscription.startedAt),
     });
     if (!sub) return;

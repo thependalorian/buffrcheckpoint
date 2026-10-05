@@ -1,5 +1,5 @@
 -- Pre-check-in privacy acknowledgement (before visit row exists) + visit status extensions
--- STATUS: Applied to Neon project bold-cloud-47505421, 2026-09-11
+-- STATUS: Applied 2026-09-11; live on Neon falling-frog-15538162
 
 CREATE TABLE kiosk_privacy_pre_checkin_acknowledgements (
   id                          UUID PRIMARY KEY,

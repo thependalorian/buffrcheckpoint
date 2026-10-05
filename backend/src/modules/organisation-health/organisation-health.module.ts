@@ -1,8 +1,8 @@
 import { Module } from "@nestjs/common";
 
 import { PlatformConfigurationModule } from "../platform-configuration/platform-configuration.module";
-import { OrganisationHealthWorkerService } from "./organisation-health-worker.service";
 import { OrganisationHealthService } from "./organisation-health.service";
+import { OrganisationHealthWorkerService } from "./organisation-health-worker.service";
 
 // Split out of the former platform-control-plane bundle (see
 // ../rename-map.tsv) — churn/health scoring changes on its own

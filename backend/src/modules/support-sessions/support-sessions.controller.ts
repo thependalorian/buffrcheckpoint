@@ -84,7 +84,11 @@ export class SupportSessionsController {
   @Patch("grants/:grantId/deny")
   @RequirePermission(PERMISSIONS.SUPPORT_ACCESS_GRANT_REVIEW)
   @AuditLog({ action: "privileged_access_grant.deny", resourceType: "privileged_access_grants" })
-  denyGrant(@Param("grantId") grantId: string, @Body() body: { reason?: string }, @CurrentUser() user: AuthenticatedUser) {
+  denyGrant(
+    @Param("grantId") grantId: string,
+    @Body() body: { reason?: string },
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
     return this.service.denyGrant(grantId, user, body.reason);
   }
 }

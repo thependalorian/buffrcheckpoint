@@ -4,11 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { api } from "@/lib/api/client";
 
-export async function recordAccessReviewAction(input: {
-  reviewedUserId: string;
-  outcomeCode: string;
-  note?: string;
-}) {
+export async function recordAccessReviewAction(input: { reviewedUserId: string; outcomeCode: string; note?: string }) {
   try {
     await api.post("/access-reviews", input);
     revalidatePath("/dashboard/roles");

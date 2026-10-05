@@ -1,5 +1,5 @@
 -- v0.20 full-stack: policy version statuses, form version statuses, contact enquiries, visit form answers
--- STATUS: pending apply to Neon bold-cloud-47505421
+-- STATUS: applied; live on Neon falling-frog-15538162
 
 INSERT INTO type_definition (domain, code, label, sort_order)
 VALUES

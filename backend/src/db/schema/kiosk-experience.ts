@@ -2,8 +2,8 @@ import { boolean, index, integer, pgTable, text, timestamp, uniqueIndex, uuid } 
 
 import { managedKioskDevices } from "./managed-kiosk-devices";
 import { organisations } from "./organisations";
-import { sites } from "./sites";
 import { siteBrandingProfileVersions } from "./site-branding";
+import { sites } from "./sites";
 import { typeDefinition } from "./type-definitions";
 
 /**
@@ -34,9 +34,7 @@ export const kioskExperienceConfigurationVersions = pgTable(
     kioskExperienceConfigurationId: uuid("kiosk_experience_configuration_id")
       .notNull()
       .references(() => kioskExperienceConfigurations.id),
-    brandingProfileVersionId: uuid("branding_profile_version_id").references(
-      () => siteBrandingProfileVersions.id,
-    ),
+    brandingProfileVersionId: uuid("branding_profile_version_id").references(() => siteBrandingProfileVersions.id),
     versionNumber: integer("version_number").notNull(),
     idleTimeoutSeconds: integer("idle_timeout_seconds").notNull().default(120),
     idleWarningSeconds: integer("idle_warning_seconds").notNull().default(30),
@@ -73,9 +71,7 @@ export const kioskExperienceConfigurationVersionChannels = pgTable(
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },
   (t) => [
-    index("idx_kiosk_experience_configuration_version_channels_version").on(
-      t.kioskExperienceConfigurationVersionId,
-    ),
+    index("idx_kiosk_experience_configuration_version_channels_version").on(t.kioskExperienceConfigurationVersionId),
     uniqueIndex("idx_kiosk_experience_configuration_version_channels_unique").on(
       t.kioskExperienceConfigurationVersionId,
       t.captureChannelCode,
@@ -84,5 +80,4 @@ export const kioskExperienceConfigurationVersionChannels = pgTable(
 );
 
 export type KioskExperienceConfiguration = typeof kioskExperienceConfigurations.$inferSelect;
-export type KioskExperienceConfigurationVersion =
-  typeof kioskExperienceConfigurationVersions.$inferSelect;
+export type KioskExperienceConfigurationVersion = typeof kioskExperienceConfigurationVersions.$inferSelect;

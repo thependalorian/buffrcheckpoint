@@ -3,6 +3,7 @@ import { DashboardPageHeader } from "@/components/dashboard-page-header";
 import { DashboardErrorState, TableEmptyRow } from "@/components/dashboard-state";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { api } from "@/lib/api/client";
+import { listSiteOptions } from "@/lib/sites/site-options";
 
 interface KioskConfigRow {
   id: string;
@@ -12,6 +13,7 @@ interface KioskConfigRow {
 }
 
 export default async function KioskExperiencePage() {
+  const sites = await listSiteOptions();
   let configs: KioskConfigRow[] = [];
   let error: string | null = null;
   try {
@@ -25,7 +27,7 @@ export default async function KioskExperiencePage() {
       <DashboardPageHeader
         title="Kiosk Experience"
         description="Idle timeout, maintenance mode, accessibility, and channel enablement per site or device."
-        action={<KioskSetupSheet />}
+        action={<KioskSetupSheet sites={sites} />}
       />
       {error ? (
         <DashboardErrorState message={error} />

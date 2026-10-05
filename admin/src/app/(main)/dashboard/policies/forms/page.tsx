@@ -54,7 +54,10 @@ export default async function VisitorTypesFormsPage() {
                 forms.map((form) => (
                   <TableRow key={form.id} className="hover:bg-muted/30">
                     <TableCell className="p-3 font-medium">
-                      <Link href={`/dashboard/policies/forms/${form.id}`} className="underline-offset-4 hover:underline">
+                      <Link
+                        href={`/dashboard/policies/forms/${form.id}`}
+                        className="underline-offset-4 hover:underline"
+                      >
                         {form.formName ?? "Untitled form"}
                       </Link>
                     </TableCell>

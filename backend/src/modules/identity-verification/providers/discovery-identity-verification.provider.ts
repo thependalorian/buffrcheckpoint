@@ -1,11 +1,11 @@
 import { Injectable } from "@nestjs/common";
-import { randomUUID } from "node:crypto";
 
 import type {
   DigitalIdentityVerificationOutcome,
   DigitalIdentityVerificationProvider,
   DigitalIdentityVerificationRequest,
 } from "./digital-identity-verification.provider";
+import { randomUUID } from "node:crypto";
 
 @Injectable()
 export class DiscoveryIdentityVerificationProvider implements DigitalIdentityVerificationProvider {

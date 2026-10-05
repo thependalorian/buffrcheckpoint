@@ -3,10 +3,14 @@ import { JwtModule } from "@nestjs/jwt";
 import { PassportModule } from "@nestjs/passport";
 
 import { NotificationsModule } from "../notifications/notifications.module";
+import { OnboardingStateModule } from "../onboarding-state/onboarding-state.module";
 import { RbacModule } from "../rbac/rbac.module";
 import { AuthController } from "./auth.controller";
 import { AuthService } from "./auth.service";
 import { OnboardingEvidenceService } from "./onboarding-evidence.service";
+import { OnboardingPresenceService } from "./onboarding-presence.service";
+import { OnboardingProgressController } from "./onboarding-progress.controller";
+import { OnboardingProgressService } from "./onboarding-progress.service";
 import { JwtStrategy } from "./strategies/jwt.strategy";
 
 @Module({
@@ -17,10 +21,17 @@ import { JwtStrategy } from "./strategies/jwt.strategy";
       signOptions: { expiresIn: "8h" },
     }),
     NotificationsModule,
+    OnboardingStateModule,
     RbacModule,
   ],
-  controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, OnboardingEvidenceService],
-  exports: [AuthService, JwtModule],
+  controllers: [AuthController, OnboardingProgressController],
+  providers: [
+    AuthService,
+    JwtStrategy,
+    OnboardingEvidenceService,
+    OnboardingPresenceService,
+    OnboardingProgressService,
+  ],
+  exports: [AuthService, JwtModule, OnboardingEvidenceService],
 })
 export class AuthModule {}

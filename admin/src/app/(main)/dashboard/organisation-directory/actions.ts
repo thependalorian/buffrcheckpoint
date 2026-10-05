@@ -34,9 +34,9 @@ export async function createDirectoryUnitAction(input: {
   if (name.length < 1) throw new Error("Name is required.");
   if (code.length < 1) throw new Error("Code is required.");
   await api.post("/organisation-directory/units", {
-    parentId: input.parentId || undefined,
+    parentId: input.parentId?.trim() || undefined,
     unitKindCode: input.unitKindCode,
-    bianAreaCode: input.bianAreaCode || undefined,
+    bianAreaCode: input.bianAreaCode?.trim() || undefined,
     code,
     name,
     description: input.description?.trim() || undefined,

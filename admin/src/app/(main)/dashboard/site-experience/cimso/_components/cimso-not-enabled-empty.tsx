@@ -17,8 +17,7 @@ export function CimsoNotEnabledEmpty({
     <div className="rounded-lg border bg-card p-8 text-center space-y-3">
       <p className="font-medium text-sm">CiMSO is not enabled for this organisation</p>
       <p className="text-muted-foreground text-sm">
-        Platform status is{" "}
-        <span className="capitalize">{platformStatus.replaceAll("_", " ")}</span>. Enable CiMSO
+        Platform status is <span className="capitalize">{platformStatus.replaceAll("_", " ")}</span>. Enable CiMSO
         INNterchange under Capability enablement, then return here to connect sites.
       </p>
       <Button asChild size="sm">

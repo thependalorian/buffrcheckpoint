@@ -54,7 +54,11 @@ export class SupportTicketsController {
 
   @Post(":ticketId/comments")
   @RequirePermission(PERMISSIONS.PLATFORM_TICKET_MANAGE)
-  addComment(@Param("ticketId") ticketId: string, @Body() body: { body: string }, @CurrentUser() user: AuthenticatedUser) {
+  addComment(
+    @Param("ticketId") ticketId: string,
+    @Body() body: { body: string },
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
     return this.service.addComment(ticketId, body.body, user);
   }
 

@@ -80,8 +80,7 @@ export const authCopy = {
   errors: {
     emailVerificationRequired: "Confirm your email before signing in. Check your inbox for the link.",
     mfaRequired: "Enter your authenticator code to finish signing in.",
-    lockedOut:
-      "Too many failed sign-in attempts. Wait a few minutes or use Forgot password, then try again.",
+    lockedOut: "Too many failed sign-in attempts. Wait a few minutes or use Forgot password, then try again.",
     generic: "Something went wrong. Try again.",
   },
 } as const;

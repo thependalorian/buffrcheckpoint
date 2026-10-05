@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 import { and, desc, eq, inArray, isNull } from "drizzle-orm";
-import { createHash, randomBytes, randomUUID } from "node:crypto";
 
+import { sessionCache } from "../../common/auth/session-cache";
 import type { AuthenticatedUser } from "../../common/decorators/current-user.decorator";
 import type { Database } from "../../db/client";
 import { DB } from "../../db/db.module";
@@ -16,6 +16,7 @@ import {
 } from "../../db/schema";
 import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.service";
 import { TemplatedEmailService } from "../notifications/templated-email.service";
+import { createHash, randomBytes, randomUUID } from "node:crypto";
 
 const PLATFORM_ROLE_CODE = "platform_support";
 const INVITATION_TTL_MS = 60 * 60 * 1000;
@@ -195,6 +196,7 @@ export class PlatformStaffService {
 
     // Any outstanding set-password link dies with the account.
     await this.db.delete(passwordResetTokens).where(eq(passwordResetTokens.userId, account.id));
+    sessionCache.invalidateUser(account.id);
 
     return { userId: account.id, deactivatedAt: now };
   }
@@ -287,6 +289,7 @@ export class PlatformStaffService {
       scopeType: "organisation",
       scopeId: organisationId,
     });
+    sessionCache.invalidateUser(userId);
 
     if (eventCode === "change") {
       await this.db.insert(organisationMembershipStatusLog).values({

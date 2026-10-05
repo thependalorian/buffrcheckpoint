@@ -8,6 +8,7 @@ const orgUser = {
   permissions: [] as string[],
   emailVerified: true,
   mfaEnabled: true,
+  audience: "admin" as const,
 };
 
 function buildService(opts: {
@@ -79,7 +80,7 @@ function buildService(opts: {
     // drizzle eq objects are opaque; fall back by scanning mock IDs from platform rows
     void eqCall;
     return null;
-  });
+  }) as never;
 
   const service = new CapabilityStatusService(db as never, typeDefs as never);
 

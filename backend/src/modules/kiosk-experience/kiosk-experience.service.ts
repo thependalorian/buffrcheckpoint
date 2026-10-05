@@ -1,21 +1,21 @@
 import { ConflictException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 import { and, desc, eq, isNull } from "drizzle-orm";
-import { randomUUID } from "node:crypto";
 
 import { resolvePublicAssetUrl } from "../../common/assets/public-asset-url";
 import type { AuthenticatedUser } from "../../common/decorators/current-user.decorator";
 import type { Database } from "../../db/client";
 import { DB } from "../../db/db.module";
 import {
+  kioskExperienceConfigurations,
   kioskExperienceConfigurationVersionChannels,
   kioskExperienceConfigurationVersions,
-  kioskExperienceConfigurations,
 } from "../../db/schema";
 import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.service";
 import { SiteBrandingService } from "../site-branding/site-branding.service";
 import { SiteQrReferencesService } from "../site-qr-references/site-qr-references.service";
 import { VisitorPolicyService } from "../visitor-policy/visitor-policy.service";
 import type { CreateKioskExperienceConfigDto, CreateKioskExperienceVersionDto } from "./dto/kiosk-experience.dto";
+import { randomUUID } from "node:crypto";
 
 export interface EffectiveKioskExperience {
   config: typeof kioskExperienceConfigurations.$inferSelect;
@@ -23,7 +23,12 @@ export interface EffectiveKioskExperience {
   channels: (typeof kioskExperienceConfigurationVersionChannels.$inferSelect)[];
   branding: Awaited<ReturnType<SiteBrandingService["getPublishedForSite"]>>;
   logoUrl: string | null;
-  privacyNoticeContent: { versionId: string; policyName: string | null; contentText: string; contentUrl: string | null } | null;
+  privacyNoticeContent: {
+    versionId: string;
+    policyName: string | null;
+    contentText: string;
+    contentUrl: string | null;
+  } | null;
   languageCodes: string[];
   publicCheckInQr: {
     referenceId: string;
@@ -173,7 +178,11 @@ export class KioskExperienceService {
     return published;
   }
 
-  async getEffective(siteId: string, deviceId: string | undefined, user: AuthenticatedUser): Promise<EffectiveKioskExperience | null> {
+  async getEffective(
+    siteId: string,
+    deviceId: string | undefined,
+    user: AuthenticatedUser,
+  ): Promise<EffectiveKioskExperience | null> {
     const config = await this.resolveConfig(siteId, deviceId, user.organisationId);
     if (!config) return null;
 
@@ -210,8 +219,7 @@ export class KioskExperienceService {
           channels: await Promise.all(
             brandingBundle.channels.map(async (row) => ({
               ...row,
-              captureChannelCode:
-                (await this.typeDefs.codeById(row.captureChannelCode)) ?? row.captureChannelCode,
+              captureChannelCode: (await this.typeDefs.codeById(row.captureChannelCode)) ?? row.captureChannelCode,
             })),
           ),
           languages: await Promise.all(

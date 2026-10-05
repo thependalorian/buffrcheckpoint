@@ -34,10 +34,7 @@ export function answerScalar(value: unknown): string {
   return "";
 }
 
-function conditionMatches(
-  condition: VisibilityCondition,
-  answers: Record<string, unknown>,
-): boolean {
+function conditionMatches(condition: VisibilityCondition, answers: Record<string, unknown>): boolean {
   const raw = answers[condition.fieldCode];
   const scalar = answerScalar(raw);
 
@@ -109,9 +106,7 @@ export function validateAnswerValue(
     }
   }
   if (Array.isArray(schema.options) && schema.options.length > 0 && scalar.length > 0) {
-    const values = scalar.includes(",")
-      ? scalar.split(",").map((s) => s.trim())
-      : [scalar];
+    const values = scalar.includes(",") ? scalar.split(",").map((s) => s.trim()) : [scalar];
     for (const v of values) {
       if (!schema.options.includes(v)) {
         return `Value must be one of: ${schema.options.join(", ")}`;

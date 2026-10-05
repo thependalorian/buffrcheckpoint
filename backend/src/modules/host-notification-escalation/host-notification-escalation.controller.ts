@@ -4,10 +4,7 @@ import { AuditLog } from "../../common/decorators/audit-log.decorator";
 import { type AuthenticatedUser, CurrentUser } from "../../common/decorators/current-user.decorator";
 import { RequirePermission } from "../../common/decorators/require-permission.decorator";
 import { PERMISSIONS } from "../../common/rbac/permissions";
-import {
-  CreateEscalationPolicyDto,
-  CreateEscalationPolicyVersionDto,
-} from "./dto/host-notification-escalation.dto";
+import { CreateEscalationPolicyDto, CreateEscalationPolicyVersionDto } from "./dto/host-notification-escalation.dto";
 import { HostNotificationEscalationService } from "./host-notification-escalation.service";
 
 @Controller("host-notification-escalation")
@@ -16,7 +13,10 @@ export class HostNotificationEscalationController {
 
   @Post()
   @RequirePermission(PERMISSIONS.SITE_CONFIGURE)
-  @AuditLog({ action: "host_notification_escalation_policy.create", resourceType: "host_notification_escalation_policy" })
+  @AuditLog({
+    action: "host_notification_escalation_policy.create",
+    resourceType: "host_notification_escalation_policy",
+  })
   create(@Body() dto: CreateEscalationPolicyDto, @CurrentUser() user: AuthenticatedUser) {
     return this.hostNotificationEscalationService.createPolicy(dto, user);
   }

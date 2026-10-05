@@ -50,10 +50,7 @@ export const siteBrandingProfileVersions = pgTable(
   },
   (t) => [
     index("idx_site_branding_profile_versions_profile").on(t.brandingProfileId),
-    uniqueIndex("idx_site_branding_profile_versions_profile_version").on(
-      t.brandingProfileId,
-      t.versionNumber,
-    ),
+    uniqueIndex("idx_site_branding_profile_versions_profile_version").on(t.brandingProfileId, t.versionNumber),
   ],
 );
 
@@ -71,10 +68,7 @@ export const siteBrandingProfileVersionLanguages = pgTable(
   },
   (t) => [
     index("idx_site_branding_profile_version_languages_version").on(t.brandingProfileVersionId),
-    uniqueIndex("idx_site_branding_profile_version_languages_unique").on(
-      t.brandingProfileVersionId,
-      t.languageCode,
-    ),
+    uniqueIndex("idx_site_branding_profile_version_languages_unique").on(t.brandingProfileVersionId, t.languageCode),
   ],
 );
 

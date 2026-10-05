@@ -1,13 +1,19 @@
 "use client";
 
+import { useTransition } from "react";
+
+import { useRouter } from "next/navigation";
+
+import type { SiteOption } from "@/components/features/sites/site-select";
+import { Button } from "@/components/ui/button";
+import { unwrap } from "@/lib/actions/result";
+
 import { createQrReferenceAndRotate, rotateQrReference } from "./actions";
 import { SiteExperienceFormSheet } from "./site-experience-form-sheet";
-import { Button } from "@/components/ui/button";
-import { useTransition } from "react";
-import { useRouter } from "next/navigation";
 
 interface QrSetupSheetProps {
   defaultSiteId?: string;
+  sites: readonly SiteOption[];
 }
 
 /** Only types with a live kiosk/website journey. Keep in sync with backend allowlist. */
@@ -18,14 +24,14 @@ const ISSUABLE_SITE_QR_TYPES = [
   },
 ] as const;
 
-export function QrSetupSheet({ defaultSiteId }: QrSetupSheetProps) {
+export function QrSetupSheet({ defaultSiteId, sites }: QrSetupSheetProps) {
   return (
     <SiteExperienceFormSheet
       title="Site QR reference"
       description="Creates a public check-in QR and issues the first rotation token. Other QR types stay hidden until their journeys ship."
       triggerLabel="Add QR reference"
       fields={[
-        { name: "siteId", label: "Site ID", type: "text", defaultValue: defaultSiteId ?? "" },
+        { name: "siteId", label: "Site", type: "site", sites, defaultValue: defaultSiteId },
         {
           name: "qrTypeCode",
           label: "QR type",
@@ -35,12 +41,14 @@ export function QrSetupSheet({ defaultSiteId }: QrSetupSheetProps) {
         },
         { name: "label", label: "Label", type: "text", defaultValue: "Main entrance check-in" },
       ]}
-      onSubmit={(values) =>
-        createQrReferenceAndRotate({
-          siteId: values.siteId,
-          qrTypeCode: values.qrTypeCode || "public_site_checkin",
-          label: values.label,
-        })
+      onSubmit={async (values) =>
+        unwrap(
+          await createQrReferenceAndRotate({
+            siteId: values.siteId,
+            qrTypeCode: values.qrTypeCode || "public_site_checkin",
+            label: values.label,
+          }),
+        )
       }
     />
   );
@@ -57,7 +65,7 @@ export function QrRotateButton({ referenceId }: { referenceId: string }) {
       disabled={isPending}
       onClick={() =>
         startTransition(async () => {
-          await rotateQrReference(referenceId);
+          unwrap(await rotateQrReference(referenceId));
           router.refresh();
         })
       }

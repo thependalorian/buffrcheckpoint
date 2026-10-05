@@ -36,10 +36,11 @@ describe("AppController (e2e)", () => {
     return request(app.getHttpServer()).get("/sites").expect(401);
   });
 
-  it("/public/capability-status returns six public capability keys", async () => {
+  it("/public/capability-status returns seven public capability keys", async () => {
     const res = await request(app.getHttpServer()).get("/public/capability-status").expect(200);
     expect(Object.keys(res.body).sort()).toEqual(
       [
+        "cimsoInnterchange",
         "diginamVerification",
         "nationalEidNfc",
         "nfcBadgeCheckIn",

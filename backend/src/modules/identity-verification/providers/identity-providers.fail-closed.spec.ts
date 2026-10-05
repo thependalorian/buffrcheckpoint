@@ -1,6 +1,6 @@
 import { DiginamRelyingPartyVerificationProvider } from "./diginam-relying-party-verification.provider";
-import { DiscoveryIdentityVerificationProvider } from "./discovery-identity-verification.provider";
 import type { DigitalIdentityVerificationRequest } from "./digital-identity-verification.provider";
+import { DiscoveryIdentityVerificationProvider } from "./discovery-identity-verification.provider";
 
 const sampleRequest: DigitalIdentityVerificationRequest = {
   organisationId: "00000000-0000-4000-8000-000000000001",

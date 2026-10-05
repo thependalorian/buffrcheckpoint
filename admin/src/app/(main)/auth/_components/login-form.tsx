@@ -58,9 +58,7 @@ export function LoginForm() {
         return;
       }
       track(AnalyticsEvents.loginSucceeded);
-      const fallback = safeNextPath(
-        searchParams.get("next") ?? result.nextPath ?? "/dashboard/overview",
-      );
+      const fallback = safeNextPath(searchParams.get("next") ?? result.nextPath ?? "/dashboard/overview");
       router.push(fallback);
       router.refresh();
     } finally {

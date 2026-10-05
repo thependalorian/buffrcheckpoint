@@ -11,6 +11,7 @@ import {
 import { and, asc, count, desc, eq, gte, inArray, isNull, lte } from "drizzle-orm";
 
 import { createArtifactStore } from "../../common/artifacts/artifact-store";
+import { sessionCache } from "../../common/auth/session-cache";
 import type { AuthenticatedUser } from "../../common/decorators/current-user.decorator";
 import type { TabularExport } from "../../common/export/tabular";
 import type { Database } from "../../db/client";
@@ -297,6 +298,7 @@ export class BillingService implements OnModuleInit {
       actorId: user.userId,
       note: "Set at subscription create",
     });
+    sessionCache.invalidateOrganisation(dto.organisationId);
 
     await this.db.insert(organisationSubscriptionStatusEvents).values({
       id: randomUUID(),
@@ -472,6 +474,7 @@ export class BillingService implements OnModuleInit {
       toStatusCode,
       actorId: user.userId,
     });
+    sessionCache.invalidateOrganisation(sub.organisationId);
 
     if (statusCode === "active" || statusCode === "trial") {
       const org = await this.db.query.organisations.findFirst({ where: eq(organisations.id, sub.organisationId) });

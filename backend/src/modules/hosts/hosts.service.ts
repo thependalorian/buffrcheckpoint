@@ -132,14 +132,10 @@ export class HostsService {
             }
           : {}),
         ...(input.department !== undefined ? { department: input.department } : {}),
-        ...(input.organisationUnitId !== undefined
-          ? { organisationUnitId: input.organisationUnitId }
-          : {}),
+        ...(input.organisationUnitId !== undefined ? { organisationUnitId: input.organisationUnitId } : {}),
         ...(input.contactReference !== undefined
           ? {
-              hostContactProtected: input.contactReference
-                ? this.dataProtection.encrypt(input.contactReference)
-                : null,
+              hostContactProtected: input.contactReference ? this.dataProtection.encrypt(input.contactReference) : null,
               hostContactLookupHmac: input.contactReference
                 ? this.dataProtection.lookupHmac(input.contactReference, "CONTACT_REFERENCE_HASH_PEPPER")
                 : null,

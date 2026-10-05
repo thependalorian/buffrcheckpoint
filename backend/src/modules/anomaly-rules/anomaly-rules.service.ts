@@ -20,6 +20,7 @@ import {
   visitorVisits,
 } from "../../db/schema";
 import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.service";
+import { isRealVisit } from "../visits/test-visit-filter";
 import {
   ANOMALY_RULE_CODES,
   ANOMALY_RULE_DEFAULTS,
@@ -92,7 +93,11 @@ export class AnomalyRulesService {
 
   async evaluateCheckIn(visitId: string) {
     const visit = await this.db.query.visitorVisits.findFirst({
-      where: and(eq(visitorVisits.id, visitId), isNull(visitorVisits.deletedAt)),
+      where: and(
+        eq(visitorVisits.id, visitId),
+        isNull(visitorVisits.deletedAt),
+        isRealVisit(visitorVisits.arrivalChannelCode),
+      ),
     });
     if (!visit) return;
     const site = await this.db.query.sites.findFirst({ where: eq(sites.id, visit.siteId) });

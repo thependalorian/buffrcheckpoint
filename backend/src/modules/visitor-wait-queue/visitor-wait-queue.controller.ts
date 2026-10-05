@@ -25,11 +25,7 @@ export class VisitorWaitQueueController {
   @Post(":id/transition")
   @RequirePermission(PERMISSIONS.VISIT_CHECKOUT)
   @AuditLog({ action: "visitor_wait_queue.transition", resourceType: "visitor_wait_queue_entry" })
-  transition(
-    @Param("id") id: string,
-    @Body() dto: TransitionQueueDto,
-    @CurrentUser() user: AuthenticatedUser,
-  ) {
+  transition(@Param("id") id: string, @Body() dto: TransitionQueueDto, @CurrentUser() user: AuthenticatedUser) {
     return this.queue.transition(id, dto.statusCode, user);
   }
 }

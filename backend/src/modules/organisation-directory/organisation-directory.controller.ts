@@ -5,7 +5,7 @@ import { AuditLog } from "../../common/decorators/audit-log.decorator";
 import { type AuthenticatedUser, CurrentUser } from "../../common/decorators/current-user.decorator";
 import { RequirePermission } from "../../common/decorators/require-permission.decorator";
 import { PERMISSIONS } from "../../common/rbac/permissions";
-import { OrganisationDirectoryService, type DirectoryModeCode } from "./organisation-directory.service";
+import { type DirectoryModeCode, OrganisationDirectoryService } from "./organisation-directory.service";
 
 class SetDirectoryModeDto {
   @IsIn(["custom", "bian_aligned", "hybrid"])

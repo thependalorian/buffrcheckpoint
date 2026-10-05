@@ -69,7 +69,10 @@ export default async function CredentialsPage() {
                     <TableCell className="p-3 font-mono text-xs">
                       {credential.holderTypeCode}:{credential.holderId.slice(0, 8)}…
                     </TableCell>
-                    <TableCell className="max-w-[12rem] truncate p-3 font-mono text-xs" title={credential.credentialReferenceHmac}>
+                    <TableCell
+                      className="max-w-[12rem] truncate p-3 font-mono text-xs"
+                      title={credential.credentialReferenceHmac}
+                    >
                       {credential.credentialReferenceHmac}
                     </TableCell>
                     <TableCell className="p-3">

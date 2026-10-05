@@ -2,11 +2,7 @@ import { Injectable, Logger } from "@nestjs/common";
 
 import { PlatformNotificationTemplateService } from "../platform-configuration/platform-notification-template.service";
 import { brandedEmailLayout } from "./branded-email-layout";
-import {
-  NotificationsService,
-  type EmailAttachment,
-  type SendNotificationInput,
-} from "./notifications.service";
+import { type EmailAttachment, NotificationsService, type SendNotificationInput } from "./notifications.service";
 
 export interface SendTemplatedEmailInput {
   templateCode: string;

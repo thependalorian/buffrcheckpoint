@@ -1,17 +1,12 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 import { and, asc, eq, isNull } from "drizzle-orm";
-import { randomUUID } from "node:crypto";
 
 import type { AuthenticatedUser } from "../../common/decorators/current-user.decorator";
 import type { Database } from "../../db/client";
 import { DB } from "../../db/db.module";
-import {
-  organisationSettings,
-  organisationUnits,
-  organisationUnitStatusEvents,
-  typeDefinition,
-} from "../../db/schema";
+import { organisationSettings, organisationUnitStatusEvents, organisationUnits, typeDefinition } from "../../db/schema";
 import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.service";
+import { randomUUID } from "node:crypto";
 
 export type DirectoryModeCode = "custom" | "bian_aligned" | "hybrid";
 
@@ -75,7 +70,12 @@ const BIAN_AREA_SEED: Array<{
     description: "Customer-facing sales and servicing across channels.",
     sortOrder: 2,
     domains: [
-      { code: "customer_management", name: "Customer Management", description: "Customer relationship capabilities.", sortOrder: 1 },
+      {
+        code: "customer_management",
+        name: "Customer Management",
+        description: "Customer relationship capabilities.",
+        sortOrder: 1,
+      },
       { code: "servicing", name: "Servicing", description: "In-force product servicing.", sortOrder: 2 },
     ],
   },
@@ -99,7 +99,12 @@ const BIAN_AREA_SEED: Array<{
     description: "Risk analysis, models, regulation and compliance.",
     sortOrder: 4,
     domains: [
-      { code: "regulation_compliance", name: "Regulation & Compliance", description: "Regulatory and compliance functions.", sortOrder: 1 },
+      {
+        code: "regulation_compliance",
+        name: "Regulation & Compliance",
+        description: "Regulatory and compliance functions.",
+        sortOrder: 1,
+      },
     ],
   },
   {
@@ -108,14 +113,24 @@ const BIAN_AREA_SEED: Array<{
     description: "IT, facilities, HR, communication, procurement, corporate relations.",
     sortOrder: 5,
     domains: [
-      { code: "facilities", name: "Buildings, Equipment & Facilities", description: "Sites and reception.", sortOrder: 1 },
+      {
+        code: "facilities",
+        name: "Buildings, Equipment & Facilities",
+        description: "Sites and reception.",
+        sortOrder: 1,
+      },
       {
         code: "communication_education",
         name: "Communication & Education",
         description: "Messaging — host email notifications map here.",
         sortOrder: 2,
       },
-      { code: "human_resource_management", name: "Human Resource Management", description: "People / HR.", sortOrder: 3 },
+      {
+        code: "human_resource_management",
+        name: "Human Resource Management",
+        description: "People / HR.",
+        sortOrder: 3,
+      },
       { code: "it_management", name: "IT Management", description: "IT operations.", sortOrder: 4 },
       { code: "finance_admin", name: "Finance", description: "Finance and accounting support.", sortOrder: 5 },
     ],
@@ -280,11 +295,7 @@ export class OrganisationDirectoryService {
     return this.getUnit(id, user);
   }
 
-  async updateUnit(
-    unitId: string,
-    input: Partial<CreateUnitInput> & { archived?: boolean },
-    user: AuthenticatedUser,
-  ) {
+  async updateUnit(unitId: string, input: Partial<CreateUnitInput> & { archived?: boolean }, user: AuthenticatedUser) {
     const found = await this.requireUnit(unitId, user);
     const patch: Partial<typeof organisationUnits.$inferInsert> = {};
 
@@ -300,9 +311,7 @@ export class OrganisationDirectoryService {
       patch.unitKindCode = await this.typeDefs.id("organisation_unit_kind", input.unitKindCode);
     }
     if (input.bianAreaCode !== undefined) {
-      patch.bianAreaCode = input.bianAreaCode
-        ? await this.typeDefs.id("bian_business_area", input.bianAreaCode)
-        : null;
+      patch.bianAreaCode = input.bianAreaCode ? await this.typeDefs.id("bian_business_area", input.bianAreaCode) : null;
     }
     if (input.archived) {
       patch.deletedAt = new Date();

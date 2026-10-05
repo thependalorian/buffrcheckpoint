@@ -1,6 +1,6 @@
 -- Buffr Checkpoint — type_definition seed for migration 0010
 -- Source of truth: buffrcheckpoint.md Section 11.9.8
--- Applied to Neon project bold-cloud-47505421 via MCP on 2026-09-11.
+-- Applied via MCP on 2026-09-11 (Oregon); carried into falling-frog-15538162 by the 2026-09-25 Frankfurt move.
 -- Adding a new value later is one INSERT, never a migration.
 
 INSERT INTO type_definition (domain, code, label, sort_order) VALUES

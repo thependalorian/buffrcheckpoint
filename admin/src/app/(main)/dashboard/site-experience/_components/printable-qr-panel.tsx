@@ -20,7 +20,9 @@ export function PrintableQrPanel({
   const [dataUrl, setDataUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    void QRCode.toDataURL(url, { margin: 1, width: 280 }).then(setDataUrl).catch(() => setDataUrl(null));
+    void QRCode.toDataURL(url, { margin: 1, width: 280 })
+      .then(setDataUrl)
+      .catch(() => setDataUrl(null));
   }, [url]);
 
   return (

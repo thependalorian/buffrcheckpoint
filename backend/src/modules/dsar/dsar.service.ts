@@ -2,6 +2,7 @@ import { Inject, Injectable, NotFoundException, StreamableFile } from "@nestjs/c
 import { and, eq, inArray, isNull } from "drizzle-orm";
 
 import { createArtifactStore } from "../../common/artifacts/artifact-store";
+import { sessionCache } from "../../common/auth/session-cache";
 import { PersonalDataProtectionService } from "../../common/data-protection/personal-data-protection.service";
 import type { AuthenticatedUser } from "../../common/decorators/current-user.decorator";
 import type { Database } from "../../db/client";
@@ -111,6 +112,10 @@ export class DsarService {
             eq(applicationUsers.organisationId, user.organisationId),
           ),
         );
+    }
+
+    if (resolution === "completed" && request.requestTypeCode === accountDeletionType) {
+      sessionCache.invalidateOrganisation(user.organisationId);
     }
 
     if (resolution === "completed" && request.requestTypeCode === dataExportType) {

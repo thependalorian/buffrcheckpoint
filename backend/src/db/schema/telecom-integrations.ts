@@ -31,7 +31,5 @@ export const featurePhoneCheckInSessions = pgTable(
     closedAt: timestamp("closed_at", { withTimezone: true }),
     visitId: uuid("visit_id").references(() => visitorVisits.id),
   },
-  (t) => [
-    index("idx_feature_phone_sessions_provider_ref").on(t.providerCode, t.carrierSessionReference),
-  ],
+  (t) => [index("idx_feature_phone_sessions_provider_ref").on(t.providerCode, t.carrierSessionReference)],
 );

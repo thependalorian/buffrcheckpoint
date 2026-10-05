@@ -7,6 +7,7 @@ import type { Database } from "../../db/client";
 import { DB } from "../../db/db.module";
 import { auditEvents, visitorVisits } from "../../db/schema";
 import { addDays, dateRange, localDateIn } from "../analytics-etl/local-date";
+import { isRealVisit } from "../visits/test-visit-filter";
 import { type DailyCount, type ForecastResult, forecastDaily } from "./forecast";
 
 export interface VisitActivityPoint {
@@ -85,6 +86,7 @@ export class AnalyticsService {
           eq(visitorVisits.organisationId, user.organisationId),
           gte(visitorVisits.checkedInAt, since),
           isNull(visitorVisits.deletedAt),
+          isRealVisit(visitorVisits.arrivalChannelCode),
         ),
         columns: { checkedInAt: true },
       }),

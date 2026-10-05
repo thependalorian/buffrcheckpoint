@@ -56,9 +56,7 @@ export default async function OrganisationDirectoryPage() {
         <>
           <DirectoryToolbar mode={directory.mode} availableModes={directory.availableModes} />
           <div className="rounded-lg border bg-card p-4">
-            <p className="mb-3 text-sm font-medium">
-              Current mode: {directory.modeLabel}
-            </p>
+            <p className="mb-3 text-sm font-medium">Current mode: {directory.modeLabel}</p>
             <UnitTree units={directory.units} />
           </div>
         </>

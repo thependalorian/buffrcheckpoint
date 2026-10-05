@@ -6,6 +6,7 @@ import { DB } from "../../db/db.token";
 import { analyticsEtlRun, analyticsEtlRunStatusLog } from "../../db/schema";
 import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.service";
 import { minCellThreshold, suppress } from "../analytics/suppression";
+import { isRealVisitAlias } from "../visits/test-visit-filter";
 import { addDays, localDateIn } from "./local-date";
 import { randomUUID } from "node:crypto";
 
@@ -315,6 +316,7 @@ export class AnalyticsEtlService {
         FROM visitor_visits v
         JOIN sites s ON s.id = v.site_id
         WHERE v.deleted_at IS NULL
+          AND ${isRealVisitAlias("v")}
           AND v.checked_in_at >= ${utcFrom}::date
           AND v.checked_in_at < ${utcTo}::date
           AND (v.checked_in_at AT TIME ZONE s.timezone)::date BETWEEN ${windowFrom}::date AND ${windowTo}::date
@@ -345,6 +347,7 @@ export class AnalyticsEtlService {
         FROM visitor_visits v
         JOIN sites s ON s.id = v.site_id
         WHERE v.deleted_at IS NULL
+          AND ${isRealVisitAlias("v")}
           AND v.checked_in_at >= ${utcFrom}::date
           AND v.checked_in_at < ${utcTo}::date
           AND (v.checked_in_at AT TIME ZONE s.timezone)::date BETWEEN ${windowFrom}::date AND ${windowTo}::date
@@ -399,6 +402,7 @@ export class AnalyticsEtlService {
            FROM visitor_visits v
            JOIN sites s ON s.id = v.site_id
           WHERE v.deleted_at IS NULL
+            AND ${isRealVisitAlias("v")}
             AND (v.checked_in_at AT TIME ZONE s.timezone)::date BETWEEN ${windowFrom}::date AND ${windowTo}::date
         ) AS source_count,
         (SELECT COALESCE(sum(check_in_count), 0)::int

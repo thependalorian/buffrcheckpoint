@@ -1,16 +1,16 @@
 import { ConflictException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 import { and, desc, eq, isNull } from "drizzle-orm";
-import { randomUUID } from "node:crypto";
 
 import type { AuthenticatedUser } from "../../common/decorators/current-user.decorator";
 import type { Database } from "../../db/client";
 import { DB } from "../../db/db.module";
-import {
-  hostNotificationEscalationPolicies,
-  hostNotificationEscalationPolicyVersions,
-} from "../../db/schema";
+import { hostNotificationEscalationPolicies, hostNotificationEscalationPolicyVersions } from "../../db/schema";
 import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.service";
-import type { CreateEscalationPolicyDto, CreateEscalationPolicyVersionDto } from "./dto/host-notification-escalation.dto";
+import type {
+  CreateEscalationPolicyDto,
+  CreateEscalationPolicyVersionDto,
+} from "./dto/host-notification-escalation.dto";
+import { randomUUID } from "node:crypto";
 
 @Injectable()
 export class HostNotificationEscalationService {
@@ -138,11 +138,7 @@ export class HostNotificationEscalationService {
   }
 
   /** Site + visitor category override → org default. Returns published version. */
-  async resolveEffectivePolicy(
-    organisationId: string,
-    siteId: string,
-    visitorCategoryCodeId: string,
-  ) {
+  async resolveEffectivePolicy(organisationId: string, siteId: string, visitorCategoryCodeId: string) {
     const publishedStatus = await this.typeDefs.id("configuration_version_status", "published");
 
     const candidates = await this.db.query.hostNotificationEscalationPolicies.findMany({

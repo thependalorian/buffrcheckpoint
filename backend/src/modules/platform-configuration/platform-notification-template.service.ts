@@ -1,16 +1,12 @@
 import { Inject, Injectable, NotFoundException } from "@nestjs/common";
 import { and, desc, eq, isNull } from "drizzle-orm";
-import { randomUUID } from "node:crypto";
 
 import type { AuthenticatedUser } from "../../common/decorators/current-user.decorator";
 import type { Database } from "../../db/client";
 import { DB } from "../../db/db.module";
-import {
-  platformNotificationTemplate,
-  platformNotificationTemplateStatusLog,
-  typeDefinition,
-} from "../../db/schema";
+import { platformNotificationTemplate, platformNotificationTemplateStatusLog, typeDefinition } from "../../db/schema";
 import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.service";
+import { randomUUID } from "node:crypto";
 
 export interface UpdateTemplateInput {
   subject?: string | null;
@@ -65,11 +61,17 @@ export class PlatformNotificationTemplateService {
     if (!existing) throw new NotFoundException("Notification template not found");
 
     const body = input.body?.trim();
-    const patch: Partial<typeof platformNotificationTemplate.$inferInsert> = { updatedAt: new Date(), updatedBy: user.userId };
+    const patch: Partial<typeof platformNotificationTemplate.$inferInsert> = {
+      updatedAt: new Date(),
+      updatedBy: user.userId,
+    };
     if (input.subject !== undefined) patch.subject = input.subject?.trim() || null;
     if (body) patch.body = body;
 
-    await this.db.update(platformNotificationTemplate).set(patch).where(eq(platformNotificationTemplate.id, templateId));
+    await this.db
+      .update(platformNotificationTemplate)
+      .set(patch)
+      .where(eq(platformNotificationTemplate.id, templateId));
 
     await this.db.insert(platformNotificationTemplateStatusLog).values({
       id: randomUUID(),

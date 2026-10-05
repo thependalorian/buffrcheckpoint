@@ -6,8 +6,8 @@ import { RequirePermission } from "../../common/decorators/require-permission.de
 import { PERMISSIONS } from "../../common/rbac/permissions";
 import { TemplatedEmailService } from "../notifications/templated-email.service";
 import {
-  type HealthScoreWeights,
   HEALTH_SCORE_WEIGHTS_KEY,
+  type HealthScoreWeights,
   PlatformConfigurationService,
 } from "./platform-configuration.service";
 import {

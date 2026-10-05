@@ -7,7 +7,6 @@ import { and, eq, isNull } from "drizzle-orm";
 import { authenticator } from "otplib";
 import request from "supertest";
 import type { App } from "supertest/types";
-import { randomUUID } from "node:crypto";
 
 import { AppModule } from "../src/app.module";
 import { decryptSecret, generateOpaqueToken, hashOpaqueToken } from "../src/common/crypto/secret-crypto";
@@ -22,8 +21,10 @@ import {
   privilegedAccessGrants,
   roleDefinitions,
   sites,
+  typeDefinition,
 } from "../src/db/schema";
 import { TypeDefinitionLookupService } from "../src/db/type-definition-lookup.service";
+import { randomUUID } from "node:crypto";
 
 jest.setTimeout(60_000);
 
@@ -277,7 +278,7 @@ describe("Secure onboarding auth (e2e)", () => {
       .expect(404);
   });
 
-  it("rejects platform_support actions without an active grant", async () => {
+  it("rejects support-session actions whose grant has expired", async () => {
     const orgId = createdOrgIds[0];
     const [supportRoleCode, initialAssignmentType] = await Promise.all([
       typeDefs.id("role_code", "platform_support"),
@@ -310,13 +311,14 @@ describe("Secure onboarding auth (e2e)", () => {
     });
 
     const anyReason = await db.query.typeDefinition.findFirst({
-      where: (table, { eq: eqOp }) => eqOp(table.domain, "support_access_reason"),
+      where: eq(typeDefinition.domain, "support_access_reason"),
     });
     if (!anyReason) throw new Error("No support_access_reason seeded");
 
     const now = Date.now();
+    const grantId = randomUUID();
     await db.insert(privilegedAccessGrants).values({
-      id: randomUUID(),
+      id: grantId,
       organisationId: orgId,
       grantedToUserId: userId,
       reasonCode: anyReason.id,
@@ -333,6 +335,10 @@ describe("Secure onboarding auth (e2e)", () => {
       permissions: ["capability.write"],
       emailVerified: true,
       mfaEnabled: true,
+      // Only support-session tokens are grant-checked (RbacGuard, v0.24);
+      // routine platform actions without a session need no grant.
+      supportSessionId: randomUUID(),
+      supportGrantId: grantId,
     });
 
     await request(app.getHttpServer())

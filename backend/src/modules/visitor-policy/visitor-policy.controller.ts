@@ -1,23 +1,13 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from "@nestjs/common";
-import {
-  IsArray,
-  IsBoolean,
-  IsInt,
-  IsObject,
-  IsOptional,
-  IsString,
-  IsUUID,
-  Min,
-  MinLength,
-} from "class-validator";
+import { IsArray, IsBoolean, IsInt, IsObject, IsOptional, IsString, IsUUID, Min, MinLength } from "class-validator";
 
 import { AuditLog } from "../../common/decorators/audit-log.decorator";
 import { type AuthenticatedUser, CurrentUser } from "../../common/decorators/current-user.decorator";
 import { RequirePermission } from "../../common/decorators/require-permission.decorator";
 import { PERMISSIONS } from "../../common/rbac/permissions";
 import { AcknowledgePolicyDto } from "./dto/acknowledge-policy.dto";
-import { PreCheckinAcknowledgePolicyDto } from "./dto/pre-checkin-acknowledge.dto";
 import { CreateCheckInFormDefinitionDto } from "./dto/check-in-form.dto";
+import { PreCheckinAcknowledgePolicyDto } from "./dto/pre-checkin-acknowledge.dto";
 import { FormAiService } from "./form-ai.service";
 import { VisitorPolicyService } from "./visitor-policy.service";
 
@@ -294,11 +284,7 @@ export class VisitorPolicyController {
     @Body() dto: ApprovalReferenceDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.visitorPolicyService.setFormVersionApprovalReference(
-      versionId,
-      dto.approvalReference,
-      user,
-    );
+    return this.visitorPolicyService.setFormVersionApprovalReference(versionId, dto.approvalReference, user);
   }
 
   @Patch("fields/:fieldId")

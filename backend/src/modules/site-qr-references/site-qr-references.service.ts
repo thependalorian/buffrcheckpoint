@@ -1,6 +1,5 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 import { and, desc, eq, isNull } from "drizzle-orm";
-import { createHmac, randomUUID } from "node:crypto";
 
 import { buildPublicCheckInQrUrl } from "../../common/assets/public-asset-url";
 import type { AuthenticatedUser } from "../../common/decorators/current-user.decorator";
@@ -9,6 +8,7 @@ import { DB } from "../../db/db.module";
 import { siteQrReferenceRotations, siteQrReferences, sites, typeDefinition } from "../../db/schema";
 import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.service";
 import type { CreateSiteQrReferenceDto, RotateSiteQrReferenceDto } from "./dto/site-qr-references.dto";
+import { createHmac, randomUUID } from "node:crypto";
 
 export interface ValidatedPublicCheckInReference {
   organisationId: string;
@@ -248,10 +248,7 @@ export class SiteQrReferencesService {
    * Public mobile check-in: prove the site+ref pair is an active
    * public_site_checkin QR (no auth). Used by GET/POST /public/check-in.
    */
-  async validatePublicCheckInReference(
-    siteId: string,
-    referenceId: string,
-  ): Promise<ValidatedPublicCheckInReference> {
+  async validatePublicCheckInReference(siteId: string, referenceId: string): Promise<ValidatedPublicCheckInReference> {
     if (!siteId || !referenceId) {
       throw new BadRequestException("site and ref query parameters are required");
     }

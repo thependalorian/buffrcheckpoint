@@ -1,192 +1,186 @@
 import { BadRequestException, Inject, Injectable } from "@nestjs/common";
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 
-import type { AuthenticatedUser } from "../../common/decorators/current-user.decorator";
 import type { Database } from "../../db/client";
 import { DB } from "../../db/db.module";
-import {
-  accessPolicy,
-  checkInFormDefinitions,
-  checkInFormFields,
-  checkInFormVersions,
-  evidencePack,
-  kioskExperienceConfigurations,
-  managedKioskDevices,
-  organisationMemberships,
-  organisations,
-  retentionPolicies,
-  siteBrandingProfiles,
-  siteHosts,
-  siteQrReferences,
-  sites,
-  visitorPolicyVersions,
-  visitorVisits,
-  visitorPolicyDocuments,
-} from "../../db/schema";
-import type { OnboardingStepCode } from "../onboarding/onboarding-steps";
-import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.service";
+import { type LaunchRoute, type OnboardingStepCode, STEP_PREREQUISITES } from "../onboarding/onboarding-steps";
+
+/** Facts the checklist depends on, read in one statement. */
+export interface EvidenceSnapshot {
+  legalName: boolean;
+  site: boolean;
+  host: boolean;
+  launchRoute: boolean;
+  privacyNoticePublished: boolean;
+  retentionPolicy: boolean;
+  formWithFields: boolean;
+  siteQr: boolean;
+  kioskConfig: boolean;
+  brandingPublished: boolean;
+  accessPolicy: boolean;
+  device: boolean;
+  testVisit: boolean;
+  trainingAcknowledged: boolean;
+  evidencePack: boolean;
+}
+
+/**
+ * Missing evidence keys for a step on a route. Each key has user-facing
+ * copy in admin `lib/copy/onboarding.ts` (`blockerCopy`).
+ */
+export function missingEvidence(
+  step: OnboardingStepCode,
+  route: LaunchRoute | null,
+  facts: EvidenceSnapshot,
+): string[] {
+  const missing: string[] = [];
+  const need = (ok: boolean, key: string) => {
+    if (!ok) missing.push(key);
+  };
+  switch (step) {
+    case "organisation_profile":
+      need(facts.legalName, "organisation.legal_name");
+      break;
+    case "site_hierarchy":
+      need(facts.site, "sites.at_least_one");
+      break;
+    case "hosts_departments":
+      need(facts.host, "hosts.at_least_one");
+      break;
+    case "launch_route":
+      need(facts.launchRoute, "launch_route.chosen");
+      break;
+    case "notices_retention":
+      need(facts.privacyNoticePublished, "privacy_policy.published_version");
+      need(facts.retentionPolicy, "retention_policy.at_least_one");
+      break;
+    case "visitor_categories":
+      need(facts.formWithFields, "forms.version_with_fields");
+      break;
+    case "check_in_channels":
+      need(facts.siteQr, "site_qr.active");
+      if (route === "kiosk") need(facts.kioskConfig, "kiosk_experience.config");
+      break;
+    case "branding":
+      need(facts.brandingPublished, "site_branding.published_version");
+      break;
+    case "risk_identity_approval":
+      need(facts.accessPolicy, "access_policy.at_least_one");
+      break;
+    case "devices_mdm":
+      need(facts.device, "devices.at_least_one");
+      break;
+    case "flow_tests":
+      need(facts.testVisit, "visits.test_visit");
+      break;
+    case "role_training":
+      need(facts.trainingAcknowledged, "training.acknowledged");
+      break;
+    case "cran_evidence":
+      need(facts.evidencePack, "evidence_pack.at_least_one");
+      break;
+    case "golive_approval":
+      // Go-live checks the other required steps, not evidence of its own.
+      break;
+  }
+  return missing;
+}
+
+const PREREQUISITE_FACTS: Readonly<Record<string, keyof EvidenceSnapshot>> = {
+  "sites.at_least_one": "site",
+  "hosts.at_least_one": "host",
+};
+
+/** Prerequisite evidence keys still missing before a step can start; [] when it is unblocked. */
+export function blockedBy(step: OnboardingStepCode, facts: EvidenceSnapshot): string[] {
+  return (STEP_PREREQUISITES[step] ?? []).filter((key) => !facts[PREREQUISITE_FACTS[key]]);
+}
 
 @Injectable()
 export class OnboardingEvidenceService {
-  constructor(
-    @Inject(DB) private readonly db: Database,
-    private readonly typeDefs: TypeDefinitionLookupService,
-  ) {}
+  constructor(@Inject(DB) private readonly db: Database) {}
 
-  async evaluate(user: AuthenticatedUser, stepCode: OnboardingStepCode): Promise<string[]> {
-    const orgId = user.organisationId;
-    const missing: string[] = [];
-
-    switch (stepCode) {
-      case "organisation_profile": {
-        const org = await this.db.query.organisations.findFirst({
-          where: and(eq(organisations.id, orgId), isNull(organisations.deletedAt)),
-        });
-        if (!org?.legalName?.trim()) missing.push("organisation.legal_name");
-        break;
-      }
-      case "branding": {
-        const rows = await this.db.query.siteBrandingProfiles.findMany({
-          where: and(eq(siteBrandingProfiles.organisationId, orgId), isNull(siteBrandingProfiles.deletedAt)),
-        });
-        if (rows.length === 0) missing.push("site_branding.profile");
-        break;
-      }
-      case "site_hierarchy": {
-        const rows = await this.db.query.sites.findMany({
-          where: and(eq(sites.organisationId, orgId), isNull(sites.deletedAt)),
-        });
-        if (rows.length === 0) missing.push("sites.at_least_one");
-        break;
-      }
-      case "hosts_departments": {
-        const rows = await this.db.query.siteHosts.findMany({
-          where: and(eq(siteHosts.organisationId, orgId), isNull(siteHosts.deletedAt)),
-        });
-        if (rows.length === 0) missing.push("hosts.at_least_one");
-        break;
-      }
-      case "visitor_categories": {
-        const forms = await this.db.query.checkInFormDefinitions.findMany({
-          where: and(eq(checkInFormDefinitions.organisationId, orgId), isNull(checkInFormDefinitions.deletedAt)),
-        });
-        if (forms.length === 0) {
-          missing.push("forms.definition");
-          break;
-        }
-        let hasPublishedField = false;
-        for (const form of forms) {
-          const versions = await this.db.query.checkInFormVersions.findMany({
-            where: and(eq(checkInFormVersions.formDefinitionId, form.id), isNull(checkInFormVersions.deletedAt)),
-          });
-          for (const version of versions) {
-            const fields = await this.db.query.checkInFormFields.findMany({
-              where: and(eq(checkInFormFields.formVersionId, version.id), isNull(checkInFormFields.deletedAt)),
-            });
-            if (fields.length > 0) {
-              hasPublishedField = true;
-              break;
-            }
-          }
-          if (hasPublishedField) break;
-        }
-        if (!hasPublishedField) missing.push("forms.version_with_fields");
-        break;
-      }
-      case "check_in_channels": {
-        const qrs = await this.db.query.siteQrReferences.findMany({
-          where: and(eq(siteQrReferences.organisationId, orgId), isNull(siteQrReferences.deletedAt)),
-        });
-        if (qrs.length === 0) missing.push("site_qr.active");
-        const kiosk = await this.db.query.kioskExperienceConfigurations.findMany({
-          where: and(
-            eq(kioskExperienceConfigurations.organisationId, orgId),
-            isNull(kioskExperienceConfigurations.deletedAt),
-          ),
-        });
-        if (kiosk.length === 0) missing.push("kiosk_experience.config");
-        break;
-      }
-      case "risk_identity_approval": {
-        const rows = await this.db.query.accessPolicy.findMany({
-          where: and(eq(accessPolicy.organisationId, orgId), isNull(accessPolicy.deletedAt)),
-        });
-        if (rows.length === 0) missing.push("access_policy.at_least_one");
-        break;
-      }
-      case "notices_retention": {
-        const docs = await this.db.query.visitorPolicyDocuments.findMany({
-          where: and(eq(visitorPolicyDocuments.organisationId, orgId), isNull(visitorPolicyDocuments.deletedAt)),
-        });
-        if (docs.length === 0) missing.push("privacy_policy.document");
-        else {
-          let hasVersion = false;
-          for (const doc of docs) {
-            const versions = await this.db.query.visitorPolicyVersions.findMany({
-              where: and(eq(visitorPolicyVersions.policyDocumentId, doc.id), isNull(visitorPolicyVersions.deletedAt)),
-            });
-            if (versions.length > 0) {
-              hasVersion = true;
-              break;
-            }
-          }
-          if (!hasVersion) missing.push("privacy_policy.version");
-        }
-        const retention = await this.db.query.retentionPolicies.findMany({
-          where: and(eq(retentionPolicies.organisationId, orgId), isNull(retentionPolicies.deletedAt)),
-        });
-        if (retention.length === 0) missing.push("retention_policy.at_least_one");
-        break;
-      }
-      case "devices_mdm": {
-        const devices = await this.db.query.managedKioskDevices.findMany({
-          where: and(eq(managedKioskDevices.organisationId, orgId), isNull(managedKioskDevices.deletedAt)),
-        });
-        if (devices.length === 0) missing.push("devices.at_least_one");
-        break;
-      }
-      case "cran_evidence": {
-        const packs = await this.db.query.evidencePack.findMany({
-          where: and(eq(evidencePack.organisationId, orgId), isNull(evidencePack.deletedAt)),
-        });
-        if (packs.length === 0) missing.push("evidence_pack.at_least_one");
-        break;
-      }
-      case "flow_tests": {
-        const visits = await this.db
-          .select({ count: sql<number>`count(*)::int` })
-          .from(visitorVisits)
-          .where(and(eq(visitorVisits.organisationId, orgId), isNull(visitorVisits.deletedAt)));
-        if ((visits[0]?.count ?? 0) < 1) missing.push("visits.at_least_one_test");
-        break;
-      }
-      case "role_training": {
-        const memberships = await this.db.query.organisationMemberships.findMany({
-          where: and(
-            eq(organisationMemberships.organisationId, orgId),
-            eq(organisationMemberships.userId, user.userId),
-            isNull(organisationMemberships.deletedAt),
-          ),
-        });
-        if (memberships.length === 0) missing.push("rbac.membership");
-        break;
-      }
-      case "golive_approval":
-        // Checked separately against completedStepCodes in auth.service
-        break;
-      default:
-        break;
-    }
-
-    return missing;
+  async snapshot(organisationId: string, userId: string): Promise<EvidenceSnapshot> {
+    const result = await this.db.execute(sql`
+      SELECT
+        EXISTS (SELECT 1 FROM organisations o
+                WHERE o.id = ${organisationId} AND o.deleted_at IS NULL AND btrim(coalesce(o.legal_name, '')) <> '') AS legal_name,
+        EXISTS (SELECT 1 FROM sites s WHERE s.organisation_id = ${organisationId} AND s.deleted_at IS NULL) AS site,
+        EXISTS (SELECT 1 FROM site_hosts h WHERE h.organisation_id = ${organisationId} AND h.deleted_at IS NULL) AS host,
+        EXISTS (SELECT 1 FROM organisation_onboarding_states st
+                WHERE st.organisation_id = ${organisationId} AND st.deleted_at IS NULL AND st.launch_route_code IS NOT NULL) AS launch_route,
+        EXISTS (SELECT 1 FROM visitor_policy_documents d
+                JOIN visitor_policy_versions v ON v.policy_document_id = d.id AND v.deleted_at IS NULL
+                JOIN type_definition vs ON vs.id = v.status_code AND vs.domain = 'policy_version_status' AND vs.code = 'published'
+                WHERE d.organisation_id = ${organisationId} AND d.deleted_at IS NULL) AS privacy_notice_published,
+        EXISTS (SELECT 1 FROM retention_policies r WHERE r.organisation_id = ${organisationId} AND r.deleted_at IS NULL) AS retention_policy,
+        EXISTS (SELECT 1 FROM check_in_form_definitions f
+                JOIN check_in_form_versions fv ON fv.form_definition_id = f.id AND fv.deleted_at IS NULL
+                JOIN check_in_form_fields ff ON ff.form_version_id = fv.id AND ff.deleted_at IS NULL
+                WHERE f.organisation_id = ${organisationId} AND f.deleted_at IS NULL) AS form_with_fields,
+        EXISTS (SELECT 1 FROM site_qr_references q WHERE q.organisation_id = ${organisationId} AND q.deleted_at IS NULL) AS site_qr,
+        EXISTS (SELECT 1 FROM kiosk_experience_configurations k
+                WHERE k.organisation_id = ${organisationId} AND k.deleted_at IS NULL) AS kiosk_config,
+        EXISTS (SELECT 1 FROM site_branding_profiles bp
+                JOIN site_branding_profile_versions bv ON bv.branding_profile_id = bp.id AND bv.deleted_at IS NULL
+                JOIN type_definition bs ON bs.id = bv.status_code
+                  AND bs.domain = 'configuration_version_status' AND bs.code = 'published'
+                LEFT JOIN sites bsite ON bsite.id = bp.site_id AND bsite.deleted_at IS NULL
+                WHERE bp.organisation_id = ${organisationId} AND bp.deleted_at IS NULL
+                  AND ((bp.site_id IS NULL AND bp.region_id IS NULL) OR bsite.id IS NOT NULL)) AS branding_published,
+        EXISTS (SELECT 1 FROM access_policy a WHERE a.organisation_id = ${organisationId} AND a.deleted_at IS NULL) AS access_policy,
+        EXISTS (SELECT 1 FROM managed_kiosk_devices md WHERE md.organisation_id = ${organisationId} AND md.deleted_at IS NULL) AS device,
+        EXISTS (SELECT 1 FROM visitor_visits vv
+                WHERE vv.organisation_id = ${organisationId} AND vv.deleted_at IS NULL) AS test_visit,
+        EXISTS (SELECT 1 FROM staff_training_acknowledgements ta
+                WHERE ta.organisation_id = ${organisationId} AND ta.user_id = ${userId} AND ta.deleted_at IS NULL) AS training_acknowledged,
+        EXISTS (SELECT 1 FROM evidence_pack e WHERE e.organisation_id = ${organisationId} AND e.deleted_at IS NULL) AS evidence_pack
+    `);
+    const row = (result.rows[0] ?? {}) as Record<string, unknown>;
+    const flag = (key: string) => row[key] === true;
+    return {
+      legalName: flag("legal_name"),
+      site: flag("site"),
+      host: flag("host"),
+      launchRoute: flag("launch_route"),
+      privacyNoticePublished: flag("privacy_notice_published"),
+      retentionPolicy: flag("retention_policy"),
+      formWithFields: flag("form_with_fields"),
+      siteQr: flag("site_qr"),
+      kioskConfig: flag("kiosk_config"),
+      brandingPublished: flag("branding_published"),
+      accessPolicy: flag("access_policy"),
+      device: flag("device"),
+      testVisit: flag("test_visit"),
+      trainingAcknowledged: flag("training_acknowledged"),
+      evidencePack: flag("evidence_pack"),
+    };
   }
 
-  async assertSatisfied(user: AuthenticatedUser, stepCode: OnboardingStepCode) {
-    const missingEvidence = await this.evaluate(user, stepCode);
-    if (missingEvidence.length > 0) {
+  /** Fails closed when a step's prerequisites are missing (a blocked step never accepts writes). */
+  async assertUnblocked(organisationId: string, userId: string, step: OnboardingStepCode): Promise<void> {
+    const missing = blockedBy(step, await this.snapshot(organisationId, userId));
+    if (missing.length > 0) {
       throw new BadRequestException({
+        code: "ONBOARDING_STEP_BLOCKED",
+        message: "Finish the earlier setup this step depends on first.",
+        missingEvidence: missing,
+      });
+    }
+  }
+
+  async assertSatisfied(
+    organisationId: string,
+    userId: string,
+    step: OnboardingStepCode,
+    route: LaunchRoute | null,
+  ): Promise<void> {
+    const missing = missingEvidence(step, route, await this.snapshot(organisationId, userId));
+    if (missing.length > 0) {
+      throw new BadRequestException({
+        code: "ONBOARDING_EVIDENCE_MISSING",
         message: "Onboarding evidence incomplete",
-        missingEvidence,
+        missingEvidence: missing,
       });
     }
   }

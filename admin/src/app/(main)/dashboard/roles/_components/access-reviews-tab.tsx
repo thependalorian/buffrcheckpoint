@@ -95,8 +95,8 @@ export async function AccessReviewsTab() {
         <CardHeader>
           <CardTitle>Membership attestation</CardTitle>
           <CardDescription>
-            Record whether each member&apos;s access is still appropriate. Outcomes are append-only — a correction is a new
-            row, not an edit. Role changes still happen under Users and Roles.
+            Record whether each member&apos;s access is still appropriate. Outcomes are append-only — a correction is a
+            new row, not an edit. Role changes still happen under Users and Roles.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -114,9 +114,7 @@ export async function AccessReviewsTab() {
                   {member.lastReviewOutcome ? (
                     <Badge variant="outline" className="mt-2">
                       Last: {member.lastReviewOutcome.replaceAll("_", " ")}
-                      {member.lastReviewedAt
-                        ? ` · ${new Date(member.lastReviewedAt).toLocaleDateString()}`
-                        : ""}
+                      {member.lastReviewedAt ? ` · ${new Date(member.lastReviewedAt).toLocaleDateString()}` : ""}
                     </Badge>
                   ) : (
                     <Badge variant="secondary" className="mt-2">

@@ -19,9 +19,7 @@ export async function createInvitationAction(input: {
   if (visitorReference.length < 2) throw new Error("Visitor reference is required.");
   if (!input.expiresAt) throw new Error("Expiry date is required.");
 
-  const expiresAt = input.expiresAt.includes("T")
-    ? new Date(input.expiresAt).toISOString()
-    : input.expiresAt;
+  const expiresAt = input.expiresAt.includes("T") ? new Date(input.expiresAt).toISOString() : input.expiresAt;
 
   const created = await api.post<{ qrUrl: string; id: string }>("/invitations", {
     siteId,

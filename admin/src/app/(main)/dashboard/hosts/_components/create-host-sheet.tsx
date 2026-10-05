@@ -33,8 +33,8 @@ export function CreateHostSheet({
         <SheetHeader>
           <SheetTitle>Add host</SheetTitle>
           <SheetDescription>
-            Hosts appear on the public check-in form and receive visitor notifications. Optionally link
-            them to a directory unit (custom or BIAN-tagged).
+            Hosts appear on the public check-in form and receive visitor notifications. Optionally link them to a
+            directory unit (custom or BIAN-tagged).
           </SheetDescription>
         </SheetHeader>
         <form

@@ -1,6 +1,6 @@
 -- Buffr Checkpoint — Section 11.9.8 site visitor experience schema
 -- Source of truth: buffrcheckpoint.md Section 11.9.8 (v0.11)
--- STATUS: Applied to Neon project bold-cloud-47505421, 2026-09-11
+-- STATUS: Applied 2026-09-11; live on Neon falling-frog-15538162
 --
 -- Adds: site branding profiles + versions, kiosk experience configurations +
 -- versions, typed site QR references + rotation log, host-notification

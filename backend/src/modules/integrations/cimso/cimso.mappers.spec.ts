@@ -1,9 +1,9 @@
-import { reservationToInvitationDraft } from "./mappers/reservation-to-invitation";
-import { visitToFrontDeskEvent } from "./mappers/visit-to-front-desk-event";
 import { FIXTURE_RESERVATION } from "./__fixtures__/synthetic-messages";
 import { getCimsoConfig } from "./cimso.config";
-import { CimsoIntegrationService } from "./cimso-integration.service";
 import { CIMSO_HOSPITALITY_DEFAULT_TYPES } from "./cimso.types";
+import { CimsoIntegrationService } from "./cimso-integration.service";
+import { reservationToInvitationDraft } from "./mappers/reservation-to-invitation";
+import { visitToFrontDeskEvent } from "./mappers/visit-to-front-desk-event";
 
 describe("cimso mappers (AFTER_NDA stubs)", () => {
   it("maps reservation fixture to invitation draft without inventing PII fields", () => {
@@ -140,6 +140,7 @@ describe("persistReservationDrafts (fixture)", () => {
         permissions: [],
         emailVerified: true,
         mfaEnabled: true,
+        audience: "admin",
       },
     });
 
@@ -190,6 +191,7 @@ describe("persistReservationDrafts (fixture)", () => {
         permissions: [],
         emailVerified: true,
         mfaEnabled: true,
+        audience: "admin",
       },
     });
 

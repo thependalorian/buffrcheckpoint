@@ -9,13 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AnalyticsEvents, track } from "@/lib/observability/track";
 
-export function VisitOpsActions({
-  visitId,
-  visitStatusCode,
-}: {
-  visitId: string;
-  visitStatusCode: string;
-}) {
+export function VisitOpsActions({ visitId, visitStatusCode }: { visitId: string; visitStatusCode: string }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [rejectReason, setRejectReason] = useState("");

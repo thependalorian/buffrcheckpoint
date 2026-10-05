@@ -1,6 +1,5 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 import { eq } from "drizzle-orm";
-import { randomUUID } from "node:crypto";
 
 import type { AuthenticatedUser } from "../../../common/decorators/current-user.decorator";
 import type { Database } from "../../../db/client";
@@ -11,6 +10,7 @@ import {
   telecommunicationsProviderArrangements,
 } from "../../../db/schema";
 import { CapabilityStatusService } from "../../capability-status/capability-status.service";
+import { randomUUID } from "node:crypto";
 
 export interface UssdSessionInput {
   providerCode: string;
@@ -81,8 +81,7 @@ export class FeaturePhoneCheckInSessionService {
     return {
       sessionId: created.id,
       statusCode: "unavailable" as const,
-      message:
-        "Feature-phone check-in session recorded. Live USSD menu flow ships after carrier acceptance testing.",
+      message: "Feature-phone check-in session recorded. Live USSD menu flow ships after carrier acceptance testing.",
     };
   }
 

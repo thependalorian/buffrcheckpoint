@@ -1,12 +1,12 @@
 import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 import { and, eq } from "drizzle-orm";
-import { randomUUID } from "node:crypto";
 
 import type { AuthenticatedUser } from "../../common/decorators/current-user.decorator";
 import type { Database } from "../../db/client";
 import { DB } from "../../db/db.module";
 import { organisationCapabilityEnablement, platformCapabilityApprovals, typeDefinition } from "../../db/schema";
 import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.service";
+import { randomUUID } from "node:crypto";
 
 // Public vocabulary is deliberately narrower than the internal
 // capability_status_value domain — see Section 4a.7 (v0.4 correction).
@@ -157,10 +157,7 @@ export class CapabilityStatusService {
 
   async upsertOrganisationEnablement(input: UpdateOrganisationCapabilityEnablementInput, user: AuthenticatedUser) {
     const capabilityCode = await this.typeDefs.id("capability_code", input.capabilityCode);
-    const statusCode = await this.typeDefs.id(
-      "capability_status_value",
-      input.enabled ? "approved" : "suspended",
-    );
+    const statusCode = await this.typeDefs.id("capability_status_value", input.enabled ? "approved" : "suspended");
     const now = new Date();
 
     const existing = await this.db.query.organisationCapabilityEnablement.findFirst({

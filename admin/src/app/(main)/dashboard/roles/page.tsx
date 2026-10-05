@@ -39,11 +39,5 @@ export default async function Page() {
 
   if (error) return <DashboardErrorState message={error} />;
 
-  return (
-    <Roles
-      roles={roles}
-      accessReviewsSlot={<AccessReviewsTab />}
-      assignUsersHref="/dashboard/users"
-    />
-  );
+  return <Roles roles={roles} accessReviewsSlot={<AccessReviewsTab />} assignUsersHref="/dashboard/users" />;
 }

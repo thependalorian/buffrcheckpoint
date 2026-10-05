@@ -1,6 +1,131 @@
 # Buffr Checkpoint
 ## Business Plan, Product Architecture & Operating Blueprint
-**Version 0.32 — Analytics, retention, card payments, live rosters**
+**Version 0.34 — Onboarding experience: launch readiness, launch-route decision, first value**
+
+> **v0.34 build and production record (2026-10-05):** all seven phases of
+> §11.9.15.12 built, tested and deployed together with the v0.33 repair.
+> Migrations 0049–0054 tested on Neon branch `br-old-frog-b1gf9bov`, then
+> applied to production `falling-frog-15538162` (verification query: 3/3
+> state columns, 2 permissions, 3 grants, 4 config rows, training table,
+> lower-email unique index, renamed acknowledgement label; Hotel Etuna keeps
+> its earned `organisation_profile` completion). API Railway deployment
+> `ff8264c1` (new routes answer 401, not 404); admin Vercel deployment
+> `buffrcheckpoint-admin-djnl9lten` aliased to `admin.buffrcheckpoint.com`;
+> `smoke-production.sh` 6/6 PASS. Checks: backend 166/166 unit, e2e 16/16 on
+> the branch (including a new `test/onboarding.e2e-spec.ts`), admin 25/25,
+> type checks, lint and both builds clean. Security finding raised in the
+> same pass: production connects as `neondb_owner` (see §19 and Open work);
+> migration 0055 restores the least-privilege runtime role and is pending an
+> operator credential step.
+>
+> **What changed in v0.34 (2026-10-05, onboarding experience — launch
+> readiness, launch-route decision, first value):** v0.33 fixed onboarding
+> correctness, permissions, persistence and speed, but left the *experience*
+> unspecified: the information hierarchy of the overview, the launch-route
+> decision screen, blocked/skipped/conditional/completed states, the waiting
+> experience for invited staff, upload feedback and recovery, returning to
+> work after editing an earlier step, multi-admin collisions, and the exact
+> first-value moment. Two organisations abandoned at Branding with nothing
+> configured — a UX failure, not a state-machine failure. This release
+> specifies that layer as **§11.9.15** and plans its build in seven phases:
+> 1. **Launch Readiness home** (§11.9.15.1) — one next best action, then
+>    required / recommended / add-later groups; progressive disclosure instead
+>    of 14 equal-weight cards; the header counts steps left to a first QR
+>    check-in; existing in-progress organisations keep every earned
+>    completion and get a "we reorganised setup" explanation.
+> 2. **Launch route is a real decision** (§11.9.15.2) — a comparison screen
+>    with consequences, asked after the first site exists and before channel
+>    configuration, with an explicit "you can change this later" guarantee.
+> 3. **Four visible statuses, no hidden work** (§11.9.15.3) — ready / blocked /
+>    complete / not needed, each explained in plain language; Device/MDM and
+>    CRAN cards stay visible on QR-first as explained "not applicable", never
+>    removed; no disabled control without its reason and its fix.
+> 4. **One step-detail template** (§11.9.15.4) — why this matters, what you
+>    will need, what "done" means, plus a blocker variant that names the
+>    prerequisite; never an evidence key, UUID, or schema term on screen.
+> 5. **Branding is optional for QR-first** (§11.9.15.5) — stated before the
+>    page opens, required only on the kiosk route; pre-upload validation,
+>    preview, existing logo preserved until publish succeeds, one consistent
+>    error-component hierarchy.
+> 6. **Test arrival is the activation event** (§11.9.15.6) — a guided
+>    verification moment with visible proof, not a checkbox flip.
+> 7. **Training step renamed to an Owner-Operator launch acknowledgement**
+>    (§11.9.15.7; product-owner decision 2026-10-05) — one owner
+>    acknowledgement is never presented as organisation-wide staff training;
+>    §20.4 remains the post-launch competence matrix.
+> Also in this release: invited-user waiting page given a purpose
+> (§11.9.15.8), human multi-admin conflict copy (§11.9.15.9), UX acceptance
+> criteria (§11.9.15.10), ten north-star onboarding metrics (§11.9.15.11),
+> the phased build plan with a measurable check per phase (§11.9.15.12), two
+> new A0 alpha scripts (§17.4.2), an honest status-matrix row (§11.9.0a),
+> cross-reference updates (§11.4.4, §11.8.1, §11.8.5, §11.9.12, §17.1,
+> §20.4), and a new risk-register row for onboarding abandonment (§19).
+>
+> **What changed in v0.33 (2026-10-05, onboarding repair — deployed to production 2026-10-05 with v0.34):**
+> Production investigation on 2026-10-05 found no signup crash (zero 4xx/5xx
+> in the Railway HTTP log) but three compounding faults: an organisation-state
+> defect, a slow session path, and a wizard that asks for objects before they
+> can exist. Two organisations (Hotel Etuna, Journey Test Co) abandoned at the
+> Branding step with nothing configured. This release fixes the flow in seven
+> phases; each item below names its status.
+> 1. **Organisation state is protected (Phase 1).** Email verification and MFA
+>    enrolment previously rewrote the *organisation's* onboarding status for
+>    every user, including invited staff. The status log shows Buffr Financial
+>    Services CC knocked from `live` back to `in_progress` three times on
+>    2026-09-18 and restored by direct SQL with no log row. Now: an explicit
+>    forward-only transition map (`pending_email_verification` →
+>    `email_verified` → `mfa_enrolled` → `in_progress` → `ready_for_golive` →
+>    `live`; `suspended` ops-only). User activation advances the organisation
+>    only from early states. Backward moves happen only through the audited ops
+>    routes `POST /platform/organisations/:id/onboarding/reopen` and
+>    `.../set-status` (reason required, status-log row written).
+> 2. **Go-live authority fails closed (Phase 1).** New permission
+>    `organisation.onboarding.manage` (Owner-Operator, System Administrator;
+>    migration 0049) plus verified email and MFA on `complete-step`. `RbacGuard`
+>    now denies any mutation without declared permission metadata unless it is
+>    `@Public()` or explicitly `@AuthenticatedOnly()` (§9.2 rule 10). Invited
+>    staff without the permission see a "setup in progress" page, not the wizard.
+> 3. **One cheap session lookup per navigation (Phase 2).** Each click used to
+>    fire 13–20 `GET /auth/me` calls at 1.0–1.9 s (link prefetches through the
+>    proxy, plus layout and page re-fetching; 8–10 sequential queries per call;
+>    API in Railway US West, database in Neon Frankfurt). Now: a single-query
+>    `GET /auth/session-gate` for the proxy, request-scoped caching in the admin
+>    app, no gate fetch for prefetches, a bounded `me()`, a 30-second per-user
+>    cache invalidated on MFA/role/onboarding/subscription changes, and the
+>    Railway `api` service moved to an EU region.
+> 4. **Launch-readiness checklist replaces the rigid 13-step wizard (Phase 3).**
+>    Order: organisation profile → first site → hosts → choose launch route
+>    (**QR-first Core** or **Kiosk**) → privacy notice and check-in form →
+>    channel → test arrival → staff training → billing and go-live. Branding is
+>    recommended for QR-first and required for Kiosk; device/MDM applies to
+>    Kiosk only; CRAN evidence is "Add later" unless regulated hardware is
+>    deployed. Requirements are stated in plain language, never as internal
+>    evidence keys. Raw Site ID inputs are replaced by a site picker. Migration
+>    0050 adds `launch_route_code`, `skipped_step_codes` and `version`.
+> 5. **Branding is reliable (Phase 4).** Logo upload moves from base64 JSON
+>    (which exceeded the API's 100 KB body limit) to a validated multipart
+>    upload stored through the artifact store. Profile, version and publish are
+>    one transaction; the step counts as done only when a published version
+>    resolves. Admin server actions return structured `{ ok, code, message }`
+>    results instead of throwing, so production users see real errors.
+> 6. **Test arrival and training evidence are truthful (Phase 5).** "Create a
+>    test visit" inside onboarding records a visit on the `onboarding_test`
+>    arrival channel, excluded from analytics, anomaly rules, reports and
+>    billing counts. Staff training requires an acknowledgement row in the
+>    append-only `staff_training_acknowledgements` table instead of inferring it
+>    from membership.
+> 7. **Progress is monotonic (Phase 6).** Current step = first required
+>    incomplete step for the chosen route; completion is idempotent; optional
+>    steps can be skipped (logged); updates use optimistic concurrency.
+> 8. **Hygiene (Phase 7).** Verify-email no longer double-consumes its token
+>    under React Strict Mode; emails are normalised to lowercase with a
+>    case-insensitive unique index; legacy organisations get onboarding-state
+>    rows; production smoke/E2E tenants are retired; subscription entitlement
+>    resolution is ordered; onboarding analytics events and session-latency
+>    logging are added. Code comments and migration headers that still name
+>    the deleted Oregon project `bold-cloud-47505421` are repointed to the
+>    production project `buffr-checkpoint-eu` (`falling-frog-15538162`,
+>    aws-eu-central-1); older entries in this blueprint are left as history.
 
 > **What changed in v0.32 (2026-10-01, guide gaps closed):**
 > 1. **Analytics ETL and dashboards** (§11.1b, built 2026-09-30) — PII-free
@@ -397,7 +522,7 @@
 | Auth / MFA / email verify / password-reset API | FULL | |
 | Password-reset admin UI | FULL | forgot + reset pages; reset clears lockout |
 | Login lockout / cooldown | FULL | 3 failed passwords in 5 min → 5 min lock; IP throttle 10/5 min; lock email |
-| Onboarding wizard + evidence-blocked soft-complete | FULL | v0.20 |
+| Launch-readiness checklist (replaced the 13-step wizard) + evidence-blocked soft-complete | FULL | State machine, route requirement matrix, evidence gate and steps (v0.20 → v0.33) plus the §11.9.15 experience layer (v0.34): readiness home, launch-route decision with pre-site blocked state (server-enforced), step template, route-aware branding, guided test arrival, launch acknowledgement, purposeful waiting page, "changed by" conflict copy and advisory presence. Production 2026-10-05; manual A0-15/A0-16 still to be run |
 | Org profile / sites / hosts CRUD | FULL | create+edit+deactivate |
 | Regions / security zones | FULL | v0.20 |
 | Branding / kiosk experience / escalation | FULL | |
@@ -2006,8 +2131,16 @@ requirement for regulated, multi-site buyers.
    assignment counts + permission sets on `/dashboard/roles`. Permission
    grants remain platform-owned config (`role_permission_grants` /
    type_definition). Owner-Operator remains the SME permission union
-   (Section 9.1a); splitting into granular roles is a role change under
+   (   Section 9.1a); splitting into granular roles is a role change under
    rule 7 as the organisation grows.
+10. **State-changing routes deny by default** *(v0.33)*. Every POST, PATCH, PUT
+   and DELETE must declare `@RequirePermission`, be `@Public()`, or carry an
+   explicit `@AuthenticatedOnly()` opt-out (own-account actions such as MFA
+   enrolment). Missing policy metadata is a 403, never an implicit allow, and
+   `@RequireVerifiedEmail` / `@RequireMfa` are enforced whether or not a
+   permission is declared. Onboarding step completion and go-live require
+   `organisation.onboarding.manage` plus verified email and MFA; a user's own
+   activation (email, MFA) never changes organisation-level state.
 
 ## 9.2a Separate front doors for customers and platform staff *(v2026-09-29, approved by the product owner)*
 
@@ -2566,6 +2699,7 @@ Output must be empty apart from permitted test fixtures.
 
 | Item | Status | Path |
 |---|---|---|
+| Least-privilege runtime role on Frankfurt | **Open — critical** (found 2026-10-05) | Production API connects as `neondb_owner`; the role from 0024 was never recreated after the Oregon→Frankfurt move, so no append-only REVOKE is in force. Migration `0055_runtime_role_append_only.sql` (idempotent) recreates the role and revokes UPDATE/DELETE on all 45 log/event tables; code audit found no app path that writes to them. Operator step: apply 0055 on a branch, `ALTER ROLE buffr_checkpoint_runtime PASSWORD …` out of band, run e2e as that role, then apply on production, switch Railway `DATABASE_URL`, redeploy, verify `has_table_privilege('audit_events','UPDATE') = false` |
 | Retention purge/archive scheduler | **Built** (2026-10-01) | Opt-in worker (`RETENTION_DISPOSITION_ENABLED`); dry-run first. Analytics backfills count live visits only, so disposed history drops out of rebuilt facts |
 | DigiNam relying-party adapter | Not started | Approved relying-party arrangement and tested interface |
 | National e-ID NFC adapter | Not started | Official protocol and interoperability testing |
@@ -4730,10 +4864,28 @@ Drizzle ORM → PostgreSQL (Neon, matching buffr-host's pattern per Section 11.2
   reference; confirmation returns one-time hashed recovery codes and re-issues
   the session JWT with `mfaEnabled: true`. Subsequent logins require a
   short-lived MFA challenge token before a full session is issued.
-- **Onboarding lifecycle:** `organisation_onboarding_states` + immutable
-  `organisation_onboarding_status_log` track the 13-step wizard. Go-live is
-  blocked until required steps, verified email, and MFA pass. The admin proxy
-  redirects incomplete organisations away from `/dashboard/*`.
+- **Onboarding lifecycle** *(revised v0.33)*: `organisation_onboarding_states`
+  + immutable `organisation_onboarding_status_log` track a launch-readiness
+  checklist. Status moves only forward through an explicit transition map
+  (`pending_email_verification` → `email_verified` → `mfa_enrolled` →
+  `in_progress` → `ready_for_golive` → `live`; `suspended` ops-only); every
+  transition, including ops overrides, writes a log row with actor and reason.
+  User activation (email verification, MFA enrolment) advances the
+  organisation only from early states and never regresses it. Backward moves
+  go through audited ops routes (`/platform/organisations/:id/onboarding/reopen`,
+  `.../set-status`). The organisation chooses a launch route (`qr_first` or
+  `kiosk`, `onboarding_launch_route` type_definition); a backend requirement
+  matrix marks each step required, recommended, conditional or not applicable
+  for that route. The actionable step is the first required incomplete step;
+  completion is idempotent, optional steps can be skipped (recorded in
+  `skipped_step_codes`), and updates use optimistic concurrency (`version`).
+  Step completion and go-live require `organisation.onboarding.manage`,
+  verified email, MFA, and (for go-live) an active or trial subscription. The
+  admin proxy redirects incomplete organisations away from operational
+  `/dashboard/*` routes; invited users without onboarding authority see a
+  "setup in progress" page. The customer-facing experience of this checklist
+  — overview hierarchy, route decision, status treatments, blocker, waiting
+  and conflict copy — is specified in §11.9.15 (v0.34).
 - **Password reset:** a `password_reset_token` table (single-use,
   short-`expires_at`, added to `rbac.ts` alongside `application_users` in Section
   11.4.5) backs `POST /auth/password-reset/request` and `/confirm`. The
@@ -6675,6 +6827,13 @@ not just the "happy path" shown in Section 10's wireframes:
 | Error | A failed `RbacGuard`/network request — a retry action, not a raw stack trace or a silent failure (Section 9.2's audit trail should also record the failed attempt) | Contact form submission failure — inline, field-adjacent, not a full-page error | NFC read failure, USSD timeout (Section 6.2's design controls already specify a fallback state here) |
 | Slow/no internet | Admin app on a poor connection — cached last-known roster with a visible "stale as of [time]" marker, not an infinite spinner | Static generation means the site itself keeps working; only the Contact form and Capability Status Badge (Section 4a.7) need a degrade path | This is the kiosk's **core design constraint**, not an edge case — fully specified already in Section 8.5's offline journey; nothing new to add here, just a pointer back to it |
 
+Onboarding screens follow the same discipline with the four status
+treatments of §11.9.15.3 (ready / blocked / complete / not needed) and one
+error-component hierarchy: inline field error for local validation, panel or
+banner for a failed save, toast only for low-risk confirmations
+(§11.9.15.5). A blocked or disabled onboarding control without its
+prerequisite and fix is a defect, not a state.
+
 ### 11.8.2 Data-integrity verification ("make sure user data actually saves correctly")
 
 Not a one-time check but a release gate: for each write path in Section
@@ -6746,6 +6905,11 @@ website visitor journey: `web_check_in_started` / `_context_failed` /
 `web_check_out_started` / `_failed` / `_completed`,
 `contact_enquiry_submitted`.
 Properties are codes/counts only (no visitor PII).
+**Onboarding north-star metrics (§11.9.15.11)** read from these same events
+plus `launch_route`, `step_code` and `blocker_key` properties, a
+first-site / first-QR / first-test-visit fact per organisation, and a
+click-to-visible-feedback timing event for the p95 measure — codes and
+timestamps only, per this section's own rule.
 Pinned ops dashboard: https://us.posthog.com/project/608602/dashboard/2094531
 (pageviews, activation funnel, consent trend; warehouse HogQL tiles as added).
 
@@ -8307,6 +8471,14 @@ operations ("Have we mistaken policy approval for policy implementation?").
 Maps to `POST /onboarding/organisation-admin` and subsequent admin/API steps
 (Section 11.4, §11.7.7 demo record).
 
+> **v0.34 note:** this is the *configuration* sequence, not the UI order. It
+> is presented through the launch-readiness experience in §11.9.15 —
+> route-aware, QR-first by default. Steps 2, 9 and 10 (branding, kiosk/device
+> registration, CRAN evidence) are conditional: recommended on QR-first,
+> required on Kiosk, "Add later" when no regulated hardware is deployed.
+> Step 12's training becomes the Owner-Operator launch acknowledgement
+> (§11.9.15.7); the ongoing competence matrix stays §20.4.
+
 ### 11.9.13 Final product statement
 
 The kiosk is the organisation's **digital reception desk**.
@@ -8360,6 +8532,445 @@ check-in traffic.
 Follow-up (not blocking): optional hard reject when a suggestion returns
 `high_risk` without a warning flag, and optional redaction of intent text in
 audit metadata.
+
+### 11.9.15 Onboarding experience — launch readiness (v0.34)
+
+v0.33 (§11.4.4) fixed the machine: forward-only status transitions,
+`organisation.onboarding.manage`, verified email and MFA on step completion,
+a route-aware requirement matrix, evidence-gated completion, idempotent writes
+and optimistic concurrency. This section specifies the layer the customer
+actually sees. It is the expression of the QR-first Core posture in Sections
+15.2, 16.3 and 11.9.8.1: onboarding must make the no-hardware path feel like
+the default launch, not a reduced version of a kiosk deployment.
+
+**North-star outcome.** Within 10–15 minutes, an Owner-Operator creates a
+site, publishes a privacy-safe check-in form, prints a QR code, and completes
+a visible test arrival. Every screen below supports that moment; nothing may
+compete with it.
+
+**Design basis.** Progressive disclosure — show essential choices first and
+reveal advanced configuration only when it is relevant
+([NN/g](https://www.nngroup.com/articles/progressive-disclosure/)); reduce
+cognitive load by showing only information relevant to the task at hand
+([NN/g](https://www.nngroup.com/articles/4-principles-reduce-cognitive-load/));
+onboarding screens teach by doing, not by tutorial
+([NN/g](https://www.nngroup.com/articles/onboarding-tutorials/)).
+
+#### 11.9.15.1 The Launch Readiness home, not a task grid
+
+```text
+[Header]
+Welcome to Buffr Checkpoint, Hotel Etuna
+You are 3 steps away from accepting your first QR check-in.
+
+[Primary action card — Next best step]
+Create your first site
+About 2 minutes · Needed to generate your visitor QR code
+[ Create site ]
+
+[Launch route summary]
+Your launch route: QR-first
+Visitors check in on their phone. Your team can assist anyone without a phone.
+[ Change route ]
+
+[Required for launch]
+✓ Organisation profile
+→ First site                              [Start]
+→ Hosts and departments                   [Start]
+→ Privacy notice and check-in form        [Start]
+→ Site QR code                            [Start]
+→ Test your first arrival                 [Start]
+→ Owner-Operator launch acknowledgement    [Start]
+→ Billing and go-live                     [Start]
+
+[Recommended]
+Brand the experience                      [Set up]
+Add an access policy                      [Set up]
+
+[Add later]
+Kiosk device and MDM      Not needed for QR-first
+CRAN device evidence      Needed only for applicable connected hardware
+```
+
+**Key rule.** Users never scan equal-weight cards. The page shows, in order:
+(1) one next best action, with its benefit and time cost; (2) required launch
+work; (3) recommended improvements; (4) future or conditional setup. The
+header counts what is left to the *first QR check-in*, not what is left
+overall.
+
+**Existing in-progress organisations.** An organisation already part-way
+through the previous checklist sees a one-line explanation — "We reorganised
+setup. Everything you already finished is still done." — and retains every
+earned completion. Completion is a list of step codes (§11.4.4); regrouping
+the checklist never resets it.
+
+Step titles map 1:1 to `onboarding_step_code` values; the four groups are
+derived from the route requirement matrix (`STEP_REQUIREMENTS`, §11.4.4),
+never hardcoded in the page. All strings stay in the copy module
+(`admin/src/lib/copy/onboarding.ts`) per the workspace copy rule.
+
+#### 11.9.15.2 Launch route is a real decision, asked at the right moment
+
+`/onboarding/launch-route` is the most critical new screen in this release.
+The execution plan treats it as a storage field; it changes requirements, so
+it must read as a decision — a comparison, not two buttons.
+
+```text
+How do you want visitors to check in first?
+
+[ QR-first ]  Recommended
+Use a printed QR code. Visitors check in on their own phone.
+• No tablet required
+• Includes assisted front-desk check-in
+• Fastest route to launch
+• Best for most first sites
+[ Choose QR-first ]
+
+[ Dedicated kiosk ]
+Use an Android tablet at reception.
+• Branded visitor welcome screen
+• Offline capture
+• Optional NFC fast lane
+• Requires device setup and governance
+[ Choose kiosk ]
+
+You can change this later. Your visitor records, policies, and staff
+setup remain the same.
+```
+
+**Flow rule.** The route is asked **after the first site exists** and
+**before channel configuration** — an organisation cannot meaningfully choose
+a site-specific route before it has a site. The built step order already
+satisfies this (`site_hierarchy` → `hosts_departments` → `launch_route` → …
+→ `check_in_channels`); record it as binding: while `sites.at_least_one`
+evidence is missing, the route card renders in its blocked state naming that
+prerequisite (§11.9.15.3), never as a live choice.
+
+QR-first carries the Recommended marker because it is the Core path (§15.2);
+the kiosk card must never read as the lesser option, and the route page must
+never push a QR-first customer into device work.
+
+#### 11.9.15.3 Four visible statuses — "not applicable" work is explained, never hidden
+
+| Status | Treatment | Meaning |
+|---|---|---|
+| Ready to start | Primary action | Required and actionable now |
+| Blocked | Muted card + explicit prerequisite + fix | Cannot start until the dependency is met |
+| Complete | Checkmark + "Review" | Satisfied and revisitable |
+| Not needed / Add later | Neutral explanatory card | Not required for the selected launch route |
+
+Hidden cards create uncertainty: users think a task vanished, their work was
+lost, or the system changed the requirements. So Device/MDM and CRAN cards
+stay on the page under QR-first, with route-specific explanation copy:
+
+```text
+Kiosk device setup
+Not needed for your QR-first launch.
+Choose the kiosk route later if your site needs a dedicated visitor tablet.
+```
+
+No control is ever disabled without its reason. Every blocked item names the
+missing prerequisite and the action that clears it (the blocker copy already
+centralised in `blockerCopy`).
+
+#### 11.9.15.4 One detail-page template for every step
+
+```text
+[Back to launch readiness]
+
+{Step title}
+One sentence: why this matters.
+
+What you will need
+• {site name and address}
+• {a reception contact}
+• About 2 minutes
+
+What "done" means
+A site exists and is available for visitor setup.
+
+[Task form or embedded setup surface]
+
+[Save and return to launch readiness]
+```
+
+Blocked variant, rendered inside the same template:
+
+```text
+You need a site before you can configure branding.
+[ Create a site ]     [ Back to launch readiness ]
+```
+
+Never expose internal evidence codes, UUIDs, schema terms or service
+terminology on these pages — `sites.at_least_one` is a server contract, not
+UI copy. Save always returns the user to the readiness home with their place
+preserved, so editing an earlier step never loses orientation.
+
+#### 11.9.15.5 Branding is optional for QR-first
+
+Branding was the abandonment point because it was both early and unclear. The
+card states the requirement *before* the page opens.
+
+QR-first:
+
+```text
+Brand your check-in experience
+Recommended, not required for launch
+
+Add your logo, welcome message, and help contact.
+You can start with the defaults and personalise later.
+[ Set up branding ]    [ Do this later ]
+```
+
+Kiosk:
+
+```text
+Brand your kiosk welcome screen
+Required before kiosk launch
+```
+
+Page UX:
+
+- Organisation branding is the default scope; a site override is an
+  expandable advanced section, shown only when one or more sites exist.
+- Never show a Site ID; show a site picker only when sites exist.
+- The logo dropzone states its contract: `PNG, JPG, or WebP · up to 400 KB`.
+- Validate type and size before upload; show a thumbnail preview; keep the
+  currently published logo serving until the new version publish succeeds.
+- Upload errors sit directly under the dropzone: "This image is 600 KB.
+  Choose an image under 400 KB."
+- On success: "Branding published. This is what visitors will see." with
+  [ Preview check-in ] [ Return to readiness ].
+
+**One error-component hierarchy** across onboarding: an inline field error
+for local validation; a panel or banner for a failed save; a toast only for
+low-risk confirmations. The structured server result (`{ ok, code, message }`,
+v0.33) is necessary but not sufficient — the UI must place the error where
+the user is already looking, in the words they understand.
+
+#### 11.9.15.6 Test arrival is the first-value moment
+
+"Create a test visit" must not flip a checkbox. It is a guided verification
+moment:
+
+```text
+Test your visitor flow
+
+We will create a safe test visitor at:
+Hotel Etuna · Main reception · Reception host
+
+[ Create test visit ]
+
+Success:
+Test visit created.
+• It appears in your Front Desk roster
+• It is excluded from analytics and billing
+• You can safely check it out after reviewing it
+
+[ View test visit ]  [ Check out test visitor ]  [ Return to readiness ]
+```
+
+This is the activation event: it proves Checkpoint is working before the
+organisation is asked to pay or go live. The test visit stays open until the
+user checks it out, so it is genuinely visible in the roster; `flow_tests`
+evidence is satisfied on creation, and the `onboarding_test` channel already
+excludes these visits from analytics, anomaly rules, reports and billing
+(v0.33).
+
+#### 11.9.15.7 Training step renamed: Owner-Operator launch acknowledgement
+
+The execution plan had a mismatch: UI label "Staff training", proof =
+Owner-Operator acknowledgement only. One owner acknowledgement presented as
+organisation-wide staff training is misleading.
+
+**Decision (product owner, 2026-10-05): Option A — narrow and honest.**
+
+```text
+Owner-Operator launch acknowledgement
+Read the launch checklist and confirm that you understand the visitor flow.
+[ I understand the visitor flow ]
+```
+
+The alternative — inviting each required staff member and collecting
+per-person acknowledgements with a "3 of 4 complete" progress — is deferred:
+a training UI nobody completes is worse than an honest narrow step, and a
+single acknowledgement must never stand in for team competence. The step code
+stays `role_training` (a `type_definition` label and copy change, not a
+migration). §20.4's competence matrix remains the post-launch requirement;
+this acknowledgement does not satisfy it.
+
+#### 11.9.15.8 The invited-user waiting page has a purpose
+
+```text
+Your organisation is being set up
+
+Hotel Etuna is not ready for staff access yet.
+Your Owner-Operator is completing site and visitor-flow setup.
+
+What happens next:
+1. Your organisation completes setup
+2. You receive access automatically
+3. You can then use the tools assigned to your role
+
+[ Check status ]  [ Sign out ]
+Need help? Contact your organisation owner.
+```
+
+Status refreshes quietly every 30–60 seconds, and the manual **Check status**
+control is always present. The page is never a dead end ("you cannot
+continue"), and it never shows a setup step the invited user cannot complete —
+§9.2 rule 10 keeps the API closed regardless of what the UI shows.
+
+#### 11.9.15.9 Collaboration states — a 409 is not a user experience
+
+An organisation can have several administrators configuring setup. When
+another admin changes onboarding:
+
+```text
+Setup changed by Maria K. a moment ago.
+
+We refreshed this page with the latest launch readiness.
+[ Review latest status ]
+```
+
+For a locked/in-flight configuration task:
+
+```text
+Maria K. is currently editing site branding.
+Try again in a moment.
+```
+
+Never technical copy: no "version conflict", no "optimistic concurrency
+failure", no raw error strings.
+
+*Implementation notes (as built, 2026-10-05):* the `ONBOARDING_CONFLICT` 409
+body carries `changedBy` and `changedAt`. **Decision (product owner,
+2026-10-05): the actor is shown by email address** — `application_users` has
+no display-name column, and adding one is a core-schema change. The actor is
+read from the latest `organisation_onboarding.*` row in the `audit_events`
+chain, not the status log: the status log records only status changes,
+while every checklist write is audited with its actor. The in-flight notice is an advisory single-instance
+presence map on the API (step, display name, heartbeat expiry), carrying the
+same single-instance validity caveat as the roster SSE emitter (§11.1b). Both
+are server facts; the copy module renders them.
+
+#### What to do and what not to do
+
+**Do**
+
+- Lead each screen with one decision or action.
+- Show the next best action at the top of the readiness overview.
+- Sequence setup by real dependency.
+- Clearly distinguish required, recommended, later and not needed.
+- Explain the benefit before asking for configuration.
+- Let users pause and return without losing orientation.
+- Give every blocker a plain-language recovery path.
+- Preserve completed work visually.
+- Offer preview or proof after configuration, especially branding and test
+  arrival.
+- Measure time-to-first-site, time-to-first-QR and time-to-first-test, not
+  only branding abandonment.
+
+**Do not**
+
+- Treat every configuration item as equally urgent.
+- Force a QR-first customer through kiosk or device work.
+- Ask for technical IDs, internal codes or schema-level concepts.
+- Use "Mark complete" as the primary interaction where the system can
+  validate completion itself (the evidence gate already can).
+- Hide requirements that become irrelevant after launch-route selection.
+- Use generic error toasts for forms users must correct.
+- Redirect staff into an admin-only readiness checklist.
+- Make "optional" work a disabled dead end.
+- Let "current step" compete with the user's chosen navigation.
+
+#### 11.9.15.10 UX acceptance criteria
+
+The checks in §11.9.0a and §11.8 are mostly engineering checks. These are the
+experience-level gates; they are executable as the A0 scripts added in
+§17.4.2.
+
+| Journey | UX success criterion |
+|---|---|
+| QR-first owner | Can create first site, QR, and test arrival without encountering kiosk/CRAN requirements presented as required |
+| Branding | User understands branding is optional for QR-first before opening its page |
+| Blocked action | Every disabled or blocked action names its missing prerequisite and how to fix it |
+| Test arrival | User can see and close the test visit after creating it |
+| Invited host | Never sees a setup step they cannot complete |
+| Existing in-progress org | Sees a "We reorganised setup" explanation and retains all earned completion |
+| Multi-admin collision | Receives a human explanation and refreshed state, not a raw 409 |
+| Mobile | Readiness overview works cleanly at 320–375px, with no card-grid overload |
+| Performance | Navigation gives immediate visual feedback — skeleton or pending state — within 100 ms even while data is still loading |
+
+#### 11.9.15.11 North-star onboarding metrics
+
+Do not only measure Branding abandonment after a week. Measure:
+
+1. First site created.
+2. First active public QR created.
+3. First successful test arrival.
+4. Time from verified owner to first test arrival.
+5. Required-step completion rate by launch route.
+6. Blocked-step frequency by blocker.
+7. Launch-route choice distribution.
+8. Go-live conversion.
+9. Invited-user waiting-page resolution.
+10. p95 time from click to visible UI feedback.
+
+The critical product metric is not "wizard completion". It is:
+
+> **How quickly can a new organisation prove that a real visitor can check in
+> safely?**
+
+*Instrumentation* (§11.8.5): these read from the existing
+`admin_onboarding_step_completed` / `admin_onboarding_step_blocked` /
+`admin_onboarding_live` events plus `launch_route`, `step_code` and
+`blocker_key` properties, a first-site / first-QR / first-test-visit fact per
+organisation, and a click-to-visible-feedback timing event for the p95
+measure. Codes and timestamps only — never user or visitor PII.
+
+#### 11.9.15.12 Implementation plan (v0.34, seven phases)
+
+No schema change is required: the status log, progress columns and evidence
+facts already carry everything below — so none of this touches the
+human/Fable-owned core schema.
+
+| Phase | Scope | Files | Measurable check |
+|---|---|---|---|
+| P1 | Readiness home: header + steps-left count, next-best-action card with benefit/time, launch-route summary, four status groups, "we reorganised setup" note, `loading.tsx` skeletons | `admin/src/app/(main)/onboarding/page.tsx` + new `loading.tsx`, `admin/src/lib/onboarding/readiness.ts`, `admin/src/lib/copy/onboarding.ts` | `readiness.test.ts` covers group membership and next-best-action; a render test asserts every not-applicable card carries explanation copy; 320px viewport has no horizontal scroll; skeleton visible within 100 ms |
+| P2 | Launch-route comparison screen with consequences and change-later guarantee; pre-site blocked state | `admin/src/app/(main)/onboarding/launch-route/*`, copy module | e2e: choosing kiosk moves `devices_mdm` and `branding` to required; with zero sites the route card renders blocked with `sites.at_least_one` copy |
+| P3 | Step-detail template (why / what you will need / what "done" means / save-and-return) + blocker template; grep gate for internal identifiers in rendered copy | `admin/src/app/(main)/onboarding/[step]/page.tsx`, `_components/step-actions.tsx`, copy module | test greps rendered onboarding copy for UUID patterns and evidence keys → zero hits; every blocked state names prerequisite + fix |
+| P4 | Branding requirement copy per route; dropzone contract, pre-upload validation, thumbnail preview, publish preserves prior version, inline error placement | copy module, `admin/src/app/(main)/dashboard/site-experience/branding` page | unit test: a 600 KB file is rejected with the named message before upload; a failed publish leaves the previous published version serving |
+| P5 | Test-arrival guided panel: site/host context, success facts, view / check-out / return actions | `admin/src/app/(main)/onboarding/[step]` (flow-tests), `admin/src/app/api/onboarding/test-visit/route.ts`, copy module | journey smoke: test visit appears in roster, excluded from analytics and billing counts, checkout closes exactly one visit |
+| P6 | Owner-Operator launch acknowledgement rename; waiting-page purpose (what happens next, auto-refresh, manual check, sign out); conflict-with-actor copy + advisory in-flight presence | copy module, `admin/src/app/(main)/onboarding/waiting/page.tsx`, `backend/src/modules/auth/onboarding-progress.service.ts` (409 body), onboarding presence map | e2e: a second-session save returns `changedBy` and the UI renders human copy (assert the string "version conflict" never renders); waiting page auto-refreshes and manual Check status works |
+| P7 | Acceptance wiring + metrics | `scripts/acceptance/checklist.json`, §17.4.2 scripts A0-15/A0-16, PostHog properties (§11.8.5) | `./scripts/acceptance-gate.sh run a0` prints the new manual IDs; a funnel query returns launch-route distribution |
+
+**Build record (2026-10-05, all phases done):**
+
+| Phase | Result | Check evidence |
+|---|---|---|
+| P1 | Built | `readiness.test.ts` 6/6 (groups, four statuses, steps-left, next best action, reorganised note); `onboarding/loading.tsx` skeleton; not-needed cards always visible with route copy (`step-card.tsx`) |
+| P2 | Built | `STEP_PREREQUISITES` + `blockedBy` in readiness; launch route refused with `ONBOARDING_STEP_BLOCKED` while no site exists; e2e: kiosk makes `devices_mdm` and `branding` required, QR-first returns them to not applicable / recommended |
+| P3 | Built | `[step]/page.tsx` template + blocker variant naming prerequisite and fix; `copy/onboarding.test.ts` greps every rendered string for UUIDs, evidence keys, step codes and schema terms: 0 hits (with a positive control) |
+| P4 | Built | `validateLogoFile` test: 600 KB rejected with "This image is 600 KB…" before any upload; backend test: a failed publish batch leaves the prior published version serving; site override behind an advanced section; Site ID column replaced by site name. The "Preview check-in" button is replaced by an inline "what visitors will see" preview (a real check-in link needs a QR reference the form does not have) |
+| P5 | Built | Test visit stays open until checked out; idempotent on the client id; e2e: one open visit, retry returns the same visit, check-out leaves 0 open / 1 total. Front Desk is reachable by setup admins before go-live so "View test visit" works (invited staff still wait) |
+| P6 | Built | Migration 0054 label; waiting page with what-happens-next, 45 s auto-refresh, Check status, Sign out; 409 → readiness home with "Setup changed by {email}" (unit test asserts `changedBy`); presence heartbeat every 20 s, 45 s TTL |
+| P7 | Built | A0-15/A0-16 in `scripts/acceptance/checklist.json` (`acceptance-gate.sh print a0` lists both); events `admin_onboarding_first_site`, `_first_qr`, `_first_test_visit`, `_test_visit_checked_out`, `_navigation_ms`; `launch_route` and `blocker_key` on step events |
+
+Sequencing: P1–P3 are the foundation (hierarchy, decision, template); P4–P6
+are content on that foundation; P7 gates the release. Each phase ends with
+its check; no phase starts before the previous check passes. Out of scope for
+v0.34, recorded deliberately: per-staff training UI (§11.9.15.7's rejected
+alternative), presence across multiple API instances, and any new table.
+
+#### Sources
+
+Buffr Checkpoint Business Plan (this document) — QR-first Core and optional
+kiosk/hardware, packaging and strategy: §§15.2, 16.3, 11.9.8.1; onboarding,
+branding hierarchy and role model: §§11.9.1–11.9.3, 11.9.8.1–11.9.8.3.
+Nielsen Norman Group — [Progressive Disclosure](https://www.nngroup.com/articles/progressive-disclosure/);
+[Onboarding Tutorials](https://www.nngroup.com/articles/onboarding-tutorials/);
+[Four Principles to Reduce Cognitive Load](https://www.nngroup.com/articles/4-principles-reduce-cognitive-load/).
 
 ---
 
@@ -8848,8 +9459,17 @@ pre-signup questions, multi-site/hardware rollouts, integrations, and partnershi
 
 Primary public CTA is **Create account** (`https://admin.buffrcheckpoint.com/auth/register`);
 secondary is **See pricing** (`/pricing`). Organisations self-serve end to end:
-verify email → 13-step onboarding (sites, hosts, staff, QR) → choose plan under
-Billing → EFT + POP → ops confirms payment → subscription `active`.
+verify email → enrol MFA → launch-readiness checklist (organisation profile →
+first site → hosts → choose **QR-first Core** or **Kiosk** route → privacy notice
+and check-in form → public QR or kiosk setup → test arrival → staff training)
+→ choose plan under Billing → EFT + POP → ops confirms payment → subscription
+`active` → go-live. QR-first is the default Core path; branding is recommended
+for it and required for Kiosk, and device/CRAN evidence applies only when
+hardware is deployed *(v0.33)*. The experience layer of that checklist —
+readiness home, launch-route decision, blocker and conflict copy, waiting
+page, and the first-value test arrival — is §11.9.15 *(v0.34)*, with the
+two-week-old abandonment failure (orgs leaving at Branding) as its reason
+for existing.
 Go-live and operational dashboard use require `active` (`trial` stays an ops-set
 status for design partners and is not offered on the public site).
 
@@ -8976,6 +9596,8 @@ touches the product.
 | A0-12 | i18n | `/check-in?lang=af` (and `pt`) | Labels resolve; submit still succeeds |
 | A0-13 | NFC (if Professional alpha) | Badge validate → check-in; revoked badge | Live badge OK; revoked rejected |
 | A0-14 | DSAR / audit | Export evidence pack for a visit window | Pack generates; sensitive reads audited |
+| A0-15 | §11.9.15 QR-first onboarding | Register org → verify email → MFA → readiness home → first site → QR-first route → notice + form → site QR → test arrival | Kiosk/CRAN items never presented as required; test visit visible in roster, excluded from analytics and billing; completes within 15 min |
+| A0-16 | §11.9.15 Waiting + multi-admin collision | Invite a staff user (waiting page only, never setup steps); second admin saves readiness while first has it open | Waiting copy names what happens next; conflicting save renders "changed by" copy with refreshed state, never a raw 409 |
 
 **Exit criteria (A0)**
 
@@ -9213,6 +9835,7 @@ sign-off rules, separate decision line.
 | Brand confusion caused by the word “Buffr” | Customers may assume affiliation with another similarly named service | Obtain trademark, company-name, domain, and market-confusion legal review before launch. |
 | DigiNam ecosystem live but no product integration authority | Misleading marketing, failed rollout, reputational damage | Market as “DigiNam-ready” until relying-party approval, interface access, test evidence, and contracts exist. |
 | USSD short-code delays or operator dependency | Feature-phone channel delayed | Ship kiosk + assisted + SMS fallback first; build USSD adapter in parallel. |
+| Application database role is the owner (2026-10-05) | Audit and status-log rows can be edited or deleted by the running application, undermining evidence integrity claims (§20.2) | Migration 0055 restores the least-privilege `buffr_checkpoint_runtime` role with append-only REVOKEs; switch the API's `DATABASE_URL` to it (Open work, §11.1c). |
 | NFC tag cloning | Unauthorised access | Never use static UID alone; use secure tokens, cryptographic credentials, expiry, revocation, and server-side policy checks. |
 | Offline data exposure on stolen kiosk | Privacy breach | Device encryption, MDM, kiosk lock, minimal local cache, remote wipe, secure key handling. |
 | Excessive data collection | Privacy and trust harm | Risk-based fields, no ID/photo defaults, configurable retention, privacy review. |
@@ -9225,6 +9848,7 @@ sign-off rules, separate decision line.
 | National e-ID smart-card rollout (targeted September 2026) slips or changes scope | Marketing built around a fixed date becomes inaccurate; engineering effort invested ahead of schedule sits idle longer than planned | Never state e-ID NFC support is live until the Ministry of Home Affairs confirms cards are in national circulation and Buffr Checkpoint has completed its own interoperability testing, per Section 4a.6; keep the "live" vs. "targeted" language in Section 4a.4 in every public surface. |
 | "NFC-first" positioning silently excludes the majority of Namibians, particularly rural feature-phone users | Alienates exactly the public-sector and healthcare buyers most likely to serve rural, feature-phone-dominant populations, and contradicts the brand's own inclusion language | Present the capture layer as multi-modal and risk-based, with NFC as an accelerant, not an entry requirement, per Section 4.2 and Section 4a.5; treat USSD and SMS as inclusion-critical optional add-ons when live, with assisted front desk as Core inclusion, per Sections 5.1 and 15.4. |
 | Residual parent-brand association after the standalone rebrand (Section 1a) | Regulated buyers' procurement or compliance teams pause a deal to resolve an implied affiliation with a separate payments product | Audit every customer-facing surface — website, pitch deck, contracts, support material — for "By Buffr" badges, footer taglines, or comparative references, and remove them before any regulated-sector pitch. |
+| Onboarding abandonment at unclear or out-of-order setup steps (two organisations left at Branding with nothing configured, 2026-10-05) | New organisations never reach first value, so activation, pilots and revenue all stall before they start | Launch-readiness experience in §11.9.15: one next best action, route-conditional requirements, branding optional on QR-first, visible test arrival as the activation event; tracked by the ten north-star metrics in §11.9.15.11 and the A0-15/A0-16 scripts in §17.4.2. |
 
 ---
 
@@ -9309,7 +9933,12 @@ operation of kiosks, credentials, or compliance exports.
 | Installer / field tech | Required | Required | — | Required | — | Awareness | Per engagement |
 
 Training delivery may be instructor-led, LMS, or supervised shadowing. Records:
-trainee, modules, date, assessor, result. Contractor **safety induction**
+trainee, modules, date, assessor, result.
+
+The onboarding **Owner-Operator launch acknowledgement** (§11.9.15.7) is a
+go-live gate, not a module in this matrix: one owner sign-off never stands in
+for the competence records above, and this section's training is never
+presented as complete because onboarding was completed. Contractor **safety induction**
 (Release 1.5) is a separate product workflow and remains NOT STARTED in
 §11.9.0a — do not conflate it with this operator competence matrix.
 

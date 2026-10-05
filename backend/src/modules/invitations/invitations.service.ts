@@ -1,17 +1,13 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 import { and, eq, gte, inArray, isNull, lte } from "drizzle-orm";
-import { randomBytes, randomUUID } from "node:crypto";
 
 import type { AuthenticatedUser } from "../../common/decorators/current-user.decorator";
 import type { Database } from "../../db/client";
 import { DB } from "../../db/db.module";
 import { sites, typeDefinition, visitInvitationStatusEvents, visitInvitations } from "../../db/schema";
 import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.service";
-import {
-  buildInvitationCheckInUrl,
-  generateOpaqueInvitationToken,
-  invitationTokenHmac,
-} from "./invitation-token.util";
+import { buildInvitationCheckInUrl, generateOpaqueInvitationToken, invitationTokenHmac } from "./invitation-token.util";
+import { randomBytes, randomUUID } from "node:crypto";
 
 export interface CreateInvitationInput {
   siteId: string;
@@ -33,10 +29,7 @@ export class InvitationsService {
 
   async create(input: CreateInvitationInput, user: AuthenticatedUser) {
     const pendingStatus = await this.typeDefs.id("invitation_status", "pending");
-    const visitorCategoryCode = await this.typeDefs.id(
-      "visitor_type",
-      input.visitorCategoryCode ?? "general",
-    );
+    const visitorCategoryCode = await this.typeDefs.id("visitor_type", input.visitorCategoryCode ?? "general");
     const opaqueToken = generateOpaqueInvitationToken();
     const tokenHmac = invitationTokenHmac(opaqueToken);
     const now = new Date();

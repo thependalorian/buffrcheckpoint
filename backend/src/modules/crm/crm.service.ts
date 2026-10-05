@@ -1,13 +1,20 @@
 import { Inject, Injectable, NotFoundException } from "@nestjs/common";
 import { and, count, desc, eq, isNull, sql } from "drizzle-orm";
-import { randomUUID } from "node:crypto";
 
-import type { AuthenticatedUser } from "../../common/decorators/current-user.decorator";
 import { PersonalDataProtectionService } from "../../common/data-protection/personal-data-protection.service";
+import type { AuthenticatedUser } from "../../common/decorators/current-user.decorator";
 import type { Database } from "../../db/client";
 import { DB } from "../../db/db.module";
-import { crmActivityLog, crmContact, crmDeal, crmDealStatusEvents, organisations, typeDefinition } from "../../db/schema";
+import {
+  crmActivityLog,
+  crmContact,
+  crmDeal,
+  crmDealStatusEvents,
+  organisations,
+  typeDefinition,
+} from "../../db/schema";
 import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.service";
+import { randomUUID } from "node:crypto";
 
 export interface CreateContactInput {
   organisationId: string;
