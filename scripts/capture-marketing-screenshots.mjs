@@ -4,7 +4,7 @@
  *   ADMIN_URL=http://localhost:3000 \
  *   API_BASE=http://localhost:3001 \
  *   DEMO_EMAIL=kiosk-demo@buffrcheckpoint.test \
- *   DEMO_PASSWORD=KioskDemo!2026 \
+ *   DEMO_PASSWORD=<test account password> \
  *   node scripts/capture-marketing-screenshots.mjs
  *
  * Optional when the demo user has MFA enabled:
@@ -25,8 +25,10 @@ const OUT_DIR = path.join(__dirname, "../website/public/screenshots");
 
 const ADMIN_URL = (process.env.ADMIN_URL ?? "http://localhost:3000").replace(/\/$/, "");
 const API_BASE = (process.env.API_BASE ?? "http://localhost:3001").replace(/\/$/, "");
-const EMAIL = process.env.DEMO_EMAIL ?? "kiosk-demo@buffrcheckpoint.test";
-const PASSWORD = process.env.DEMO_PASSWORD ?? "KioskDemo!2026";
+// No default credentials: the demo sign-ins were removed. Use a test account in a non-production environment.
+const EMAIL = process.env.DEMO_EMAIL;
+const PASSWORD = process.env.DEMO_PASSWORD;
+if (!EMAIL || !PASSWORD) throw new Error("Set DEMO_EMAIL and DEMO_PASSWORD");
 const MFA_RECOVERY_CODE = process.env.MFA_RECOVERY_CODE?.trim();
 const MFA_TOTP_CODE = process.env.MFA_TOTP_CODE?.trim();
 
@@ -35,7 +37,6 @@ const SESSION_COOKIE = "bc_session";
 const DEMO_ORG_ID = "b51f0704-12a7-45d4-8b0d-3642785b6e77";
 const ONBOARDING_STEPS_LIVE = [
   "organisation_profile",
-  "branding",
   "site_hierarchy",
   "hosts_departments",
   "visitor_categories",
