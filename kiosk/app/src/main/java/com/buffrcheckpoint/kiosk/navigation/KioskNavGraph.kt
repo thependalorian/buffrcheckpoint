@@ -29,7 +29,6 @@ import com.buffrcheckpoint.kiosk.roster.ui.RosterScreen
 import com.buffrcheckpoint.kiosk.session.AbandonVisitorCheckInUseCase
 import com.buffrcheckpoint.kiosk.session.ProtectedDraftClearanceService
 import com.buffrcheckpoint.kiosk.session.VisitorSessionTimeoutController
-import com.buffrcheckpoint.kiosk.ussd.ui.UssdInstructionsScreen
 import com.buffrcheckpoint.kiosk.ui.theme.BuffrCheckpointTheme
 import com.buffrcheckpoint.kiosk.welcome.ui.WelcomeScreen
 
@@ -154,13 +153,9 @@ fun KioskNavGraph(
                         }
                     },
                     onPrivacyNotice = { navController.navigate(KioskDestinations.privacyNotice("manual_check_in")) },
-                    onUssdInstructions = { navController.navigate(KioskDestinations.USSD_INSTRUCTIONS) },
                     onSignOut = { navController.navigate(KioskDestinations.VISITOR_SIGN_OUT) },
                     onExperienceLoaded = { experience = experienceRepository.loadCached() },
                 )
-            }
-            composable(KioskDestinations.USSD_INSTRUCTIONS) {
-                UssdInstructionsScreen(onBack = { navController.popBackStack() })
             }
             composable(KioskDestinations.VISITOR_SIGN_OUT) {
                 VisitorSignOutScreen(

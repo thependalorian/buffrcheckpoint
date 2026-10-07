@@ -9,7 +9,6 @@ data class CapabilityStatusResponse(
     val diginamVerification: String,
     val nationalEidNfc: String,
     val nfcBadgeCheckIn: String,
-    val ussd: String,
     val qrInvitationCheckIn: String = "not_available",
     val smsContactConfirmation: String = "not_available",
 )

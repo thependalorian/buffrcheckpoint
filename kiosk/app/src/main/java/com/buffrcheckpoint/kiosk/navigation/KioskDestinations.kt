@@ -36,6 +36,5 @@ object KioskDestinations {
             "&visitorTypeCode=${android.net.Uri.encode(visitorTypeCode)}"
     const val DEVICE_LIST = "device_list"
     const val ABOUT_DEBUG = "about_debug"
-    const val USSD_INSTRUCTIONS = "ussd_instructions"
     const val VISITOR_SIGN_OUT = "visitor_sign_out"
 }

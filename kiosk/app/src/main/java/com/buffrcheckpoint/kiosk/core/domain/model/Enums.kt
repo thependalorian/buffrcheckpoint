@@ -31,7 +31,6 @@ enum class CaptureChannel(val code: String) {
     NFC_BADGE("nfc_badge"),
     NFC_PHONE("nfc_phone"),
     QR("qr"),
-    USSD("ussd"),
     SMS("sms"),
     DIGINAM("diginam"),
 }
@@ -92,7 +91,6 @@ data class CapabilityFlags(
     val diginamVerification: CapabilityLevel,
     val nationalEidNfc: CapabilityLevel,
     val nfcBadgeCheckIn: CapabilityLevel,
-    val ussd: CapabilityLevel,
 )
 
 enum class CapabilityLevel(val code: String) {

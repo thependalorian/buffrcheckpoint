@@ -73,9 +73,6 @@ class WelcomeViewModel @Inject constructor(
     fun isNfcEnabled(): Boolean =
         isChannelEnabled("nfc_badge") && _uiState.value.capabilities.nfcBadgeLive
 
-    fun isUssdEnabled(): Boolean =
-        isChannelEnabled("ussd") && _uiState.value.capabilities.ussdLive
-
     /** National e-ID must stay absent (not a disabled tile) until platform status is live. */
     fun isNationalEidEnabled(): Boolean =
         _uiState.value.capabilities.nationalEidLive

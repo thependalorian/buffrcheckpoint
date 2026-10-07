@@ -50,7 +50,6 @@ fun WelcomeScreen(
     onNfcCheckIn: () -> Unit = onAssistedCheckIn,
     onStaffRoster: () -> Unit,
     onPrivacyNotice: () -> Unit,
-    onUssdInstructions: () -> Unit = onPrivacyNotice,
     onSignOut: () -> Unit = {},
     onExperienceLoaded: () -> Unit = {},
     viewModel: WelcomeViewModel = hiltViewModel(),
@@ -139,11 +138,6 @@ fun WelcomeScreen(
                     if (viewModel.isNfcEnabled()) {
                         OutlinedButton(onClick = onNfcCheckIn, modifier = Modifier.fillMaxWidth()) {
                             Text("Tap NFC badge")
-                        }
-                    }
-                    if (viewModel.isUssdEnabled()) {
-                        OutlinedButton(onClick = onUssdInstructions, modifier = Modifier.fillMaxWidth()) {
-                            Text("Feature phone (USSD)")
                         }
                     }
                     OutlinedButton(onClick = onSignOut, modifier = Modifier.fillMaxWidth()) {

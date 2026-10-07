@@ -6,7 +6,6 @@ import javax.inject.Singleton
 
 data class KioskCapabilityFlags(
     val nfcBadgeLive: Boolean = false,
-    val ussdLive: Boolean = false,
     val diginamLive: Boolean = false,
     val qrInvitationLive: Boolean = false,
     val smsConfirmationLive: Boolean = false,
@@ -27,7 +26,6 @@ class CapabilityRepository @Inject constructor(
                 .getOrElse { apiServiceProvider.get().capabilityStatus() }
             KioskCapabilityFlags(
                 nfcBadgeLive = status.nfcBadgeCheckIn == "live",
-                ussdLive = status.ussd == "live",
                 diginamLive = status.diginamVerification == "live",
                 qrInvitationLive = status.qrInvitationCheckIn == "live",
                 smsConfirmationLive = status.smsContactConfirmation == "live",
