@@ -2739,7 +2739,7 @@ Branch `feat/analytics-etl-and-launch-polish` carried 264 uncommitted files. The
 | Type check, all four web packages | Pass | `tsc --noEmit` exit 0 in backend, admin, ops-console, website (admin, ops and website after `next typegen`, as CI does) |
 | Unit tests | Pass | backend 315/315 (60 suites), admin 35/35, ops-console 2/2, website 10/10 |
 | End-to-end, backend | Pass, 37/37 (6 suites) | Run on a disposable Neon branch of `buffr-checkpoint-eu` with migrations 0056 to 0064 applied, email transport off, local artifact store; branch deleted afterwards. Production was not touched |
-| Production migration level | Not verified | An earlier note here said production already had 0058 but not 0062. That check actually ran against `backend/.env`, which points at the `dev-local` branch (a copy of production), not production, so it is withdrawn. Migrations are not tracked in a table, so the real level must be read with the owner credential before the rollout: check the 0058 column `application_users.buffr_id_subject`, the 0062 column `comment_protected`, and whether the branding tables (dropped by 0056) still exist |
+| Production migration level | Verified 2026-10-07 | Read with the owner credential before the rollout. Production already had 0056 to 0063 (the branding tables were already dropped). An earlier note in this record said it had 0058 but not 0062: that check had read `backend/.env`, which points at the `dev-local` branch, so it was wrong and is withdrawn. 0064 to 0068 were applied in the rollout below |
 
 Defects found and fixed in this pass:
 - Two e2e specs asserted https public links but took their base URLs from the developer's `.env` (localhost), so they failed on any machine with a dev `.env`. They now pin the public base URLs themselves (`backend/test/visitor-journey.e2e-spec.ts`, `site-notices.e2e-spec.ts`).
@@ -2794,21 +2794,32 @@ Notes on the choices:
 
 **Not done, owner-gated.** Applying 0065 to production belongs to the rollout order below (additive migrations, API deploy, then admin, ops-console and website, because the new forms call the new endpoint). The website sign-up page only links to the admin sign-up and has no sector field; that is left as is.
 
-#### Production rollout of this branch (2026-10-07): not executed
+#### Production rollout (2026-10-07): executed
 
-The owner asked for the rollout after the sector work. The assistant's session was denied access to read the production database with the owner credential, so no production read, migration or deploy was run. Production is unchanged. Everything below is ready; it needs the owner (or a session where that access is allowed).
+Run by the assistant at the owner's direction, using `neonctl` and `psql` (the Neon MCP server was not connected). Every step was checked before the next.
 
-Rollout, in this order (runbook above; every step has a measurable check):
-1. **Restore point.** `neonctl branches create --project-id falling-frog-15538162 --name pre-rollout-2026-10-07` (branch of main). Check: the branch exists. 0056 is destructive and this is its rollback.
-2. **Read the production level.** Check for `application_users.buffr_id_subject` (0058), `comment_protected` on the survey table (0062) and the branding tables (0056). Check: a written list of which of 0056 to 0065 are applied.
-3. **Apply the additive migrations** 0057 to 0064 that are missing, in order, with `psql -v ON_ERROR_STOP=1 -f` using the owner role from the operator's machine. Check: no error; the 0058 and 0062 columns exist.
-4. **Deploy the API:** `cd backend && railway up --service api --detach`. Check: `GET /health` returns 200 with `"database":"ok"`.
-5. **Apply 0065** (sector consolidation). Check: 14 active `organisation_sector` rows, and `select count(*) from organisations o join type_definition t on t.id = o.sector_code where t.deleted_at is not null` returns 0.
-6. **Deploy admin, ops-console, website:** `vercel --prod --yes` in each. Admin and ops call `/public/organisation-sectors`, so they must follow the API. Check: the three URLs in the runbook return 200 and the admin sign-up lists 14 sectors.
-7. **Apply 0056** (drops the retired branding tables, forward-only). Only after step 6. Check: the branding tables are gone, `smoke-production.sh` passes 6/6, and one sign-up and one check-in complete.
-8. **Re-run** `./scripts/acceptance-gate.sh run a0 --auto-only`.
+| Step | What | Check | Result |
+|---|---|---|---|
+| 1 | Restore point: Neon branch `pre-rollout-2026-10-07` of production main (`br-gentle-mountain-b1q8xkmc`) | branch exists | Created. Keep it until the owner is satisfied; it is the rollback for 0065, 0067 and 0068 |
+| 2 | Read production's migration level | marker object per migration | 0056 to 0063 already applied; 0064 to 0068 pending |
+| 3 | Apply 0064 (idempotent) and 0066 | marker objects | Support acknowledgement template correct; `bulksmsnam` arrangement row present, inactive |
+| 4 | Railway variables `BULK_SMS_API_KEY` and `SMS_USAGE_INVOICING_ENABLED=true`, then deploy the API | `/health` 200 with `database: ok` | Deployment `9aabbb74` SUCCESS. Previous good deployment `90099789-f01a-4428-b54c-054b303158e2` (Railway now lists it as REMOVED, as it does for every superseded build): roll back from the dashboard deployment history, or redeploy the previous commit with `railway up` |
+| 5 | Pre-checks for the destructive steps | row counts | 0 rows in the feature-phone tables, 0 organisations on a retired sector, 0 notifications on the WhatsApp or USSD channels |
+| 6 | Apply 0065, 0067, 0068 | counts after | 14 active sectors, `sme` first and `other` last, 0 organisations on a retired code; 3 SMS templates; `sms` add-on at 0.00 a month, not public; 5 rows retired; both feature-phone tables dropped |
+| 7 | API key rotated (the owner replaced the key that had been pasted into a chat session) | balance call | New key valid, 9 credits; old key answers 401. Railway updated and the API redeployed (`ab3adb33`), `/health` 200 |
+| 8 | Deploy admin, ops-console, website (`vercel --prod --yes`) | live checks | All Ready; pages 200; admin sector list 14 values from the API; short links `/o/` and `/r/` redirect with 307; 0 mentions of USSD on 7 public pages |
+| 9 | `smoke-production.sh` | summary line | 9 passed, 0 failed, 1 skipped (see below) |
 
-Known exposure during the window: between step 5 and step 6 the old admin sign-up still offers retired sector codes and a sign-up with one would be rejected. All production organisations are test organisations, so the window is accepted. Field kiosks that still call the retired branding endpoints will lose them at step 7 until they take the next kiosk build.
+0056 needed no step: it had been applied before this rollout.
+
+**SMS is deployed but still off.** Production shows the `bulksmsnam` arrangement `active = false`, the `smsContactConfirmation` capability `not_available` (internal `not_started`), no organisation with the `sms` add-on and no text ever sent, so nothing can send. The remaining switches are the owner's: activate the arrangement row, approve the capability live in the ops console (dual approval, with evidence), and attach the `sms` add-on to an organisation. Each is a deliberate cost decision.
+
+**Smoke script.** The old default site (`74c72c99...`) does not exist in production, so the form check failed for the wrong reason and has been replaced: without `SITE_ID` and `REF_ID` the check reports SKIPPED instead of failing. Production currently has one active site (Weeb Trading, Windhoek HQ) and it has no public check-in QR, so the form check cannot run until the owner creates a smoke fixture (a test organisation, site and public QR) and passes its ids. New checks cover the sector list, the absence of `ussd`, and both short links.
+
+**Known, not caused by this rollout.** The API log shows "Email transport failed, sending through the fallback instead: Connection timeout": SMTP is timing out and mail leaves through the Resend fallback, as already recorded earlier in this blueprint.
+
+**Kiosks in the field.** The new API no longer sends the `ussd` field. Kiosk apps built before this change require it, so an old kiosk will fail to read capabilities and show NFC and QR as unavailable until it is updated to the new build (the debug build compiles and its unit tests pass).
+
 
 #### Channels we do not build: strategy decision (2026-10-07)
 
@@ -2823,9 +2834,9 @@ Strategy is as much deciding what not to do. The owner decided, for Buffr Checkp
 
 What the product does: QR and phone web check-in, assisted check-in, NFC and kiosk as optional fast lanes, **email** to reach a visitor (free to us) and **SMS** to reach a visitor by text (paid, so billed to the organisation by use).
 
-What changed in the repository: the USSD webhook, session service and its DTO, the webhook guard, the kiosk USSD screen, tile and navigation, the `ussd` capability, and the `whatsapp`/`ussd` notification channel codes are removed. Migration 0067 soft-deletes the `whatsapp` and `ussd` configuration rows (notification channel, capture channel, identity verification provider, capability code); no table was dropped and no operational row touched. The unused `feature_phone_check_in_sessions` and `feature_phone_check_in_session_status_log` tables are kept for history and can be dropped when the owner approves.
+What changed in the repository: the USSD webhook, session service and its DTO, the webhook guard, the kiosk USSD screen, tile and navigation, the `ussd` capability, and the `whatsapp`/`ussd` notification channel codes are removed. Migration 0067 soft-deletes the `whatsapp` and `ussd` configuration rows (notification channel, capture channel, identity verification provider, capability code); no operational row was touched. The unused `feature_phone_check_in_sessions` and `feature_phone_check_in_session_status_log` tables were dropped by migration 0068 at the owner's request (both were empty in production).
 
-**One deliberate leftover.** `GET /public/capability-status` and `GET /capability-enablement/effective` still return `ussd: "not_available"`, a constant, marked deprecated in `capability-status.service.ts`. Kiosk apps already in the field parse that response with a required `ussd` field; without it they fail to read capabilities and switch NFC and QR off. The new kiosk build does not read it. Delete the constant (one line, its default and one test line) once every kiosk runs a build from after 2026-10-07.
+**No leftovers.** The deprecated constant `ussd` field was first kept so kiosk apps already in the field would keep parsing the capability response, then removed at the owner's request once that trade-off was explained. Kiosks built before 2026-10-07 therefore need the new build (see the rollout record).
 
 Sections of this blueprint that still describe USSD, feature-phone sessions or WhatsApp (§4.2, §6, §10.2, the feature-phone journey in the PRD material, the telecoms regulation notes, §13 notifications) are superseded by this decision and are marked retired where they start. Where the decision and an older section disagree, this decision wins.
 
@@ -2857,9 +2868,11 @@ Rules every text follows, enforced by `sms-text.ts` and tests: **neutral** (orga
 
 **Off by default, four gates.** The API needs `BULK_SMS_API_KEY`; the `bulksmsnam` arrangement must be set active; the `smsContactConfirmation` capability must be approved live in the ops console (dual approval, with evidence); and the organisation needs the `sms` add-on attached. Until all four hold, nothing is sent.
 
-**Owner steps.** Attach the add-on to an organisation in the ops billing screen; run the monthly usage invoice (no scheduler yet, so it is a manual monthly step); confirm N$1.00 and the 1,000 limit. Rotate the API key in the BulkSMS dashboard when testing ends: it was pasted into a chat session during setup.
+**Owner steps.** Activate the `bulksmsnam` arrangement, approve the capability live and attach the add-on to an organisation (see the rollout record). Monthly usage invoicing runs by itself (below); `POST /platform/billing/sms-usage-invoices/run` runs the same sweep by hand. Confirm N$1.00 and the 1,000 limit.
 
-**Not built.** Delivery receipts and webhook status (undocumented by the provider), an automatic monthly invoice run, an ops button for the usage invoice (it is an API call today), a mobile number on pre-registration (so the invitation text cannot send), and OTP flows on top of the channel.
+**Scheduler (built, on in production).** `SmsUsageInvoicingWorkerService` runs 90 seconds after the API starts and then every 6 hours (`SMS_USAGE_INVOICING_INTERVAL_MS` to change), only when `SMS_USAGE_INVOICING_ENABLED=true` (set on Railway). Each run looks at the last three finished months, finds every organisation that sent a text, and asks billing to invoice that organisation for that month. It is safe to repeat: the invoice number is fixed per organisation and month, a month with no texts creates nothing, and one organisation failing never stops the others (counted and logged as an error, because an unbilled month is revenue nobody is told is missing). With SMS off there is nothing to find. Covered by unit tests of the month arithmetic (Windhoek time), the sweep and the worker.
+
+**Not built.** Delivery receipts and webhook status (undocumented by the provider), an ops button for the usage invoice (an API call today), a mobile number on pre-registration (so the invitation text cannot send), and OTP flows on top of the channel.
 
 #### Cleanup and alignment review (2026-10-07)
 
@@ -2873,7 +2886,7 @@ Open, with the reason:
 - **Notification outbox retention (owner decision).** `notification_delivery_instructions` keeps the recipient address or mobile number and the message text, including sign-out and rating link tokens, with no purge. Email already did this and SMS adds mobile numbers. The owner must choose a retention period (for example redact recipient and message 30 days after delivery, keep the status events); it is then a small job in the existing retention-disposition worker.
 - **Copy on pages (scope, not a gate).** The ops console has no copy module across its 28 pages and the 9 marketing pages inline their text; admin follows the rule with 10 copy modules. Recommended next pass: add `ops-console/src/lib/copy` and move page strings module by module.
 
-Accepted: internal outcome codes of the SMS path (text values written by a pre-existing scaffold), the unused feature-phone tables kept until the owner approves a drop, and the deprecated constant `ussd` in the capability responses (see "Channels we do not build").
+Accepted: internal outcome codes of the SMS path (text values written by a pre-existing scaffold). Two items first listed as accepted were closed afterwards at the owner's request: the unused feature-phone tables were dropped (0068) and the deprecated constant `ussd` field was removed.
 
 **Production database state (1 October 2026).** Migrations `0041_analytics_etl`,
 `0042_card_payments` and `0043_retention_disposition` are applied to the
