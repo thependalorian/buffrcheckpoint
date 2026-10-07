@@ -92,6 +92,8 @@ data class SurveyOptionDto(
 data class SurveySubmitRequest(
     val token: String,
     val ratingCode: String,
+    /** Optional free text, at most 1000 characters. The server stores it encrypted. Null when the visitor typed nothing. */
+    val comment: String? = null,
 )
 
 @JsonClass(generateAdapter = true)

@@ -76,12 +76,13 @@ class VisitorSignOutViewModel @Inject constructor(
         }
     }
 
-    /** Records the rating; any failure still finishes, since the survey is optional. */
-    fun submitRating(ratingCode: String, onDone: () -> Unit) {
+    /** Records the rating and the optional comment; any failure still finishes, since the survey is optional. */
+    fun submitRating(ratingCode: String, comment: String? = null, onDone: () -> Unit) {
         val token = _uiState.value.surveyToken ?: return onDone()
         _uiState.value = _uiState.value.copy(surveySubmitting = true)
+        val request = SurveySubmitRequest(token = token, ratingCode = ratingCode, comment = normaliseSurveyComment(comment))
         viewModelScope.launch {
-            runCatching { apiServiceProvider.get().submitSurvey(SurveySubmitRequest(token = token, ratingCode = ratingCode)) }
+            runCatching { apiServiceProvider.get().submitSurvey(request) }
             _uiState.value = _uiState.value.copy(surveySubmitting = false, surveyToken = null)
             onDone()
         }

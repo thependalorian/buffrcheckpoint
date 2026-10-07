@@ -106,4 +106,27 @@ class VisitorSignOutViewModelTest {
         advanceUntilIdle()
         assertEquals(2, done)
     }
+
+    @Test
+    fun ratingSendsATrimmedCommentAndOmitsABlankOne() = runTest(dispatcher) {
+        coEvery { api.signOutByPhone(any()) } returns signedOut("token-1")
+        coEvery { api.surveyOptions() } returns options
+        coEvery { api.submitSurvey(any()) } returns SurveySubmitResponse(recorded = true, duplicate = false)
+        val vm = VisitorSignOutViewModel(provider, credentials)
+        vm.onPhoneChange("+264811234567")
+        vm.signOut { }
+        advanceUntilIdle()
+        vm.submitRating("good", "  Friendly desk.  ") { }
+        advanceUntilIdle()
+        coVerify { api.submitSurvey(SurveySubmitRequest(token = "token-1", ratingCode = "good", comment = "Friendly desk.")) }
+
+        coEvery { api.signOutByPhone(any()) } returns signedOut("token-2")
+        val second = VisitorSignOutViewModel(provider, credentials)
+        second.onPhoneChange("+264811234567")
+        second.signOut { }
+        advanceUntilIdle()
+        second.submitRating("good", "   ") { }
+        advanceUntilIdle()
+        coVerify { api.submitSurvey(SurveySubmitRequest(token = "token-2", ratingCode = "good", comment = null)) }
+    }
 }

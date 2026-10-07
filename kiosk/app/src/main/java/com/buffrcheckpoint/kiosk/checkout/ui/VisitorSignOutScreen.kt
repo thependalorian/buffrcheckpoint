@@ -40,7 +40,7 @@ fun VisitorSignOutScreen(
             successMessage = state.successMessage,
             options = state.surveyOptions,
             submitting = state.surveySubmitting,
-            onRate = { code -> viewModel.submitRating(code, onDone) },
+            onRate = { code, comment -> viewModel.submitRating(code, comment, onDone) },
             onSkip = onDone,
         )
         return
