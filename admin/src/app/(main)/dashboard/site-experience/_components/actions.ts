@@ -6,20 +6,6 @@ import { type ActionResult, failure, runAction } from "@/lib/actions/result";
 import { api } from "@/lib/api/client";
 import { optional } from "@/lib/forms/values";
 
-interface BrandingSetupInput {
-  siteId?: string;
-  profileName?: string;
-  welcomeMessage?: string;
-  brandColourToken?: string;
-  /** Reference returned by POST /api/branding/logo; never a data URL. */
-  logoArtifactId?: string;
-  organisationDisplayName?: string;
-  siteDisplayName?: string;
-  helpContactReference?: string;
-  captureChannelCodes?: string[];
-  languageCodes?: string[];
-}
-
 interface KioskSetupInput {
   siteId: string;
   configName?: string;
@@ -43,40 +29,6 @@ interface EscalationSetupInput {
   waitSeconds?: number;
   escalationActionCode?: string;
   alternateRecipientReference?: string;
-}
-
-/** Profile, version and publish happen in one backend transaction (POST /site-branding/setup). */
-export async function setupBrandingAndPublish(input: BrandingSetupInput): Promise<ActionResult<{ profileId: string }>> {
-  return runAction("Could not save branding.", async () => {
-    const result = await api.post<{ profileId: string }>("/site-branding/setup", {
-      siteId: optional(input.siteId),
-      profileName: optional(input.profileName) ?? "Site branding",
-      welcomeMessage: optional(input.welcomeMessage) ?? "Welcome",
-      brandColourToken: optional(input.brandColourToken),
-      logoArtifactId: optional(input.logoArtifactId),
-      organisationDisplayName: optional(input.organisationDisplayName),
-      siteDisplayName: optional(input.siteDisplayName),
-      helpContactReference: optional(input.helpContactReference),
-      captureChannelCodes: input.captureChannelCodes ?? ["kiosk", "assisted", "qr"],
-      languageCodes: input.languageCodes ?? ["en"],
-    });
-    revalidatePath("/dashboard/site-experience/branding");
-    revalidatePath("/onboarding");
-    return { profileId: result.profileId };
-  });
-}
-
-export async function publishLatestBrandingVersion(profileId: string): Promise<ActionResult> {
-  const versions = await runAction("Could not load branding versions.", () =>
-    api.get<Array<{ id: string }>>(`/site-branding/${profileId}/versions`),
-  );
-  if (!versions.ok) return versions;
-  const draft = versions.data[0];
-  if (!draft) return failure("NO_VERSION", "No version to publish.");
-  return runAction("Could not publish branding.", async () => {
-    await api.post(`/site-branding/${profileId}/versions/${draft.id}/publish`);
-    revalidatePath("/dashboard/site-experience/branding");
-  });
 }
 
 export async function setupKioskExperienceAndPublish(input: KioskSetupInput): Promise<ActionResult> {

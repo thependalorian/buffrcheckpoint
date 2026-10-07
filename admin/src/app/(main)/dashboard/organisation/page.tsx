@@ -24,7 +24,7 @@ export default async function OrganisationPage() {
     <div className="space-y-6">
       <DashboardPageHeader
         title="Organisation profile"
-        description="Legal name, trading name, timezone, and sector used across branding, invoices, and compliance surfaces."
+        description="Legal name, trading name, timezone, and sector used across invoices and compliance surfaces."
       />
       {error ? (
         <DashboardErrorState message={error} />

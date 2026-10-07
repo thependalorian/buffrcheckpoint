@@ -25,7 +25,7 @@ const step = (
 describe("groupByRequirement", () => {
   it("orders groups required, recommended, add later and drops empty ones", () => {
     const groups = groupByRequirement([
-      step("branding", "recommended"),
+      step("risk_identity_approval", "recommended"),
       step("organisation_profile", "required"),
       step("cran_evidence", "conditional"),
       step("site_hierarchy", "required"),
@@ -38,7 +38,7 @@ describe("groupByRequirement", () => {
 describe("deriveStatus", () => {
   it("maps every step to one of the four visible statuses", () => {
     expect(deriveStatus(step("site_hierarchy", "required", { state: "done" }))).toBe("complete");
-    expect(deriveStatus(step("branding", "recommended", { state: "skipped" }))).toBe("not_needed");
+    expect(deriveStatus(step("risk_identity_approval", "recommended", { state: "skipped" }))).toBe("not_needed");
     expect(deriveStatus(step("devices_mdm", "not_applicable"))).toBe("not_needed");
     expect(deriveStatus(step("cran_evidence", "conditional"))).toBe("not_needed");
     expect(deriveStatus(step("launch_route", "required", { blockedBy: ["sites.at_least_one"] }))).toBe("blocked");
@@ -53,7 +53,7 @@ describe("stepsToFirstCheckIn", () => {
       step("site_hierarchy", "required"),
       step("hosts_departments", "required"),
       step("check_in_channels", "required"),
-      step("branding", "recommended"),
+      step("risk_identity_approval", "recommended"),
       step("flow_tests", "required"),
     ];
     expect(stepsToFirstCheckIn(steps)).toBe(3);

@@ -1,15 +1,18 @@
+import Link from "next/link";
+
 import {
   CreateDeviceSheet,
   DeviceStatusButton,
   RetireDeviceButton,
 } from "@/app/(main)/dashboard/_components/policy-create-sheets";
-import { ActivateDeviceButton } from "./_components/activate-device-button";
 import { DashboardPageHeader } from "@/components/dashboard-page-header";
 import { DashboardErrorState, TableEmptyRow } from "@/components/dashboard-state";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { api } from "@/lib/api/client";
+
+import { ActivateDeviceButton } from "./_components/activate-device-button";
 
 interface DeviceRow {
   id: string;
@@ -91,6 +94,12 @@ export default async function DevicesPage() {
                     </TableCell>
                     <TableCell className="p-3">
                       <div className="flex flex-wrap gap-1">
+                        <Link
+                          href={`/dashboard/devices/${device.id}`}
+                          className="inline-flex h-7 items-center rounded-md border px-2 text-xs"
+                        >
+                          Support QR
+                        </Link>
                         <ActivateDeviceButton deviceId={device.id} />
                         <DeviceStatusButton deviceId={device.id} />
                         <RetireDeviceButton deviceId={device.id} />

@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import type { SiteOption } from "@/components/features/sites/site-select";
 import { Button } from "@/components/ui/button";
 import { unwrap } from "@/lib/actions/result";
+import { ISSUABLE_QR_TYPES } from "@/lib/copy/site-notices";
 
 import { createQrReferenceAndRotate, rotateQrReference } from "./actions";
 import { SiteExperienceFormSheet } from "./site-experience-form-sheet";
@@ -16,19 +17,11 @@ interface QrSetupSheetProps {
   sites: readonly SiteOption[];
 }
 
-/** Only types with a live kiosk/website journey. Keep in sync with backend allowlist. */
-const ISSUABLE_SITE_QR_TYPES = [
-  {
-    value: "public_site_checkin",
-    label: "Public site check-in (phone QR)",
-  },
-] as const;
-
 export function QrSetupSheet({ defaultSiteId, sites }: QrSetupSheetProps) {
   return (
     <SiteExperienceFormSheet
       title="Site QR reference"
-      description="Creates a public check-in QR and issues the first rotation token. Other QR types stay hidden until their journeys ship."
+      description="Creates a QR code for a site and issues its first token. Check-in is for visitors, emergency information opens to anyone, and the contractor induction is read and confirmed by contractors. Publish the notice text under Site Notices."
       triggerLabel="Add QR reference"
       fields={[
         { name: "siteId", label: "Site", type: "site", sites, defaultValue: defaultSiteId },
@@ -37,7 +30,7 @@ export function QrSetupSheet({ defaultSiteId, sites }: QrSetupSheetProps) {
           label: "QR type",
           type: "select",
           defaultValue: "public_site_checkin",
-          options: ISSUABLE_SITE_QR_TYPES.map((t) => ({ value: t.value, label: t.label })),
+          options: ISSUABLE_QR_TYPES.map((t) => ({ value: t.value, label: t.label })),
         },
         { name: "label", label: "Label", type: "text", defaultValue: "Main entrance check-in" },
       ]}

@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useBuffrIdConfig } from "@/lib/auth/use-buffr-id-config";
 import { authCopy } from "@/lib/copy/auth";
 import { AnalyticsEvents, track } from "@/lib/observability/track";
 
@@ -39,22 +40,32 @@ const SECTOR_OPTIONS = [
 
 export function RegisterForm() {
   const router = useRouter();
+  const buffrId = useBuffrIdConfig();
+  const urlError = typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("error");
   const [organisationName, setOrganisationName] = useState("");
   const [sectorCode, setSectorCode] = useState(SECTOR_OPTIONS[0].code);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  // Honeypot: hidden from people, filled in by bots. The API refuses a sign-up that has it.
+  const [website, setWebsite] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
+    if (buffrId.enabled) {
+      // New organisations are created from a Buffr ID sign-in; the organisation details travel in the start request.
+      const params = new URLSearchParams({ intent: "register", org: organisationName, sector: sectorCode });
+      window.location.assign(`/api/auth/buffr-id/start?${params.toString()}`);
+      return;
+    }
     setSubmitting(true);
     try {
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ organisationName, sectorCode, email, password }),
+        body: JSON.stringify({ organisationName, sectorCode, email, password, website }),
       });
       const result = await response.json();
       if (!response.ok) {
@@ -73,6 +84,10 @@ export function RegisterForm() {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <div aria-hidden="true" className="absolute -left-[9999px] h-0 w-0 overflow-hidden">
+        <label htmlFor="website">Website</label>
+        <input id="website" name="website" tabIndex={-1} autoComplete="off" value={website} onChange={(e) => setWebsite(e.target.value)} />
+      </div>
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="organisationName">Organisation name</Label>
         <div className="relative">
@@ -101,6 +116,10 @@ export function RegisterForm() {
           </SelectContent>
         </Select>
       </div>
+      {buffrId.enabled ? (
+        <p className="text-muted-foreground text-sm">{authCopy.buffrId.registerNote}</p>
+      ) : (
+        <>
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="email">Email</Label>
         <div className="relative">
@@ -133,9 +152,12 @@ export function RegisterForm() {
         </div>
         <p className="text-muted-foreground text-xs">At least 8 characters.</p>
       </div>
+        </>
+      )}
+      {urlError && authCopy.buffrId.errors[urlError] ? <p className="text-destructive text-sm">{authCopy.buffrId.errors[urlError]}</p> : null}
       {error ? <p className="text-destructive text-sm">{error}</p> : null}
       <Button type="submit" disabled={submitting} className="w-full">
-        {submitting ? authCopy.register.submitting : authCopy.register.submit}
+        {buffrId.enabled ? authCopy.buffrId.registerContinue : submitting ? authCopy.register.submitting : authCopy.register.submit}
       </Button>
       <p className="text-center text-muted-foreground text-sm">
         {authCopy.register.haveAccount}{" "}

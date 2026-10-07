@@ -89,7 +89,9 @@ export function gateRedirect(gate: SessionGate, pathname: string): string | null
       ? null
       : "/auth/check-email";
   }
-  if (!gate.mfaEnabled) {
+  // MFA comes after onboarding: optional while the organisation is being set up, required once it is live. The API enforces the same
+  // rule (MfaAfterGoLiveGuard), so this redirect is the friendly half, not the only one.
+  if (gate.onboardingComplete && !gate.mfaEnabled) {
     return pathname.startsWith("/auth/mfa/setup") ? null : "/auth/mfa/setup";
   }
   const homeAfterLive = gate.operationalUseAllowed ? "/dashboard/overview" : "/dashboard/billing";

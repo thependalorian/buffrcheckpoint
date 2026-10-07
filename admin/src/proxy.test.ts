@@ -15,15 +15,29 @@ const base: SessionGate = {
 };
 
 describe("gateRedirect", () => {
-  it("sends unverified and MFA-less users to their activation step", () => {
+  it("sends unverified users to check their email", () => {
     expect(gateRedirect({ ...base, emailVerified: false }, "/dashboard/sites")).toBe("/auth/check-email");
-    expect(gateRedirect({ ...base, mfaEnabled: false }, "/onboarding")).toBe("/auth/mfa/setup");
-    expect(gateRedirect({ ...base, mfaEnabled: false }, "/auth/mfa/setup")).toBeNull();
+  });
+
+  it("does not ask for MFA while the organisation is still being set up", () => {
+    const setup = { ...base, mfaEnabled: false };
+    expect(gateRedirect(setup, "/dashboard/sites")).toBeNull();
+    expect(gateRedirect(setup, "/onboarding/site-hierarchy")).toBeNull();
+    expect(gateRedirect(setup, "/auth/mfa/setup")).toBeNull();
+  });
+
+  it("requires MFA setup once onboarding is complete, and only lets the setup page through", () => {
+    const live = { ...base, mfaEnabled: false, onboardingComplete: true, operationalUseAllowed: true };
+    expect(gateRedirect(live, "/")).toBe("/auth/mfa/setup");
+    expect(gateRedirect(live, "/dashboard/overview")).toBe("/auth/mfa/setup");
+    expect(gateRedirect(live, "/dashboard/account")).toBe("/auth/mfa/setup");
+    expect(gateRedirect(live, "/auth/mfa/setup")).toBeNull();
+    expect(gateRedirect({ ...live, mfaEnabled: true }, "/dashboard/overview")).toBeNull();
   });
 
   it("keeps setup admins on configuration routes and away from operational ones", () => {
     expect(gateRedirect(base, "/dashboard/sites")).toBeNull();
-    expect(gateRedirect(base, "/onboarding/branding")).toBeNull();
+    expect(gateRedirect(base, "/onboarding/site-hierarchy")).toBeNull();
     expect(gateRedirect(base, "/dashboard/front-desk")).toBeNull();
     expect(gateRedirect(base, "/dashboard/visitors")).toBe(base.nextPath);
     expect(gateRedirect(base, "/onboarding/waiting")).toBe(base.nextPath);
@@ -31,7 +45,7 @@ describe("gateRedirect", () => {
 
   it("parks invited staff on the waiting page but leaves their own account reachable", () => {
     const staff = { ...base, canManageOnboarding: false, nextPath: "/onboarding/waiting" };
-    expect(gateRedirect(staff, "/onboarding/branding")).toBe("/onboarding/waiting");
+    expect(gateRedirect(staff, "/onboarding/site-hierarchy")).toBe("/onboarding/waiting");
     expect(gateRedirect(staff, "/dashboard/sites")).toBe("/onboarding/waiting");
     expect(gateRedirect(staff, "/dashboard/front-desk")).toBe("/onboarding/waiting");
     expect(gateRedirect(staff, "/dashboard/account")).toBeNull();

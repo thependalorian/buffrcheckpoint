@@ -15,8 +15,6 @@ function cardNote(step: ReadinessStep, route: LaunchRoute | null): string | null
     return `${onboardingCopy.overview.needsFirst} ${step.blockedBy.map(blockerText).join(" ")}`;
   }
   if (status === "not_needed" && step.state !== "skipped" && "notNeeded" in stepCopy) return stepCopy.notNeeded;
-  if (step.code === "branding" && step.state === "todo")
-    return onboardingCopy.steps.branding.requirementNote[route ?? "qr_first"];
   if (status === "ready") return stepCopy.time;
   return null;
 }

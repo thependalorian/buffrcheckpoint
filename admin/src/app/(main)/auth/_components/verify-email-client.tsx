@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -8,7 +8,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { authCopy } from "@/lib/copy/auth";
 
-type VerifyState = "loading" | "success" | "error";
+type VerifyState = "ready" | "loading" | "success" | "error";
 type VerifyResult = { ok: false } | { ok: true; nextPath: string };
 
 async function consumeToken(token: string): Promise<VerifyResult> {
@@ -20,7 +20,7 @@ async function consumeToken(token: string): Promise<VerifyResult> {
     });
     if (!response.ok) return { ok: false };
     const result = (await response.json()) as { nextPath?: string };
-    return { ok: true, nextPath: result.nextPath ?? "/auth/mfa/setup" };
+    return { ok: true, nextPath: result.nextPath ?? "/onboarding" };
   } catch {
     return { ok: false };
   }
@@ -30,20 +30,21 @@ export function VerifyEmailClient() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const token = searchParams.get("token") ?? "";
-  const [state, setState] = useState<VerifyState>(token ? "loading" : "error");
-  const [nextPath, setNextPath] = useState("/auth/mfa/setup");
+  // The link only opens this page. The token is spent when the person presses the button, so a mail scanner that fetches or renders
+  // the link cannot verify an address on their behalf.
+  const [state, setState] = useState<VerifyState>(token ? "ready" : "error");
+  const [nextPath, setNextPath] = useState("/onboarding");
   // Tokens are single-use: Strict Mode and re-renders re-run the effect, so
   // every run awaits the one request already sent for this token.
   const request = useRef<{ token: string; promise: Promise<VerifyResult> } | null>(null);
 
-  useEffect(() => {
+  function confirm() {
     if (!token) return;
+    setState("loading");
     if (request.current?.token !== token) {
       request.current = { token, promise: consumeToken(token) };
     }
-    let cancelled = false;
     request.current.promise.then((result) => {
-      if (cancelled) return;
       if (!result.ok) {
         setState("error");
         return;
@@ -51,10 +52,18 @@ export function VerifyEmailClient() {
       setNextPath(result.nextPath);
       setState("success");
     });
-    return () => {
-      cancelled = true;
-    };
-  }, [token]);
+  }
+
+  if (state === "ready") {
+    return (
+      <div className="flex flex-col gap-4">
+        <p className="text-muted-foreground text-sm">{authCopy.verifyEmail.confirmDescription}</p>
+        <Button className="w-full" onClick={confirm}>
+          {authCopy.verifyEmail.confirm}
+        </Button>
+      </div>
+    );
+  }
 
   if (state === "loading") {
     return <p className="text-muted-foreground text-sm">{authCopy.verifyEmail.title}</p>;

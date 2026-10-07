@@ -1,10 +1,11 @@
-import { QrRotateButton, QrSetupSheet } from "../_components/qr-actions";
-import { PrintableQrPanel } from "../_components/printable-qr-panel";
 import { DashboardPageHeader } from "@/components/dashboard-page-header";
 import { DashboardErrorState, TableEmptyRow } from "@/components/dashboard-state";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { api } from "@/lib/api/client";
 import { listSiteOptions } from "@/lib/sites/site-options";
+
+import { PrintableQrPanel } from "../_components/printable-qr-panel";
+import { QrRotateButton, QrSetupSheet } from "../_components/qr-actions";
 
 interface SiteQrRow {
   id: string;
@@ -12,6 +13,8 @@ interface SiteQrRow {
   siteId: string;
   qrTypeCode: string;
   qrTypeLabel?: string;
+  /** The URL printed in the QR code, built by the backend for this type. Null for a type with no public page. */
+  payload: string | null;
 }
 
 export default async function SiteQrPage() {
@@ -36,14 +39,17 @@ export default async function SiteQrPage() {
       ) : (
         <div className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
-            {references.map((row) => (
-              <PrintableQrPanel
-                key={`print-${row.id}`}
-                siteId={row.siteId}
-                referenceId={row.id}
-                label={row.label ?? "Unlabelled reference"}
-              />
-            ))}
+            {references
+              .filter((row) => row.payload)
+              .map((row) => (
+                <PrintableQrPanel
+                  key={`print-${row.id}`}
+                  referenceId={row.id}
+                  label={row.label ?? "Unlabelled reference"}
+                  typeLabel={row.qrTypeLabel}
+                  url={row.payload as string}
+                />
+              ))}
           </div>
           <div className="overflow-hidden rounded-lg border bg-card">
             <Table>
@@ -60,7 +66,7 @@ export default async function SiteQrPage() {
                   <TableEmptyRow
                     colSpan={4}
                     title="No site QR references yet"
-                    description="Create a public_site_checkin QR, then print or copy the check-in URL."
+                    description="Add a QR code, then print it or copy its link. Publish the text for emergency and induction codes under Site Notices."
                   />
                 ) : (
                   references.map((row) => (

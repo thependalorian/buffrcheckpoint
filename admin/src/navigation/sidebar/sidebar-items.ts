@@ -16,7 +16,6 @@ import {
   Mail,
   MessageCircle,
   Monitor,
-  Palette,
   QrCode,
   ScrollText,
   ShieldAlert,
@@ -85,6 +84,13 @@ export const sidebarItems: NavGroup[] = [
         title: "Analytics",
         url: "/dashboard/analytics",
         icon: BarChart3,
+      },
+      {
+        id: "feedback",
+        title: "Visit Feedback",
+        url: "/dashboard/analytics/feedback",
+        icon: MessageCircle,
+        badge: "new",
       },
       {
         id: "front-desk",
@@ -173,13 +179,6 @@ export const sidebarItems: NavGroup[] = [
         badge: "new",
       },
       {
-        id: "branding",
-        title: "Organisation Branding",
-        url: "/dashboard/site-experience/branding",
-        icon: Palette,
-        badge: "new",
-      },
-      {
         id: "kiosk-experience",
         title: "Kiosk Experience",
         url: "/dashboard/site-experience/kiosk",
@@ -212,6 +211,13 @@ export const sidebarItems: NavGroup[] = [
         title: "Host Escalation",
         url: "/dashboard/site-experience/escalation",
         icon: BellRing,
+        badge: "new",
+      },
+      {
+        id: "site-notices",
+        title: "Site Notices",
+        url: "/dashboard/site-experience/notices",
+        icon: ScrollText,
         badge: "new",
       },
       {
@@ -309,6 +315,13 @@ export const sidebarItems: NavGroup[] = [
         title: "Organisation Settings",
         url: "/dashboard/organisation",
         icon: Building2,
+      },
+      {
+        id: "email-notifications",
+        title: "Email Notifications",
+        url: "/dashboard/organisation/notifications",
+        icon: Mail,
+        badge: "new",
       },
       {
         id: "users",

@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 
+import { TableEmptyRow } from "@/components/dashboard-state";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { TableEmptyRow } from "@/components/dashboard-state";
 
 import { syncCimsoReservationsAction } from "../actions";
 

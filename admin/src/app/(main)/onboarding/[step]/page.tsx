@@ -70,9 +70,7 @@ export default async function OnboardingStepPage({ params }: { params: Promise<{
       <section className="bc-panel space-y-5">
         <div className="space-y-2">
           <p className="text-muted-foreground text-xs uppercase tracking-wide">
-            {stepCode === "branding"
-              ? onboardingCopy.steps.branding.requirementNote[route ?? "qr_first"]
-              : onboardingCopy.overview.sections[current.requirement]}
+            {onboardingCopy.overview.sections[current.requirement]}
           </p>
           <h2 className="font-heading text-xl">{copy.title}</h2>
           <p className="text-muted-foreground text-sm">{copy.description}</p>

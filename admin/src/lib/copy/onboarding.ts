@@ -218,19 +218,6 @@ export const onboardingCopy = {
       secondaryHref: "/dashboard/site-experience/kiosk",
       secondaryLabel: "Kiosk experience",
     },
-    branding: {
-      title: "Brand the experience",
-      description:
-        "Add your logo, welcome message, and help contact. You can start with the defaults and personalise later.",
-      time: "About 3 minutes",
-      whatYouNeed: ["Your logo as PNG, JPG, or WebP, up to 400 KB", "A brand colour", "A help contact for visitors"],
-      doneMeans: "Your branding is published and visitors see it on check-in.",
-      requirementNote: {
-        qr_first: "Recommended, not required for launch",
-        kiosk: "Required before kiosk launch",
-      },
-      href: "/dashboard/site-experience/branding",
-    },
     risk_identity_approval: {
       title: "Add an access policy",
       description: "Decide which visits need host approval and what identity checks apply.",
@@ -295,7 +282,6 @@ export const onboardingCopy = {
     "forms.version_with_fields": "Add at least one field to a visitor check-in form.",
     "site_qr.active": "Create a site QR code.",
     "kiosk_experience.config": "Configure the kiosk experience.",
-    "site_branding.published_version": "Publish branding with a logo or brand colour.",
     "access_policy.at_least_one": "Create an access policy.",
     "devices.at_least_one": "Register at least one kiosk device.",
     "visits.test_visit": "Create a test visit.",
@@ -337,7 +323,6 @@ export type OnboardingStepSlug =
   | "notices-retention"
   | "visitor-categories"
   | "check-in-channels"
-  | "branding"
   | "risk-identity-approval"
   | "devices-mdm"
   | "flow-tests"
@@ -354,7 +339,6 @@ export const STEP_SLUG_TO_CODE: Record<OnboardingStepSlug, OnboardingStepCode> =
   "notices-retention": "notices_retention",
   "visitor-categories": "visitor_categories",
   "check-in-channels": "check_in_channels",
-  branding: "branding",
   "risk-identity-approval": "risk_identity_approval",
   "devices-mdm": "devices_mdm",
   "flow-tests": "flow_tests",

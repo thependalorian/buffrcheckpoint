@@ -21,6 +21,7 @@ export async function POST(request: Request) {
       sectorCode: body.sectorCode,
       email: body.email,
       password: body.password,
+      website: typeof body.website === "string" ? body.website : undefined,
     }),
   });
 

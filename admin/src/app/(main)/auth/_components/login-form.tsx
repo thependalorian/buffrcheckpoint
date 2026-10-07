@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { authCopy } from "@/lib/copy/auth";
 import { AnalyticsEvents, track } from "@/lib/observability/track";
 import { safeNextPath } from "@/lib/auth/safe-next-path";
+import { useBuffrIdConfig } from "@/lib/auth/use-buffr-id-config";
 
 export function LoginForm() {
   const router = useRouter();
@@ -21,6 +22,12 @@ export function LoginForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const buffrId = useBuffrIdConfig();
+  const next = searchParams.get("next");
+  const startHref = `/api/auth/buffr-id/start?intent=signin${next ? `&next=${encodeURIComponent(next)}` : ""}`;
+  const urlError = searchParams.get("error");
+  // With Buffr ID on and password sign-in narrowed, the password form is only for kiosk operators: it is shown on request.
+  const showPasswordForm = !buffrId.enabled || buffrId.legacyPassword === "on" || searchParams.get("password") === "1";
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -66,8 +73,35 @@ export function LoginForm() {
     }
   }
 
+  const buffrIdButton = buffrId.enabled ? (
+    <div className="flex flex-col gap-3">
+      {urlError && authCopy.buffrId.errors[urlError] ? <p className="text-destructive text-sm">{authCopy.buffrId.errors[urlError]}</p> : null}
+      <Button asChild className="w-full">
+        <a href={startHref}>{authCopy.buffrId.continue}</a>
+      </Button>
+      {showPasswordForm && buffrId.legacyPassword === "on" ? (
+        <p className="text-center text-muted-foreground text-xs">{authCopy.buffrId.or}</p>
+      ) : null}
+    </div>
+  ) : null;
+
+  if (buffrId.enabled && !showPasswordForm) {
+    return (
+      <div className="flex flex-col gap-4">
+        {buffrIdButton}
+        <p className="text-center text-muted-foreground text-sm">
+          {authCopy.login.noAccount}{" "}
+          <Link href="/auth/register" className="text-sodium-yellow-ink underline-offset-4 hover:underline">
+            {authCopy.login.createOne}
+          </Link>
+        </p>
+      </div>
+    );
+  }
+
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      {buffrIdButton}
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="email">Email</Label>
         <div className="relative">

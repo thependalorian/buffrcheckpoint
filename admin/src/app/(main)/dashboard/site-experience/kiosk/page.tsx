@@ -1,9 +1,10 @@
-import { KioskSetupSheet } from "../_components/kiosk-actions";
 import { DashboardPageHeader } from "@/components/dashboard-page-header";
 import { DashboardErrorState, TableEmptyRow } from "@/components/dashboard-state";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { api } from "@/lib/api/client";
 import { listSiteOptions } from "@/lib/sites/site-options";
+
+import { KioskSetupSheet } from "../_components/kiosk-actions";
 
 interface KioskConfigRow {
   id: string;

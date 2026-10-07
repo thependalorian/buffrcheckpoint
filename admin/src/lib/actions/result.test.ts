@@ -5,9 +5,9 @@ import { apiError, runAction, unwrap } from "./result";
 describe("action results", () => {
   it("extracts code and message from an API error body", () => {
     const err = new Error(
-      'API error 413 on /site-branding/assets: {"code":"LOGO_TOO_LARGE","message":"Logo must be under 400 KB."}',
+      'API error 413 on /sites: {"code":"NAME_TOO_LONG","message":"Name must be under 120 characters."}',
     );
-    expect(apiError(err, "fallback")).toEqual({ code: "LOGO_TOO_LARGE", message: "Logo must be under 400 KB." });
+    expect(apiError(err, "fallback")).toEqual({ code: "NAME_TOO_LONG", message: "Name must be under 120 characters." });
   });
 
   it("reads nested Nest error messages and falls back to the HTTP status code", () => {

@@ -4,7 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { authCopy } from "@/lib/copy/auth";
 
 import { AuthCardHeader, AuthLayout } from "../../_components/auth-layout";
-import { MfaSetupForm } from "../../_components/mfa-setup-form";
+import { MfaSetupGate } from "../../_components/mfa-setup-gate";
 
 export const metadata: Metadata = {
   title: "Set up MFA · Checkpoint",
@@ -16,7 +16,7 @@ export default function MfaSetupPage() {
       <Card className="w-full max-w-sm">
         <AuthCardHeader title={authCopy.mfaSetup.title} description={authCopy.mfaSetup.description} />
         <CardContent>
-          <MfaSetupForm />
+          <MfaSetupGate />
         </CardContent>
       </Card>
     </AuthLayout>
