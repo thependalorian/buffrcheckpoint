@@ -25,20 +25,27 @@ export interface PublicCapabilityStatusResponse {
   diginamVerification: PublicCapabilityStatusValue;
   nationalEidNfc: PublicCapabilityStatusValue;
   nfcBadgeCheckIn: PublicCapabilityStatusValue;
-  ussd: PublicCapabilityStatusValue;
   qrInvitationCheckIn: PublicCapabilityStatusValue;
   smsContactConfirmation: PublicCapabilityStatusValue;
   cimsoInnterchange: PublicCapabilityStatusValue;
+  /**
+   * DEPRECATED, always "not_available". USSD was removed on 2026-10-07. Kiosk apps already in the field parse this response with a
+   * required `ussd` field; without it they fail to read capabilities and switch NFC and QR off. Delete this line, its default below and
+   * its test once every kiosk runs a build from after that date.
+   */
+  ussd: "not_available";
 }
 
 /** Capabilities that inherit platform status when no org row exists. */
 const ORG_OPT_OUT_DEFAULT_LIVE = new Set(["nfc_badge_checkin", "qr_invitation_checkin"]);
 
-const PUBLIC_RESPONSE_KEYS: Record<string, keyof PublicCapabilityStatusResponse> = {
+/** Every key that carries a real status. The deprecated constant `ussd` is deliberately not one of them. */
+type LiveCapabilityKey = Exclude<keyof PublicCapabilityStatusResponse, "ussd">;
+
+const PUBLIC_RESPONSE_KEYS: Record<string, LiveCapabilityKey> = {
   diginam_verification: "diginamVerification",
   national_eid_nfc: "nationalEidNfc",
   nfc_badge_checkin: "nfcBadgeCheckIn",
-  ussd: "ussd",
   qr_invitation_checkin: "qrInvitationCheckIn",
   sms_contact_confirmation: "smsContactConfirmation",
   cimso_innterchange: "cimsoInnterchange",
@@ -59,7 +66,7 @@ export interface UpdateOrganisationCapabilityEnablementInput {
 }
 
 export interface UpdatePlatformCapabilityStatusInput {
-  capabilityCode: string; // 'diginam_verification' | 'national_eid_nfc' | 'nfc_badge_checkin' | 'ussd'
+  capabilityCode: string; // 'diginam_verification' | 'national_eid_nfc' | 'nfc_badge_checkin'
   status: string; // internal capability_status_value code, capability-specific vocabulary
   publicStatus: PublicCapabilityStatusValue;
   evidenceReference: string;
@@ -82,10 +89,10 @@ export class CapabilityStatusService {
       diginamVerification: "not_available",
       nationalEidNfc: "not_available",
       nfcBadgeCheckIn: "not_available",
-      ussd: "not_available",
       qrInvitationCheckIn: "not_available",
       smsContactConfirmation: "not_available",
       cimsoInnterchange: "not_available",
+      ussd: "not_available",
     };
     await Promise.all(
       rows.map(async (row) => {

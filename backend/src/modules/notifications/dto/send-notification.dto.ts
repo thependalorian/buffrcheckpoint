@@ -1,4 +1,4 @@
-import { IsIn, IsOptional, IsString, IsUUID } from "class-validator";
+import { IsOptional, IsString, IsUUID, Matches } from "class-validator";
 
 export class SendNotificationDto {
   // Optional: a password-reset or account-level notification isn't tied to
@@ -7,8 +7,10 @@ export class SendNotificationDto {
   @IsUUID()
   visitId?: string;
 
-  @IsIn(["email", "sms", "ussd", "whatsapp"])
-  channelCode!: "email" | "sms" | "ussd" | "whatsapp";
+  // Which channels exist is configuration; the service checks the code against it. The shape check only keeps junk out.
+  @IsString()
+  @Matches(/^[a-z][a-z_]{1,30}$/)
+  channelCode!: string;
 
   @IsString()
   recipientReference!: string;

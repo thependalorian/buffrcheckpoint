@@ -70,8 +70,6 @@ INSERT INTO type_definition (domain, code, label, sort_order) VALUES
   -- notification_channel / notification_delivery_status (Section 11.2)
   ('notification_channel', 'email', 'Email', 1),
   ('notification_channel', 'sms', 'SMS', 2),
-  ('notification_channel', 'ussd', 'USSD', 3),
-  ('notification_channel', 'whatsapp', 'WhatsApp', 4),
   ('notification_delivery_status', 'sent', 'Sent', 1),
   ('notification_delivery_status', 'delivered', 'Delivered', 2),
   ('notification_delivery_status', 'failed', 'Failed', 3),
@@ -93,7 +91,6 @@ INSERT INTO type_definition (domain, code, label, sort_order) VALUES
   ('capture_channel', 'nfc_badge', 'NFC badge', 3),
   ('capture_channel', 'nfc_phone', 'NFC phone', 4),
   ('capture_channel', 'qr', 'QR pre-registration', 5),
-  ('capture_channel', 'ussd', 'USSD', 6),
   ('capture_channel', 'sms', 'SMS', 7),
   ('capture_channel', 'diginam', 'DigiNam credential', 8),
 
@@ -184,7 +181,6 @@ INSERT INTO type_definition (domain, code, label, sort_order) VALUES
   -- identity_verification_provider (Section 5.1 channel strategy)
   ('identity_verification_provider', 'self_declared', 'Self-declared', 1),
   ('identity_verification_provider', 'sms_otp', 'SMS OTP', 2),
-  ('identity_verification_provider', 'ussd', 'USSD session', 3),
   ('identity_verification_provider', 'nfc_badge', 'NFC badge', 4),
   ('identity_verification_provider', 'nfc_phone', 'NFC phone', 5),
   ('identity_verification_provider', 'diginam', 'DigiNam/NPKI', 6),

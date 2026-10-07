@@ -37,6 +37,14 @@ import {
 } from "../../db/schema";
 import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.service";
 import { bankPaymentInstructions, DocumentRendererService } from "../documents/document-renderer.service";
+import { SmsEntitlementService } from "../integrations/telecoms/sms-entitlement.service";
+import {
+  isMonthClosed,
+  parseBillingMonth,
+  SMS_CURRENCY_CODE,
+  smsUsageInvoiceNumber,
+  usageAmount,
+} from "../integrations/telecoms/sms-usage-billing";
 import { KybService } from "../kyb/kyb.service";
 import { TemplatedEmailService } from "../notifications/templated-email.service";
 import { AdumoService, adumoAmount } from "./adumo.service";
@@ -50,6 +58,8 @@ export const AUTOMATED_REVIEWER_ID = "00000000-0000-0000-0000-000000000000";
 
 export interface CreateInvoiceInput {
   organisationId: string;
+  /** Only for system-generated invoices whose number is deterministic (SMS usage). Manual invoices get a generated number. */
+  invoiceNumber?: string;
   amount: string;
   currencyCode?: string;
   dueAt?: string;
@@ -140,6 +150,7 @@ export class BillingService implements OnModuleInit {
     private readonly documents: DocumentRendererService,
     private readonly templatedEmail: TemplatedEmailService,
     private readonly adumo: AdumoService,
+    private readonly smsUsage: SmsEntitlementService,
   ) {}
 
   /** Public / ops catalog — one list; filter by kind when needed. */
@@ -506,7 +517,7 @@ export class BillingService implements OnModuleInit {
 
   async createInvoice(dto: CreateInvoiceInput) {
     const statusCode = await this.typeDefs.id("invoice_status", "sent");
-    const invoiceNumber = `BC-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    const invoiceNumber = dto.invoiceNumber ?? `BC-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
     const [created] = await this.db
       .insert(invoice)
@@ -535,6 +546,63 @@ export class BillingService implements OnModuleInit {
 
     await this.notifyInvoiceIssued(created.id).catch(() => undefined);
     return created;
+  }
+
+  /** What an organisation has sent by text in a month, at its price per text: the preview ops see before invoicing. */
+  async smsUsageForMonth(organisationId: string, monthKey: string) {
+    const month = parseBillingMonth(monthKey);
+    if (!month) throw new BadRequestException("month must look like 2026-10");
+    const usage = await this.smsUsage.usageFor(organisationId, month);
+    return {
+      ...usage,
+      amount: usageAmount(usage.sent, usage.unitPrice),
+      currencyCode: SMS_CURRENCY_CODE,
+      closed: isMonthClosed(month),
+    };
+  }
+
+  /**
+   * Bills one finished month of texts to one organisation: messages handed to the provider that month times the price per text. Safe to
+   * run twice: the invoice number is fixed per organisation and month and unique, so a month is never billed twice. A month that has not
+   * ended cannot be billed, so a late text is never missed. Nothing is invoiced for a month with no texts.
+   */
+  async createSmsUsageInvoice(organisationId: string, monthKey: string) {
+    const month = parseBillingMonth(monthKey);
+    if (!month) throw new BadRequestException("month must look like 2026-10");
+    if (!isMonthClosed(month))
+      throw new BadRequestException(`${month.label} has not ended yet, so it cannot be invoiced`);
+
+    const invoiceNumber = smsUsageInvoiceNumber(organisationId, month);
+    const existing = await this.db.query.invoice.findFirst({ where: eq(invoice.invoiceNumber, invoiceNumber) });
+    if (existing) return { created: false as const, reason: "already_invoiced" as const, invoice: existing };
+
+    const usage = await this.smsUsage.usageFor(organisationId, month);
+    if (usage.sent === 0) return { created: false as const, reason: "no_usage" as const, invoice: null };
+
+    const amount = usageAmount(usage.sent, usage.unitPrice);
+    const dueAt = new Date(Date.now() + 14 * 86_400_000).toISOString();
+    try {
+      const created = await this.createInvoice({
+        organisationId,
+        invoiceNumber,
+        amount,
+        currencyCode: SMS_CURRENCY_CODE,
+        dueAt,
+        lineItems: [
+          {
+            description: `Text messages sent in ${month.label}: ${usage.sent} at N$${usage.unitPrice} each`,
+            amount,
+            quantity: usage.sent,
+          },
+        ],
+      });
+      return { created: true as const, reason: null, invoice: created };
+    } catch (error) {
+      // A second request for the same month won the race: the unique invoice number held. Return that invoice instead of failing.
+      const raced = await this.db.query.invoice.findFirst({ where: eq(invoice.invoiceNumber, invoiceNumber) });
+      if (raced) return { created: false as const, reason: "already_invoiced" as const, invoice: raced };
+      throw error;
+    }
   }
 
   async sendInvoiceReminder(invoiceId: string) {

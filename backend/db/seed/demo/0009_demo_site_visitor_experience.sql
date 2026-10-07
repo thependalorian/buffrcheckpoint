@@ -39,7 +39,7 @@ BEGIN
 
   INSERT INTO kiosk_experience_configuration_version_channels (id, kiosk_experience_configuration_version_id, capture_channel_code)
   SELECT gen_random_uuid(), v_kiosk_version, id
-  FROM type_definition WHERE domain = 'capture_channel' AND code IN ('kiosk', 'assisted', 'qr', 'nfc_badge', 'ussd');
+  FROM type_definition WHERE domain = 'capture_channel' AND code IN ('kiosk', 'assisted', 'qr', 'nfc_badge');
 
   INSERT INTO site_qr_references (id, organisation_id, site_id, qr_type_code, label)
   SELECT v_qr_ref, v_org, v_site, td.id, 'Demo public check-in'

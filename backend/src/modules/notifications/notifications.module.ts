@@ -7,8 +7,10 @@ import { NotificationPreferencesService } from "./notification-preferences.servi
 import { NotificationsController } from "./notifications.controller";
 import { NotificationsService } from "./notifications.service";
 import { TemplatedEmailService } from "./templated-email.service";
+import { TemplatedSmsService } from "./templated-sms.service";
 import { VisitCheckedInListener } from "./visit-checked-in.listener";
 import { VisitorEmailListener } from "./visitor-email.listener";
+import { VisitorSmsListener } from "./visitor-sms.listener";
 
 @Module({
   imports: [TelecomsModule, forwardRef(() => PlatformConfigurationModule)],
@@ -20,7 +22,9 @@ import { VisitorEmailListener } from "./visitor-email.listener";
     NotificationDispatchWorkerService,
     VisitCheckedInListener,
     VisitorEmailListener,
+    TemplatedSmsService,
+    VisitorSmsListener,
   ],
-  exports: [NotificationsService, TemplatedEmailService, NotificationPreferencesService],
+  exports: [NotificationsService, TemplatedEmailService, TemplatedSmsService, NotificationPreferencesService],
 })
 export class NotificationsModule {}

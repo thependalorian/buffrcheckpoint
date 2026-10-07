@@ -44,7 +44,7 @@ export const securityZones = pgTable(
   (t) => [index("idx_security_zones_org_site").on(t.organisationId, t.siteId)],
 );
 
-// Rotating USSD/kiosk site code (Section 6.2) — unchanged by the rename.
+// Rotating kiosk site code (Section 6.2) — unchanged by the rename.
 export const siteCheckinCode = pgTable(
   "site_checkin_code",
   {

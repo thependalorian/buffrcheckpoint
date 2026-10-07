@@ -98,3 +98,22 @@ describe("outbox dispatch claim", () => {
     expect(events.at(-1)).toMatchObject({ toStatusCode: "failed-id" });
   });
 });
+
+describe("NotificationsService.send channel validation", () => {
+  it("answers 400, not 500, for a channel that is not in the notification_channel configuration", async () => {
+    const { InternalServerErrorException, BadRequestException } = jest.requireActual("@nestjs/common");
+    const typeDefs = {
+      id: jest.fn().mockRejectedValue(new InternalServerErrorException("not seeded")),
+      codeById: jest.fn(),
+    };
+    const db = { insert: jest.fn() };
+    const service = new NotificationsService(db as never, typeDefs as never, {} as never);
+    await expect(
+      service.send({ channelCode: "whatsapp", recipientReference: "x", message: "hi" }, {
+        userId: "u",
+        organisationId: "o",
+      } as never),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(db.insert).not.toHaveBeenCalled();
+  });
+});

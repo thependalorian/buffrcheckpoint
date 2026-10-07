@@ -2,7 +2,6 @@ import { index, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 import { organisations } from "./organisations";
 import { sites } from "./sites";
-import { featurePhoneCheckInSessions } from "./telecom-integrations";
 import { visitorVisits } from "./visits";
 
 export const smsContactConfirmationEvents = pgTable(
@@ -21,19 +20,4 @@ export const smsContactConfirmationEvents = pgTable(
     occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("idx_sms_confirmation_org_visit").on(t.organisationId, t.visitId, t.occurredAt)],
-);
-
-export const featurePhoneCheckInSessionStatusLog = pgTable(
-  "feature_phone_check_in_session_status_log",
-  {
-    id: uuid("id").primaryKey(),
-    sessionId: uuid("session_id")
-      .notNull()
-      .references(() => featurePhoneCheckInSessions.id),
-    statusCode: text("status_code").notNull(),
-    occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull().defaultNow(),
-    actorId: uuid("actor_id"),
-    reason: text("reason"),
-  },
-  (t) => [index("idx_fp_session_status_log").on(t.sessionId, t.occurredAt)],
 );

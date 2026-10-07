@@ -6,6 +6,7 @@ import { DB } from "../../../db/db.module";
 import { smsContactConfirmationEvents, telecommunicationsProviderArrangements } from "../../../db/schema";
 import { CapabilityStatusService } from "../../capability-status/capability-status.service";
 import { BULKSMSNAM_PROVIDER_CODE, BulkSmsNamClient, SmsSendError } from "./bulksmsnam.client";
+import { SmsEntitlementService } from "./sms-entitlement.service";
 import { createHmac, randomUUID } from "node:crypto";
 
 export interface SmsContactConfirmationInput {
@@ -22,6 +23,7 @@ export class SmsContactConfirmationService {
     @Inject(DB) private readonly db: Database,
     private readonly capabilityStatus: CapabilityStatusService,
     @Optional() private readonly bulkSms: BulkSmsNamClient = new BulkSmsNamClient(),
+    @Optional() private readonly entitlement: SmsEntitlementService = new SmsEntitlementService(db),
   ) {}
 
   private recipientHmac(value: string): string {
@@ -58,6 +60,19 @@ export class SmsContactConfirmationService {
     }
 
     if (arrangement.providerCode === BULKSMSNAM_PROVIDER_CODE && this.bulkSms.isConfigured()) {
+      // A text costs money, so it needs the organisation's SMS add-on and a month under the safety limit. Refused before the provider is
+      // called, so a refusal spends no credit.
+      const entitlement = await this.entitlement.check(input.organisationId);
+      if (!entitlement.allowed && entitlement.reason) {
+        return this.recordOutcome(
+          input,
+          entitlement.reason,
+          arrangement.providerCode,
+          entitlement.reason === "addon_not_active"
+            ? "Text messages need the SMS add-on on this organisation's subscription."
+            : `The safety limit of ${entitlement.limit} texts for this month has been reached.`,
+        );
+      }
       try {
         const sent = await this.bulkSms.send(input.recipientReference, input.message);
         return this.recordOutcome(input, "sent", arrangement.providerCode, undefined, sent.providerReference);

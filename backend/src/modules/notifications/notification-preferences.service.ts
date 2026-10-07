@@ -2,6 +2,7 @@ import { BadRequestException, Injectable } from "@nestjs/common";
 
 import type { AuthenticatedUser } from "../../common/decorators/current-user.decorator";
 import { PlatformConfigurationService } from "../platform-configuration/platform-configuration.service";
+import { SMS_TEMPLATE_CATALOG, smsSpecFor } from "./sms-template-catalog";
 import { specFor, TEMPLATE_CATALOG } from "./template-catalog";
 
 interface StoredPreferences {
@@ -13,9 +14,11 @@ export const preferencesKey = (organisationId: string) => `notification_preferen
 
 /** Security, billing and verification mail is always sent. Only the optional kinds below can be turned off. Reports have their own settings. */
 export function switchableCodes(): string[] {
-  return Object.entries(TEMPLATE_CATALOG)
+  const email = Object.entries(TEMPLATE_CATALOG)
     .filter(([, spec]) => !spec.alwaysSend && spec.category !== "report")
     .map(([code]) => code);
+  // Every text is optional: it costs money and needs the SMS add-on, so an organisation can always turn each kind off.
+  return [...email, ...Object.keys(SMS_TEMPLATE_CATALOG)];
 }
 
 /**
@@ -34,18 +37,24 @@ export class NotificationPreferencesService {
   /** True unless the template is optional and this organisation switched it off. */
   async isEnabled(organisationId: string, templateCode: string): Promise<boolean> {
     const spec = specFor(templateCode);
-    if (!spec || spec.alwaysSend) return true;
+    if (spec?.alwaysSend) return true;
+    if (!spec && !smsSpecFor(templateCode)) return true;
     return !(await this.disabledCodes(organisationId)).includes(templateCode);
   }
 
   async list(organisationId: string) {
     const disabled = new Set(await this.disabledCodes(organisationId));
-    return switchableCodes().map((code) => ({
-      templateCode: code,
-      trigger: TEMPLATE_CATALOG[code].trigger,
-      audience: TEMPLATE_CATALOG[code].audience,
-      enabled: !disabled.has(code),
-    }));
+    return switchableCodes().map((code) => {
+      const sms = smsSpecFor(code);
+      return {
+        templateCode: code,
+        channel: sms ? ("sms" as const) : ("email" as const),
+        // The wording says how it is sent, because a list that mixes emails and texts must not leave that to the code.
+        trigger: sms ? `By text message: ${sms.trigger}` : TEMPLATE_CATALOG[code].trigger,
+        audience: sms ? sms.audience : TEMPLATE_CATALOG[code].audience,
+        enabled: !disabled.has(code),
+      };
+    });
   }
 
   async update(

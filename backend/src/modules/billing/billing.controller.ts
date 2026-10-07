@@ -110,6 +110,22 @@ export class BillingController {
     return this.service.createInvoice(dto);
   }
 
+  /** Preview of an organisation's text messages for a month, priced. Ops look at this before invoicing. */
+  @Get("platform/billing/sms-usage")
+  @RequirePermission(PERMISSIONS.PLATFORM_BILLING_MANAGE)
+  @PlatformScoped()
+  smsUsage(@Query("organisationId") organisationId: string, @Query("month") month: string) {
+    return this.service.smsUsageForMonth(organisationId, month);
+  }
+
+  /** Bills a finished month of texts to one organisation. Idempotent: one invoice per organisation and month. */
+  @Post("platform/billing/sms-usage-invoices")
+  @RequirePermission(PERMISSIONS.PLATFORM_BILLING_MANAGE)
+  @AuditLog({ action: "invoice.sms_usage", resourceType: "invoice" })
+  createSmsUsageInvoice(@Body() body: { organisationId: string; month: string }) {
+    return this.service.createSmsUsageInvoice(body?.organisationId, body?.month);
+  }
+
   // Customer-facing — an org's own owner_operator/system_administrator can
   // list their own invoices and upload a POP. Scoped by organisationId
   // query param, matched against the caller's own org by TenantScopeGuard.

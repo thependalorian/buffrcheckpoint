@@ -13,6 +13,9 @@ const ALLOWED: Record<string, string> = {
   // The (organisation_id, email) unique index is not partial, so a
   // deactivated email is still taken; registration reports the conflict.
   "auth/auth.service.ts:applicationUsers": "email unique across deleted rows",
+  // idx_invoice_number is not partial: a deleted invoice still holds its number. SMS usage billing looks the number up first so that a
+  // month is never billed twice, and must see a deleted invoice too or the insert would collide.
+  "billing/billing.service.ts:invoice": "invoice number unique across deleted rows",
 };
 
 const KEY = /(Reference|Code$|code$|Token|token|Email|email|Serial|serial|Hmac|hmac|Number$|Key$|slug)/;

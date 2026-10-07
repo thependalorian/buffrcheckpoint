@@ -1,3 +1,4 @@
+import { COMPACT_TOKEN_LENGTH, createCompactToken, verifyCompactToken } from "../../common/crypto/compact-link-token";
 import { createHmac, timingSafeEqual } from "node:crypto";
 
 // Proof that the person rating a visit is the one who just checked out. The
@@ -26,6 +27,11 @@ export function createSurveyToken(visitId: string, channel: SurveyChannel, now =
 
 /** Returns the visit and channel, or null when the token is malformed, forged or expired. */
 export function verifySurveyToken(token: string, now = Date.now()): { visitId: string; channel: SurveyChannel } | null {
+  // The short form sent by text message: always a QR-channel rating.
+  if (token.length === COMPACT_TOKEN_LENGTH) {
+    const compact = verifyCompactToken(token, now);
+    return compact?.kind === "r" ? { visitId: compact.visitId, channel: "qr" } : null;
+  }
   const [encoded, signature] = token.split(".");
   if (!encoded || !signature) return null;
   const payload = Buffer.from(encoded, "base64url").toString("utf8");
@@ -35,4 +41,9 @@ export function verifySurveyToken(token: string, now = Date.now()): { visitId: s
   const [visitId, expiresAt, channel] = payload.split(".");
   if (!visitId || !expiresAt || Number(expiresAt) < now) return null;
   return { visitId, channel: channel === "kiosk" ? "kiosk" : "qr" };
+}
+
+/** The short rating token for a text message (41 characters), same 24-hour life as the long one. */
+export function createCompactSurveyToken(visitId: string, now = Date.now()): string {
+  return createCompactToken("r", visitId, now + SURVEY_TOKEN_TTL_MS);
 }

@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger } from "@nestjs/common";
+import { BadRequestException, Inject, Injectable, InternalServerErrorException, Logger } from "@nestjs/common";
 import { and, eq } from "drizzle-orm";
 
 import type { AuthenticatedUser } from "../../common/decorators/current-user.decorator";
@@ -19,7 +19,8 @@ export interface EmailAttachment {
 
 export interface SendNotificationInput {
   visitId?: string;
-  channelCode: "email" | "sms" | "ussd" | "whatsapp";
+  /** A code in the `notification_channel` configuration domain. Which channels exist is data, not a list in code. */
+  channelCode: string;
   recipientReference: string;
   message: string;
   subject?: string;
@@ -68,7 +69,12 @@ export class NotificationsService {
    * result; check notification_delivery_status_events for outcome.
    */
   async send(input: SendNotificationInput, user: AuthenticatedUser) {
-    const channelCode = await this.typeDefs.id("notification_channel", input.channelCode);
+    // The channel list is configuration (type_definition, domain notification_channel). An unknown or retired code is the caller's
+    // mistake, so it is a 400 here, not the 500 the lookup raises for a missing seed row.
+    const channelCode = await this.typeDefs.id("notification_channel", input.channelCode).catch((error: unknown) => {
+      if (error instanceof InternalServerErrorException) throw new BadRequestException("Unknown notification channel");
+      throw error;
+    });
     const pendingStatus = await this.typeDefs.id("notification_delivery_status", "pending");
 
     const [created] = await this.db

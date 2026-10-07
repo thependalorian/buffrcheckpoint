@@ -24,6 +24,7 @@ import type { TabularExport } from "../../common/export/tabular";
 import type { Database } from "../../db/client";
 import { DB } from "../../db/db.module";
 import {
+  organisations,
   securityZones,
   siteHosts,
   sites,
@@ -42,13 +43,13 @@ import { buildHostNotificationHtml } from "../notifications/host-notification-em
 import { deliverableEmail } from "../notifications/visitor-email";
 import { SiteQrReferencesService } from "../site-qr-references/site-qr-references.service";
 import { createSurveyToken } from "../visit-survey/survey-token";
-import { buildSurveyUrl } from "../visit-survey/survey-url";
+import { buildCompactSurveyUrl, buildSurveyUrl } from "../visit-survey/survey-url";
 import { VisitorDataMinimisationService } from "../visitor-policy/visitor-data-minimisation.service";
 import { VisitorPolicyService } from "../visitor-policy/visitor-policy.service";
 import { VisitorWaitQueueService } from "../visitor-wait-queue/visitor-wait-queue.service";
 import type { CheckInDto } from "./dto/check-in.dto";
 import type { PublicCheckInDto, PublicCheckOutDto } from "./dto/public-check-in.dto";
-import { buildSignOutUrl, verifySignOutToken } from "./sign-out-token";
+import { buildCompactSignOutUrl, buildSignOutUrl, verifySignOutToken } from "./sign-out-token";
 import { resolveVisitorNextSteps } from "./visitor-next-steps";
 import { randomUUID } from "node:crypto";
 
@@ -613,6 +614,12 @@ export class VisitsService {
   // double check-out request (e.g. a flaky network retry) is a no-op, not
   // an error, and the status log only gains a new row on the transition
   // that actually happened.
+  /** The organisation's trading name, else its legal name: the name a visitor recognises in a message. */
+  private async organisationDisplayName(organisationId: string): Promise<string | null> {
+    const row = await this.db.query.organisations.findFirst({ where: eq(organisations.id, organisationId) });
+    return row?.tradingName?.trim() || row?.legalName?.trim() || null;
+  }
+
   /** Receipt to the visitor, only when they typed an email address at check-in. The listener applies the organisation's switch. */
   private emitVisitorReceipt(
     dto: CheckInDto,
@@ -621,7 +628,9 @@ export class VisitsService {
     organisationId: string,
   ) {
     const email = deliverableEmail(dto.visitorEmail);
-    if (!email) return;
+    const phone = dto.visitorPhone?.trim() || null;
+    // Either an email or a mobile number is enough to raise the event; each listener decides for itself whether it can send.
+    if (!email && !phone) return;
     void (async () => {
       try {
         const site = await this.db.query.sites.findFirst({
@@ -635,12 +644,15 @@ export class VisitsService {
           new VisitorCheckedInEvent(
             visit.id,
             organisationId,
-            email,
+            email ?? "",
             dto.visitorName?.trim() || null,
             site?.name ?? "the site",
             hostName,
             visit.checkedInAt ?? new Date(),
             buildSignOutUrl(visit.id),
+            phone,
+            await this.organisationDisplayName(organisationId),
+            buildCompactSignOutUrl(visit.id),
           ),
         );
       } catch {
@@ -659,9 +671,10 @@ export class VisitsService {
       if (!personal) return;
       const payload = JSON.parse(
         this.dataProtection.decrypt(personal.encryptedPayload as ProtectedPersonalDataEnvelope),
-      ) as { email?: string | null; name?: string | null };
+      ) as { email?: string | null; name?: string | null; phone?: string | null };
       const email = deliverableEmail(payload.email);
-      if (!email || !visit.checkedOutAt) return;
+      const phone = payload.phone?.trim() || null;
+      if ((!email && !phone) || !visit.checkedOutAt) return;
       const site = await this.db.query.sites.findFirst({
         where: and(eq(sites.id, visit.siteId), eq(sites.organisationId, visit.organisationId)),
       });
@@ -670,12 +683,15 @@ export class VisitsService {
         new VisitorCheckedOutEvent(
           visit.id,
           visit.organisationId,
-          email,
+          email ?? "",
           payload.name?.trim() || null,
           site?.name ?? "the site",
           visit.checkedInAt ?? visit.checkedOutAt,
           visit.checkedOutAt,
           buildSurveyUrl(visit.id),
+          phone,
+          await this.organisationDisplayName(visit.organisationId),
+          buildCompactSurveyUrl(visit.id),
         ),
       );
     } catch {

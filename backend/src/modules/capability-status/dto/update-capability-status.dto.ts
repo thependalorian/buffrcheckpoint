@@ -22,7 +22,6 @@ export class UpdateCapabilityStatusDto {
     "diginam_verification",
     "national_eid_nfc",
     "nfc_badge_checkin",
-    "ussd",
     "qr_invitation_checkin",
     "sms_contact_confirmation",
     "cimso_innterchange",

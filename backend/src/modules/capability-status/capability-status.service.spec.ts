@@ -22,7 +22,6 @@ function buildService(opts: {
     diginam_verification: "cap-diginam",
     national_eid_nfc: "cap-eid",
     nfc_badge_checkin: "cap-nfc",
-    ussd: "cap-ussd",
     qr_invitation_checkin: "cap-qr",
     sms_contact_confirmation: "cap-sms",
   };
@@ -89,17 +88,17 @@ function buildService(opts: {
     diginamVerification: (platformLive.diginam_verification as "live") ?? "not_available",
     nationalEidNfc: (platformLive.national_eid_nfc as "live") ?? "not_available",
     nfcBadgeCheckIn: (platformLive.nfc_badge_checkin as "live") ?? "not_available",
-    ussd: (platformLive.ussd as "live") ?? "not_available",
     qrInvitationCheckIn: (platformLive.qr_invitation_checkin as "live") ?? "not_available",
     smsContactConfirmation: (platformLive.sms_contact_confirmation as "live") ?? "not_available",
     cimsoInnterchange: (platformLive.cimso_innterchange as "live") ?? "not_available",
+    ussd: "not_available",
   });
 
   return { service, db, typeDefs };
 }
 
 describe("CapabilityStatusService.listPublic defaults", () => {
-  it("includes all seven public capability keys with safe defaults", async () => {
+  it("includes all six live capability keys plus the deprecated constant ussd with safe defaults", async () => {
     const typeDefs = { id: jest.fn(), codeById: jest.fn() };
     const db = {
       query: {
@@ -115,10 +114,10 @@ describe("CapabilityStatusService.listPublic defaults", () => {
       diginamVerification: "not_available",
       nationalEidNfc: "not_available",
       nfcBadgeCheckIn: "not_available",
-      ussd: "not_available",
       qrInvitationCheckIn: "not_available",
       smsContactConfirmation: "not_available",
       cimsoInnterchange: "not_available",
+      ussd: "not_available",
     });
   });
 });

@@ -70,7 +70,12 @@ describe("SmsContactConfirmationService", () => {
   });
 
   describe("with the BulkSMS Namibia provider live", () => {
-    function setup(bulkSms: { isConfigured: () => boolean; send: jest.Mock }) {
+    function setup(
+      bulkSms: { isConfigured: () => boolean; send: jest.Mock },
+      entitlement: { check: jest.Mock } = {
+        check: jest.fn().mockResolvedValue({ allowed: true, reason: null, used: 1, limit: 1000 }),
+      },
+    ) {
       const inserted: Record<string, unknown>[] = [];
       const db = {
         query: {
@@ -88,7 +93,12 @@ describe("SmsContactConfirmationService", () => {
       const capabilityStatus = {
         listEffectiveForOrganisation: jest.fn().mockResolvedValue({ smsContactConfirmation: "live" }),
       };
-      const service = new SmsContactConfirmationService(db as never, capabilityStatus as never, bulkSms as never);
+      const service = new SmsContactConfirmationService(
+        db as never,
+        capabilityStatus as never,
+        bulkSms as never,
+        entitlement as never,
+      );
       return { service, inserted };
     }
 
@@ -138,6 +148,40 @@ describe("SmsContactConfirmationService", () => {
       });
       expect(result.outcomeCode).toBe("provider_not_live");
       expect(send).not.toHaveBeenCalled();
+    });
+
+    it("refuses an organisation without the add-on before calling the provider, and spends no credit", async () => {
+      const send = jest.fn();
+      const entitlement = {
+        check: jest.fn().mockResolvedValue({ allowed: false, reason: "addon_not_active", used: 0, limit: 0 }),
+      };
+      const { service, inserted } = setup({ isConfigured: () => true, send }, entitlement);
+      const result = await service.send({
+        organisationId: "org-1",
+        recipientReference: "+264814376206",
+        message: "Hi",
+      });
+      expect(send).not.toHaveBeenCalled();
+      expect(result).toMatchObject({ delivered: false, outcomeCode: "addon_not_active" });
+      expect(inserted[0]).toMatchObject({ outcomeCode: "addon_not_active" });
+    });
+
+    it("refuses once the monthly safety limit is reached, and says so", async () => {
+      const send = jest.fn();
+      const entitlement = {
+        check: jest
+          .fn()
+          .mockResolvedValue({ allowed: false, reason: "monthly_limit_reached", used: 1000, limit: 1000 }),
+      };
+      const { service } = setup({ isConfigured: () => true, send }, entitlement);
+      const result = await service.send({
+        organisationId: "org-1",
+        recipientReference: "+264814376206",
+        message: "Hi",
+      });
+      expect(send).not.toHaveBeenCalled();
+      expect(result).toMatchObject({ delivered: false, outcomeCode: "monthly_limit_reached" });
+      expect(result.failureReason).toContain("1000");
     });
   });
 });

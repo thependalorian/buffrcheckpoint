@@ -3,8 +3,7 @@
 -- Applied directly via MCP on 2026-09-09 (Oregon); carried into falling-frog-15538162 by the 2026-09-25 Frankfurt move.
 
 INSERT INTO type_definition (id, domain, code, label, sort_order) VALUES
-  (gen_random_uuid(), 'capability_code', 'nfc_badge_checkin', 'NFC Badge/Token Check-In', 3),
-  (gen_random_uuid(), 'capability_code', 'ussd', 'USSD', 4);
+  (gen_random_uuid(), 'capability_code', 'nfc_badge_checkin', 'NFC Badge/Token Check-In', 3);
 
 INSERT INTO type_definition (id, domain, code, label, sort_order) VALUES
   (gen_random_uuid(), 'capability_status_value', 'discovery', 'Discovery', 4),
@@ -37,8 +36,7 @@ SELECT
 FROM (VALUES
   ('diginam_verification', 'discovery', 'not_available'),
   ('national_eid_nfc', 'targeted', 'targeted'),
-  ('nfc_badge_checkin', 'live', 'live'),
-  ('ussd', 'not_started', 'not_available')
+  ('nfc_badge_checkin', 'live', 'live')
 ) AS seed(capability_code, status_value, public_value)
 JOIN type_definition cc ON cc.domain = 'capability_code' AND cc.code = seed.capability_code
 JOIN type_definition sv ON sv.domain = 'capability_status_value' AND sv.code = seed.status_value

@@ -1,3 +1,4 @@
+import { COMPACT_TOKEN_LENGTH, createCompactToken, verifyCompactToken } from "../../common/crypto/compact-link-token";
 import { createHmac, timingSafeEqual } from "node:crypto";
 
 // A personal sign-out link for one visit, put in the visitor's receipt email. It binds the visit id and an expiry and is signed with a
@@ -22,6 +23,11 @@ export function createSignOutToken(visitId: string, now = Date.now()): string {
 
 /** The visit id, or null when the token is malformed, forged, expired, or a token made for another purpose (a rating token). */
 export function verifySignOutToken(token: string, now = Date.now()): string | null {
+  // The short form sent by text message. Same purpose, same 24-hour life, same one-visit scope.
+  if (token.length === COMPACT_TOKEN_LENGTH) {
+    const compact = verifyCompactToken(token, now);
+    return compact?.kind === "o" ? compact.visitId : null;
+  }
   const [encoded, signature, extra] = token.split(".");
   if (!encoded || !signature || extra !== undefined) return null;
   const payload = Buffer.from(encoded, "base64url").toString("utf8");
@@ -36,4 +42,10 @@ export function verifySignOutToken(token: string, now = Date.now()): string | nu
 export function buildSignOutUrl(visitId: string): string {
   const base = (process.env.VISITOR_CHECKIN_BASE_URL ?? "https://buffrcheckpoint.com").replace(/\/$/, "");
   return `${base}/check-out?v=${encodeURIComponent(createSignOutToken(visitId))}`;
+}
+
+/** The short sign-out link for a text message: about 70 characters, opened through the website redirect at /o/. */
+export function buildCompactSignOutUrl(visitId: string, now = Date.now()): string {
+  const base = (process.env.VISITOR_CHECKIN_BASE_URL ?? "https://buffrcheckpoint.com").replace(/\/$/, "");
+  return `${base}/o/${createCompactToken("o", visitId, now + SIGN_OUT_TTL_MS)}`;
 }

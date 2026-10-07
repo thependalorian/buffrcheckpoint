@@ -98,17 +98,27 @@ export class PlatformNotificationTemplateService {
     templateCode: string,
     variables: Record<string, string>,
     fallback: { subject: string; body: string },
+    channel: "email" | "sms" = "email",
   ): Promise<{ subject: string; body: string }> {
-    const row = await this.findByCode(templateCode);
+    const row = await this.findByCode(templateCode, channel);
     const subject = row?.subject ?? fallback.subject;
     const body = row?.body ?? fallback.body;
     return { subject: substitute(subject, variables), body: substitute(body, variables) };
   }
 
-  private async findByCode(templateCode: string) {
+  /**
+   * The template body with its {{tokens}} still in place, for channels that must fit a length limit before substituting (text messages
+   * shorten one variable, never cut the finished message). Falls back to the caller's default when no row is seeded.
+   */
+  async rawBody(templateCode: string, fallbackBody: string, channel: "email" | "sms" = "email"): Promise<string> {
+    const row = await this.findByCode(templateCode, channel);
+    return row?.body ?? fallbackBody;
+  }
+
+  private async findByCode(templateCode: string, channel: "email" | "sms" = "email") {
     const codeId = await this.typeDefs.id("notification_template_code", templateCode).catch(() => null);
     if (!codeId) return null;
-    const emailChannel = await this.typeDefs.id("notification_channel", "email").catch(() => null);
+    const emailChannel = await this.typeDefs.id("notification_channel", channel).catch(() => null);
     if (!emailChannel) return null;
     return (
       (await this.db.query.platformNotificationTemplate.findFirst({
