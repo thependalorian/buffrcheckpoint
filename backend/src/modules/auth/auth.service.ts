@@ -215,7 +215,7 @@ export class AuthService {
   }
 
   /**
-   * Platform Ops Console login (buffrcheckpoint.md §9.2a). Only platform_support accounts;
+   * Platform Ops Console login (buffrcheckpoint.md §5.3). Only platform_support accounts;
    * everyone else gets the same error as a wrong password. MFA is mandatory: an account
    * without it receives a 15-minute token that can only enrol MFA.
    */

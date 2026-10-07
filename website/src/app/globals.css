@@ -2,8 +2,7 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-/* Buffr Checkpoint's light-canvas theme (buffrcheckpoint.md Section
-   11.5/11.6.2, v0.5 correction) — the only preset here, matching admin/'s
+/* Buffr Checkpoint's light-canvas theme (buffrcheckpoint.md §33) — the only preset here, matching admin/'s
    light-only decision. File is byte-identical to
    admin/src/styles/presets/buffr-checkpoint.css. */
 @import "../styles/presets/buffr-checkpoint.css";

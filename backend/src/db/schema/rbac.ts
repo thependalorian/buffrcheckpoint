@@ -18,6 +18,7 @@ import { typeDefinition } from "./type-definitions";
 // tables instead of a hardcoded TS map (ScopedPermissionEvaluationService
 // reads them), matching this workspace's own type_definition pattern.
 export const permissionDefinitions = pgTable("permission_definitions", {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   permissionCode: text("permission_code").primaryKey(),
   description: text("description").notNull(),
   riskClassification: text("risk_classification").notNull().default("standard"),
@@ -27,6 +28,7 @@ export const permissionDefinitions = pgTable("permission_definitions", {
 export const roleDefinitions = pgTable(
   "role_definitions",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     organisationId: uuid("organisation_id")
       .notNull()
@@ -48,6 +50,7 @@ export const roleDefinitions = pgTable(
 export const rolePermissionGrants = pgTable(
   "role_permission_grants",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     roleCode: uuid("role_code")
       .notNull()
       .references(() => typeDefinition.id),
@@ -62,6 +65,7 @@ export const rolePermissionGrants = pgTable(
 export const applicationUsers = pgTable(
   "application_users",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     organisationId: uuid("organisation_id")
       .notNull()
@@ -91,6 +95,7 @@ export const applicationUsers = pgTable(
 export const passwordResetTokens = pgTable(
   "password_reset_tokens",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     userId: uuid("user_id")
       .notNull()
@@ -108,7 +113,7 @@ export const passwordResetTokens = pgTable(
 // Renamed `support_access_grant` -> `privileged_access_grants`. Buffr
 // Checkpoint's own Platform Support role, never customer-side.
 //
-// Customer-consent gate (v0.24, buffrcheckpoint.md Section 9.2 rule 4's
+// Customer-consent gate (v0.24, buffrcheckpoint.md §5.4's
 // "client-approved where practical" — previously self-approved by the
 // requester, which satisfied time-boxing/audit but not consent at all): a
 // grant is created `pending_customer_approval` and inert — it cannot mint
@@ -120,6 +125,7 @@ export const passwordResetTokens = pgTable(
 export const privilegedAccessGrants = pgTable(
   "privileged_access_grants",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     organisationId: uuid("organisation_id")
       .notNull()
@@ -173,6 +179,7 @@ export const privilegedAccessGrantStatusEvents = pgTable(
 export const organisationMemberships = pgTable(
   "organisation_memberships",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     organisationId: uuid("organisation_id")
       .notNull()
@@ -197,6 +204,7 @@ export const organisationMemberships = pgTable(
 export const membershipScopes = pgTable(
   "membership_scopes",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     membershipId: uuid("membership_id")
       .notNull()

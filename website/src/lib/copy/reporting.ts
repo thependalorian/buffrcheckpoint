@@ -1,6 +1,6 @@
 // Public copy for the "Reporting you can defend" story (platform page and a
 // short home band). Every claim maps to something built: see
-// buffrcheckpoint.md 11.1b "Analytics and ETL".
+// buffrcheckpoint.md §10.1 "Analytics pipeline".
 
 export const REPORTING_ANCHOR = "reporting";
 

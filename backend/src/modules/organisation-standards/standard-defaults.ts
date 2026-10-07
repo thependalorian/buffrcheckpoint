@@ -1,11 +1,11 @@
 /**
  * Checkpoint's standard setup for a new organisation, taken from the blueprint rather than chosen ad hoc:
- *  - the check-in form follows section 5.1 (field classes: core and basic fields by default; high-risk data such as ID numbers off by
- *    default) and section 11.9.4 (General visitor: name, host, purpose category);
+ *  - the check-in form follows §8.2 (field classes: core and basic fields by default; high-risk data such as ID numbers off by
+ *    default) and §8.1 (General visitor: name, host, purpose category);
  *  - the visitor privacy notice follows the commitments of the public Privacy Policy (organisation is controller, Buffr Checkpoint is
  *    processor; what is collected; how it is used; retention; security; rights) and the "practical legal position" (designed to
  *    support privacy and retention controls; each client remains responsible for its own legal obligations; no compliance claims);
- *  - retention uses the "Standard" tier of section 8.9. The blueprint gives no day count, so the number is a platform setting with the
+ *  - retention uses the "Standard" tier of §8.5. The blueprint gives no day count, so the number is a platform setting with the
  *    placeholder below, to be confirmed by the owner and counsel.
  * An organisation accepts all of this as it stands or edits it, now or at go-live. Pure functions, so the content is testable.
  */
@@ -105,6 +105,25 @@ export const STANDARD_FORM_FIELDS: readonly StandardFormField[] = [
   },
 ];
 
+/**
+ * Sectors where the fact of a visit can reveal special-category information (draft Data Protection Bill s7): a clinic visit can reveal
+ * health, a faith-based organisation can reveal religious belief, a community organisation can reveal political or other beliefs. For
+ * these the purpose of the visit is classed as sensitive, so it is restricted by default, and the notice says so.
+ */
+export const SPECIAL_CATEGORY_SECTORS: readonly string[] = ["healthcare", "religious_faith_based", "ngo_nonprofit"];
+
+export function isSpecialCategorySector(sectorCode: string | null | undefined): boolean {
+  return !!sectorCode && SPECIAL_CATEGORY_SECTORS.includes(sectorCode);
+}
+
+/** The standard form for a sector. Only the classification of the purpose field differs; no field is added or removed. */
+export function standardFormFieldsFor(sectorCode: string | null | undefined): readonly StandardFormField[] {
+  if (!isSpecialCategorySector(sectorCode)) return STANDARD_FORM_FIELDS;
+  return STANDARD_FORM_FIELDS.map((field) =>
+    field.fieldCode === "purpose_category" ? { ...field, dataClassificationCode: "sensitive" as const } : field,
+  );
+}
+
 /** Classes that need compliance approval before they may be published; the standard form must never contain one. */
 export const HIGH_RISK_CLASSES = ["high_risk", "verification_evidence"] as const;
 
@@ -137,6 +156,7 @@ export function standardPrivacyNotice(input: {
   organisationName: string;
   retentionDays: number;
   fields?: readonly StandardFormField[];
+  sectorCode?: string | null;
 }): string {
   const name = input.organisationName.trim() || "This organisation";
   const collected = collectedList(input.fields ?? STANDARD_FORM_FIELDS);
@@ -149,6 +169,11 @@ export function standardPrivacyNotice(input: {
     "What we collect",
     `When you check in we collect only what is needed for your visit: ${collected.join("; ")}. We also record when you arrive and leave and how you checked in.`,
     "We do not ask for ID numbers, photographs, health information or biometric data unless the organisation has documented a need for them.",
+    ...(isSpecialCategorySector(input.sectorCode)
+      ? [
+          `Because the fact that you visited ${name} can say something sensitive about you, such as your health or beliefs, the purpose of your visit is treated as sensitive information. It is shown only to the people who need it, and you can choose a general purpose where one fits.`,
+        ]
+      : []),
     "",
     "What we use it for",
     "Your information is used to manage who is on site, to let the person you are visiting know you have arrived, to keep a record of access, and to meet the organisation's record-keeping duties. It is not used for marketing or profiling.",

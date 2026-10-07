@@ -22,7 +22,7 @@ interface Invoice {
 // Customer-facing billing — the one place a customer touches billing at
 // all. Subscription management and payment review stay platform-side (the
 // Ops Console's /billing screen), per the manual EFT + POP model — see
-// buffrcheckpoint.md Section 11.9.1a.
+// buffrcheckpoint.md §11.2.
 export default async function BillingPage({ searchParams }: { searchParams: Promise<{ payment?: string }> }) {
   const me = await getCurrentUser();
   if (!me) return null;

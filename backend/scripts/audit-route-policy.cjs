@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Lists every state-changing route that declares none of @RequirePermission,
-// @Public or @AuthenticatedOnly (buffrcheckpoint.md §9.2 rule 10). RbacGuard
+// @Public or @AuthenticatedOnly (buffrcheckpoint.md §5.2 rule 9). RbacGuard
 // refuses these at runtime; this catches them before deploy.
 // Usage: npm run audit:routes   (builds first; exits 1 when any gap exists)
 require("reflect-metadata");

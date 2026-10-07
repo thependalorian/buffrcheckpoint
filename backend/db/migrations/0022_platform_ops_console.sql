@@ -1,6 +1,6 @@
 -- Buffr Checkpoint — Platform Ops Console: schema foundation.
 -- Internal Buffr-staff console (platform_support role), separate from the
--- customer admin/ app — see buffrcheckpoint.md Section 11.9.1. Covers:
+-- customer admin/ app — see docs/archive/buffrcheckpoint.v0.34-legacy-2026-10-07.md Section 11.9.1. Covers:
 -- support sessions (break-glass "act as org" mechanism), platform incidents,
 -- support tickets, org health/churn snapshots, billing (manual EFT + POP
 -- reconciliation — no PSP integration yet), CRM, and KYB.
@@ -61,7 +61,7 @@ CREATE INDEX IF NOT EXISTS idx_platform_support_audit_events_session
 -- privileged_access_grants itself — it already has organisation_id.)
 
 -- ============================================================================
--- Dual-approval fix for platform_capability_approvals (buffrcheckpoint.md
+-- Dual-approval fix for platform_capability_approvals (docs/archive/buffrcheckpoint.v0.34-legacy-2026-10-07.md
 -- Section 9.2/L7901 promised "dual approval"; schema only had one approver)
 -- ============================================================================
 

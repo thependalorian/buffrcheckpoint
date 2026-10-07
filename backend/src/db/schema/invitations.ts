@@ -10,6 +10,7 @@ import { typeDefinition } from "./type-definitions";
 export const visitInvitations = pgTable(
   "visit_invitations",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     organisationId: uuid("organisation_id")
       .notNull()

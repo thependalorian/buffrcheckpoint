@@ -1,4 +1,4 @@
--- Buffr Checkpoint — onboarding authority (buffrcheckpoint.md v0.33, §9.2 rule 10).
+-- Buffr Checkpoint — onboarding authority (docs/archive/buffrcheckpoint.v0.34-legacy-2026-10-07.md v0.33, §9.2 rule 10).
 --
 -- Before this, POST /auth/onboarding/complete-step carried no permission, so
 -- any signed-in user of an organisation (an invited host, a front-desk

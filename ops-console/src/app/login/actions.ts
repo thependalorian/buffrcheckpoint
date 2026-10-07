@@ -24,7 +24,7 @@ export async function loginAction(formData: FormData): Promise<{ error?: string 
   const email = String(formData.get("email") ?? "");
   const password = String(formData.get("password") ?? "");
 
-  // Ops has its own front door (buffrcheckpoint.md §9.2a): platform_support only, MFA mandatory.
+  // Ops has its own front door (buffrcheckpoint.md §5.3): platform_support only, MFA mandatory.
   const res = await fetch(`${BACKEND_API_URL}/auth/platform/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

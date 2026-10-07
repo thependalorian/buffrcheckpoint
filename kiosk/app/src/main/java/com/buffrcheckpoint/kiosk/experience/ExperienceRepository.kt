@@ -159,7 +159,6 @@ class ExperienceRepository @Inject constructor(
             organisationDisplayName = branding?.organisationDisplayName,
             siteDisplayName = branding?.siteDisplayName,
             helpContactReference = branding?.helpContactReference,
-            brandColourToken = branding?.brandColourToken,
             logoUrl = effective.logoUrl,
             privacyNoticeVersionId = effective.privacyNoticeContent?.versionId ?: branding?.privacyNoticeVersionId,
             privacyPolicyName = effective.privacyNoticeContent?.policyName,

@@ -1,4 +1,4 @@
-import { IsIn, IsString } from "class-validator";
+import { IsIn, IsString, MaxLength, MinLength } from "class-validator";
 
 export class CreateDsarDto {
   @IsString()
@@ -13,5 +13,12 @@ export class ResolveDsarDto {
   resolution!: "completed" | "rejected";
 
   @IsString()
+  reason!: string;
+}
+
+export class ExtendDsarDto {
+  @IsString()
+  @MinLength(5)
+  @MaxLength(500)
   reason!: string;
 }

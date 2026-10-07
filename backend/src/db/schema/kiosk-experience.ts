@@ -12,6 +12,7 @@ import { typeDefinition } from "./type-definitions";
 export const kioskExperienceConfigurations = pgTable(
   "kiosk_experience_configurations",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     organisationId: uuid("organisation_id")
       .notNull()
@@ -29,6 +30,7 @@ export const kioskExperienceConfigurations = pgTable(
 export const kioskExperienceConfigurationVersions = pgTable(
   "kiosk_experience_configuration_versions",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     kioskExperienceConfigurationId: uuid("kiosk_experience_configuration_id")
       .notNull()
@@ -59,6 +61,7 @@ export const kioskExperienceConfigurationVersions = pgTable(
 export const kioskExperienceConfigurationVersionChannels = pgTable(
   "kiosk_experience_configuration_version_channels",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     kioskExperienceConfigurationVersionId: uuid("kiosk_experience_configuration_version_id")
       .notNull()

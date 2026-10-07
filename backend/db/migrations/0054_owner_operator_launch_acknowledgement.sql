@@ -1,4 +1,4 @@
--- Buffr Checkpoint — Owner-Operator launch acknowledgement (buffrcheckpoint.md v0.34, §11.9.15.7).
+-- Buffr Checkpoint — Owner-Operator launch acknowledgement (docs/archive/buffrcheckpoint.v0.34-legacy-2026-10-07.md v0.34, §11.9.15.7).
 --
 -- Product-owner decision 2026-10-05 (Option A): one owner acknowledgement is
 -- never presented as organisation-wide staff training. The step code stays

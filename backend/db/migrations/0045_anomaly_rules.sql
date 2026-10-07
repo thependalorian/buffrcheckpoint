@@ -1,6 +1,6 @@
 -- Buffr Checkpoint — live anomaly rules (two rules, v1).
 --
--- Schema signed off by George on 1 October 2026 (buffrcheckpoint.md 11.1c,
+-- Schema signed off by George on 1 October 2026 (docs/archive/buffrcheckpoint.v0.34-legacy-2026-10-07.md 11.1c,
 -- "Gap closure"). Rules are evaluated in the API on every check-in (the same
 -- visit.roster_changed signal that drives the live roster). They alert people
 -- only; they never deny or delay a visitor (Section 7.2 guardrail).

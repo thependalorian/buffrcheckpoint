@@ -1,5 +1,5 @@
 -- Buffr Checkpoint — canonical permission catalogue
--- Source of truth: buffrcheckpoint.md "Canonical Engineering Constitution"
+-- Source of truth: docs/archive/buffrcheckpoint.v0.34-legacy-2026-10-07.md "Canonical Engineering Constitution"
 -- §5.1's checkpointPermissionCodes list, extended with a few codes the list
 -- didn't cover (an "own hosted visitors" read scope for host_staff, and two
 -- Buffr-Checkpoint-internal-only codes: platform break-glass support access

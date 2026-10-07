@@ -1,7 +1,7 @@
 # Buffr Checkpoint — Platform Ops Console
 
 Internal Buffr Checkpoint operations app — never customer-facing, never linked
-from `admin/`'s sidebar. See `buffrcheckpoint.md` Section 11.9.1a for the
+from `admin/`'s sidebar. See `buffrcheckpoint.md` §5.4 and §6.4 for the
 full build notes (product decisions, what's built, known gaps).
 
 ## What this is
@@ -129,7 +129,7 @@ Human email signature (Gmail/Outlook): `branding/email-signature.html`.
 ## Sign-in (separate from customers)
 
 The console signs in through its own endpoints, never the customer `/auth/login`
-(buffrcheckpoint.md §9.2a):
+(buffrcheckpoint.md §5.3):
 
 1. `/login` posts to `POST /auth/platform/login`. Only `platform_support` accounts get past it;
    anyone else sees "Invalid email or password".
@@ -140,7 +140,7 @@ The console signs in through its own endpoints, never the customer `/auth/login`
 Ops tokens only work on the ops API surface. To act inside a customer tenant, use Support Access
 (customer-approved, time-boxed grant); that mints a separate customer-scoped session.
 
-## Known gaps (not silently missing — see buffrcheckpoint.md §11.9.1a)
+## Known gaps (not silently missing — see buffrcheckpoint.md §6.4)
 
 - No automated tests yet (frontend or the backend `platform-control-plane`
   split — see `backend/src/modules/{billing,crm,kyb,...}`).

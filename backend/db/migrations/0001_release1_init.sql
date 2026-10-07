@@ -1,5 +1,5 @@
 -- Buffr Checkpoint — Release 1 schema
--- Source of truth: buffrcheckpoint/buffrcheckpoint.md, Section 11.4.5
+-- Source of truth: docs/archive/buffrcheckpoint.v0.34-legacy-2026-10-07.md, Section 11.4.5
 -- STATUS: Approved for Release 1 implementation, 2026-09-09 (owner: George Nekwaya)
 -- Follows this workspace's Wiebe schema-design rules (SYSTEM_DESIGN_MASTER_GUIDE.md
 -- § "Wiebe's Approach: Schema Design Rules"): UUID PKs generated client-side

@@ -1,5 +1,5 @@
 -- Buffr Checkpoint — type_definition seed data
--- Source of truth: buffrcheckpoint/buffrcheckpoint.md Section 11.4.5's
+-- Source of truth: docs/archive/buffrcheckpoint.v0.34-legacy-2026-10-07.md Section 11.4.5's
 -- domain list. type_definition is the one admin-seeded config table
 -- exception (Wiebe rule 1) — id uses the server-side default.
 -- Adding a new value later is one more INSERT, never a migration.

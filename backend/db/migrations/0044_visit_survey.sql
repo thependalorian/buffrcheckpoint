@@ -1,6 +1,6 @@
 -- Buffr Checkpoint — post-visit satisfaction micro-survey (Section 8.7).
 --
--- Schema signed off by George on 1 October 2026 (buffrcheckpoint.md 11.1c,
+-- Schema signed off by George on 1 October 2026 (docs/archive/buffrcheckpoint.v0.34-legacy-2026-10-07.md 11.1c,
 -- "Gap closure"). Rating only in v1: no free-text comment, because a public
 -- free-text box collects names and health details outside the encrypted
 -- envelope. A comment column, if ever added, goes through the protected

@@ -15,8 +15,26 @@ interface World {
 
 function setup(world: World = {}) {
   const calls: string[] = [];
+  // The fake answers the one existence query (all six EXISTS columns) from the world it was given, and the owner lookup otherwise.
   const db = {
-    execute: jest.fn(async () => ({ rows: [{ email: "owner@acme.test", organisation_name: "Acme Trading" }] })),
+    execute: jest.fn(async (query: { queryChunks?: unknown[] }) => {
+      const text = JSON.stringify(query.queryChunks ?? query);
+      if (text.includes("EXISTS")) {
+        return {
+          rows: [
+            {
+              site: (world.sites ?? []).length > 0,
+              host: (world.hosts ?? []).length > 0,
+              retention: (world.retention ?? []).length > 0,
+              notice: (world.documents ?? []).some((d) => d.policyCode === "privacy_notice"),
+              form: (world.forms ?? []).length > 0,
+              qr: (world.qr ?? []).some((r) => r.qrTypeCode === "public_site_checkin"),
+            },
+          ],
+        };
+      }
+      return { rows: [{ email: "owner@acme.test", organisation_name: "Acme Trading" }] };
+    }),
   };
   const sites = {
     list: jest.fn(async () => world.sites ?? []),
@@ -79,7 +97,7 @@ function setup(world: World = {}) {
     standards as never,
     state as never,
   );
-  return { service, calls, sites, hosts, retention, policy, qr, state, fields };
+  return { service, calls, db, sites, hosts, retention, policy, qr, state, fields };
 }
 
 describe("OrganisationDefaultsService", () => {
@@ -136,6 +154,29 @@ describe("OrganisationDefaultsService", () => {
     expect(result.created).toEqual([]);
     expect(t.calls).toEqual([]);
     expect(t.state.notifyChanged).not.toHaveBeenCalled();
+  });
+
+  it("answers the usual case with a single query: nothing else is read when everything exists", async () => {
+    const t = setup({
+      sites: [{ id: "s1" }],
+      hosts: [{}],
+      retention: [{ retentionDays: 90 }],
+      documents: [{ policyCode: "privacy_notice" }],
+      forms: [{}],
+      qr: [{ qrTypeCode: "public_site_checkin" }],
+    });
+    await t.service.ensure(USER);
+    expect(t.db.execute).toHaveBeenCalledTimes(1);
+    for (const read of [
+      t.sites.list,
+      t.hosts.listBySite,
+      t.retention.list,
+      t.policy.listPolicyDocuments,
+      t.policy.list,
+      t.qr.list,
+    ]) {
+      expect(read).not.toHaveBeenCalled();
+    }
   });
 
   it("only fills gaps: an existing site is kept and the rest is built around it", async () => {

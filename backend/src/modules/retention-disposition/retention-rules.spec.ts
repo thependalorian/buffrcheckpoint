@@ -1,4 +1,8 @@
-import { effectivePolicies, holdCoversVisit, isExpired, retentionDaysFor } from "./retention-rules";
+import {
+  dispositionEnabled,
+  dispositionMode,
+  notificationRedactionDays,
+  withPlatformDefault, effectivePolicies, holdCoversVisit, isExpired, retentionDaysFor } from "./retention-rules";
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -69,5 +73,43 @@ describe("holdCoversVisit", () => {
     expect(holdCoversVisit({ siteId: "site-b", caseNumber: "HC-12" }, visit)).toBe(true);
     expect(holdCoversVisit({ siteId: "site-b", dateRangeStart: "not a date" }, visit)).toBe(true);
     expect(holdCoversVisit({ siteId: "site-b", dateRangeEnd: 20260315 }, visit)).toBe(true);
+  });
+});
+
+describe("platform default retention", () => {
+  const none = { organisationDefaultDays: null, siteDays: new Map<string, number>() };
+
+  it("covers an organisation that has no policy of its own", () => {
+    expect(retentionDaysFor("site-1", withPlatformDefault(none, 365))).toBe(365);
+  });
+
+  it("never overrides an organisation or site policy", () => {
+    expect(withPlatformDefault({ organisationDefaultDays: 90, siteDays: new Map() }, 365).organisationDefaultDays).toBe(90);
+    expect(retentionDaysFor("site-1", withPlatformDefault({ organisationDefaultDays: null, siteDays: new Map([["site-1", 30]]) }, 365))).toBe(30);
+  });
+
+  it("invents nothing when there is no platform default either", () => {
+    expect(retentionDaysFor("site-1", withPlatformDefault(none, null))).toBeNull();
+  });
+});
+
+describe("worker settings", () => {
+  it("is on and live unless told otherwise", () => {
+    expect(dispositionEnabled(undefined)).toBe(true);
+    expect(dispositionEnabled("true")).toBe(true);
+    expect(dispositionEnabled("false")).toBe(false);
+    expect(dispositionMode(undefined)).toBe("live");
+    expect(dispositionMode("dry_run")).toBe("dry_run");
+    expect(dispositionMode("DRY_RUN")).toBe("dry_run");
+    expect(dispositionMode("nonsense")).toBe("live");
+  });
+
+  it("uses 30 days of outbox history unless a valid number is set, and never zero", () => {
+    expect(notificationRedactionDays(undefined)).toBe(30);
+    expect(notificationRedactionDays("14")).toBe(14);
+    expect(notificationRedactionDays("0")).toBe(30);
+    expect(notificationRedactionDays("-5")).toBe(30);
+    expect(notificationRedactionDays("abc")).toBe(30);
+    expect(notificationRedactionDays("99999")).toBe(30);
   });
 });

@@ -1,6 +1,6 @@
 # Checks every push and pull request. Blocking: typecheck, tests, build and the
 # secrets scan. Lint and the dependency audit report without blocking until the
-# existing lint findings are cleared (buffrcheckpoint.md 11.1c, CI pipeline).
+# existing lint findings are cleared (buffrcheckpoint.md §34, CI pipeline).
 # The dependency audit blocks at high severity since 2026-10-06 (all four packages audit clean).
 name: CI
 

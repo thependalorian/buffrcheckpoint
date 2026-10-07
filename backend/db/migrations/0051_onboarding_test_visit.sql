@@ -1,4 +1,4 @@
--- Buffr Checkpoint — onboarding test arrival (buffrcheckpoint.md v0.33).
+-- Buffr Checkpoint — onboarding test arrival (docs/archive/buffrcheckpoint.v0.34-legacy-2026-10-07.md v0.33).
 --
 -- The Test arrival checklist step creates one real visit through the normal
 -- check-in path, tagged with capture channel `onboarding_test`. Analytics,

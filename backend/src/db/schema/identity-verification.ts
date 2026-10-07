@@ -9,6 +9,7 @@ import { visitorVisits } from "./visits";
 export const visitorIdentityAssessments = pgTable(
   "visitor_identity_assessments",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     visitId: uuid("visit_id")
       .notNull()

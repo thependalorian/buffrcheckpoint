@@ -5,7 +5,7 @@ const currentYear = new Date().getFullYear();
 export const APP_CONFIG = {
   name: "Checkpoint",
   version: packageJson.version,
-  copyright: `© ${currentYear} Checkpoint by Buffr.`,
+  copyright: `© ${currentYear} Buffr Checkpoint.`,
   meta: {
     title: "Checkpoint: Admin",
     description:

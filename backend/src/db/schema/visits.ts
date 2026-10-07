@@ -15,6 +15,7 @@ import { visitorSubjects } from "./visitors";
 export const visitorVisits = pgTable(
   "visitor_visits",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(), // client-generated, idempotent offline sync
     organisationId: uuid("organisation_id")
       .notNull()

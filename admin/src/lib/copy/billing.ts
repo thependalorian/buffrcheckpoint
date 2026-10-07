@@ -1,5 +1,7 @@
 // Customer billing copy (card payments via Adumo Online's secure page).
 
+const CONTACT_EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL?.trim() || "team@buffranalytics.com";
+
 export const billingCopy = {
   descriptionBankOnly:
     "Invoices are settled by bank transfer to Buffr Financial Services CC — upload your proof of payment against the invoice below once paid. Go-live and operational dashboard use require an active or trial subscription after Buffr ops reviews your POP (and KYB).",
@@ -14,7 +16,7 @@ export const billingCopy = {
     reference: "Payment reference",
     referenceHint: "Use the invoice number as your reference, then upload your proof of payment below.",
     incomplete:
-      "Bank details are being updated. Contact team@buffranalytics.com with the invoice number and we will send them.",
+      `Bank details are being updated. Contact ${CONTACT_EMAIL} with the invoice number and we will send them.`,
   },
   payByCard: "Pay by card",
   payByCardHint: "Pay securely on Adumo Online's page. We never see your card details.",
@@ -31,7 +33,7 @@ export const billingCopy = {
     unavailable:
       "Card payment is not available right now. Please pay by bank transfer and upload your proof of payment.",
     error:
-      "We could not confirm the card payment. If money left your account, contact team@buffranalytics.com with the invoice number.",
+      `We could not confirm the card payment. If money left your account, contact ${CONTACT_EMAIL} with the invoice number.`,
   },
 } as const;
 

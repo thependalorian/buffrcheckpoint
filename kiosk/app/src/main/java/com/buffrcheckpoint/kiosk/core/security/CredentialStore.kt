@@ -101,7 +101,6 @@ class CredentialStore @Inject constructor(
             .putString(KEY_ORG_NAME, state.organisationDisplayName)
             .putString(KEY_SITE_NAME, state.siteDisplayName)
             .putString(KEY_HELP, state.helpContactReference)
-            .putString(KEY_BRAND_COLOUR, state.brandColourToken)
             .putString(KEY_PRIVACY_VERSION, state.privacyNoticeVersionId)
             .putString(KEY_PRIVACY_NAME, state.privacyPolicyName)
             .putInt(KEY_IDLE_TIMEOUT, state.idleTimeoutSeconds)
@@ -130,7 +129,6 @@ class CredentialStore @Inject constructor(
             organisationDisplayName = prefs.getString(KEY_ORG_NAME, null),
             siteDisplayName = prefs.getString(KEY_SITE_NAME, null),
             helpContactReference = prefs.getString(KEY_HELP, null),
-            brandColourToken = prefs.getString(KEY_BRAND_COLOUR, null),
             logoUrl = prefs.getString(KEY_LOGO_URL, null),
             privacyNoticeVersionId = prefs.getString(KEY_PRIVACY_VERSION, null),
             privacyPolicyName = prefs.getString(KEY_PRIVACY_NAME, null),

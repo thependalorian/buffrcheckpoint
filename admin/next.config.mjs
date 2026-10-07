@@ -6,7 +6,7 @@ const nextConfig = {
   compiler: {
     removeConsole: process.env.NODE_ENV === "production",
   },
-  // Baseline security headers (buffrcheckpoint.md 11.1c). The CSP sets only
+  // Baseline security headers (buffrcheckpoint.md §6.2). The CSP sets only
   // directives that cannot break Next.js inline scripts or third-party SDKs:
   // no framing (clickjacking), no plugins, no <base> hijack, and forms may
   // only post to this app or Adumo Online's payment pages (card payments). A full script-src policy is a later step.

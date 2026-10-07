@@ -12,6 +12,7 @@ import { typeDefinition } from "./type-definitions";
 export const checkInFormDefinitions = pgTable(
   "check_in_form_definitions",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     organisationId: uuid("organisation_id")
       .notNull()
@@ -31,6 +32,7 @@ export const checkInFormDefinitions = pgTable(
 export const checkInFormVersions = pgTable(
   "check_in_form_versions",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     formDefinitionId: uuid("form_definition_id")
       .notNull()
@@ -51,6 +53,7 @@ export const checkInFormVersions = pgTable(
 export const checkInFormFields = pgTable(
   "check_in_form_fields",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     formVersionId: uuid("form_version_id")
       .notNull()
@@ -76,6 +79,7 @@ export const checkInFormFields = pgTable(
 export const checkInFormFieldTranslations = pgTable(
   "check_in_form_field_translations",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     fieldId: uuid("field_id")
       .notNull()
@@ -97,6 +101,7 @@ export const checkInFormFieldTranslations = pgTable(
 export const visitorCategories = pgTable(
   "visitor_categories",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     organisationId: uuid("organisation_id")
       .notNull()

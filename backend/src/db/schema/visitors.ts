@@ -9,6 +9,7 @@ import { typeDefinition } from "./type-definitions";
 export const visitorSubjects = pgTable(
   "visitor_subjects",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     organisationId: uuid("organisation_id")
       .notNull()
@@ -23,6 +24,7 @@ export const visitorSubjects = pgTable(
 );
 
 export const visitorPersonalData = pgTable("visitor_personal_data", {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   visitorId: uuid("visitor_id")
     .primaryKey()
     .references(() => visitorSubjects.id),

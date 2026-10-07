@@ -1,6 +1,6 @@
 -- Buffr Checkpoint — analytics ETL: run history + PII-free visit rollups.
 --
--- Source of truth: buffrcheckpoint.md "Analytics and ETL".
+-- Source of truth: docs/archive/buffrcheckpoint.v0.34-legacy-2026-10-07.md "Analytics and ETL".
 --
 -- visit_daily_fact / visit_hourly_fact are DERIVED rollups of visitor_visits:
 -- counts and dwell totals only, no visitor, host or free-text columns. They are

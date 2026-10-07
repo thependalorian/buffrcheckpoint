@@ -282,6 +282,14 @@ export const TEMPLATE_CATALOG: Readonly<Record<string, TemplateSpec>> = {
     wired: true,
     alwaysSend: true,
   },
+  customer_breach_notice: {
+    category: "support",
+    audience: "customer_admins",
+    trigger: "Buffr staff report a personal data breach affecting an organisation",
+    signature: "support",
+    wired: true,
+    alwaysSend: true,
+  },
   support_access_request: {
     category: "support",
     audience: "customer_admins",

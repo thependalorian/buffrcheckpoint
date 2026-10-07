@@ -1,4 +1,4 @@
-// Launch-readiness checklist (buffrcheckpoint.md v0.33). Step codes are
+// Launch-readiness checklist (buffrcheckpoint.md §7.2). Step codes are
 // type_definition rows in domain `onboarding_step_code`; this file is the
 // single authority for their order and which ones each launch route needs.
 
@@ -55,7 +55,7 @@ export const STEP_REQUIREMENTS: Readonly<Record<OnboardingStepCode, Readonly<Rec
 
 /**
  * Steps that cannot start until earlier objects exist (buffrcheckpoint.md
- * §11.9.15.2-3). Values are evidence keys from onboarding-evidence.service.ts,
+ * §7.6 and §7.7). Values are evidence keys from onboarding-evidence.service.ts,
  * so the admin blocker copy names the prerequisite and its fix.
  */
 export const STEP_PREREQUISITES: Readonly<Partial<Record<OnboardingStepCode, readonly string[]>>> = {

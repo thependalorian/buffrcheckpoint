@@ -13,7 +13,15 @@ import {
 } from "../../db/schema";
 import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.service";
 import { LegalHoldsService } from "../legal-holds/legal-holds.service";
-import { effectivePolicies, holdCoversVisit, isExpired, retentionDaysFor } from "./retention-rules";
+import { isValidRetentionDays, STANDARD_RETENTION_DAYS } from "../organisation-standards/standard-defaults";
+import {
+  effectivePolicies,
+  holdCoversVisit,
+  isExpired,
+  notificationRedactionDays,
+  retentionDaysFor,
+  withPlatformDefault,
+} from "./retention-rules";
 import { randomUUID } from "node:crypto";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -28,10 +36,12 @@ export interface DispositionRunResult {
   disposedCount: number;
   heldCount: number;
   shreddedSubjectCount: number | null;
+  /** Queued messages whose recipient and text were (or, in a dry run, would be) overwritten. Not stored on the run row. */
+  redactedNotificationCount: number;
   errorMessage: string | null;
 }
 
-// Executes retention policies (buffrcheckpoint.md §11.9.0a, "Retention
+// Executes retention policies (buffrcheckpoint.md §8.5, "Retention
 // purge/archive job"). Per organisation:
 //   1. Effective policy per site = the site's highest-version row, else the
 //      organisation default. No policy means nothing is disposed.
@@ -69,9 +79,10 @@ export class RetentionDispositionService {
         .select({ id: organisations.id })
         .from(organisations)
         .where(isNull(organisations.deletedAt));
+      const platformDefaultDays = await this.platformDefaultDays();
       const results: DispositionRunResult[] = [];
       for (const org of orgs) {
-        results.push(await this.runForOrganisation(org.id, opts));
+        results.push(await this.runForOrganisation(org.id, opts, platformDefaultDays));
       }
       return results;
     } finally {
@@ -83,9 +94,19 @@ export class RetentionDispositionService {
     return this.db.select().from(retentionDispositionRun).orderBy(desc(retentionDispositionRun.startedAt)).limit(limit);
   }
 
+  /** The platform's standard retention (setting `organisation_defaults`, else the built-in 365 days): the floor for every organisation. */
+  private async platformDefaultDays(): Promise<number> {
+    const result = await this.db.execute(sql`
+      SELECT setting_value FROM platform_configuration_setting
+      WHERE setting_key = 'organisation_defaults' AND deleted_at IS NULL LIMIT 1`);
+    const stored = (result.rows[0] as { setting_value?: { retentionDays?: unknown } } | undefined)?.setting_value?.retentionDays;
+    return isValidRetentionDays(stored) ? stored : STANDARD_RETENTION_DAYS;
+  }
+
   private async runForOrganisation(
     organisationId: string,
     opts: { dryRun: boolean; requestedBy: string | null },
+    platformDefaultDays: number,
   ): Promise<DispositionRunResult> {
     const [runningCode, succeededCode, failedCode] = await Promise.all([
       this.typeDefs.id("retention_run_status", "running"),
@@ -109,7 +130,7 @@ export class RetentionDispositionService {
 
     try {
       const now = new Date();
-      const { candidates, held, toDispose } = await this.selectCandidates(organisationId, now);
+      const { candidates, held, toDispose } = await this.selectCandidates(organisationId, now, platformDefaultDays);
 
       let disposedCount = toDispose.length;
       let shreddedSubjectCount: number | null = null;
@@ -117,6 +138,8 @@ export class RetentionDispositionService {
         disposedCount = await this.dispose(organisationId, toDispose, now);
         shreddedSubjectCount = await this.shredOrphanedSubjects(organisationId, now);
       }
+
+      const redactedNotificationCount = await this.redactOutbox(organisationId, now, opts);
 
       const matches = candidates.length === disposedCount + held.length;
       const errorMessage = matches
@@ -142,7 +165,7 @@ export class RetentionDispositionService {
         });
       }
 
-      return { ...base, status: matches ? "succeeded" : "failed", ...counts };
+      return { ...base, status: matches ? "succeeded" : "failed", ...counts, redactedNotificationCount };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.logger.error(`Retention disposition failed for organisation ${organisationId}: ${message}`);
@@ -154,11 +177,11 @@ export class RetentionDispositionService {
         errorMessage: message,
       };
       await this.finish(runId, runningCode, failedCode, counts).catch(() => undefined);
-      return { ...base, status: "failed", ...counts };
+      return { ...base, status: "failed", ...counts, redactedNotificationCount: 0 };
     }
   }
 
-  private async selectCandidates(organisationId: string, now: Date) {
+  private async selectCandidates(organisationId: string, now: Date, platformDefaultDays: number) {
     const policyRows = await this.db
       .select({
         siteId: retentionPolicies.siteId,
@@ -167,7 +190,7 @@ export class RetentionDispositionService {
       })
       .from(retentionPolicies)
       .where(and(eq(retentionPolicies.organisationId, organisationId), isNull(retentionPolicies.deletedAt)));
-    const policies = effectivePolicies(policyRows);
+    const policies = withPlatformDefault(effectivePolicies(policyRows), platformDefaultDays);
     const allDays = [...policies.siteDays.values()];
     if (policies.organisationDefaultDays !== null) allDays.push(policies.organisationDefaultDays);
     if (allDays.length === 0) return { candidates: [], held: [], toDispose: [] };
@@ -204,6 +227,47 @@ export class RetentionDispositionService {
     const heldIds = new Set(held.map((visit) => visit.id));
     const toDispose = candidates.filter((visit) => !heldIds.has(visit.id));
     return { candidates, held, toDispose };
+  }
+
+  // Queued messages hold the recipient's address or mobile number and the message text, which can carry personal sign-out and rating
+  // link tokens. Once a message has been delivered (or has stopped being retried) that content has no further use, so it is overwritten
+  // after NOTIFICATION_REDACTION_DAYS (default 30). The row, its status and its status events stay, so delivery history and billing
+  // reconcile. Reconciliation: candidates must equal redacted, otherwise the run is logged as an error.
+  private async redactOutbox(
+    organisationId: string,
+    now: Date,
+    opts: { dryRun: boolean; requestedBy: string | null },
+  ): Promise<number> {
+    const cutoff = new Date(now.getTime() - notificationRedactionDays(process.env.NOTIFICATION_REDACTION_DAYS) * DAY_MS).toISOString();
+    const [sentCode, failedCode] = await Promise.all([
+      this.typeDefs.id("notification_delivery_status", "sent"),
+      this.typeDefs.id("notification_delivery_status", "failed"),
+    ]);
+    const eligible = sql`
+      organisation_id = ${organisationId}::uuid
+      AND status_code IN (${sentCode}::uuid, ${failedCode}::uuid)
+      AND coalesce(sent_at, next_attempt_at) < ${cutoff}::timestamptz
+      AND recipient_reference <> 'redacted'`;
+    if (opts.dryRun) {
+      const counted = await this.db.execute(sql`SELECT count(*)::int AS n FROM notification_delivery_instructions WHERE ${eligible}`);
+      return Number((counted.rows[0] as { n?: number } | undefined)?.n ?? 0);
+    }
+    const result = await this.db.execute(sql`
+      UPDATE notification_delivery_instructions
+      SET recipient_reference = 'redacted', message = '', html = NULL, attachments_json = NULL, subject = NULL, failure_reason = NULL
+      WHERE ${eligible}
+      RETURNING id`);
+    const redacted = result.rows.length;
+    if (redacted > 0) {
+      await appendAuditEvent(this.db, {
+        organisationId,
+        actorId: opts.requestedBy,
+        actionCode: `notification.outbox.redacted:${redacted}`,
+        resourceType: "notification_delivery_instruction",
+        resourceId: null,
+      });
+    }
+    return redacted;
   }
 
   // One statement per chunk: soft-delete and status-log insert commit

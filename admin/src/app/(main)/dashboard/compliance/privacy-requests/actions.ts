@@ -9,6 +9,12 @@ export async function createDsarAction(input: { subjectReference: string; reques
   revalidatePath("/dashboard/compliance/privacy-requests");
 }
 
+export async function extendDsarAction(input: { id: string; reason: string }) {
+  await api.post(`/dsar/${input.id}/extend`, { reason: input.reason });
+  revalidatePath("/dashboard/compliance/privacy-requests");
+  revalidatePath("/dashboard/compliance");
+}
+
 export async function resolveDsarAction(input: { id: string; resolution: "completed" | "rejected"; reason: string }) {
   await api.post(`/dsar/${input.id}/resolve`, {
     resolution: input.resolution,

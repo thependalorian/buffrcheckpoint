@@ -1,7 +1,7 @@
 package com.buffrcheckpoint.kiosk.checkin.manual
 
 /**
- * Kotlin port of @buffrcheckpoint/shared form-rules (buffrcheckpoint.md §5.3).
+ * Kotlin port of @buffrcheckpoint/shared form-rules (buffrcheckpoint.md §8.2).
  * Keep condition operators in sync with the TypeScript evaluator.
  */
 object FormRules {

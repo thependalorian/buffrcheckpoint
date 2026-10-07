@@ -13,6 +13,7 @@ import {
   typeDefinition,
   visitorVisits,
 } from "../../db/schema";
+import { openRequestDeadlines } from "../dsar/dsar-deadlines";
 
 // Backs Section 10.5's Compliance Dashboard KPI row. Retention-actions-due
 // and offline-sync-exceptions are computed here directly against visit
@@ -25,18 +26,27 @@ export class ComplianceService {
   constructor(@Inject(DB) private readonly db: Database) {}
 
   async dashboard(user: AuthenticatedUser) {
-    const [openDsarCount, roleChangesThisMonth, privilegedAccessEvents, offlineSyncExceptions, retentionActionsDue] =
-      await Promise.all([
+    const [
+      openDsarCount,
+      roleChangesThisMonth,
+      privilegedAccessEvents,
+      offlineSyncExceptions,
+      retentionActionsDue,
+      deadlines,
+    ] = await Promise.all([
         this.countOpenDsars(user.organisationId),
         this.countRoleChangesThisMonth(user.organisationId),
         this.countActivePrivilegedAccessGrants(user.organisationId),
         this.countOfflineSyncExceptions(user.organisationId),
         this.countRetentionActionsDue(user.organisationId),
+        openRequestDeadlines(this.db, user.organisationId),
       ]);
 
     return {
       retentionActionsDue,
       openDeletionRequests: openDsarCount,
+      dataRequestsDueSoon: deadlines.dueSoon,
+      dataRequestsOverdue: deadlines.overdue,
       privilegedAccessEvents,
       offlineSyncExceptions,
       roleChangesThisMonth,

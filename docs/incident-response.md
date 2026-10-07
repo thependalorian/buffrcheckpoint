@@ -20,7 +20,8 @@ Any event that exposes or could expose visitor or customer data, stops visitors 
 2. Contain: revoke the credential or session, disable the account, turn off the feature flag, or roll back (Railway: previous deployment, Redeploy; Vercel: `vercel rollback`).
 3. Preserve evidence before changing anything else: audit events are append-only and hash-chained per organisation (`GET` the audit chain check in the admin or run `verifyChainIntegrity`), and Sentry holds the error trail.
 4. Tell the owner. For a Sev 1 involving personal data, the owner decides on notifying customers and the regulator; the Namibia DPA Bill text is in the repository root.
-5. After recovery, write a short review: cause, what worked, what to change. Add a decision-log entry if a standing decision changes.
+5. Personal data breach (processor duty). Checkpoint is the processor and each customer is the controller. Notify every affected customer without undue delay, and do not wait for the investigation to finish. Give: what happened and when; the categories and approximate number of people affected; the likely consequences; what has been done and what is proposed. This lets the customer meet its own deadline to notify the authority (72 hours in the draft Bill, section 22). Keep a record of every breach with the facts, effects and remedial action. Encryption of the affected data is stated in the notice, because it can remove the duty to notify the people concerned (draft Bill, section 23).
+6. After recovery, write a short review: cause, what worked, what to change. Add a decision-log entry if a standing decision changes.
 
 ## Recovery targets (proposed)
 
@@ -36,4 +37,4 @@ Test the restore on a throwaway branch every quarter and keep the result as evid
 
 ## Contacts
 
-Security reports: `security@buffrcheckpoint.com`. Platform status and uptime checks are listed in the Deploy, rollback and monitoring runbook in `buffrcheckpoint.md`.
+Security reports: `team@buffranalytics.com`. Platform status and uptime checks are listed in the Deploy, rollback and monitoring runbook in `buffrcheckpoint.md`.

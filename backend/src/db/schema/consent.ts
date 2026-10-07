@@ -13,6 +13,7 @@ import { visitorVisits } from "./visits";
 export const visitorPolicyDocuments = pgTable(
   "visitor_policy_documents",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     organisationId: uuid("organisation_id")
       .notNull()
@@ -28,6 +29,7 @@ export const visitorPolicyDocuments = pgTable(
 export const visitorPolicyVersions = pgTable(
   "visitor_policy_versions",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     policyDocumentId: uuid("policy_document_id")
       .notNull()
@@ -51,6 +53,7 @@ export const visitorPolicyVersions = pgTable(
 export const visitorPolicyAcknowledgements = pgTable(
   "visitor_policy_acknowledgements",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     organisationId: uuid("organisation_id")
       .notNull()

@@ -243,6 +243,18 @@ describe("OnboardingProgressService", () => {
       expect(written.launchRouteId).toBe("route-kiosk");
     });
 
+    it("reads the state and the evidence once when there is nothing to sync, and again only after a write", async () => {
+      const quiet = build({ route: "qr_first", completed: AUTO });
+      await quiet.service.readiness(user);
+      expect(quiet.evidence.snapshot).toHaveBeenCalledTimes(1);
+      expect(quiet.onboardingState.getState).toHaveBeenCalledTimes(1);
+
+      const writing = build({ route: null });
+      await writing.service.readiness(user);
+      // The sync wrote, so what it read is stale and readiness reads fresh state.
+      expect(writing.evidence.snapshot).toHaveBeenCalledTimes(2);
+    });
+
     it("is run by readiness, so the owner never sees a finished step as a to-do", async () => {
       const { service, onboardingState } = build({ route: null });
       await service.readiness(user);

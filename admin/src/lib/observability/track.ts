@@ -41,7 +41,7 @@ export const AnalyticsEvents = {
   onboardingLaunchRouteChosen: "admin_onboarding_launch_route_chosen",
   onboardingTestVisitCreated: "admin_onboarding_test_visit_created",
   onboardingLive: "admin_onboarding_live",
-  // North-star milestones (buffrcheckpoint.md §11.9.15.11): one per organisation, codes and timings only.
+  // North-star milestones (buffrcheckpoint.md §7.11): one per organisation, codes and timings only.
   onboardingFirstSite: "admin_onboarding_first_site",
   onboardingFirstQr: "admin_onboarding_first_qr",
   onboardingFirstTestVisit: "admin_onboarding_first_test_visit",

@@ -1,6 +1,5 @@
-/** Product name everywhere on the site. The Buffr parent brand appears only in the footer. */
+/** Product name everywhere on the site. Checkpoint is a standalone brand: no parent-brand badge or tagline (buffrcheckpoint.md §1.3). */
 export const BRAND = {
   productName: "Checkpoint",
-  footerAttribution: "Checkpoint by Buffr",
-  parentCompany: "Buffr",
+  footerAttribution: "Buffr Checkpoint",
 } as const;

@@ -1,4 +1,4 @@
-// Scheduled reports copy (buffrcheckpoint.md 11.1c, migration 0046).
+// Scheduled reports copy (buffrcheckpoint.md §9.5, migration 0046).
 
 export const reportsCopy = {
   title: "Scheduled Reports",

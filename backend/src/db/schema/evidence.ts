@@ -8,6 +8,7 @@ import { typeDefinition } from "./type-definitions";
 export const evidencePack = pgTable(
   "evidence_pack",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     organisationId: uuid("organisation_id")
       .notNull()

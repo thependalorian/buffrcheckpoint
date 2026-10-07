@@ -10,6 +10,8 @@ export async function createInvitationAction(input: {
   visitorReference: string;
   visitorCategoryCode?: string;
   expiresAt: string;
+  visitorEmail?: string;
+  visitorMobile?: string;
 }) {
   const siteId = input.siteId.trim();
   const hostId = input.hostId.trim();
@@ -21,12 +23,16 @@ export async function createInvitationAction(input: {
 
   const expiresAt = input.expiresAt.includes("T") ? new Date(input.expiresAt).toISOString() : input.expiresAt;
 
-  const created = await api.post<{ qrUrl: string; id: string }>("/invitations", {
+  const visitorEmail = input.visitorEmail?.trim();
+  const visitorMobile = input.visitorMobile?.trim();
+  const created = await api.post<{ qrUrl: string; id: string; emailed?: boolean; texted?: boolean }>("/invitations", {
     siteId,
     hostId,
     visitorReference,
     visitorCategoryCode: input.visitorCategoryCode?.trim() || "general",
     expiresAt,
+    ...(visitorEmail ? { visitorEmail } : {}),
+    ...(visitorMobile ? { visitorMobile } : {}),
   });
 
   revalidatePath("/dashboard/schedule");

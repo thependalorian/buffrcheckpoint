@@ -1,4 +1,4 @@
-// Live anomaly alerts copy (buffrcheckpoint.md 11.1c, migration 0045).
+// Live anomaly alerts copy (buffrcheckpoint.md §9.4, migration 0045).
 
 export const anomaliesCopy = {
   title: "Anomaly Alerts",

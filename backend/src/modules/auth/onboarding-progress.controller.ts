@@ -20,7 +20,7 @@ class LaunchRouteDto {
   route!: string;
 }
 
-/** Launch-readiness checklist (buffrcheckpoint.md v0.33). */
+/** Launch-readiness checklist (buffrcheckpoint.md §7.2). */
 @Controller("auth/onboarding")
 export class OnboardingProgressController {
   constructor(

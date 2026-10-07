@@ -46,8 +46,7 @@ export const SMS_TEMPLATE_CATALOG: Readonly<Record<string, SmsTemplateSpec>> = {
   [SMS_CODES.preRegistrationInvite]: {
     audience: "visitor",
     trigger: "A host pre-registers a visitor and gives a mobile number",
-    // Pre-registration does not capture a mobile number yet, so nothing can send this.
-    wired: false,
+    wired: true,
     variables: ["organisationName", "visitDate", "checkInUrl"],
     defaultBody: "{{organisationName}} has pre-registered you for {{visitDate}}. Check in on arrival: {{checkInUrl}}",
   },

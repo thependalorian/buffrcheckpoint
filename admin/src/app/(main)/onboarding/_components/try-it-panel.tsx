@@ -67,15 +67,15 @@ export function TryItPanel({
     <div className="space-y-5">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
         {qrUrl ? (
-          <div className="shrink-0 rounded-md border bg-white p-2">
+          <div className="bc-surface-inset shrink-0 self-start bg-white p-2">
             <QrCodeImage value={qrUrl} size={176} alt={copy.qrAlt} />
           </div>
         ) : (
           <p className="text-muted-foreground text-sm">{copy.noQr}</p>
         )}
-        <div className="space-y-3 text-sm">
+        <div className="space-y-4 text-sm">
           {qrUrl ? (
-            <Button asChild variant="outline" className="min-h-11">
+            <Button asChild className="min-h-11">
               <a href={qrUrl} target="_blank" rel="noreferrer">
                 {copy.openHere}
               </a>
@@ -106,8 +106,8 @@ export function TryItPanel({
         </div>
       </div>
 
-      <details className="rounded-md border px-4 py-3">
-        <summary className="cursor-pointer font-medium text-sm">{copy.orTitle}</summary>
+      <details className="bc-surface-inset px-4 py-3">
+        <summary className="min-h-6 cursor-pointer font-medium text-sm">{copy.orTitle}</summary>
         <div className="pt-4">
           <TestVisitPanel
             embedded

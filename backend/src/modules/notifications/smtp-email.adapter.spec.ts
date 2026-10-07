@@ -3,18 +3,18 @@ import { SendBudget } from "./send-budget";
 import { chooseTransport, smtpConfigFromEnv } from "./smtp-config";
 import { cleanHeader, EmailBudgetExhaustedError, SmtpEmailAdapter } from "./smtp-email.adapter";
 
-const env = { SMTP_USER: "hello@buffr.ai", SMTP_PASS: "not-a-real-password" };
+const env = { SMTP_USER: "team@buffranalytics.com", SMTP_PASS: "not-a-real-password" };
 
 describe("smtp config", () => {
-  it("defaults to the Private Email mailbox over TLS, from hello@buffr.ai, with caps and a 60s timeout", () => {
+  it("defaults to the Private Email mailbox over TLS, from team@buffranalytics.com, with caps and a 60s timeout", () => {
     expect(smtpConfigFromEnv(env)).toMatchObject({
       host: "mail.privateemail.com",
       port: 465,
       secure: true,
-      user: "hello@buffr.ai",
-      from: "Buffr Checkpoint <hello@buffr.ai>",
-      replyTo: "hello@buffr.ai",
-      domain: "buffr.ai",
+      user: "team@buffranalytics.com",
+      from: "Buffr Checkpoint <team@buffranalytics.com>",
+      replyTo: "team@buffranalytics.com",
+      domain: "buffranalytics.com",
       timeoutMs: 60_000,
       perHour: 60,
       perDay: 300,
@@ -88,12 +88,12 @@ describe("SmtpEmailAdapter", () => {
       html: "<p>plain body</p>",
     });
     expect(result.delivered).toBe(true);
-    expect(result.providerReference).toMatch(/^<[0-9a-f-]+@buffr\.ai>$/);
+    expect(result.providerReference).toMatch(/^<[0-9a-f-]+@buffranalytics\.com>$/);
     expect(sendMail).toHaveBeenCalledWith(
       expect.objectContaining({
-        from: "Buffr Checkpoint <hello@buffr.ai>",
+        from: "Buffr Checkpoint <team@buffranalytics.com>",
         to: "visitor@example.com",
-        replyTo: "hello@buffr.ai",
+        replyTo: "team@buffranalytics.com",
         subject: "Hello",
         text: "plain body",
         html: "<p>plain body</p>",

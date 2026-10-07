@@ -1,4 +1,4 @@
-/** Public-facing assurance ladder (buffrcheckpoint.md §5.2a). Codes stay internal; marketing uses these names only. */
+/** Public-facing assurance ladder (buffrcheckpoint.md §3.1). Codes stay internal; marketing uses these names only. */
 
 export const IDENTITY_ASSURANCE_LEVEL_LABELS = {
   selfAsserted: "Self-asserted identity",

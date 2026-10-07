@@ -1,7 +1,7 @@
 {
   "name": "buffrcheckpoint-backend",
   "version": "0.0.1",
-  "description": "Buffr Checkpoint backend — NestJS modular monolith (buffrcheckpoint.md Section 11.2/11.4)",
+  "description": "Buffr Checkpoint backend — NestJS modular monolith (buffrcheckpoint.md §13 and §14)",
   "author": "",
   "private": true,
   "license": "UNLICENSED",

@@ -1,5 +1,5 @@
 import { Inject, Injectable, NotFoundException } from "@nestjs/common";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 
 import { createArtifactStore } from "../../common/artifacts/artifact-store";
 import type { AuthenticatedUser } from "../../common/decorators/current-user.decorator";
@@ -12,13 +12,19 @@ import {
   evidencePackStatusLog,
   organisationMemberships,
   organisations,
+  privacyRequests,
+  retentionDispositionRun,
   retentionPolicies,
   roleDefinitions,
   sites,
   typeDefinition,
 } from "../../db/schema";
 import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.service";
+import { openRequestDeadlines } from "../dsar/dsar-deadlines";
+import { isValidRetentionDays, STANDARD_RETENTION_DAYS } from "../organisation-standards/standard-defaults";
+import { dispositionEnabled, dispositionMode, notificationRedactionDays } from "../retention-disposition/retention-rules";
 import { VisitsService } from "../visits/visits.service";
+import { buildPrivacyPosture, type PrivacyPosture } from "./privacy-posture";
 import { renderEvidenceReportHtml } from "./evidence-report";
 import { createHash, randomUUID } from "node:crypto";
 
@@ -91,6 +97,7 @@ export class EvidenceService {
       retentionPolicyReport: retentionReport,
       accessLogExtract, // Section 9.2 rule 3's audit_event rows, verbatim — admin actions, not visitor check-ins
       visitorAccessExtract, // who was actually on the premises in the requested period, or null when no range was given
+      privacyPosture: await this.privacyPosture(user.organisationId),
     };
 
     const contentBody = JSON.stringify(content, null, 2);
@@ -109,6 +116,55 @@ export class EvidenceService {
     await this.logStatus(pack.id, readyStatus, user.userId, "generation complete");
 
     return updated;
+  }
+
+  /** The privacy protections in force for this organisation, with its real numbers. See privacy-posture.ts. */
+  async privacyPosture(organisationId: string): Promise<PrivacyPosture> {
+    const [policyRows, defaultRow, lastRuns, openRows, deadlines] = await Promise.all([
+      this.db.query.retentionPolicies.findMany({
+        where: and(eq(retentionPolicies.organisationId, organisationId), isNull(retentionPolicies.siteId), isNull(retentionPolicies.deletedAt)),
+      }),
+      this.db.execute(sql`
+        SELECT setting_value FROM platform_configuration_setting
+        WHERE setting_key = 'organisation_defaults' AND deleted_at IS NULL LIMIT 1`),
+      this.db.query.retentionDispositionRun.findMany({
+        where: eq(retentionDispositionRun.organisationId, organisationId),
+        orderBy: [desc(retentionDispositionRun.startedAt)],
+        limit: 1,
+      }),
+      this.db
+        .select({ code: typeDefinition.code })
+        .from(privacyRequests)
+        .innerJoin(typeDefinition, eq(privacyRequests.statusCode, typeDefinition.id))
+        .where(and(eq(privacyRequests.organisationId, organisationId), isNull(privacyRequests.deletedAt))),
+      openRequestDeadlines(this.db, organisationId),
+    ]);
+    const current = [...policyRows].sort((a, b) => b.version - a.version)[0];
+    const stored = (defaultRow.rows[0] as { setting_value?: { retentionDays?: unknown } } | undefined)?.setting_value?.retentionDays;
+    const platformDays = isValidRetentionDays(stored) ? stored : STANDARD_RETENTION_DAYS;
+    const last = lastRuns[0];
+    return buildPrivacyPosture({
+      retentionDays: current?.retentionDays ?? platformDays,
+      retentionSource: current ? "organisation_policy" : "platform_default",
+      dispositionMode: !dispositionEnabled(process.env.RETENTION_DISPOSITION_ENABLED)
+        ? "off"
+        : dispositionMode(process.env.RETENTION_DISPOSITION_MODE),
+      outboxRedactionDays: notificationRedactionDays(process.env.NOTIFICATION_REDACTION_DAYS),
+      lastRun: last
+        ? {
+            startedAt: last.startedAt.toISOString(),
+            dryRun: last.dryRun,
+            disposedCount: last.disposedCount,
+            heldCount: last.heldCount,
+            status: last.errorMessage ? "failed" : "completed",
+          }
+        : null,
+      dataRequests: {
+        open: openRows.filter((r) => r.code === "pending" || r.code === "in_review").length,
+        dueSoon: deadlines.dueSoon,
+        overdue: deadlines.overdue,
+      },
+    });
   }
 
   async list(user: AuthenticatedUser) {

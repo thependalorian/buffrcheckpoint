@@ -1,4 +1,4 @@
-// Post-visit rating and feedback copy (buffrcheckpoint.md Section 8.7).
+// Post-visit rating and feedback copy (buffrcheckpoint.md §10.2).
 
 export const visitSurveyCopy = {
   question: "How was your visit today?",

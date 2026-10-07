@@ -1,11 +1,13 @@
 import {
   describeDays,
   HIGH_RISK_CLASSES,
+  isSpecialCategorySector,
   isValidRetentionDays,
   MAX_RETENTION_DAYS,
   PRIVACY_NOTICE_POLICY_CODE,
   STANDARD_FORM_FIELDS,
   STANDARD_RETENTION_DAYS,
+  standardFormFieldsFor,
   standardPrivacyNotice,
 } from "./standard-defaults";
 
@@ -103,5 +105,34 @@ describe("standard retention", () => {
   it("is a valid whole number of days, and invalid values are refused", () => {
     expect(isValidRetentionDays(STANDARD_RETENTION_DAYS)).toBe(true);
     for (const bad of [0, -1, 1.5, "365", null, MAX_RETENTION_DAYS + 1]) expect(isValidRetentionDays(bad)).toBe(false);
+  });
+});
+
+describe("sector-aware defaults", () => {
+  it("treats clinics, faith-based and community organisations as special-category sectors", () => {
+    for (const code of ["healthcare", "religious_faith_based", "ngo_nonprofit"]) expect(isSpecialCategorySector(code)).toBe(true);
+    for (const code of ["sme", "government", "financial_services", "other", null, undefined]) expect(isSpecialCategorySector(code)).toBe(false);
+  });
+
+  it("classes the purpose of the visit as sensitive for those sectors, and changes nothing else", () => {
+    const sensitive = standardFormFieldsFor("healthcare");
+    const normal = standardFormFieldsFor("sme");
+    expect(sensitive.find((f) => f.fieldCode === "purpose_category")?.dataClassificationCode).toBe("sensitive");
+    expect(normal.find((f) => f.fieldCode === "purpose_category")?.dataClassificationCode).toBe("basic");
+    expect(sensitive.map((f) => f.fieldCode)).toEqual(normal.map((f) => f.fieldCode));
+    expect(sensitive.filter((f) => f.fieldCode !== "purpose_category")).toEqual(normal.filter((f) => f.fieldCode !== "purpose_category"));
+  });
+
+  it("never introduces a high-risk class", () => {
+    for (const code of ["healthcare", "religious_faith_based", "ngo_nonprofit"]) {
+      for (const field of standardFormFieldsFor(code)) expect(HIGH_RISK_CLASSES).not.toContain(field.dataClassificationCode as never);
+    }
+  });
+
+  it("says in the notice that the purpose is sensitive, only for those sectors", () => {
+    const base = { organisationName: "Mercy Clinic", retentionDays: 365 };
+    expect(standardPrivacyNotice({ ...base, sectorCode: "healthcare" })).toContain("treated as sensitive information");
+    expect(standardPrivacyNotice({ ...base, sectorCode: "sme" })).not.toContain("treated as sensitive information");
+    expect(standardPrivacyNotice(base)).not.toContain("treated as sensitive information");
   });
 });

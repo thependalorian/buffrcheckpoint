@@ -56,6 +56,12 @@ export class OrganisationStandardsService {
     return isValidRetentionDays(stored) ? stored : STANDARD_RETENTION_DAYS;
   }
 
+  private async organisationSector(organisationId: string): Promise<string | null> {
+    const result = await this.db.execute(sql`
+      SELECT st.code FROM organisations o LEFT JOIN type_definition st ON st.id = o.sector_code WHERE o.id = ${organisationId} LIMIT 1`);
+    return (result.rows[0] as { code?: string } | undefined)?.code ?? null;
+  }
+
   private async organisationName(organisationId: string): Promise<string> {
     const result = await this.db.execute(sql`
       SELECT coalesce(nullif(btrim(trading_name), ''), legal_name) AS name FROM organisations WHERE id = ${organisationId} LIMIT 1`);
@@ -63,7 +69,7 @@ export class OrganisationStandardsService {
   }
 
   async summary(organisationId: string): Promise<StandardsSummary> {
-    const [noticeResult, retentionResult, formResult, acceptedResult, name, standardDays] = await Promise.all([
+    const [noticeResult, retentionResult, formResult, acceptedResult, name, standardDays, sectorCode] = await Promise.all([
       this.db.execute(sql`
         SELECT v.id, v.version_number, v.content_artifact_id, v.content_hash
         FROM visitor_policy_versions v
@@ -89,6 +95,7 @@ export class OrganisationStandardsService {
         ORDER BY occurred_at DESC LIMIT 1`),
       this.organisationName(organisationId),
       this.standardRetentionDays(),
+      this.organisationSector(organisationId),
     ]);
 
     const retentionRow = retentionResult.rows[0] as { retention_days: number; version: number } | undefined;
@@ -115,6 +122,7 @@ export class OrganisationStandardsService {
       const standardText = standardPrivacyNotice({
         organisationName: name,
         retentionDays: retention?.days ?? standardDays,
+        sectorCode,
       });
       privacyNotice = {
         versionId: noticeRow.id,

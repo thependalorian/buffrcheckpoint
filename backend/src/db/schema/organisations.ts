@@ -7,6 +7,7 @@ import { typeDefinition } from "./type-definitions";
 export const organisations = pgTable(
   "organisations",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     legalName: text("legal_name").notNull(),
     tradingName: text("trading_name"),
@@ -24,6 +25,7 @@ export const organisations = pgTable(
 export const organisationSettings = pgTable(
   "organisation_settings",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     organisationId: uuid("organisation_id")
       .notNull()
@@ -42,6 +44,7 @@ export const organisationSettings = pgTable(
 export const regions = pgTable(
   "regions",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     organisationId: uuid("organisation_id")
       .notNull()

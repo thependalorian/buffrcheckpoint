@@ -10,6 +10,7 @@ import { typeDefinition } from "./type-definitions";
 export const platformCapabilityApprovals = pgTable(
   "platform_capability_approvals",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     capabilityCode: uuid("capability_code")
       .notNull()
@@ -20,7 +21,7 @@ export const platformCapabilityApprovals = pgTable(
     evidenceReference: text("evidence_reference"),
     approvedBy: uuid("approved_by"),
     approvedAt: timestamp("approved_at", { withTimezone: true }),
-    // Dual-approval fix (buffrcheckpoint.md §7901 promised this; only one
+    // Dual-approval fix (buffrcheckpoint.md §24.4 promised this; only one
     // approver column existed). 'live' transitions require both
     // approvedBy and secondaryApprovedBy set, and distinct users.
     secondaryApprovedBy: uuid("secondary_approved_by"),
@@ -39,6 +40,7 @@ export const platformCapabilityApprovals = pgTable(
 export const organisationCapabilityEnablement = pgTable(
   "organisation_capability_enablement",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     organisationId: uuid("organisation_id")
       .notNull()

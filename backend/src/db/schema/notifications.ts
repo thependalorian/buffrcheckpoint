@@ -13,6 +13,7 @@ import { visitorVisits } from "./visits";
 export const notificationDeliveryInstructions = pgTable(
   "notification_delivery_instructions",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     organisationId: uuid("organisation_id")
       .notNull()

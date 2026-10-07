@@ -1,6 +1,6 @@
 /**
  * Canonical check-in form visibility / requiredIf contracts.
- * Keep in sync with buffrcheckpoint.md Part Three §5.3 and kiosk Kotlin port.
+ * Keep in sync with buffrcheckpoint.md §8.2 and kiosk Kotlin port.
  */
 
 export type VisibilityCondition = {

@@ -44,7 +44,7 @@ export interface TestVisitSummary {
 }
 
 /**
- * Test arrival (buffrcheckpoint.md §11.9.15.6): one real visit through the
+ * Test arrival (buffrcheckpoint.md §7.8): one real visit through the
  * normal check-in path, so the host notification and roster are exercised.
  * It stays open until the owner checks it out, so it is genuinely visible on
  * the Front Desk roster. The onboarding_test channel keeps it out of

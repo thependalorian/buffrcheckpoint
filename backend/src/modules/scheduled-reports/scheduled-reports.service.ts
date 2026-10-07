@@ -13,6 +13,7 @@ import {
   typeDefinition,
 } from "../../db/schema";
 import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.service";
+import { openRequestDeadlines } from "../dsar/dsar-deadlines";
 import { buildSimplePdf } from "../documents/simple-pdf";
 import { IntegrationHealthService } from "../integration-health/integration-health.service";
 import { TemplatedEmailService } from "../notifications/templated-email.service";
@@ -328,6 +329,7 @@ export class ScheduledReportsService {
             AND a.occurred_at < ((${due.to}::date + 1) AT TIME ZONE 'Africa/Windhoek')) AS anomaly_alerts
     `);
     const row = result.rows[0] as Record<string, unknown>;
+    const requestDeadlines = await openRequestDeadlines(this.db);
     const problems = health.integrations.filter((i) => i.status === "down" || i.status === "degraded");
 
     const lines = [
@@ -340,6 +342,7 @@ export class ScheduledReportsService {
       `Open incidents: ${n(row.open_incidents)}. Open support tickets: ${n(row.open_tickets)}.`,
       `Payments waiting for proof-of-payment review: ${n(row.payments_pending_review)}.`,
       `Anomaly alerts raised yesterday: ${n(row.anomaly_alerts)}.`,
+      `Customer data requests due within 7 days: ${requestDeadlines.dueSoon}; overdue: ${requestDeadlines.overdue}.`,
       "",
       "The attached CSV lists every integration check.",
     ];
@@ -503,14 +506,22 @@ export class ScheduledReportsService {
             (SELECT COALESCE(sum(disposed_count), 0)::int FROM retention_disposition_run
               WHERE organisation_id = ${organisationId}
                 AND started_at >= (${due.from}::date AT TIME ZONE 'Africa/Windhoek')
-                AND started_at < ((${due.to}::date + 1) AT TIME ZONE 'Africa/Windhoek')) AS disposed
+                AND started_at < ((${due.to}::date + 1) AT TIME ZONE 'Africa/Windhoek')) AS disposed,
+            (SELECT COALESCE(sum(split_part(action_code, ':', 2)::int), 0)::int FROM audit_events
+              WHERE organisation_id = ${organisationId} AND action_code LIKE 'notification.outbox.redacted:%'
+                AND occurred_at >= (${due.from}::date AT TIME ZONE 'Africa/Windhoek')
+                AND occurred_at < ((${due.to}::date + 1) AT TIME ZONE 'Africa/Windhoek')) AS redacted
         `)
       ).rows[0] as Record<string, unknown>;
+      const deadlines = await openRequestDeadlines(this.db, organisationId);
       lines.push(
         "",
         "Compliance:",
         `  Audit events recorded: ${n(compliance.audit_events)} (hash-chained; verify in the Audit Log page).`,
         `  Retention runs: ${n(compliance.retention_runs)}; visits disposed under policy: ${n(compliance.disposed)}.`,
+        `  Queued messages cleared of recipient and text after delivery: ${n(compliance.redacted)}.`,
+        `  Data requests due within 7 days: ${deadlines.dueSoon}; overdue: ${deadlines.overdue}.`,
+        "  Retention, clearing of delivered message content, encryption and the audit trail run automatically; nothing here needs action unless a data request is overdue.",
       );
     }
     lines.push("", "Totals only. No visitor personal data is included in this report.");

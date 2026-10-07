@@ -10,7 +10,7 @@ export function isIdentityAssuranceLevelCode(value: string): value is IdentityAs
   return (IDENTITY_ASSURANCE_LEVEL_CODES as readonly string[]).includes(value);
 }
 
-/** Human-readable labels (buffrcheckpoint.md §5.2a). UI shows these; codes remain in API/DB. */
+/** Human-readable labels (buffrcheckpoint.md §3.1). UI shows these; codes remain in API/DB. */
 export const IDENTITY_ASSURANCE_LEVEL_LABELS: Record<IdentityAssuranceLevelCode, string> = {
   V0: "Self-asserted identity",
   V1: "Contact-channel possession",

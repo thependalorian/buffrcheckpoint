@@ -1,5 +1,5 @@
 // Service-level targets shown against live values on the ops overview.
-// Source: buffrcheckpoint.md 11.1c "Target KPIs". Change a target here, not
+// Source: buffrcheckpoint.md §10.3 "Service-level targets". Change a target here, not
 // in a page.
 export const SERVICE_TARGETS = {
   notificationDeliveryRate: { label: "Host notifications delivered", target: 0.98, unit: "rate" },

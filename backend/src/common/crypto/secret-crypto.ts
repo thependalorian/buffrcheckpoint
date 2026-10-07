@@ -1,5 +1,7 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 
+import { requiredSecret } from "./required-secret";
+
 const ALGO = "aes-256-gcm";
 
 function encryptionKey(): Buffer {
@@ -29,7 +31,7 @@ export function decryptSecret(payload: string): string {
 }
 
 export function hashOpaqueToken(rawToken: string, pepperEnv = "EMAIL_VERIFICATION_PEPPER"): string {
-  const pepper = process.env[pepperEnv] ?? process.env.JWT_SECRET ?? "dev-only-pepper-change-me";
+  const pepper = process.env[pepperEnv] ? requiredSecret(pepperEnv, "") : requiredSecret("JWT_SECRET", "dev-only-pepper-change-me");
   return createHash("sha256").update(`${pepper}:${rawToken}`).digest("hex");
 }
 

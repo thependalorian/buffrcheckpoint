@@ -9,6 +9,7 @@ import { typeDefinition } from "./type-definitions";
 export const accessCredentials = pgTable(
   "access_credentials",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     organisationId: uuid("organisation_id")
       .notNull()

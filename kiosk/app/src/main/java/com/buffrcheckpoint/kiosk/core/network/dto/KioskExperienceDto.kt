@@ -76,7 +76,6 @@ data class SiteBrandingProfileDto(
 data class SiteBrandingVersionDto(
     val id: String,
     val welcomeMessage: String?,
-    val brandColourToken: String?,
     val organisationDisplayName: String?,
     val siteDisplayName: String?,
     val helpContactReference: String?,

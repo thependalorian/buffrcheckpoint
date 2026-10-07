@@ -8,6 +8,7 @@ import { sites } from "./sites";
 export const readerSessions = pgTable(
   "reader_sessions",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     organisationId: uuid("organisation_id")
       .notNull()
@@ -46,6 +47,7 @@ export const credentialUseEvents = pgTable(
 export const credentialSiteEntitlements = pgTable(
   "credential_site_entitlements",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     organisationId: uuid("organisation_id")
       .notNull()

@@ -2,10 +2,13 @@ import { DashboardPageHeader } from "@/components/dashboard-page-header";
 import { DashboardErrorState } from "@/components/dashboard-state";
 import { BcStatRow, BcStatTile } from "@/components/bc-panel";
 import { api } from "@/lib/api/client";
+import { privacyRequestsCopy } from "@/lib/copy/privacy-requests";
 
 interface ComplianceDashboard {
   retentionActionsDue: number;
   openDeletionRequests: number;
+  dataRequestsDueSoon: number;
+  dataRequestsOverdue: number;
   privilegedAccessEvents: number;
   offlineSyncExceptions: number;
   roleChangesThisMonth: number;
@@ -68,6 +71,17 @@ export default async function CompliancePage() {
               <BcStatTile key={kpi.label} label={kpi.label} value={kpi.value} flagged={kpi.flagged} />
             ))}
           </BcStatRow>
+          {dashboard ? (
+            <p
+              className={
+                dashboard.dataRequestsOverdue > 0 ? "text-sm font-medium text-destructive" : "text-sm text-muted-foreground"
+              }
+            >
+              {dashboard.dataRequestsOverdue + dashboard.dataRequestsDueSoon === 0
+                ? privacyRequestsCopy.dashboard.allClear
+                : `${privacyRequestsCopy.dashboard.overdue}: ${dashboard.dataRequestsOverdue}. ${privacyRequestsCopy.dashboard.dueSoon}: ${dashboard.dataRequestsDueSoon}.`}
+            </p>
+          ) : null}
           {dashboard ? (
             <p className="text-sm text-muted-foreground">
               Role changes this month:{" "}

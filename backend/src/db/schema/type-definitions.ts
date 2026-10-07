@@ -1,11 +1,12 @@
 import { integer, pgTable, text, timestamp, uniqueIndex, uuid } from "drizzle-orm/pg-core";
 
 // Admin-seeded config table — the one documented exception to client-generated
-// UUID PKs (buffrcheckpoint.md Section 11.4.5, Wiebe rule 1): never written by
+// UUID PKs (buffrcheckpoint.md §14.1 rule 6): never written by
 // a user-facing request path, so a server-side default is fine here.
 export const typeDefinition = pgTable(
   "type_definition",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey().defaultRandom(),
     domain: text("domain").notNull(),
     code: text("code").notNull(),

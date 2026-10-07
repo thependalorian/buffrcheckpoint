@@ -40,7 +40,7 @@ const ground = (hex: string) => `background-color:${hex};`;
 
 export function brandedEmailLayout(input: EmailLayoutInput): string {
   const logoUrl = input.logoUrl?.trim() || process.env.PUBLIC_BRAND_LOGO_URL?.trim() || DEFAULT_EMAIL_LOGO;
-  const contact = process.env.PUBLIC_CONTACT_EMAIL?.trim() || "hello@buffr.ai";
+  const contact = process.env.PUBLIC_CONTACT_EMAIL?.trim() || "team@buffranalytics.com";
   const website = (process.env.PUBLIC_WEBSITE_BASE_URL?.trim() || "https://buffrcheckpoint.com").replace(/\/$/, "");
   const blocks = structureBody(input.bodyText, { actionLabel: input.actionLabel });
   const signature = input.signature !== undefined ? input.signature : { name: "The Buffr Checkpoint team" };

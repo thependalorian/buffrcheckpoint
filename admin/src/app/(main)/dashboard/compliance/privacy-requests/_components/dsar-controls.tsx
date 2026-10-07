@@ -4,7 +4,8 @@ import { useState, useTransition } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { createDsarAction, resolveDsarAction } from "../actions";
+import { createDsarAction, extendDsarAction, resolveDsarAction } from "../actions";
+import { privacyRequestsCopy } from "@/lib/copy/privacy-requests";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -175,6 +176,61 @@ export function ResolveDsarButtons({
           }
         >
           Reject
+        </Button>
+      </div>
+      {error ? <p className="text-xs text-destructive">{error}</p> : null}
+    </div>
+  );
+}
+
+export function ExtendDsarControl({ id, canExtend, extended }: { id: string; canExtend: boolean; extended: boolean }) {
+  const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+  const router = useRouter();
+
+  if (extended) return <span className="text-xs text-muted-foreground">{privacyRequestsCopy.extendedNote}</span>;
+  if (!canExtend) return null;
+  if (!open) {
+    return (
+      <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
+        {privacyRequestsCopy.extend}
+      </Button>
+    );
+  }
+  return (
+    <div className="flex flex-col gap-1">
+      <Label htmlFor={`extend-${id}`} className="text-xs">
+        {privacyRequestsCopy.extendReasonLabel}
+      </Label>
+      <Input
+        id={`extend-${id}`}
+        value={reason}
+        onChange={(event) => setReason(event.target.value)}
+        placeholder={privacyRequestsCopy.extendReasonPlaceholder}
+      />
+      <div className="flex gap-2">
+        <Button
+          size="sm"
+          disabled={isPending || reason.trim().length < 5}
+          onClick={() =>
+            startTransition(async () => {
+              try {
+                await extendDsarAction({ id, reason: reason.trim() });
+                setOpen(false);
+                setReason("");
+                router.refresh();
+              } catch (err) {
+                setError(err instanceof Error ? err.message : "Could not record the extension.");
+              }
+            })
+          }
+        >
+          {privacyRequestsCopy.extendConfirm}
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => setOpen(false)}>
+          {privacyRequestsCopy.extendCancel}
         </Button>
       </div>
       {error ? <p className="text-xs text-destructive">{error}</p> : null}

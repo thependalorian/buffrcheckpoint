@@ -10,6 +10,7 @@ import { visitorVisits } from "./visits";
 // and hold references only.
 
 export const siteAnomalyRuleConfigurations = pgTable("site_anomaly_rule_configurations", {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   id: uuid("id").primaryKey(),
   organisationId: uuid("organisation_id")
     .notNull()

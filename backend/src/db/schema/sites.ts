@@ -6,6 +6,7 @@ import { typeDefinition } from "./type-definitions";
 export const sites = pgTable(
   "sites",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     organisationId: uuid("organisation_id")
       .notNull()
@@ -28,6 +29,7 @@ export const sites = pgTable(
 export const securityZones = pgTable(
   "security_zones",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     organisationId: uuid("organisation_id")
       .notNull()
@@ -48,6 +50,7 @@ export const securityZones = pgTable(
 export const siteCheckinCode = pgTable(
   "site_checkin_code",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     organisationId: uuid("organisation_id")
       .notNull()
@@ -66,6 +69,7 @@ export const siteCheckinCode = pgTable(
 export const accessPolicy = pgTable(
   "access_policy",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     organisationId: uuid("organisation_id")
       .notNull()
@@ -81,6 +85,7 @@ export const accessPolicy = pgTable(
 export const retentionPolicies = pgTable(
   "retention_policies",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     organisationId: uuid("organisation_id")
       .notNull()

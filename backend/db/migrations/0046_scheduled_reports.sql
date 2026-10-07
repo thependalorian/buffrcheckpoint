@@ -1,6 +1,6 @@
 -- Buffr Checkpoint — scheduled reports.
 --
--- Schema signed off by George on 1 October 2026 (buffrcheckpoint.md 11.1c,
+-- Schema signed off by George on 1 October 2026 (docs/archive/buffrcheckpoint.v0.34-legacy-2026-10-07.md 11.1c,
 -- "Gap closure"). Three reports, all delivered through the notification
 -- outbox (retry, backoff and status events already covered):
 --

@@ -17,6 +17,7 @@ import { typeDefinition } from "./type-definitions";
 export const platformNotificationTemplate = pgTable(
   "platform_notification_template",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     templateCode: uuid("template_code")
       .notNull()
@@ -62,6 +63,7 @@ export const platformNotificationTemplateStatusLog = pgTable(
 export const platformConfigurationSetting = pgTable(
   "platform_configuration_setting",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     settingKey: text("setting_key").notNull(),
     settingValue: jsonb("setting_value").notNull(),

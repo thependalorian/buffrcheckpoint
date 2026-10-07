@@ -8,9 +8,11 @@ import {
 import type { AuthenticatedUser } from "../../common/decorators/current-user.decorator";
 import type { Database } from "../../db/client";
 import { DB } from "../../db/db.module";
-import { siteHosts, sites, typeDefinition, visitInvitationStatusEvents, visitInvitations } from "../../db/schema";
+import { organisations, siteHosts, sites, typeDefinition, visitInvitationStatusEvents, visitInvitations } from "../../db/schema";
 import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.service";
+import { SMS_CODES } from "../notifications/sms-template-catalog";
 import { TemplatedEmailService } from "../notifications/templated-email.service";
+import { TemplatedSmsService } from "../notifications/templated-sms.service";
 import { deliverableEmail, formatWhen } from "../notifications/visitor-email";
 import { buildInvitationCheckInUrl, generateOpaqueInvitationToken, invitationTokenHmac } from "./invitation-token.util";
 import { randomBytes, randomUUID } from "node:crypto";
@@ -25,6 +27,7 @@ export interface CreateInvitationInput {
   validFrom?: string;
   maximumRedemptions?: number;
   visitorEmail?: string;
+  visitorMobile?: string;
 }
 
 @Injectable()
@@ -36,6 +39,7 @@ export class InvitationsService {
     private readonly typeDefs: TypeDefinitionLookupService,
     @Optional() private readonly templatedEmail?: TemplatedEmailService,
     @Optional() private readonly dataProtection?: PersonalDataProtectionService,
+    @Optional() private readonly templatedSms?: TemplatedSmsService,
   ) {}
 
   async create(input: CreateInvitationInput, user: AuthenticatedUser) {
@@ -80,7 +84,35 @@ export class InvitationsService {
       this.logger.warn(`Invitation email not sent: ${error instanceof Error ? error.message : String(error)}`);
       return false;
     });
-    return { ...created, qrUrl, opaqueToken, emailed };
+    const texted = await this.sendInviteText(created, input, qrUrl, user).catch((error) => {
+      this.logger.warn(`Invitation text not sent: ${error instanceof Error ? error.message : String(error)}`);
+      return false;
+    });
+    return { ...created, qrUrl, opaqueToken, emailed, texted };
+  }
+
+  /** Texts the check-in link when the host gave a mobile number. Used once, not stored. Neutral wording; see sms-template-catalog.ts. */
+  private async sendInviteText(
+    invitation: { expectedFrom: Date | null; expectedUntil: Date | null },
+    input: CreateInvitationInput,
+    qrUrl: string,
+    user: AuthenticatedUser,
+  ): Promise<boolean> {
+    if (!input.visitorMobile?.trim() || !this.templatedSms) return false;
+    const organisation = await this.db.query.organisations.findFirst({ where: eq(organisations.id, user.organisationId) });
+    const organisationName = organisation?.tradingName?.trim() || organisation?.legalName || "";
+    if (!organisationName) return false;
+    const day = invitation.expectedFrom ?? invitation.expectedUntil;
+    const visitDate = day
+      ? day.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "Africa/Windhoek" })
+      : "your visit";
+    const result = await this.templatedSms.send({
+      templateCode: SMS_CODES.preRegistrationInvite,
+      organisationId: user.organisationId,
+      to: input.visitorMobile,
+      variables: { organisationName, visitDate, checkInUrl: qrUrl },
+    });
+    return result.queued;
   }
 
   /** Emails the check-in link when the host gave an address. The address is used once and is not stored. */

@@ -17,20 +17,20 @@ describe("email health probe", () => {
   });
 
   it("reports the Buffr mailbox healthy when the SMTP sign-in works, without naming a password", async () => {
-    process.env.SMTP_USER = "hello@buffr.ai";
+    process.env.SMTP_USER = "team@buffranalytics.com";
     process.env.SMTP_PASS = "s3cret-pass";
     delete process.env.EMAIL_TRANSPORT;
     verify.mockResolvedValue(true);
     const result = await probe();
     expect(result.status).toBe("healthy");
     expect(result.name).toContain("Buffr mailbox");
-    expect(result.detail).toContain("hello@buffr.ai");
+    expect(result.detail).toContain("team@buffranalytics.com");
     expect(result.detail).not.toContain("s3cret-pass");
     expect(close).toHaveBeenCalled();
   });
 
   it("reports down, with the password scrubbed, when the mailbox rejects the sign-in", async () => {
-    process.env.SMTP_USER = "hello@buffr.ai";
+    process.env.SMTP_USER = "team@buffranalytics.com";
     process.env.SMTP_PASS = "s3cret-pass";
     verify.mockRejectedValue(new Error("535 Authentication failed for s3cret-pass"));
     const result = await probe();

@@ -1,5 +1,5 @@
 -- Buffr Checkpoint — Capability Status v0.4 correction
--- Source of truth: buffrcheckpoint.md Section 4a.7, v0.4 hardening-pass
+-- Source of truth: docs/archive/buffrcheckpoint.v0.34-legacy-2026-10-07.md Section 4a.7, v0.4 hardening-pass
 -- point 1. The single `capability_status` table conflated Buffr
 -- Checkpoint's own platform-wide integration status with whether any given
 -- tenant has actually enabled a capability, and exposed no controlled

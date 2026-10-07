@@ -87,6 +87,7 @@ export const pmsRoomZoneMappings = pgTable(
 export const pmsSyncRunLog = pgTable(
   "pms_sync_run_log",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     organisationId: uuid("organisation_id")
       .notNull()

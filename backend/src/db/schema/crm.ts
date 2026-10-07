@@ -9,6 +9,7 @@ import { typeDefinition } from "./type-definitions";
 export const crmContact = pgTable(
   "crm_contact",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     organisationId: uuid("organisation_id")
       .notNull()
@@ -26,6 +27,7 @@ export const crmContact = pgTable(
 export const crmDeal = pgTable(
   "crm_deal",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     // Nullable — a deal can predate an organisation record for a pure prospect.
     organisationId: uuid("organisation_id").references(() => organisations.id),

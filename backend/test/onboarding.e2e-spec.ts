@@ -17,7 +17,7 @@ import { randomUUID } from "node:crypto";
 jest.setTimeout(120_000);
 
 /**
- * Launch-readiness experience (buffrcheckpoint.md §11.9.15): the server facts
+ * Launch-readiness experience (buffrcheckpoint.md §7): the server facts
  * the admin screens render. Runs against a disposable Neon branch.
  */
 describe("Onboarding launch readiness (e2e)", () => {

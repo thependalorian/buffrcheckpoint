@@ -1,8 +1,15 @@
-import { CreateDsarSheet, DsarTypeFilter, RequestTypeBadge, ResolveDsarButtons } from "./_components/dsar-controls";
+import {
+  CreateDsarSheet,
+  DsarTypeFilter,
+  ExtendDsarControl,
+  RequestTypeBadge,
+  ResolveDsarButtons,
+} from "./_components/dsar-controls";
 import { DashboardPageHeader } from "@/components/dashboard-page-header";
 import { DashboardErrorState, TableEmptyRow } from "@/components/dashboard-state";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { api } from "@/lib/api/client";
+import { type DeadlineState, deadlineClass, deadlineLabel, privacyRequestsCopy } from "@/lib/copy/privacy-requests";
 
 interface DsarRow {
   id: string;
@@ -12,6 +19,11 @@ interface DsarRow {
   isAccountDeletion: boolean;
   createdAt?: string;
   exportFileReference?: string | null;
+  dueAt: string | null;
+  daysLeft: number | null;
+  deadlineState: DeadlineState;
+  extended: boolean;
+  canExtend: boolean;
 }
 
 export default async function PrivacyRequestsPage({ searchParams }: { searchParams: Promise<{ type?: string }> }) {
@@ -55,13 +67,14 @@ export default async function PrivacyRequestsPage({ searchParams }: { searchPara
                 <TableHead className="h-11 p-3 font-medium">Type</TableHead>
                 <TableHead className="h-11 p-3 font-medium">Subject</TableHead>
                 <TableHead className="h-11 p-3 font-medium">Status</TableHead>
+                <TableHead className="h-11 p-3 font-medium">{privacyRequestsCopy.dueColumn}</TableHead>
                 <TableHead className="h-11 p-3 font-medium">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {rows.length === 0 ? (
                 <TableEmptyRow
-                  colSpan={4}
+                  colSpan={5}
                   title="No privacy requests yet"
                   description="Create a DSAR above. Filter to Account deletion when auditing erasure obligations."
                 />
@@ -73,6 +86,14 @@ export default async function PrivacyRequestsPage({ searchParams }: { searchPara
                     </TableCell>
                     <TableCell className="p-3 font-mono text-xs">{row.subjectReference}</TableCell>
                     <TableCell className="p-3 text-sm">{row.statusCode}</TableCell>
+                    <TableCell className="p-3 text-sm">
+                      <div className="flex flex-col gap-2">
+                        <span className={deadlineClass(row.deadlineState)}>
+                          {deadlineLabel(row.deadlineState, row.daysLeft, row.dueAt)}
+                        </span>
+                        <ExtendDsarControl id={row.id} canExtend={row.canExtend} extended={row.extended} />
+                      </div>
+                    </TableCell>
                     <TableCell className="p-3">
                       <ResolveDsarButtons
                         id={row.id}

@@ -214,4 +214,53 @@ describe("InvitationsService", () => {
       expect(result.emailed).toBe(false);
     });
   });
+
+  it("texts the check-in link once to a mobile number the host typed, and does not store the number", async () => {
+    const inserted: Record<string, unknown>[] = [];
+    const db = {
+      insert: jest.fn(() => ({
+        values: (row: Record<string, unknown>) => {
+          inserted.push(row);
+          return "tokenHmac" in row ? { returning: async () => [{ ...row, id: row.id }] } : Promise.resolve();
+        },
+      })),
+      query: { organisations: { findFirst: async () => ({ tradingName: "Mercy Clinic", legalName: "Mercy Clinic CC" }) } },
+    };
+    const sms = { send: jest.fn(async () => ({ queued: true as const })) };
+    const service = new InvitationsService(db as never, typeDefs as never, undefined, undefined, sms as never);
+    const result = await service.create(
+      {
+        siteId: "site-1",
+        hostId: "host-1",
+        visitorReference: "visitor-ref",
+        expectedAt: "2026-10-20T08:00:00.000Z",
+        expiresAt: new Date(Date.now() + 86_400_000).toISOString(),
+        visitorMobile: "081 123 4567",
+      },
+      orgUser,
+    );
+    expect(result.texted).toBe(true);
+    expect(sms.send).toHaveBeenCalledTimes(1);
+    const call = sms.send.mock.calls[0] as unknown as [{ templateCode: string; to: string; variables: Record<string, string> }];
+    expect(call[0].templateCode).toBe("visitor_prereg_invite_sms");
+    expect(call[0].variables.organisationName).toBe("Mercy Clinic");
+    expect(call[0].variables.visitDate).toBe("20 Oct 2026");
+    expect(call[0].variables.checkInUrl).toBe(result.qrUrl);
+    expect(JSON.stringify(inserted)).not.toContain("081 123 4567");
+  });
+
+  it("sends no text when no number was given, or when the text is not queued", async () => {
+    const db = {
+      insert: jest.fn(() => ({
+        values: (row: Record<string, unknown>) => ("tokenHmac" in row ? { returning: async () => [{ ...row, id: row.id }] } : Promise.resolve()),
+      })),
+      query: { organisations: { findFirst: async () => ({ legalName: "Mercy Clinic CC" }) } },
+    };
+    const sms = { send: jest.fn(async () => ({ queued: false as const, reason: "addon_not_active" as const })) };
+    const service = new InvitationsService(db as never, typeDefs as never, undefined, undefined, sms as never);
+    const base = { siteId: "s", hostId: "h", visitorReference: "v", expiresAt: new Date(Date.now() + 86_400_000).toISOString() };
+    expect((await service.create(base, orgUser)).texted).toBe(false);
+    expect(sms.send).not.toHaveBeenCalled();
+    expect((await service.create({ ...base, visitorMobile: "0811234567" }, orgUser)).texted).toBe(false);
+  });
 });

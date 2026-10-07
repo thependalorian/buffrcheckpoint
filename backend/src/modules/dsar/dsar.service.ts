@@ -1,4 +1,4 @@
-import { Inject, Injectable, NotFoundException, StreamableFile } from "@nestjs/common";
+import { BadRequestException, Inject, Injectable, NotFoundException, StreamableFile } from "@nestjs/common";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 
 import { createArtifactStore } from "../../common/artifacts/artifact-store";
@@ -16,6 +16,7 @@ import {
   visitorVisits,
 } from "../../db/schema";
 import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.service";
+import { canExtend, EXTENSION_PREFIX, requestClock } from "./dsar-clock";
 import { randomUUID } from "node:crypto";
 
 export interface CreateDsarInput {
@@ -67,17 +68,39 @@ export class DsarService {
       where: and(eq(privacyRequests.organisationId, user.organisationId), isNull(privacyRequests.deletedAt)),
     });
 
+    const logs = rows.length
+      ? await this.db.query.privacyRequestStatusLog.findMany({
+          where: inArray(
+            privacyRequestStatusLog.requestId,
+            rows.map((row) => row.id),
+          ),
+        })
+      : [];
+    const now = new Date();
+
     const enriched = await Promise.all(
       rows.map(async (row) => {
         const [requestTypeCode, statusCode] = await Promise.all([
           this.typeDefs.codeById(row.requestTypeCode),
           this.typeDefs.codeById(row.statusCode),
         ]);
+        const isOpen = statusCode === "pending" || statusCode === "in_review";
+        const clock = requestClock(
+          logs.filter((entry) => entry.requestId === row.id),
+          isOpen,
+          now,
+        );
         return {
           ...row,
           requestTypeCode: requestTypeCode ?? row.requestTypeCode,
           statusCode: statusCode ?? row.statusCode,
           isAccountDeletion: requestTypeCode === "account_deletion",
+          receivedAt: clock.receivedAt,
+          dueAt: clock.dueAt,
+          daysLeft: clock.daysLeft,
+          deadlineState: clock.state,
+          extended: clock.extended,
+          canExtend: canExtend(clock),
         };
       }),
     );
@@ -86,6 +109,38 @@ export class DsarService {
       return enriched.filter((row) => row.requestTypeCode === filter.requestTypeCode);
     }
     return enriched;
+  }
+
+  /** Uses the one permitted extension. The reason is recorded in the status log, which also moves the deadline by a month. */
+  async extend(requestId: string, reason: string, user: AuthenticatedUser) {
+    const request = await this.db.query.privacyRequests.findFirst({
+      where: and(eq(privacyRequests.id, requestId), eq(privacyRequests.organisationId, user.organisationId)),
+    });
+    if (!request) throw new NotFoundException("DSAR not found");
+    const statusCode = await this.typeDefs.codeById(request.statusCode);
+    const log = await this.db.query.privacyRequestStatusLog.findMany({
+      where: eq(privacyRequestStatusLog.requestId, requestId),
+    });
+    const clock = requestClock(log, statusCode === "pending" || statusCode === "in_review", new Date());
+    if (!canExtend(clock)) {
+      throw new BadRequestException("This request is closed or has already used its one extension.");
+    }
+    const trimmed = reason.trim();
+    if (trimmed.length < 5) throw new BadRequestException("Give the reason for the extension.");
+    await this.db.insert(privacyRequestStatusLog).values({
+      id: randomUUID(),
+      requestId,
+      statusCode: request.statusCode,
+      occurredAt: new Date(),
+      actorId: user.userId,
+      reason: `${EXTENSION_PREFIX} ${trimmed}`,
+    });
+    const updated = requestClock(
+      [...log, { occurredAt: new Date(), reason: `${EXTENSION_PREFIX} ${trimmed}` }],
+      true,
+      new Date(),
+    );
+    return { requestId, dueAt: updated.dueAt, extended: true };
   }
 
   async resolve(requestId: string, resolution: "completed" | "rejected", reason: string, user: AuthenticatedUser) {

@@ -68,7 +68,6 @@ fun KioskNavGraph(
     }
 
     BuffrCheckpointTheme(
-        brandColourToken = experience.brandColourToken,
         largeTextEnabled = experience.accessibilityLargeTextEnabled,
     ) {
         VisitorSessionTimeoutController(

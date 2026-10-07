@@ -1,5 +1,7 @@
 import { Injectable } from "@nestjs/common";
 
+import { requiredSecret } from "../crypto/required-secret";
+
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 
 // Canonical Engineering Constitution §4/§5.2: the protected-PII envelope
@@ -23,11 +25,9 @@ const LOCAL_DEV_KEY_ENV_VAR = "LOCAL_DEV_DATA_KEY";
 const KEY_VERSION = 1;
 
 function localDevKey(): Buffer {
-  const configured = process.env[LOCAL_DEV_KEY_ENV_VAR];
-  // 32-byte key required by AES-256-GCM. Never fall back to a fixed value in
-  // a real deployment — this is a local-dev stand-in for a KMS-issued data
-  // key, documented as such in backend/.env.example.
-  const material = configured ?? "local-dev-only-insecure-key-do-not-deploy!!";
+  // 32-byte key required by AES-256-GCM, derived from the configured secret. In production a missing or short
+  // value throws (no fallback); the fixed value below is for local development and tests only.
+  const material = requiredSecret(LOCAL_DEV_KEY_ENV_VAR, "local-dev-only-insecure-key-do-not-deploy!!");
   return createHash("sha256").update(material).digest();
 }
 
@@ -96,7 +96,7 @@ export class PersonalDataProtectionService {
   // on its own). Callers name the result for its purpose, e.g.
   // `visitorNameLookupHmac`, never `nameHash`.
   lookupHmac(value: string, pepperEnvVar: string): string {
-    const pepper = process.env[pepperEnvVar] ?? "";
+    const pepper = requiredSecret(pepperEnvVar, "");
     const material =
       pepperEnvVar === "PHONE_HASH_PEPPER" ? this.normalizePhoneForLookup(value) : value.trim().toLowerCase();
     return createHash("sha256").update(`${pepper}:${material}`).digest("hex");
@@ -107,7 +107,7 @@ export class PersonalDataProtectionService {
    * normalization (legacy trim+lower) and alternate +/digits forms.
    */
   phoneLookupHmacCandidates(value: string): string[] {
-    const pepper = process.env.PHONE_HASH_PEPPER ?? "";
+    const pepper = requiredSecret("PHONE_HASH_PEPPER", "");
     const digits = value.replace(/\D/g, "");
     const variants = new Set<string>();
     variants.add(this.normalizePhoneForLookup(value));

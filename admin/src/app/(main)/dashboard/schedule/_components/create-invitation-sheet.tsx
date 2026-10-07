@@ -10,6 +10,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/co
 import { Textarea } from "@/components/ui/textarea";
 
 import { createInvitationAction } from "../actions";
+import { deliverySummary, invitationsCopy } from "@/lib/copy/invitations";
 
 interface SiteOption {
   id: string;
@@ -32,6 +33,7 @@ export function CreateInvitationSheet({ sites, hosts }: CreateInvitationSheetPro
   const [siteId, setSiteId] = useState("");
   const [hostId, setHostId] = useState("");
   const [qrUrl, setQrUrl] = useState<string | null>(null);
+  const [delivery, setDelivery] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 
@@ -43,6 +45,7 @@ export function CreateInvitationSheet({ sites, hosts }: CreateInvitationSheetPro
     setPending(true);
     setError(null);
     setQrUrl(null);
+    setDelivery(null);
     try {
       const created = await createInvitationAction({
         siteId,
@@ -50,8 +53,11 @@ export function CreateInvitationSheet({ sites, hosts }: CreateInvitationSheetPro
         visitorReference: String(formData.get("visitorReference") ?? ""),
         visitorCategoryCode: String(formData.get("visitorCategoryCode") ?? "general"),
         expiresAt: String(formData.get("expiresAt") ?? ""),
+        visitorEmail: String(formData.get("visitorEmail") ?? ""),
+        visitorMobile: String(formData.get("visitorMobile") ?? ""),
       });
       setQrUrl(created.qrUrl);
+      setDelivery(deliverySummary(created));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create invitation.");
     } finally {
@@ -118,7 +124,17 @@ export function CreateInvitationSheet({ sites, hosts }: CreateInvitationSheetPro
             <Label htmlFor="expiresAt">Valid until</Label>
             <Input id="expiresAt" name="expiresAt" type="datetime-local" required />
           </div>
+          <div className="space-y-2">
+            <Label htmlFor="visitorEmail">{invitationsCopy.emailLabel}</Label>
+            <Input id="visitorEmail" name="visitorEmail" type="email" autoComplete="off" />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="visitorMobile">{invitationsCopy.mobileLabel}</Label>
+            <Input id="visitorMobile" name="visitorMobile" type="tel" autoComplete="off" />
+            <p className="text-xs text-muted-foreground">{invitationsCopy.deliveryHint}</p>
+          </div>
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
+          {delivery ? <p className="text-sm text-foreground">{delivery}</p> : null}
           {qrUrl ? (
             <div className="rounded-md border p-3 text-sm">
               <p className="font-medium">Invitation QR URL (opaque token only)</p>

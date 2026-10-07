@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "doc": "buffrcheckpoint.md §17.4",
+  "doc": "buffrcheckpoint.md §29.3",
   "stages": {
     "a0": {
       "name": "Internal alpha",
@@ -30,7 +30,7 @@
         {
           "id": "A0-ENTRY-11.8",
           "kind": "manual",
-          "title": "§11.8.1–11.8.9 closed or deferred with owner+date",
+          "title": "§34 quality checklist closed or deferred with owner+date",
           "required": true
         },
         {
@@ -201,7 +201,7 @@
         {
           "id": "A1-ENTRY-RBA",
           "kind": "manual",
-          "title": "Partner sites classified on RBA tiers (§7.2)",
+          "title": "Partner sites classified on RBA tiers (§3.2)",
           "required": true
         },
         {
@@ -297,7 +297,7 @@
       ]
     },
     "a2": {
-      "name": "Paid pilot (§17.2)",
+      "name": "Paid pilot (§29.2)",
       "authority": "Pilot site champions; product owner + commercial accountable",
       "items": [
         {
@@ -339,7 +339,7 @@
         {
           "id": "A2-KPI-WEEKLY",
           "kind": "manual",
-          "title": "Weekly KPI pack filed (§17.2 measure list)",
+          "title": "Weekly KPI pack filed (§29.2 measure list)",
           "required": true
         },
         {
@@ -375,7 +375,7 @@
         {
           "id": "A2-EXIT-KPI-REVIEW",
           "kind": "manual",
-          "title": "KPI pack reviewed; §17.3 hypotheses updated with actuals",
+          "title": "KPI pack reviewed; §29.2 hypotheses updated with actuals",
           "required": true
         },
         {

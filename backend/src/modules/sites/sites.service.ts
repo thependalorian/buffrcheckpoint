@@ -55,7 +55,7 @@ export class SitesService {
     const activeSites = Number(row?.n ?? 0);
     if (activeSites >= sub.siteQuantity) {
       throw new ForbiddenException(
-        `Your plan covers ${sub.siteQuantity} site${sub.siteQuantity === 1 ? "" : "s"}, and all are in use. Email team@buffranalytics.com to add sites to your plan.`,
+        `Your plan covers ${sub.siteQuantity} site${sub.siteQuantity === 1 ? "" : "s"}, and all are in use. Email ${process.env.PUBLIC_CONTACT_EMAIL?.trim() || "team@buffranalytics.com"} to add sites to your plan.`,
       );
     }
   }

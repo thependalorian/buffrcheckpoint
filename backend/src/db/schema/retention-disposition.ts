@@ -9,6 +9,7 @@ import { typeDefinition } from "./type-definitions";
 export const retentionDispositionRun = pgTable(
   "retention_disposition_run",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     organisationId: uuid("organisation_id")
       .notNull()

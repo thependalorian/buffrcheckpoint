@@ -12,6 +12,7 @@ import { visitorVisits } from "./visits";
 export const visitSurveyResponses = pgTable(
   "visit_survey_responses",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     organisationId: uuid("organisation_id")
       .notNull()
@@ -55,6 +56,7 @@ export const visitSurveyResponseStatusEvents = pgTable("visit_survey_response_st
 });
 
 export const visitSurveyDailyFact = pgTable("visit_survey_daily_fact", {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   id: uuid("id").primaryKey(),
   organisationId: uuid("organisation_id")
     .notNull()

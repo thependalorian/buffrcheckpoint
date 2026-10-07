@@ -13,6 +13,7 @@ import { typeDefinition } from "./type-definitions";
 export const analyticsEtlRun = pgTable(
   "analytics_etl_run",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     runKindCode: uuid("run_kind_code")
       .notNull()
@@ -52,6 +53,7 @@ export const analyticsEtlRunStatusLog = pgTable(
 export const visitDailyFact = pgTable(
   "visit_daily_fact",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     organisationId: uuid("organisation_id")
       .notNull()
@@ -83,6 +85,7 @@ export const visitDailyFact = pgTable(
 export const visitHourlyFact = pgTable(
   "visit_hourly_fact",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     organisationId: uuid("organisation_id")
       .notNull()

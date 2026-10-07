@@ -1,5 +1,5 @@
 -- Buffr Checkpoint — type_definition seed for migration 0010
--- Source of truth: buffrcheckpoint.md Section 11.9.8
+-- Source of truth: docs/archive/buffrcheckpoint.v0.34-legacy-2026-10-07.md Section 11.9.8
 -- Applied via MCP on 2026-09-11 (Oregon); carried into falling-frog-15538162 by the 2026-09-25 Frankfurt move.
 -- Adding a new value later is one INSERT, never a migration.
 

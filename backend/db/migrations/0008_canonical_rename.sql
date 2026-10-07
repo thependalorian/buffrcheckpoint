@@ -1,5 +1,5 @@
 -- Buffr Checkpoint — Canonical Engineering Constitution rename/restructure
--- Source of truth: buffrcheckpoint.md, "Canonical Engineering Constitution"
+-- Source of truth: docs/archive/buffrcheckpoint.v0.34-legacy-2026-10-07.md, "Canonical Engineering Constitution"
 -- addendum appended 2026-09-09. Renames every table to a business-capability
 -- name per that document's naming convention, and restructures visitor PII
 -- into a separated subject+protected-payload shape.

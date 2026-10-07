@@ -13,7 +13,7 @@ export interface PresenceEntry {
 }
 
 /**
- * Advisory "someone is editing this step" map (buffrcheckpoint.md §11.9.15.9).
+ * Advisory "someone is editing this step" map (buffrcheckpoint.md §7.10).
  * In-process, so it is only accurate while the API runs as a single instance,
  * the same caveat as the roster SSE emitter (§11.1b). It never blocks a
  * write: optimistic concurrency on the onboarding state row stays the guard.

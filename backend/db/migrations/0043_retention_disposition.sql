@@ -1,7 +1,7 @@
 -- Buffr Checkpoint — retention disposition: run history for the job that
 -- executes retention policies.
 --
--- Source of truth: buffrcheckpoint.md "Retention purge/archive job" (§11.9.0a).
+-- Source of truth: docs/archive/buffrcheckpoint.v0.34-legacy-2026-10-07.md "Retention purge/archive job" (§11.9.0a).
 --
 -- One run row per organisation per execution. A run soft-deletes visits whose
 -- check-out is older than the effective retention policy (site row, else the

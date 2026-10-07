@@ -9,7 +9,6 @@ data class KioskExperienceState(
     val organisationDisplayName: String? = null,
     val siteDisplayName: String? = null,
     val helpContactReference: String? = null,
-    val brandColourToken: String? = null,
     val logoUrl: String? = null,
     val privacyNoticeVersionId: String? = null,
     val privacyPolicyName: String? = null,

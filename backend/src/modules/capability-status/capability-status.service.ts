@@ -226,7 +226,7 @@ export class CapabilityStatusService {
 
     const now = new Date();
 
-    // Dual-approval (buffrcheckpoint.md §7901: "Only an internal Platform
+    // Dual-approval (buffrcheckpoint.md §24.4: "Only an internal Platform
     // Support/Compliance process with dual approval should be able to mark
     // an integration as live" — the schema previously had only one
     // approver column). Non-'live' transitions stay single-approval;

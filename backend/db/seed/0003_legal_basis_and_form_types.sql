@@ -1,5 +1,5 @@
 -- Buffr Checkpoint — type_definition seed data for migration 0006
--- Source of truth: buffrcheckpoint.md Section 11.4.5a
+-- Source of truth: docs/archive/buffrcheckpoint.v0.34-legacy-2026-10-07.md Section 11.4.5a
 -- Adding a new value later is one more INSERT, never a migration.
 
 INSERT INTO type_definition (domain, code, label, sort_order) VALUES

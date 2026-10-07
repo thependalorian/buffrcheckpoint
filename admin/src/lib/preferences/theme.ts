@@ -1,4 +1,4 @@
-// Light-only by decision (buffrcheckpoint.md Section 11.5). The Buffr
+// Light-only by decision (buffrcheckpoint.md §33). The Buffr
 // Checkpoint preset's tokens are keyed off [data-theme-preset="buffr-checkpoint"],
 // not .dark. ThemeMode stays the original three-value union because
 // theme-utils.ts and preferences-provider.tsx still reference "light"/"system"
@@ -10,7 +10,7 @@ export type ResolvedThemeMode = "light" | "dark";
 
 // NOTE: originally CLI-generated (`npm run generate:presets`) from every
 // file in src/styles/presets/. Hand-fixed to a single, non-switchable
-// preset per Section 11.5's dark-only decision — the generator script and
+// preset per §33's dark-only decision — the generator script and
 // the other preset CSS files are left in place, unused; re-running the
 // generator would resurrect the light-mode presets removed here.
 export const THEME_PRESET_OPTIONS = [

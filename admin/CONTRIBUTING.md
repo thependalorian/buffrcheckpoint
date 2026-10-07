@@ -2,7 +2,7 @@
 
 Internal contribution notes for the Buffr Checkpoint customer admin app
 (`buffrcheckpoint/admin`). Product requirements and architecture live in
-`../buffrcheckpoint.md` (DNS runbook: **§11.7.8**).
+`../buffrcheckpoint.md` (DNS runbook: **§32.1**).
 
 ## Stack
 

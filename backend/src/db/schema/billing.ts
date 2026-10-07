@@ -21,6 +21,7 @@ import { typeDefinition } from "./type-definitions";
 export const subscriptionCatalogItem = pgTable(
   "subscription_catalog_item",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     kindCode: uuid("kind_code")
       .notNull()
@@ -56,6 +57,7 @@ export const subscriptionCatalogItem = pgTable(
 export const organisationSubscription = pgTable(
   "organisation_subscription",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     organisationId: uuid("organisation_id")
       .notNull()
@@ -108,6 +110,7 @@ export const organisationSubscriptionStatusEvents = pgTable(
 export const organisationSubscriptionAddon = pgTable(
   "organisation_subscription_addon",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     organisationId: uuid("organisation_id")
       .notNull()
@@ -172,6 +175,7 @@ export const organisationSubscriptionSiteQuantityLog = pgTable(
 export const invoice = pgTable(
   "invoice",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     organisationId: uuid("organisation_id")
       .notNull()
@@ -192,6 +196,7 @@ export const invoice = pgTable(
 export const invoiceLineItem = pgTable(
   "invoice_line_item",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     invoiceId: uuid("invoice_id")
       .notNull()
@@ -208,6 +213,7 @@ export const invoiceLineItem = pgTable(
 export const invoiceCreditNote = pgTable(
   "invoice_credit_note",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     invoiceId: uuid("invoice_id")
       .notNull()
@@ -264,6 +270,7 @@ export const paymentTransaction = pgTable(
 export const paymentReconciliationLog = pgTable(
   "payment_reconciliation_log",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     paymentTransactionId: uuid("payment_transaction_id")
       .notNull()

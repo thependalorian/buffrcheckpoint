@@ -31,8 +31,8 @@ export interface SmtpAdapterDeps {
 }
 
 /**
- * Sends through a mailbox over SMTP (Namecheap Private Email by default: mail.privateemail.com, port 465, TLS). The same mailbox the
- * email agent uses, so Checkpoint mail comes from hello@buffr.ai. Plain text is canonical; HTML is an alternative part. No tracking pixels
+ * Sends through a mailbox over SMTP (Namecheap Private Email by default: mail.privateemail.com, port 465, TLS). Checkpoint mail
+ * comes from the configured mailbox, team@buffranalytics.com. Plain text is canonical; HTML is an alternative part. No tracking pixels
  * and no links are rewritten.
  */
 export class SmtpEmailAdapter implements NotificationChannelAdapter {

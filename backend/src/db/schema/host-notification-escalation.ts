@@ -11,6 +11,7 @@ import { typeDefinition } from "./type-definitions";
 export const hostNotificationEscalationPolicies = pgTable(
   "host_notification_escalation_policies",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     organisationId: uuid("organisation_id")
       .notNull()
@@ -26,6 +27,7 @@ export const hostNotificationEscalationPolicies = pgTable(
 export const hostNotificationEscalationPolicyVersions = pgTable(
   "host_notification_escalation_policy_versions",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     escalationPolicyId: uuid("escalation_policy_id")
       .notNull()

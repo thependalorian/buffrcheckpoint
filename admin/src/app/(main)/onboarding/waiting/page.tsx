@@ -12,7 +12,7 @@ export default async function OnboardingWaitingPage() {
   const copy = onboardingCopy.waiting;
   return (
     <section className="bc-panel max-w-xl space-y-4">
-      <h2 className="font-heading text-xl">{copy.title}</h2>
+      <h1 className="bc-h-page">{copy.title}</h1>
       <div className="space-y-1 text-sm">
         <p>{copy.notReady(gate.organisationName)}</p>
         <p className="text-muted-foreground">{copy.owner}</p>

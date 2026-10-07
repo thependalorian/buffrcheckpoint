@@ -76,12 +76,15 @@ export class OnboardingProgressService {
    * prerequisites, plus who else is editing setup, for the readiness overview.
    */
   async readiness(user: AuthenticatedUser) {
-    // Steps the system completes from defaults are brought up to date first, so the owner never sees one as a to-do that is done.
-    await this.syncAutoSteps(user).catch((error) =>
-      this.logger.warn(`onboarding auto-steps not synced: ${error instanceof Error ? error.message : String(error)}`),
-    );
-    const loaded = await this.load(user.organisationId);
-    const facts = await this.evidence.snapshot(user.organisationId, user.userId);
+    // Steps the system completes from defaults are brought up to date first, so the owner never sees one as a to-do that is done. The
+    // sync already read the state and the evidence, so they are reused unless it wrote (then they are stale and read again).
+    const synced = await this.syncAuto(user).catch((error) => {
+      this.logger.warn(`onboarding auto-steps not synced: ${error instanceof Error ? error.message : String(error)}`);
+      return null;
+    });
+    const loaded = synced && !synced.wrote ? synced.loaded : await this.load(user.organisationId);
+    const facts =
+      synced && !synced.wrote ? synced.facts : await this.evidence.snapshot(user.organisationId, user.userId);
     const steps = describeSteps(loaded.progress).map((step) => ({
       ...step,
       missingEvidence: missingEvidence(step.code, loaded.progress.route, facts),
@@ -136,10 +139,18 @@ export class OnboardingProgressService {
    * evidence for the step exists right now, so it cannot mark anything done that is not, and it stops once setup is closed.
    */
   async syncAutoSteps(user: AuthenticatedUser): Promise<void> {
+    await this.syncAuto(user);
+  }
+
+  /** The sync, returning what it read so a caller that needs the same state does not read it again. */
+  private async syncAuto(
+    user: AuthenticatedUser,
+  ): Promise<{ loaded: Loaded; facts: EvidenceSnapshot; wrote: boolean }> {
     const before = await this.load(user.organisationId);
-    if (before.status && SETUP_CLOSED.has(before.status)) return;
-    const route: LaunchRoute = before.progress.route ?? DEFAULT_LAUNCH_ROUTE;
     const facts = await this.evidence.snapshot(user.organisationId, user.userId);
+    const unchanged = { loaded: before, facts, wrote: false };
+    if (before.status && SETUP_CLOSED.has(before.status)) return unchanged;
+    const route: LaunchRoute = before.progress.route ?? DEFAULT_LAUNCH_ROUTE;
     // The default route is applied for the owner as soon as a site exists, in the same write that completes the step, so that step is
     // satisfiable exactly when it is unblocked. Every other step needs its own evidence to exist right now.
     const ready = autoSteps(route).filter((step) =>
@@ -148,7 +159,7 @@ export class OnboardingProgressService {
         : missingEvidence(step, route, facts).length === 0 && blockedBy(step, facts).length === 0,
     );
     const alreadyDone = ready.every((step) => before.progress.completed.includes(step));
-    if (ready.length === 0 || (alreadyDone && before.progress.route !== null)) return;
+    if (ready.length === 0 || (alreadyDone && before.progress.route !== null)) return unchanged;
 
     await this.onboardingState.advanceIfEarlyStage(user.organisationId, "in_progress", user.userId, ready[0]);
     await this.commit(user, ready[0], async ({ status, progress }) => {
@@ -170,6 +181,7 @@ export class OnboardingProgressService {
         goliveApprovedBy: null,
       };
     });
+    return { loaded: before, facts, wrote: true };
   }
 
   /** What the owner is asked to accept: the visitor notice, the retention period and the check-in form, as they stand now. */

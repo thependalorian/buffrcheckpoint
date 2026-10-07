@@ -13,7 +13,7 @@ interface PendingGrant {
 }
 
 // Customer-side consent gate for Buffr Checkpoint's internal break-glass
-// support access (buffrcheckpoint.md Section 9.2 rule 4, Section 11.9.1a) —
+// support access (buffrcheckpoint.md §5.2 rule 4, §5.4) —
 // no platform_support session can ever be minted against this organisation
 // until an owner_operator/system_administrator here explicitly approves
 // it. Reused nowhere else — this is the one screen that exists purely to

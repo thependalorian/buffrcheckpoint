@@ -21,7 +21,7 @@ const LONGEST = {
   signOutUrl: `https://buffrcheckpoint.com/o/${"A".repeat(41)}`,
   ratingUrl: `https://buffrcheckpoint.com/r/${"A".repeat(41)}`,
   visitDate: "31 Dec 2026",
-  checkInUrl: `https://buffrcheckpoint.com/check-in?site=${"a".repeat(8)}`,
+  checkInUrl: `https://buffrcheckpoint.com/check-in?inv=${"A".repeat(32)}`, // a real invitation link: 24 random bytes as base64url
 };
 
 describe("SMS template catalog", () => {

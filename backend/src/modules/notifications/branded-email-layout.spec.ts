@@ -8,11 +8,11 @@ describe("brandedEmailLayout", () => {
     actionLabel: "Open it",
   });
 
-  it("uses the brand: mustard bar, the email logo plate, and the Checkpoint footer with hello@buffr.ai", () => {
+  it("uses the brand: mustard bar, the email logo plate, and the Checkpoint footer with team@buffranalytics.com", () => {
     expect(html).toContain("#E0B000");
     expect(html).toContain(DEFAULT_EMAIL_LOGO);
-    expect(html).toContain("mailto:hello@buffr.ai");
-    expect(html).not.toContain("buffranalytics.com");
+    expect(html).toContain("mailto:team@buffranalytics.com");
+    expect(html).not.toContain("Buffr Analytics");
     expect(html).toContain("The Buffr Checkpoint team");
   });
 
@@ -61,7 +61,7 @@ describe("brandedEmailLayout", () => {
   it("signs once, with no contact details repeated outside the footer", () => {
     const out = brandedEmailLayout({ title: "t", bodyText: "x", greeting: null, signature: { name: "Team" } });
     expect(out.match(/Kind regards/g)).toHaveLength(1);
-    expect(out.match(/mailto:hello@buffr\.ai/g)).toHaveLength(1); // the footer only
+    expect(out.match(/mailto:team@buffranalytics\.com/g)).toHaveLength(1); // the footer only
     expect(out.match(/>buffrcheckpoint\.com</g)).toHaveLength(1); // the footer only
   });
 

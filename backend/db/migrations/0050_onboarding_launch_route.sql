@@ -1,4 +1,4 @@
--- Buffr Checkpoint — launch-readiness checklist (buffrcheckpoint.md v0.33).
+-- Buffr Checkpoint — launch-readiness checklist (docs/archive/buffrcheckpoint.v0.34-legacy-2026-10-07.md v0.33).
 --
 -- The 13-step wizard asked for branding before a site existed and required
 -- kiosk devices from customers launching with phone QR only. The checklist

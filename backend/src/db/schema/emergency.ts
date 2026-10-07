@@ -9,6 +9,7 @@ import { visitorVisits } from "./visits";
 export const emergencyRollCallEvents = pgTable(
   "emergency_roll_call_events",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     organisationId: uuid("organisation_id")
       .notNull()
@@ -27,6 +28,7 @@ export const emergencyRollCallEvents = pgTable(
 export const emergencyRollCallEntries = pgTable(
   "emergency_roll_call_entries",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     rollCallEventId: uuid("roll_call_event_id")
       .notNull()

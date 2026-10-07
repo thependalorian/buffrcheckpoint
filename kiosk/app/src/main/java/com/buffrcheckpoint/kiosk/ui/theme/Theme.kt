@@ -1,46 +1,29 @@
 package com.buffrcheckpoint.kiosk.ui.theme
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.graphics.Color
-
-private fun parseBrandColour(token: String?): Color {
-    if (token.isNullOrBlank()) return BuffrBlue
-    val normalized = token.removePrefix("#")
-    return runCatching {
-        Color(("FF$normalized").toLong(16))
-    }.getOrDefault(BuffrBlue)
-}
 
 @Composable
 fun BuffrCheckpointTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    brandColourToken: String? = null,
     largeTextEnabled: Boolean = false,
     content: @Composable () -> Unit,
 ) {
-    val primary = parseBrandColour(brandColourToken)
-    val colorScheme = if (darkTheme) {
-        darkColorScheme(primary = primary, secondary = BuffrTeal, error = BuffrRed)
-    } else {
-        lightColorScheme(
-            primary = primary,
-            onPrimary = BuffrWhite,
-            secondary = BuffrSodiumYellow,
-            onSecondary = BuffrCarbon,
-            background = BuffrCloud,
-            onBackground = BuffrCarbon,
-            surface = BuffrWhite,
-            onSurface = BuffrCarbon,
-            surfaceVariant = BuffrCloud,
-            onSurfaceVariant = BuffrSlate,
-            outline = BuffrFrost,
-            error = BuffrRed,
-        )
-    }
+    // Light only, high contrast: Sodium Yellow fills carry near-black text (white on yellow fails WCAG AA).
+    val colorScheme = lightColorScheme(
+        primary = BuffrSodiumYellow,
+        onPrimary = BuffrCarbon,
+        secondary = BuffrCharcoal,
+        onSecondary = BuffrWhite,
+        background = BuffrCloud,
+        onBackground = BuffrCarbon,
+        surface = BuffrWhite,
+        onSurface = BuffrCarbon,
+        surfaceVariant = BuffrCloud,
+        onSurfaceVariant = BuffrSlate,
+        outline = BuffrFrost,
+        error = BuffrRed,
+    )
     val typography = if (largeTextEnabled) {
         BuffrTypography.copy(
             displaySmall = BuffrTypography.displaySmall.copy(fontSize = BuffrTypography.displaySmall.fontSize * 1.2f),

@@ -1,5 +1,5 @@
 -- ============================================================================
--- Buffr Checkpoint — gap-closure phases 2-8 (buffrcheckpoint.md Section 11.9).
+-- Buffr Checkpoint — gap-closure phases 2-8 (docs/archive/buffrcheckpoint.v0.34-legacy-2026-10-07.md Section 11.9).
 --
 -- Covers, in one migration because they ship together:
 --   1. site_status type_definition rows (SitesService.setStatusForOrganisation

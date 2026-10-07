@@ -6,7 +6,7 @@ import type { AuthenticatedUser } from "../decorators/current-user.decorator";
 import { IS_PUBLIC_KEY } from "../decorators/public.decorator";
 import { PERMISSION_KEY } from "../decorators/require-permission.decorator";
 
-// Separates the ops and customer front doors (buffrcheckpoint.md §9.2a): ops tokens only
+// Separates the ops and customer front doors (buffrcheckpoint.md §5.3): ops tokens only
 // reach the ops surface, customer tokens never exercise platform.* permissions. Runs after
 // JwtAuthGuard has populated request.user and before TenantScopeGuard / RbacGuard.
 @Injectable()

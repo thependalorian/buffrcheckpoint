@@ -145,7 +145,7 @@ export class AuthController {
     return this.authService.verifyMfaChallenge(dto.challengeToken, dto.code ?? "", dto.recoveryCode, "admin");
   }
 
-  /** Platform Ops Console sign-in (buffrcheckpoint.md §9.2a). platform_support only; MFA mandatory. */
+  /** Platform Ops Console sign-in (buffrcheckpoint.md §5.3). platform_support only; MFA mandatory. */
   @Public()
   @Throttle(PLATFORM_AUTH_THROTTLE)
   @HttpCode(HttpStatus.OK)

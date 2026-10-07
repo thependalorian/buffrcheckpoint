@@ -1,5 +1,5 @@
 -- Buffr Checkpoint — Section 11.4.5a schema proposals, applied
--- Source of truth: buffrcheckpoint.md Section 11.4.5a
+-- Source of truth: docs/archive/buffrcheckpoint.v0.34-legacy-2026-10-07.md Section 11.4.5a
 -- STATUS: Approved for implementation, 2026-09-09 (owner: George Nekwaya)
 --
 -- Closes: PII encryption for visitor.name and host.contact_reference

@@ -1,6 +1,6 @@
 #!/usr/bin/env npx ts-node
 /**
- * Verifies the separate ops front door (buffrcheckpoint.md §9.2a) over HTTP.
+ * Verifies the separate ops front door (buffrcheckpoint.md §5.3) over HTTP.
  *
  * Usage (against a Neon branch, never production data you care about: it enrols MFA
  * on the ops account if missing):

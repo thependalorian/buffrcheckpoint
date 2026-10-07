@@ -1,7 +1,7 @@
 /**
  * Canonical identity_assurance_level codes V0–V4 — keep in sync with
  * type_definition domain `identity_assurance_level` (seed 0001 / migration 0018).
- * Labels are the constitutional names from buffrcheckpoint.md §5.2a.
+ * Labels are the constitutional names from buffrcheckpoint.md §3.1.
  */
 export const IDENTITY_ASSURANCE_LEVEL_CODES = ["V0", "V1", "V2", "V3", "V4"] as const;
 

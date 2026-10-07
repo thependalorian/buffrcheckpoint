@@ -1,6 +1,6 @@
 -- Buffr Checkpoint — platform_support demo account, for exercising the
 -- Platform Ops Console's break-glass support-session flow end-to-end
--- (buffrcheckpoint.md Section 11.9.1a). Home org is the existing
+-- (docs/archive/buffrcheckpoint.v0.34-legacy-2026-10-07.md Section 11.9.1a). Home org is the existing
 -- Buffr Analytics org (canonical demo customer). A platform_support user's
 -- organisationId is just an FK-satisfying home row; they never act on it
 -- directly (their real endpoints are cross-tenant aggregate reads or

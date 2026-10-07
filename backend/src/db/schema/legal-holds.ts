@@ -9,6 +9,7 @@ import { typeDefinition } from "./type-definitions";
 export const legalHolds = pgTable(
   "legal_holds",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     organisationId: uuid("organisation_id")
       .notNull()

@@ -1,4 +1,4 @@
--- Buffr Checkpoint — one account per email, case-insensitive (buffrcheckpoint.md v0.33).
+-- Buffr Checkpoint — one account per email, case-insensitive (docs/archive/buffrcheckpoint.v0.34-legacy-2026-10-07.md v0.33).
 --
 -- Login resolves an account by email across all organisations, so the
 -- identity is global: this index intentionally does not lead with the tenant

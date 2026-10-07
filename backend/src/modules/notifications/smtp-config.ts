@@ -4,7 +4,7 @@ export interface SmtpConfig {
   secure: boolean;
   user: string;
   pass: string;
-  /** Visible sender, e.g. `Buffr Checkpoint <hello@buffr.ai>`. Must be the mailbox or an alias of it, or the provider rejects it. */
+  /** Visible sender, e.g. `Buffr Checkpoint <team@buffranalytics.com>`. Must be the mailbox or an alias of it, or the provider rejects it. */
   from: string;
   replyTo: string;
   /** The mailbox domain, used for Message-IDs. */
@@ -36,7 +36,7 @@ export function chooseTransport(env: NodeJS.ProcessEnv = process.env): EmailTran
 export function smtpConfigFromEnv(env: NodeJS.ProcessEnv = process.env): SmtpConfig {
   const user = env.SMTP_USER?.trim() ?? "";
   const pass = env.SMTP_PASS ?? "";
-  if (!ADDRESS.test(user)) throw new Error("SMTP_USER must be the mailbox address, for example hello@buffr.ai");
+  if (!ADDRESS.test(user)) throw new Error("SMTP_USER must be the mailbox address, for example team@buffranalytics.com");
   if (!pass) throw new Error("SMTP_PASS is not set");
   const port = int(env.SMTP_PORT, 465, 1, 65535);
   const from = env.EMAIL_FROM?.trim() || `Buffr Checkpoint <${user}>`;

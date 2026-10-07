@@ -1,6 +1,6 @@
 # Security policy
 
-Report a vulnerability to security@buffrcheckpoint.com. Do not open a public issue.
+Report a vulnerability to team@buffranalytics.com. Do not open a public issue.
 
 - Reports are acknowledged within 3 business days.
 - Include what you found, where, and the steps to reproduce it. Do not include real personal data or visitor records.

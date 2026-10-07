@@ -5,6 +5,7 @@ import { Metadata } from "next";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { IDENTITY_ASSURANCE_LADDER_SUMMARY } from "@/lib/copy/identity-assurance";
+import { POLICY_SUBPROCESSORS, PRIVACY_COPY } from "@/lib/copy/privacy";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
@@ -21,7 +22,7 @@ export default function PrivacyPage() {
               Privacy Policy
             </Badge>
             <h1 className="font-heading text-3xl font-light tracking-tight sm:text-4xl lg:text-5xl">Privacy Policy</h1>
-            <p className="mt-4 text-muted-foreground">Last updated: September 2026</p>
+            <p className="mt-4 text-muted-foreground">Last updated: October 2026</p>
           </div>
         </section>
 
@@ -96,9 +97,7 @@ export default function PrivacyPage() {
             <div>
               <h2 className="text-2xl font-bold">5. Data Retention and Deletion</h2>
               <p className="mt-4 text-muted-foreground">
-                Retention periods are configured per site and visitor type, in accordance with the client's
-                data-protection obligations. When a record reaches its retention threshold, it is either auto-deleted or
-                flagged for legal hold if a hold is active.
+                {PRIVACY_COPY.retention}
               </p>
               <p className="mt-4 text-muted-foreground">
                 Data-subject deletion requests (DSARs) are routed to the client's Compliance/Audit Officer, who verifies
@@ -126,25 +125,22 @@ export default function PrivacyPage() {
 
             <div>
               <h2 className="text-2xl font-bold">7. Subprocessors</h2>
-              <p className="mt-4 text-muted-foreground">We use the following categories of subprocessor:</p>
+              <p className="mt-4 text-muted-foreground">{PRIVACY_COPY.subprocessorsIntro}</p>
               <ul className="mt-4 list-disc space-y-2 pl-5 text-muted-foreground">
+                {POLICY_SUBPROCESSORS.map((provider) => (
+                  <li key={provider.name}>
+                    <strong className="text-foreground">{provider.name}:</strong> {provider.purpose}. {provider.region}.{" "}
+                    {provider.visitorPersonalData ? "Can receive visitor data." : "Does not receive visitor data."}
+                  </li>
+                ))}
                 <li>
-                  <strong className="text-foreground">Hosting:</strong> Flexible deployment options, including
-                  client-controlled private-cloud and on-premise deployments, per contract. Development and testing
-                  environments may use offshore infrastructure with synthetic data only; production deployments are
-                  scoped and confirmed per client.
-                </li>
-                <li>
-                  <strong className="text-foreground">Messaging:</strong> Licensed MTC, Telecom Namibia, or approved
-                  local aggregator for SMS.
-                </li>
-                <li>
-                  <strong className="text-foreground">Identity:</strong> DigiNam/NPKI verifier, where formally enabled
-                  by relying-party arrangement.
+                  <strong className="text-foreground">Identity:</strong> a DigiNam/NPKI verifier, only where formally
+                  enabled by relying-party arrangement. Not live today.
                 </li>
               </ul>
+              <p className="mt-4 text-muted-foreground">{PRIVACY_COPY.transfer}</p>
               <p className="mt-4 text-muted-foreground">
-                A current subprocessor list is maintained in the client contract and updated as arrangements change.
+                A current list is kept in the client contract and updated before a new provider is used.
               </p>
             </div>
 
@@ -154,7 +150,7 @@ export default function PrivacyPage() {
               <h2 className="text-2xl font-bold">8. Cookies</h2>
               <p className="mt-4 text-muted-foreground">
                 The Buffr Checkpoint website uses essential cookies for session management and theme preferences.
-                Product analytics (PostHog EU) loads only after you accept the cookie banner. Crash reporting (Sentry)
+                {PRIVACY_COPY.cookiesAnalytics} Crash reporting (Sentry)
                 sends error diagnostics without visitor names or phone numbers. The admin application uses a session
                 cookie strictly necessary for authentication; admin analytics cookies also require explicit consent.
               </p>
@@ -177,8 +173,8 @@ export default function PrivacyPage() {
               <h2 className="text-2xl font-bold">10. Contact</h2>
               <p className="mt-4 text-muted-foreground">
                 For privacy-related enquiries, please contact us at{" "}
-                <a href="mailto:privacy@buffrcheckpoint.com" className="text-sodium-yellow-ink hover:underline">
-                  privacy@buffrcheckpoint.com
+                <a href="mailto:team@buffranalytics.com" className="text-sodium-yellow-ink hover:underline">
+                  team@buffranalytics.com
                 </a>{" "}
                 or through our{" "}
                 <Link href="/contact" className="text-sodium-yellow-ink hover:underline">

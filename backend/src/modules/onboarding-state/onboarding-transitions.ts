@@ -1,5 +1,4 @@
-// Organisation onboarding status machine (buffrcheckpoint.md §11 onboarding
-// lifecycle, v0.33). Codes are type_definition rows in domain
+// Organisation onboarding status machine (buffrcheckpoint.md §7.2). Codes are type_definition rows in domain
 // `organisation_onboarding_status`; this file only encodes which moves are legal.
 
 export const ONBOARDING_STATUSES = [

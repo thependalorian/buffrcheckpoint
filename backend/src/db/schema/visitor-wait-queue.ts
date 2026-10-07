@@ -14,6 +14,7 @@ import { visitorVisits } from "./visits";
 export const visitorWaitQueueEntries = pgTable(
   "visitor_wait_queue_entries",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     organisationId: uuid("organisation_id")
       .notNull()

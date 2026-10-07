@@ -1,4 +1,4 @@
-// Section 11.2 Messaging adapter. SMTP through the Buffr mailbox (hello@buffr.ai) when SMTP_USER and SMTP_PASS are set; Resend
+// Section 11.2 Messaging adapter. SMTP through the Buffr mailbox (team@buffranalytics.com) when SMTP_USER and SMTP_PASS are set; Resend
 // when chosen (EMAIL_TRANSPORT=resend), when SMTP is not configured, or as the live fallback if the chosen transport fails;
 // otherwise an honest failure (never a fake "sent").
 
@@ -32,7 +32,7 @@ export class UnconfiguredEmailAdapter implements NotificationChannelAdapter {
     throw new Error(
       "No email provider is configured (set SMTP_USER and SMTP_PASS, or RESEND_API_KEY). " +
         "This adapter deliberately refuses to pretend a notification was sent — " +
-        "see buffrcheckpoint.md Section 11.8.4.",
+        "see buffrcheckpoint.md §9.2.",
     );
   }
 }

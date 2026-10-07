@@ -29,10 +29,38 @@ export function effectivePolicies(rows: PolicyRow[]): EffectivePolicies {
   return { organisationDefaultDays: best.get(null)?.retentionDays ?? null, siteDays };
 }
 
-// Site policy wins over the organisation default. No policy at all means no
-// disposition: the job never invents a retention period.
+// An organisation with no default policy row is covered by the platform default, so every organisation is protected from the day it
+// is created and nothing depends on the owner accepting anything. A site policy and an organisation policy still win over it.
+export function withPlatformDefault(policies: EffectivePolicies, platformDefaultDays: number | null): EffectivePolicies {
+  if (policies.organisationDefaultDays !== null || platformDefaultDays === null) return policies;
+  return { ...policies, organisationDefaultDays: platformDefaultDays };
+}
+
+// Site policy wins over the organisation default (itself defaulting to the platform default, see above).
+// With no policy and no platform default there is no disposition: the job never invents a retention period.
 export function retentionDaysFor(siteId: string, policies: EffectivePolicies): number | null {
   return policies.siteDays.get(siteId) ?? policies.organisationDefaultDays;
+}
+
+export const DEFAULT_NOTIFICATION_REDACTION_DAYS = 30;
+
+// Days after delivery (or after the last failed attempt) when a queued message's recipient and text are overwritten. Invalid or
+// non-positive values fall back to the default so a typo can never switch redaction off or make it immediate.
+export function notificationRedactionDays(raw: string | undefined): number {
+  const parsed = Number(raw);
+  return Number.isInteger(parsed) && parsed >= 1 && parsed <= 3650 ? parsed : DEFAULT_NOTIFICATION_REDACTION_DAYS;
+}
+
+export type DispositionMode = "dry_run" | "live";
+
+// The worker disposes for real by default. `RETENTION_DISPOSITION_MODE=dry_run` makes it count only, which is how a new environment is
+// proven before it goes live. `RETENTION_DISPOSITION_ENABLED=false` switches the worker off entirely.
+export function dispositionMode(raw: string | undefined): DispositionMode {
+  return raw?.trim().toLowerCase() === "dry_run" ? "dry_run" : "live";
+}
+
+export function dispositionEnabled(raw: string | undefined): boolean {
+  return raw?.trim().toLowerCase() !== "false";
 }
 
 export function isExpired(checkedOutAt: Date, retentionDays: number, now: Date): boolean {

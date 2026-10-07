@@ -1,5 +1,5 @@
 /**
- * Capture Home page product screenshots from a running admin app (§11.6.5.9).
+ * Capture Home page product screenshots from a running admin app (§33.6).
  *
  *   ADMIN_URL=http://localhost:3000 \
  *   API_BASE=http://localhost:3001 \
@@ -33,7 +33,7 @@ const MFA_RECOVERY_CODE = process.env.MFA_RECOVERY_CODE?.trim();
 const MFA_TOTP_CODE = process.env.MFA_TOTP_CODE?.trim();
 
 const SESSION_COOKIE = "bc_session";
-/** Buffr Analytics — canonical demo org (buffrcheckpoint.md §11.6.5.9). */
+/** Buffr Analytics — canonical demo org (buffrcheckpoint.md §33.6). */
 const DEMO_ORG_ID = "b51f0704-12a7-45d4-8b0d-3642785b6e77";
 const ONBOARDING_STEPS_LIVE = [
   "organisation_profile",

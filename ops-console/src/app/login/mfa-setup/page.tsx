@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 
 import { confirmMfaEnrollmentAction, startMfaEnrollmentAction } from "../actions";
 
-// Staff accounts must enrol an authenticator before any ops session exists (buffrcheckpoint.md §9.2a).
+// Staff accounts must enrol an authenticator before any ops session exists (buffrcheckpoint.md §5.3).
 export default function MfaSetupPage() {
   const [setup, setSetup] = useState<{ secret?: string; qr?: string; error?: string }>({});
   const [state, formAction, pending] = useActionState(

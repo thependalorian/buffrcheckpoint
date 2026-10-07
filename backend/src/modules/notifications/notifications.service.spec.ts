@@ -20,6 +20,7 @@ function row(overrides: Partial<Row> = {}): Row {
     failureReason: null,
     sentAt: null,
     deletedAt: null,
+    createdAt: new Date("2026-10-07T09:00:00Z"),
     ...overrides,
   };
 }

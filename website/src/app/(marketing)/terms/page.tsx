@@ -187,8 +187,8 @@ export default function TermsPage() {
               <h2 className="text-2xl font-bold">11. Contact</h2>
               <p className="mt-4 text-muted-foreground">
                 For questions about these Terms & Conditions, please contact us at{" "}
-                <a href="mailto:legal@buffrcheckpoint.com" className="text-sodium-yellow-ink hover:underline">
-                  legal@buffrcheckpoint.com
+                <a href="mailto:team@buffranalytics.com" className="text-sodium-yellow-ink hover:underline">
+                  team@buffranalytics.com
                 </a>{" "}
                 or through our{" "}
                 <Link href="/contact" className="text-sodium-yellow-ink hover:underline">

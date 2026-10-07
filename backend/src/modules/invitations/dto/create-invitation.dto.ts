@@ -29,4 +29,13 @@ export class CreateInvitationDto {
   @IsString()
   @MaxLength(160)
   visitorEmail?: string;
+
+  /**
+   * A Namibian mobile number to text the check-in link to. Optional and never stored, like the email address. A text costs the
+   * organisation money, so it is sent only when the organisation has the SMS add-on and has not switched this text off.
+   */
+  @IsOptional()
+  @IsString()
+  @MaxLength(32)
+  visitorMobile?: string;
 }

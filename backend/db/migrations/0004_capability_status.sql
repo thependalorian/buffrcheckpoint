@@ -1,5 +1,5 @@
 -- Buffr Checkpoint — Capability Status Register
--- Source of truth: buffrcheckpoint.md Section 4a.7 ("The targeted month has
+-- Source of truth: docs/archive/buffrcheckpoint.v0.34-legacy-2026-10-07.md Section 4a.7 ("The targeted month has
 -- arrived — from a hardcoded date to a governed status"). This table was
 -- specified there but never actually created — closing that gap now that
 -- the public website needs to read real status, not a hardcoded string.

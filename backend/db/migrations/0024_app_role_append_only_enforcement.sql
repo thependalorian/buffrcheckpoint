@@ -2,7 +2,7 @@
 -- Supersedes the stale table names in `0007_audit_append_only.sql`
 -- (which still named pre-Constitution tables and was never applied).
 --
--- Source of truth: buffrcheckpoint.md §11.4.5b / §11.4.7 / §20.2
+-- Source of truth: docs/archive/buffrcheckpoint.v0.34-legacy-2026-10-07.md §11.4.5b / §11.4.7 / §20.2
 --
 -- Neon pitfall: roles created via Neon Console/API are members of
 -- `neon_superuser` and bypass GRANT/REVOKE. Create the runtime role with

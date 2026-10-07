@@ -110,7 +110,7 @@ export function TestVisitPanel({
   const place = visit ?? target;
 
   return (
-    <section className={embedded ? "space-y-4" : "space-y-4 rounded-md border px-4 py-4"}>
+    <div className={embedded ? "space-y-4" : "space-y-4 rounded-md border px-4 py-4"}>
       {embedded ? null : <h3 className="font-heading text-lg">{copy.title}</h3>}
       {place ? (
         <div className="space-y-1 text-sm">
@@ -168,6 +168,6 @@ export function TestVisitPanel({
           </Button>
         )}
       </div>
-    </section>
+    </div>
   );
 }

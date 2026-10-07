@@ -1,5 +1,5 @@
 -- Buffr Checkpoint — Capability Status v0.4 seed data
--- Source of truth: buffrcheckpoint.md Section 4a.7, v0.4 hardening-pass point 1.
+-- Source of truth: docs/archive/buffrcheckpoint.v0.34-legacy-2026-10-07.md Section 4a.7, v0.4 hardening-pass point 1.
 -- Applied directly via MCP on 2026-09-09 (Oregon); carried into falling-frog-15538162 by the 2026-09-25 Frankfurt move.
 
 INSERT INTO type_definition (id, domain, code, label, sort_order) VALUES

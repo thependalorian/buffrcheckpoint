@@ -7,7 +7,7 @@ import { RequirePermission } from "../../common/decorators/require-permission.de
 import { RequireVerifiedEmail } from "../../common/decorators/require-verified-email.decorator";
 import { PERMISSIONS } from "../../common/rbac/permissions";
 import { DsarService } from "./dsar.service";
-import { CreateDsarDto, ResolveDsarDto } from "./dto/create-dsar.dto";
+import { CreateDsarDto, ExtendDsarDto, ResolveDsarDto } from "./dto/create-dsar.dto";
 
 @Controller("dsar")
 export class DsarController {
@@ -30,6 +30,14 @@ export class DsarController {
   @RequirePermission(PERMISSIONS.DSAR_MANAGE)
   list(@CurrentUser() user: AuthenticatedUser, @Query("requestTypeCode") requestTypeCode?: string) {
     return this.dsarService.list(user, requestTypeCode ? { requestTypeCode } : undefined);
+  }
+
+  @Post(":id/extend")
+  @RequirePermission(PERMISSIONS.DSAR_MANAGE)
+  @RequireVerifiedEmail()
+  @AuditLog({ action: "dsar.extend", resourceType: "data_subject_request" })
+  extend(@Param("id") id: string, @Body() dto: ExtendDsarDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.dsarService.extend(id, dto.reason, user);
   }
 
   @Post(":id/resolve")

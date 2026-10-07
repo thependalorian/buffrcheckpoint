@@ -1,5 +1,5 @@
-/** Public sales and general enquiries (Buffr Analytics team inbox). */
-export const PUBLIC_CONTACT_EMAIL = "team@buffranalytics.com";
+/** Public sales and general enquiries. Every address routes into the one Buffr mailbox; role addresses are aliases of it. */
+export const PUBLIC_CONTACT_EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL?.trim() || "team@buffranalytics.com";
 
 /** Direct-email topics on /contact. Each opens the visitor's mail app with a subject and a short prompt. */
 export const CONTACT_EMAIL_TOPICS = [

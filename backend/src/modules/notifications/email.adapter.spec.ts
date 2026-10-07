@@ -7,7 +7,7 @@ import {
 } from "./email.adapter";
 import { EmailBudgetExhaustedError, SmtpEmailAdapter } from "./smtp-email.adapter";
 
-const smtpEnv = { SMTP_USER: "hello@buffr.ai", SMTP_PASS: "not-a-real-password" };
+const smtpEnv = { SMTP_USER: "team@buffranalytics.com", SMTP_PASS: "not-a-real-password" };
 const resendEnv = { RESEND_API_KEY: "re_test_key" };
 
 describe("createEmailAdapter", () => {

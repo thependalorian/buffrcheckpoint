@@ -1,4 +1,4 @@
--- Buffr Checkpoint — staff training evidence (buffrcheckpoint.md v0.33).
+-- Buffr Checkpoint — staff training evidence (docs/archive/buffrcheckpoint.v0.34-legacy-2026-10-07.md v0.33).
 --
 -- The Staff training checklist step used to complete on a button press with
 -- no record behind it. It now requires an acknowledgement row for the acting

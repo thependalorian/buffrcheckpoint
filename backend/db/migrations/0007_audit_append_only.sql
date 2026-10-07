@@ -4,7 +4,7 @@
 -- would fail against current Neon.
 --
 -- Buffr Checkpoint — append-only DB enforcement for hash-chained tables
--- Source of truth: buffrcheckpoint.md Section 11.4.5 rule 4 / Section 20.2
+-- Source of truth: docs/archive/buffrcheckpoint.v0.34-legacy-2026-10-07.md Section 11.4.5 rule 4 / Section 20.2
 -- ("audit chain is called immutable"). The prev_event_hash/event_hash chain
 -- on audit_event, and the append-only-by-construction design of
 -- identity_verification_event, notification_event, and

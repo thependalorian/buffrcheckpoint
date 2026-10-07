@@ -11,7 +11,7 @@ import {
   PRIVACY_NOTICE_LANGUAGE,
   PRIVACY_NOTICE_NAME,
   PRIVACY_NOTICE_POLICY_CODE,
-  STANDARD_FORM_FIELDS,
+  standardFormFieldsFor,
   STANDARD_FORM_NAME,
   STANDARD_HOST_DEPARTMENT,
   STANDARD_HOST_NAME,
@@ -66,16 +66,40 @@ export class OrganisationDefaultsService {
     return run;
   }
 
-  private async ownerContact(user: AuthenticatedUser): Promise<{ email: string | null; organisationName: string }> {
+  private async ownerContact(
+    user: AuthenticatedUser,
+  ): Promise<{ email: string | null; organisationName: string; sectorCode: string | null }> {
     const result = await this.db.execute(sql`
-      SELECT u.email, coalesce(nullif(btrim(o.trading_name), ''), o.legal_name) AS organisation_name
+      SELECT u.email, coalesce(nullif(btrim(o.trading_name), ''), o.legal_name) AS organisation_name, st.code AS sector_code
       FROM application_users u JOIN organisations o ON o.id = u.organisation_id
+      LEFT JOIN type_definition st ON st.id = o.sector_code
       WHERE u.id = ${user.userId} AND u.deleted_at IS NULL LIMIT 1`);
-    const row = result.rows[0] as { email?: string; organisation_name?: string } | undefined;
-    return { email: row?.email ?? null, organisationName: row?.organisation_name ?? "" };
+    const row = result.rows[0] as { email?: string; organisation_name?: string; sector_code?: string } | undefined;
+    return { email: row?.email ?? null, organisationName: row?.organisation_name ?? "", sectorCode: row?.sector_code ?? null };
+  }
+
+  /**
+   * One query that says whether every default is already in place. This is the usual case on every visit after the first, so the
+   * full routine (about fifteen reads) only runs when something is actually missing.
+   */
+  private async hasEverything(organisationId: string): Promise<boolean> {
+    const result = await this.db.execute(sql`
+      SELECT
+        EXISTS (SELECT 1 FROM sites WHERE organisation_id = ${organisationId} AND deleted_at IS NULL) AS site,
+        EXISTS (SELECT 1 FROM site_hosts WHERE organisation_id = ${organisationId} AND deleted_at IS NULL) AS host,
+        EXISTS (SELECT 1 FROM retention_policies WHERE organisation_id = ${organisationId} AND deleted_at IS NULL) AS retention,
+        EXISTS (SELECT 1 FROM visitor_policy_documents
+                WHERE organisation_id = ${organisationId} AND policy_code = ${PRIVACY_NOTICE_POLICY_CODE} AND deleted_at IS NULL) AS notice,
+        EXISTS (SELECT 1 FROM check_in_form_definitions WHERE organisation_id = ${organisationId} AND deleted_at IS NULL) AS form,
+        EXISTS (SELECT 1 FROM site_qr_references q
+                JOIN type_definition t ON t.id = q.qr_type_code AND t.code = 'public_site_checkin'
+                WHERE q.organisation_id = ${organisationId} AND q.deleted_at IS NULL) AS qr`);
+    const row = (result.rows[0] ?? {}) as Record<string, unknown>;
+    return ["site", "host", "retention", "notice", "form", "qr"].every((key) => row[key] === true);
   }
 
   private async run(user: AuthenticatedUser): Promise<DefaultsResult> {
+    if (await this.hasEverything(user.organisationId)) return { created: [] };
     const created: DefaultItem[] = [];
     const owner = await this.ownerContact(user);
 
@@ -129,6 +153,7 @@ export class OrganisationDefaultsService {
           contentText: standardPrivacyNotice({
             organisationName: owner.organisationName,
             retentionDays: effectiveDays,
+            sectorCode: owner.sectorCode,
           }),
           languageCode: PRIVACY_NOTICE_LANGUAGE,
         },
@@ -146,7 +171,7 @@ export class OrganisationDefaultsService {
         user,
       );
       const version = await this.policy.createFormVersion(definition.id, user);
-      for (const field of STANDARD_FORM_FIELDS) {
+      for (const field of standardFormFieldsFor(owner.sectorCode)) {
         await this.policy.addFormField(
           version.id,
           {

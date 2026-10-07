@@ -2,7 +2,7 @@
 -- grants. Previously (0022) a platform_support user's grant request was
 -- self-approved (approved_by set to their own user id) — real time-boxing
 -- and audit, but no customer opt-in at all, falling short of
--- buffrcheckpoint.md Section 9.2 rule 4's "client-approved where
+-- docs/archive/buffrcheckpoint.v0.34-legacy-2026-10-07.md Section 9.2 rule 4's "client-approved where
 -- practical." This migration makes customer approval a hard gate: a grant
 -- is inert (cannot mint a support session, cannot pass RbacGuard's
 -- per-request re-check) until an authorized user of the TARGET

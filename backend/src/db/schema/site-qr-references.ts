@@ -11,6 +11,7 @@ import { typeDefinition } from "./type-definitions";
 export const siteQrReferences = pgTable(
   "site_qr_references",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     organisationId: uuid("organisation_id")
       .notNull()

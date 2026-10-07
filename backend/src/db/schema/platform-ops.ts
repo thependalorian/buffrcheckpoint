@@ -5,12 +5,13 @@ import { privilegedAccessGrants } from "./rbac";
 import { typeDefinition } from "./type-definitions";
 
 // Platform Ops Console — internal Buffr-staff app, separate from admin/.
-// See buffrcheckpoint.md Section 11.9.1. Break-glass "act as org" mechanism:
+// See buffrcheckpoint.md §5.4. Break-glass "act as org" mechanism:
 // a platform_support user mints a session under an active grant, then acts
 // in admin/ itself (reused, not rebuilt) under a visible banner.
 export const platformSupportSession = pgTable(
   "platform_support_session",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     platformUserId: uuid("platform_user_id").notNull(),
     grantId: uuid("grant_id")
@@ -52,6 +53,7 @@ export const platformSupportAuditEvents = pgTable(
 export const platformIncident = pgTable(
   "platform_incident",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     title: text("title").notNull(),
     description: text("description"),
@@ -90,6 +92,7 @@ export const platformIncidentStatusEvents = pgTable(
 export const platformIncidentAffectedOrganisations = pgTable(
   "platform_incident_affected_organisations",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     incidentId: uuid("incident_id")
       .notNull()
@@ -166,6 +169,7 @@ export const supportTicketComments = pgTable(
 export const organisationHealthSnapshot = pgTable(
   "organisation_health_snapshot",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     organisationId: uuid("organisation_id")
       .notNull()

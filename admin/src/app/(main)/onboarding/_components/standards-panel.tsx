@@ -44,82 +44,94 @@ export function StandardsPanel({
   const { privacyNotice, retention, form } = summary;
   return (
     <div className="space-y-5 text-sm">
-      <div className="space-y-2">
-        <div className="flex flex-wrap items-center gap-2">
-          <h4 className="font-medium">{copy.notice}</h4>
-          <Badge variant="outline">{privacyNotice?.isStandard ? copy.noticeStandard : copy.noticeEdited}</Badge>
+      <dl className="divide-y rounded-md border">
+        <div className="space-y-2 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <dt className="font-medium">{copy.notice}</dt>
+            <dd>
+              <Badge variant="outline">{privacyNotice?.isStandard ? copy.noticeStandard : copy.noticeEdited}</Badge>
+            </dd>
+          </div>
+          {privacyNotice?.text ? (
+            <details className="bc-surface-inset px-3 py-2">
+              <summary className="min-h-6 cursor-pointer text-muted-foreground">{copy.readNotice}</summary>
+              <pre className="mt-3 max-h-80 overflow-y-auto whitespace-pre-wrap font-sans text-sm leading-relaxed">
+                {privacyNotice.text}
+              </pre>
+            </details>
+          ) : null}
+          <Link
+            href="/dashboard/policies/retention"
+            prefetch={false}
+            className="inline-block font-medium underline underline-offset-4"
+          >
+            {copy.editNotice}
+          </Link>
         </div>
-        {privacyNotice?.text ? (
-          <details className="rounded-md border px-3 py-2">
-            <summary className="cursor-pointer text-muted-foreground">{copy.readNotice}</summary>
-            <pre className="mt-3 whitespace-pre-wrap font-sans text-sm leading-relaxed">{privacyNotice.text}</pre>
-          </details>
-        ) : null}
-        <Link
-          href="/dashboard/policies/retention"
-          prefetch={false}
-          className="inline-block font-medium underline underline-offset-4"
-        >
-          {copy.editNotice}
-        </Link>
-      </div>
 
-      <div className="space-y-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <h4 className="font-medium">{copy.retention}</h4>
-          <Badge variant="outline">{retention?.isStandard ? copy.retentionStandard : copy.retentionEdited}</Badge>
+        <div className="space-y-1 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <dt className="font-medium">{copy.retention}</dt>
+            <dd>
+              <Badge variant="outline">{retention?.isStandard ? copy.retentionStandard : copy.retentionEdited}</Badge>
+            </dd>
+          </div>
+          <p>{retention ? copy.days(retention.days) : null}</p>
+          <Link
+            href="/dashboard/policies/retention"
+            prefetch={false}
+            className="inline-block font-medium underline underline-offset-4"
+          >
+            {copy.changeRetention}
+          </Link>
         </div>
-        <p>{retention ? copy.days(retention.days) : null}</p>
-        <Link
-          href="/dashboard/policies/retention"
-          prefetch={false}
-          className="inline-block font-medium underline underline-offset-4"
-        >
-          {copy.changeRetention}
-        </Link>
-      </div>
 
-      <div className="space-y-1">
-        <div className="flex flex-wrap items-center gap-2">
-          <h4 className="font-medium">{copy.form}</h4>
-          <Badge variant="outline">{copy.fields(form?.fields.length ?? 0)}</Badge>
+        <div className="space-y-2 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <dt className="font-medium">{copy.form}</dt>
+            <dd>
+              <Badge variant="outline">{copy.fields(form?.fields.length ?? 0)}</Badge>
+            </dd>
+          </div>
+          <p className="text-muted-foreground">{copy.asks}</p>
+          <ul className="grid gap-x-6 gap-y-1 sm:grid-cols-2">
+            {form?.fields.map((field) => (
+              <li key={field.code}>
+                {field.label}
+                {field.required ? <span className="text-muted-foreground"> ({copy.required})</span> : null}
+              </li>
+            ))}
+          </ul>
+          <p className="text-muted-foreground text-xs">{copy.noHighRisk}</p>
+          <Link
+            href="/dashboard/policies/forms"
+            prefetch={false}
+            className="inline-block font-medium underline underline-offset-4"
+          >
+            {copy.editForm}
+          </Link>
         </div>
-        <p className="text-muted-foreground">{copy.asks}</p>
-        <ul className="list-disc pl-5">
-          {form?.fields.map((field) => (
-            <li key={field.code}>
-              {field.label}
-              {field.required ? <span className="text-muted-foreground"> ({copy.required})</span> : null}
-            </li>
-          ))}
-        </ul>
-        <p className="text-muted-foreground text-xs">{copy.noHighRisk}</p>
-        <Link
-          href="/dashboard/policies/forms"
-          prefetch={false}
-          className="inline-block font-medium underline underline-offset-4"
-        >
-          {copy.editForm}
-        </Link>
-      </div>
+      </dl>
 
-      <div className="space-y-2 border-t pt-4">
-        <p className="text-muted-foreground text-xs">{copy.responsibility}</p>
+      <div className="space-y-3">
+        <p className="max-w-prose text-muted-foreground text-xs">{copy.responsibility}</p>
         <SaveError message={error} />
         {summary.accepted && summary.acceptedAt ? (
           <p className="font-medium" role="status">
             {copy.acceptedOn(formatDate(summary.acceptedAt))}
           </p>
         ) : null}
-        <Button
-          className="min-h-11"
-          variant={summary.accepted ? "outline" : "default"}
-          onClick={accept}
-          disabled={pending}
-        >
-          {pending ? copy.accepting : summary.accepted ? copy.acceptAgain : copy.accept}
-        </Button>
-        {summary.accepted ? <p className="text-muted-foreground text-xs">{copy.again}</p> : null}
+        <div className="flex flex-wrap items-center gap-3">
+          <Button
+            className="min-h-11"
+            variant={summary.accepted ? "outline" : "default"}
+            onClick={accept}
+            disabled={pending}
+          >
+            {pending ? copy.accepting : summary.accepted ? copy.acceptAgain : copy.accept}
+          </Button>
+          {summary.accepted ? <p className="text-muted-foreground text-xs">{copy.again}</p> : null}
+        </div>
       </div>
     </div>
   );

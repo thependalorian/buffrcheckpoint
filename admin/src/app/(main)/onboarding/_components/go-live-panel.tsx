@@ -4,6 +4,8 @@ import { useRef, useState } from "react";
 
 import Link from "next/link";
 
+import { Check, Clock } from "lucide-react";
+
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -21,9 +23,12 @@ function kybStatus(value: string): KybStatus {
   return value === "pending" || value === "verified" || value === "rejected" || value === "expired" ? value : "none";
 }
 
-function Row({ label, children }: { label: string; children: React.ReactNode }) {
+function Row({ label, state, children }: { label: string; state: "ok" | "waiting"; children: React.ReactNode }) {
   return (
-    <li className="flex flex-col gap-1 rounded-md border px-3 py-2 sm:flex-row sm:items-start sm:justify-between">
+    <li className="flex items-start gap-3 p-4">
+      <span aria-hidden="true" className="mt-0.5 flex size-5 shrink-0 items-center justify-center">
+        {state === "ok" ? <Check className="size-4" /> : <Clock className="size-4 text-muted-foreground" />}
+      </span>
       <div className="min-w-0 space-y-1">
         <p className="font-medium">{label}</p>
         {children}
@@ -89,8 +94,8 @@ export function GoLivePanel({
     <div className="space-y-5 text-sm">
       <div className="space-y-2">
         <h4 className="font-medium">{copy.beforeTitle}</h4>
-        <ul className="space-y-2">
-          <Row label={copy.plan.label}>
+        <ul className="divide-y rounded-md border">
+          <Row label={copy.plan.label} state={planOk ? "ok" : "waiting"}>
             <p className="text-muted-foreground">
               {planOk
                 ? planStatus === "trial"
@@ -110,7 +115,7 @@ export function GoLivePanel({
               </Link>
             )}
           </Row>
-          <Row label={copy.kyb.label}>
+          <Row label={copy.kyb.label} state={kyb === "verified" ? "ok" : "waiting"}>
             <p className="text-muted-foreground">{copy.kyb.why}</p>
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant={kyb === "verified" ? "default" : "outline"}>{copy.kyb[kyb]}</Badge>
@@ -119,7 +124,7 @@ export function GoLivePanel({
               </Link>
             </div>
           </Row>
-          <Row label={copy.agreements.label}>
+          <Row label={copy.agreements.label} state={legalPending.length === 0 ? "ok" : "waiting"}>
             <p className="text-muted-foreground">
               {legalPending.length === 0 ? copy.agreements.ok : copy.agreements.pending}
             </p>

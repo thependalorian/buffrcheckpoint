@@ -8,6 +8,7 @@ import { typeDefinition } from "./type-definitions";
 // to verified users of the same organisation.
 
 export const scheduledReportConfigurations = pgTable("scheduled_report_configurations", {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   id: uuid("id").primaryKey(),
   organisationId: uuid("organisation_id").references(() => organisations.id),
   reportCode: uuid("report_code")
@@ -27,6 +28,7 @@ export const scheduledReportConfigurations = pgTable("scheduled_report_configura
 });
 
 export const scheduledReportRun = pgTable("scheduled_report_run", {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   id: uuid("id").primaryKey(),
   organisationId: uuid("organisation_id").references(() => organisations.id),
   reportCode: uuid("report_code")

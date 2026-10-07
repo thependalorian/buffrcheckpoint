@@ -24,6 +24,7 @@ export const contactEnquiries = pgTable(
 export const contactEnquiryStatusLog = pgTable(
   "contact_enquiry_status_log",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     enquiryId: uuid("enquiry_id")
       .notNull()

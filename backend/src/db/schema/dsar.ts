@@ -8,6 +8,7 @@ import { typeDefinition } from "./type-definitions";
 export const privacyRequests = pgTable(
   "privacy_requests",
   {
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     id: uuid("id").primaryKey(),
     organisationId: uuid("organisation_id")
       .notNull()

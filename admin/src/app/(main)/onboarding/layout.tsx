@@ -22,12 +22,13 @@ export default async function OnboardingLayout({ children }: { children: ReactNo
     redirect("/dashboard/overview");
   }
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-6 px-4 py-8 md:px-6">
+    <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-8 px-4 py-8 md:px-6">
       {gate.canManageOnboarding ? (
         <header>
-          <h1 className="text-muted-foreground text-sm">
+          {/* A label, not a heading: each page below carries the one real heading, so the organisation name is not shouted twice. */}
+          <p className="text-muted-foreground text-sm">
             {gate.organisationName} · {onboardingCopy.shellTitle}
-          </h1>
+          </p>
         </header>
       ) : null}
       <NavigationTimer />
