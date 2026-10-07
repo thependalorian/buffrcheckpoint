@@ -32,7 +32,6 @@ export * from "./rbac";
 export * from "./retention-disposition";
 export * from "./scheduled-reports";
 export * from "./secure-onboarding";
-export * from "./site-branding";
 export * from "./site-qr-references";
 export * from "./sites";
 export * from "./sms-contact-confirmation";

@@ -26,8 +26,7 @@ describe("launch-readiness checklist", () => {
   });
 
   it("matches the documented requirement matrix", () => {
-    expect(stepRequirement("branding", "qr_first")).toBe("recommended");
-    expect(stepRequirement("branding", "kiosk")).toBe("required");
+    expect(ONBOARDING_STEPS).not.toContain("branding"); // custom branding was retired
     expect(stepRequirement("devices_mdm", "qr_first")).toBe("not_applicable");
     expect(stepRequirement("devices_mdm", "kiosk")).toBe("required");
     expect(stepRequirement("cran_evidence", "kiosk")).toBe("conditional");
@@ -64,14 +63,14 @@ describe("launch-readiness checklist", () => {
       }),
     ).toBe("launch_route");
     // Completing a later optional step does not move the pointer back or forward.
-    const completed: OnboardingStepCode[] = ["organisation_profile", "branding"];
+    const completed: OnboardingStepCode[] = ["organisation_profile", "risk_identity_approval"];
     expect(currentStep({ route: "qr_first", completed, skipped: [] })).toBe("site_hierarchy");
     expect(currentStep({ route: "qr_first", completed: requiredFor("qr_first"), skipped: [] })).toBe("golive_approval");
   });
 
   it("allows skipping only recommended and conditional steps", () => {
-    expect(canSkipStep("branding", "qr_first")).toBe(true);
-    expect(canSkipStep("branding", "kiosk")).toBe(false);
+    expect(canSkipStep("risk_identity_approval", "qr_first")).toBe(true);
+    expect(canSkipStep("risk_identity_approval", "kiosk")).toBe(true);
     expect(canSkipStep("cran_evidence", "kiosk")).toBe(true);
     expect(canSkipStep("devices_mdm", "qr_first")).toBe(false);
     expect(canSkipStep("flow_tests", "qr_first")).toBe(false);

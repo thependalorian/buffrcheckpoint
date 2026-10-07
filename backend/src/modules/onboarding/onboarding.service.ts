@@ -1,6 +1,6 @@
-import { ConflictException, Inject, Injectable } from "@nestjs/common";
+import { ConflictException, ForbiddenException, HttpException, HttpStatus, Inject, Injectable } from "@nestjs/common";
 import * as bcrypt from "bcryptjs";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, gt, isNull, sql } from "drizzle-orm";
 
 import type { Database } from "../../db/client";
 import { DB } from "../../db/db.module";
@@ -14,8 +14,10 @@ import {
 } from "../../db/schema";
 import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.service";
 import { AuthService } from "../auth/auth.service";
+import { BuffrIdService, legacyPasswordMode } from "../auth/buffr-id.service";
 import { TemplatedEmailService } from "../notifications/templated-email.service";
 import type { CreateOrganisationAdminDto } from "./dto/create-organisation-admin.dto";
+import { assessSignup, emailDomain, signupLimitsFromEnv } from "./signup-abuse";
 import { createHash, randomUUID } from "node:crypto";
 
 const BCRYPT_ROUNDS = 12;
@@ -24,7 +26,7 @@ export interface OnboardingResult {
   ok: true;
   email: string;
   organisationId: string;
-  emailVerificationRequired: true;
+  emailVerificationRequired: boolean;
 }
 
 @Injectable()
@@ -33,10 +35,46 @@ export class OnboardingService {
     @Inject(DB) private readonly db: Database,
     private readonly typeDefs: TypeDefinitionLookupService,
     private readonly authService: AuthService,
+    private readonly buffrId: BuffrIdService,
     private readonly templatedEmail: TemplatedEmailService,
   ) {}
 
+  /** Refuses obvious sign-up abuse before anything is written or any email is sent (signup-abuse.ts). */
+  private async assertNotAbusive(dto: CreateOrganisationAdminDto): Promise<void> {
+    const domain = emailDomain(dto.email);
+    const [pending, recent] = await Promise.all([
+      this.db.execute(sql`
+        SELECT count(*)::int AS n FROM application_users
+        WHERE deleted_at IS NULL AND email_verified_at IS NULL AND lower(split_part(email, '@', 2)) = ${domain}`),
+      this.db
+        .select({ n: sql<number>`count(*)::int` })
+        .from(auditEvents)
+        .where(
+          and(
+            eq(auditEvents.actionCode, "organisation.create"),
+            gt(auditEvents.occurredAt, new Date(Date.now() - 3_600_000)),
+          ),
+        ),
+    ]);
+    const refusal = assessSignup({
+      honeypot: dto.website,
+      email: dto.email,
+      pendingFromDomain: Number((pending.rows[0] as { n?: number } | undefined)?.n ?? 0),
+      createdLastHour: Number(recent[0]?.n ?? 0),
+      limits: signupLimitsFromEnv(),
+    });
+    if (refusal) {
+      // One generic message: do not tell a bot which rule it tripped.
+      throw new HttpException(
+        "Sign-up is not available right now. Try again later or contact support.",
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+  }
+
   async createOrganisationAdmin(dto: CreateOrganisationAdminDto): Promise<OnboardingResult> {
+    if (legacyPasswordMode() !== "on") throw new ForbiddenException("Create your account with Buffr ID");
+    await this.assertNotAbusive(dto);
     const existing = await this.db.query.applicationUsers.findFirst({
       where: and(eq(applicationUsers.email, dto.email), isNull(applicationUsers.deletedAt)),
     });
@@ -44,14 +82,58 @@ export class OnboardingService {
       throw new ConflictException("An account with this email already exists");
     }
 
-    const [sectorCodeId, ownerOperatorRoleCodeId, initialAssignmentTypeId, pendingStatusId, firstStepId, passwordHash] =
+    const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
+    return this.provision(dto, { passwordHash, emailVerified: false, mfaEnabled: false, buffrIdSubject: null });
+  }
+
+  /**
+   * Creates an organisation and its owner from a Buffr ID sign-in. The owner has no Checkpoint password: Buffr ID proved the email
+   * and holds the credentials. The organisation starts at email_verified, because Buffr ID already confirmed the address.
+   */
+  async createOrganisationWithBuffrId(input: {
+    idToken: string;
+    organisationName: string;
+    sectorCode: string;
+    nonce?: string;
+  }): Promise<OnboardingResult> {
+    const identity = await this.buffrId.verifyIdToken(input.idToken, "admin", input.nonce);
+    const dto = {
+      organisationName: input.organisationName,
+      sectorCode: input.sectorCode,
+      email: identity.email,
+      password: "",
+    };
+    await this.assertNotAbusive({ ...dto, website: undefined });
+    const existing = await this.db.query.applicationUsers.findFirst({
+      where: and(
+        isNull(applicationUsers.deletedAt),
+        sql`(lower(${applicationUsers.email}) = ${identity.email} OR ${applicationUsers.buffrIdSubject} = ${identity.subject})`,
+      ),
+    });
+    if (existing) throw new ConflictException("An account for this Buffr ID already exists. Sign in instead.");
+    return this.provision(dto, {
+      passwordHash: null,
+      emailVerified: true,
+      mfaEnabled: identity.twoFactorEnabled,
+      buffrIdSubject: identity.subject,
+    });
+  }
+
+  private async provision(
+    dto: { organisationName: string; sectorCode: string; email: string },
+    opts: { passwordHash: string | null; emailVerified: boolean; mfaEnabled: boolean; buffrIdSubject: string | null },
+  ): Promise<OnboardingResult> {
+    const { passwordHash } = opts;
+    const [sectorCodeId, ownerOperatorRoleCodeId, initialAssignmentTypeId, pendingStatusId, firstStepId] =
       await Promise.all([
         this.typeDefs.id("organisation_sector", dto.sectorCode),
         this.typeDefs.id("role_code", "owner_operator"),
         this.typeDefs.id("role_assignment_event_type", "initial"),
-        this.typeDefs.id("organisation_onboarding_status", "pending_email_verification"),
+        this.typeDefs.id(
+          "organisation_onboarding_status",
+          opts.emailVerified ? "email_verified" : "pending_email_verification",
+        ),
         this.typeDefs.id("onboarding_step_code", "organisation_profile"),
-        bcrypt.hash(dto.password, BCRYPT_ROUNDS),
       ]);
 
     const organisationId = randomUUID();
@@ -101,8 +183,9 @@ export class OnboardingService {
         organisationId,
         email: dto.email,
         passwordHash,
-        emailVerifiedAt: null,
-        mfaEnabled: false,
+        emailVerifiedAt: opts.emailVerified ? occurredAt : null,
+        mfaEnabled: opts.mfaEnabled,
+        buffrIdSubject: opts.buffrIdSubject,
       }),
       this.db.insert(organisationMemberships).values({
         id: membershipId,
@@ -142,7 +225,7 @@ export class OnboardingService {
       }),
     ]);
 
-    await this.authService.issueEmailVerification(userId, organisationId, dto.email);
+    if (!opts.emailVerified) await this.authService.issueEmailVerification(userId, organisationId, dto.email);
     await this.notifyOpsOfNewOrganisation({
       organisationId,
       organisationName: dto.organisationName,
@@ -159,7 +242,7 @@ export class OnboardingService {
       ok: true,
       email: dto.email,
       organisationId,
-      emailVerificationRequired: true,
+      emailVerificationRequired: !opts.emailVerified,
     };
   }
 

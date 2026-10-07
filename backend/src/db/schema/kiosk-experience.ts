@@ -2,7 +2,6 @@ import { boolean, index, integer, pgTable, text, timestamp, uniqueIndex, uuid } 
 
 import { managedKioskDevices } from "./managed-kiosk-devices";
 import { organisations } from "./organisations";
-import { siteBrandingProfileVersions } from "./site-branding";
 import { sites } from "./sites";
 import { typeDefinition } from "./type-definitions";
 
@@ -34,7 +33,6 @@ export const kioskExperienceConfigurationVersions = pgTable(
     kioskExperienceConfigurationId: uuid("kiosk_experience_configuration_id")
       .notNull()
       .references(() => kioskExperienceConfigurations.id),
-    brandingProfileVersionId: uuid("branding_profile_version_id").references(() => siteBrandingProfileVersions.id),
     versionNumber: integer("version_number").notNull(),
     idleTimeoutSeconds: integer("idle_timeout_seconds").notNull().default(120),
     idleWarningSeconds: integer("idle_warning_seconds").notNull().default(30),

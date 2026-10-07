@@ -2,7 +2,6 @@ import { Body, Controller, Get, Patch, Post } from "@nestjs/common";
 
 import { AuditLog } from "../../common/decorators/audit-log.decorator";
 import { type AuthenticatedUser, CurrentUser } from "../../common/decorators/current-user.decorator";
-import { RequireMfa } from "../../common/decorators/require-mfa.decorator";
 import { RequirePermission } from "../../common/decorators/require-permission.decorator";
 import { RequireVerifiedEmail } from "../../common/decorators/require-verified-email.decorator";
 import { PERMISSIONS } from "../../common/rbac/permissions";
@@ -36,7 +35,6 @@ export class OrganisationsController {
   @Patch("me")
   @RequirePermission(PERMISSIONS.SITE_CONFIGURE)
   @RequireVerifiedEmail()
-  @RequireMfa()
   @AuditLog({ action: "organisation.update", resourceType: "organisation" })
   updateOwn(@Body() dto: UpdateOrganisationDto, @CurrentUser() user: AuthenticatedUser) {
     return this.organisationsService.updateOwn(user, dto);

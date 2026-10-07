@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Headers, HttpCode, HttpStatus, Logger, Post } from "@nestjs/common";
 import { Throttle } from "@nestjs/throttler";
-import { IsEmail, IsOptional, IsString, Length, MinLength } from "class-validator";
+import { IsEmail, IsIn, IsOptional, IsString, Length, MinLength } from "class-validator";
 
 import { AuthenticatedOnly } from "../../common/decorators/authenticated-only.decorator";
 import { type AuthenticatedUser, CurrentUser } from "../../common/decorators/current-user.decorator";
@@ -10,6 +10,7 @@ import { RequirePermission } from "../../common/decorators/require-permission.de
 import { RequireVerifiedEmail } from "../../common/decorators/require-verified-email.decorator";
 import { PERMISSIONS } from "../../common/rbac/permissions";
 import { AuthService } from "./auth.service";
+import { BuffrIdService } from "./buffr-id.service";
 import { LoginDto } from "./dto/login.dto";
 import { ConfirmPasswordResetDto, RequestPasswordResetDto } from "./dto/password-reset.dto";
 import { RegisterDto } from "./dto/register.dto";
@@ -28,6 +29,19 @@ class ResendVerificationDto {
   @NormaliseEmail()
   @IsEmail()
   email!: string;
+}
+
+class BuffrIdExchangeDto {
+  @IsString()
+  @MinLength(20)
+  idToken!: string;
+
+  @IsIn(["admin", "ops"])
+  surface!: "admin" | "ops";
+
+  @IsOptional()
+  @IsString()
+  nonce?: string;
 }
 
 class ConfirmMfaDto {
@@ -57,7 +71,26 @@ const REQUEST_ID_HEADER = "x-bc-request-id";
 export class AuthController {
   private readonly logger = new Logger(AuthController.name);
 
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly buffrId: BuffrIdService,
+  ) {}
+
+  /** Whether Buffr ID sign-in is configured, and how long password sign-in stays open. The admin and ops apps read this. */
+  @Public()
+  @Get("buffr-id/config")
+  buffrIdConfig() {
+    return this.buffrId.publicConfig();
+  }
+
+  /** Trade a Buffr ID ID token for an ordinary Checkpoint session. */
+  @Public()
+  @Throttle(AUTH_THROTTLE)
+  @HttpCode(HttpStatus.OK)
+  @Post("buffr-id/exchange")
+  buffrIdExchange(@Body() dto: BuffrIdExchangeDto) {
+    return this.authService.signInWithBuffrId(dto.idToken, dto.surface, dto.nonce);
+  }
 
   @Post("register")
   @RequirePermission(PERMISSIONS.USER_MANAGE)

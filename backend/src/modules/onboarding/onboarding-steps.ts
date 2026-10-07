@@ -10,7 +10,6 @@ export const ONBOARDING_STEPS = [
   "notices_retention",
   "visitor_categories",
   "check_in_channels",
-  "branding",
   "risk_identity_approval",
   "devices_mdm",
   "flow_tests",
@@ -37,7 +36,6 @@ export const STEP_REQUIREMENTS: Readonly<Record<OnboardingStepCode, Readonly<Rec
   visitor_categories: BOTH_REQUIRED,
   // Evidence differs by route: QR-first needs an active site QR; kiosk also needs a kiosk configuration.
   check_in_channels: BOTH_REQUIRED,
-  branding: { qr_first: "recommended", kiosk: "required" },
   risk_identity_approval: { qr_first: "recommended", kiosk: "recommended" },
   devices_mdm: { qr_first: "not_applicable", kiosk: "required" },
   flow_tests: BOTH_REQUIRED,
@@ -56,7 +54,6 @@ export const STEP_PREREQUISITES: Readonly<Partial<Record<OnboardingStepCode, rea
   hosts_departments: ["sites.at_least_one"],
   launch_route: ["sites.at_least_one"],
   check_in_channels: ["sites.at_least_one"],
-  branding: ["sites.at_least_one"],
   devices_mdm: ["sites.at_least_one"],
   flow_tests: ["sites.at_least_one", "hosts.at_least_one"],
 };

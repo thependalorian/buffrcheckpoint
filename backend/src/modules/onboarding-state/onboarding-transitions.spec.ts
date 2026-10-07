@@ -10,6 +10,7 @@ import {
 const LEGAL_FORWARD: Array<[OnboardingStatus, OnboardingStatus]> = [
   ["pending_email_verification", "email_verified"],
   ["email_verified", "mfa_enrolled"],
+  ["email_verified", "in_progress"],
   ["mfa_enrolled", "in_progress"],
   ["in_progress", "ready_for_golive"],
   ["in_progress", "live"],
@@ -49,11 +50,8 @@ describe("onboarding transitions", () => {
   });
 
   it("advances early stages without ever regressing a further organisation", () => {
-    expect(earlyStagePath("pending_email_verification", "in_progress")).toEqual([
-      "email_verified",
-      "mfa_enrolled",
-      "in_progress",
-    ]);
+    expect(earlyStagePath("pending_email_verification", "in_progress")).toEqual(["email_verified", "in_progress"]);
+    expect(earlyStagePath("mfa_enrolled", "in_progress")).toEqual(["in_progress"]); // legacy rows still advance
     expect(earlyStagePath("email_verified", "email_verified")).toEqual([]);
     expect(earlyStagePath("live", "email_verified")).toEqual([]);
     expect(earlyStagePath("live", "in_progress")).toEqual([]);

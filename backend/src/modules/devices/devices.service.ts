@@ -1,6 +1,7 @@
 import { ForbiddenException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 import { and, count, desc, eq, inArray, isNull } from "drizzle-orm";
 
+import { buildDeviceSupportUrl } from "../../common/assets/public-asset-url";
 import type { AuthenticatedUser } from "../../common/decorators/current-user.decorator";
 import type { Database } from "../../db/client";
 import { DB } from "../../db/db.module";
@@ -192,6 +193,18 @@ export class DevicesService {
     });
     if (!found) throw new NotFoundException("Device not found");
     return found;
+  }
+
+  /** The URL and caption for a device's support QR. Identifies the device for an authorised technician; the page behind it is permission-gated. */
+  async supportQr(deviceId: string, user: AuthenticatedUser) {
+    const device = await this.getById(deviceId, user);
+    return {
+      deviceId: device.id,
+      payload: buildDeviceSupportUrl(device.id),
+      caption: [device.deviceName, `${device.manufacturer} ${device.model}`, `S/N ${device.serialNumber}`]
+        .filter(Boolean)
+        .join(" - "),
+    };
   }
 
   /** Platform Ops Console's device detail page — explicit organisationId, same shape as getById(). */

@@ -108,7 +108,7 @@ describe("Onboarding launch readiness (e2e)", () => {
     expect(refused.body.code).toBe("ONBOARDING_STEP_BLOCKED");
   });
 
-  it("makes kiosk devices and branding required once the kiosk route is chosen", async () => {
+  it("makes kiosk devices required once the kiosk route is chosen", async () => {
     const site = await request(app.getHttpServer())
       .post("/sites")
       .set(auth())
@@ -128,7 +128,7 @@ describe("Onboarding launch readiness (e2e)", () => {
     const kiosk = await readiness();
     expect(step(kiosk, "launch_route")?.blockedBy).toEqual([]);
     expect(step(kiosk, "devices_mdm")?.requirement).toBe("required");
-    expect(step(kiosk, "branding")?.requirement).toBe("required");
+    expect(step(kiosk, "branding")).toBeUndefined(); // custom branding was retired
 
     await request(app.getHttpServer())
       .post("/auth/onboarding/launch-route")
@@ -137,7 +137,6 @@ describe("Onboarding launch readiness (e2e)", () => {
       .expect(200);
     const qr = await readiness();
     expect(step(qr, "devices_mdm")?.requirement).toBe("not_applicable");
-    expect(step(qr, "branding")?.requirement).toBe("recommended");
   });
 
   it("creates one open test visit, idempotently, and checks it out exactly once", async () => {
@@ -182,7 +181,7 @@ describe("Onboarding launch readiness (e2e)", () => {
     const beat = await request(app.getHttpServer())
       .post("/auth/onboarding/presence")
       .set(auth())
-      .send({ stepCode: "branding" })
+      .send({ stepCode: "check_in_channels" })
       .expect(200);
     // The caller never sees themselves as another editor.
     expect(beat.body.editing).toEqual([]);

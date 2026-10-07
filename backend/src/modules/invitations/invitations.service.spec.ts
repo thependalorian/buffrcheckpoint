@@ -24,7 +24,7 @@ describe("InvitationsService", () => {
     const inserted: Record<string, unknown>[] = [];
     const statusEvents: Record<string, unknown>[] = [];
     const db = {
-      insert: jest.fn((table: { [key: string]: unknown }) => ({
+      insert: jest.fn((_table: { [key: string]: unknown }) => ({
         values: (row: Record<string, unknown>) => {
           if ("tokenHmac" in row) {
             inserted.push(row);
@@ -157,5 +157,61 @@ describe("InvitationsService", () => {
     };
     const service = new InvitationsService(db as never, typeDefs as never);
     await expect(service.resolvePublicToken("no-such-token")).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  describe("invitation email", () => {
+    const makeDb = () => ({
+      insert: jest.fn(() => ({
+        values: (row: Record<string, unknown>) =>
+          "tokenHmac" in row ? { returning: async () => [{ ...row }] } : Promise.resolve(),
+      })),
+      query: {
+        sites: { findFirst: jest.fn(async () => ({ name: "Main reception" })) },
+        siteHosts: { findFirst: jest.fn(async () => ({ hostNameProtected: null })) },
+      },
+    });
+    const base = {
+      siteId: "site-1",
+      hostId: "host-1",
+      visitorReference: "Maria",
+      expiresAt: new Date(Date.now() + 86_400_000).toISOString(),
+    };
+
+    it("emails the check-in link when the host gives an address, and does not store the address", async () => {
+      const send = jest.fn(async () => ({ id: "n1" }));
+      const db = makeDb();
+      const service = new InvitationsService(db as never, typeDefs as never, { send } as never);
+      const result = await service.create({ ...base, visitorEmail: "Maria@Example.com" }, orgUser);
+
+      expect(result.emailed).toBe(true);
+      const call = send.mock.calls[0] as unknown as [
+        { templateCode: string; to: string; variables: Record<string, string>; recipientName: string },
+      ];
+      expect(call[0].templateCode).toBe("visitor_prereg_invite");
+      expect(call[0].to).toBe("maria@example.com");
+      expect(call[0].variables.checkInUrl).toBe(result.qrUrl);
+      expect(call[0].recipientName).toBe("Maria");
+      const rows = (db.insert.mock.results as Array<{ value: unknown }>).length;
+      expect(rows).toBeGreaterThan(0);
+      expect(JSON.stringify(result)).not.toContain("maria@example.com");
+    });
+
+    it("sends nothing without an address, or with one that is not a single plain address", async () => {
+      const send = jest.fn(async () => ({ id: "n1" }));
+      const service = new InvitationsService(makeDb() as never, typeDefs as never, { send } as never);
+      expect((await service.create(base, orgUser)).emailed).toBe(false);
+      expect((await service.create({ ...base, visitorEmail: "a@b.com, c@d.com" }, orgUser)).emailed).toBe(false);
+      expect(send).not.toHaveBeenCalled();
+    });
+
+    it("still creates the invitation when the email cannot be queued", async () => {
+      const send = jest.fn(async () => {
+        throw new Error("outbox down");
+      });
+      const service = new InvitationsService(makeDb() as never, typeDefs as never, { send } as never);
+      const result = await service.create({ ...base, visitorEmail: "maria@example.com" }, orgUser);
+      expect(result.opaqueToken).toBeTruthy();
+      expect(result.emailed).toBe(false);
+    });
   });
 });

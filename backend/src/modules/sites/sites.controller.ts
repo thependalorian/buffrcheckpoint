@@ -3,7 +3,6 @@ import { IsOptional, IsString, IsUUID, MinLength } from "class-validator";
 
 import { AuditLog } from "../../common/decorators/audit-log.decorator";
 import { type AuthenticatedUser, CurrentUser } from "../../common/decorators/current-user.decorator";
-import { RequireMfa } from "../../common/decorators/require-mfa.decorator";
 import { RequirePermission } from "../../common/decorators/require-permission.decorator";
 import { RequireVerifiedEmail } from "../../common/decorators/require-verified-email.decorator";
 import { PERMISSIONS } from "../../common/rbac/permissions";
@@ -36,7 +35,6 @@ export class SitesController {
   @Post()
   @RequirePermission(PERMISSIONS.SITE_CONFIGURE)
   @RequireVerifiedEmail()
-  @RequireMfa()
   create(@Body() dto: CreateSiteDto, @CurrentUser() user: AuthenticatedUser) {
     return this.sitesService.create(dto, user);
   }
@@ -57,7 +55,6 @@ export class SitesController {
   @Patch(":id")
   @RequirePermission(PERMISSIONS.SITE_CONFIGURE)
   @RequireVerifiedEmail()
-  @RequireMfa()
   @AuditLog({ action: "site.update", resourceType: "site" })
   update(@Param("id") id: string, @Body() dto: UpdateSiteDto, @CurrentUser() user: AuthenticatedUser) {
     return this.sitesService.update(id, dto, user);
@@ -66,7 +63,6 @@ export class SitesController {
   @Delete(":id")
   @RequirePermission(PERMISSIONS.SITE_CONFIGURE)
   @RequireVerifiedEmail()
-  @RequireMfa()
   @AuditLog({ action: "site.delete", resourceType: "site" })
   softDelete(@Param("id") id: string, @CurrentUser() user: AuthenticatedUser) {
     return this.sitesService.softDelete(id, user);

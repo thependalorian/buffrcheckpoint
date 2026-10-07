@@ -3,7 +3,7 @@ import { Throttle } from "@nestjs/throttler";
 
 import { Public } from "../../common/decorators/public.decorator";
 import { PublicInvitationCheckInDto } from "../invitations/dto/public-invitation-check-in.dto";
-import { PublicCheckInDto, PublicCheckOutDto } from "./dto/public-check-in.dto";
+import { PublicCheckInDto, PublicCheckOutDto, PublicCheckOutTokenDto } from "./dto/public-check-in.dto";
 import { VisitsService } from "./visits.service";
 
 @Controller("public/check-in")
@@ -53,5 +53,13 @@ export class PublicCheckOutController {
   @Throttle({ default: { ttl: 60_000, limit: 10 } })
   submit(@Body() dto: PublicCheckOutDto) {
     return this.visitsService.publicCheckOut(dto);
+  }
+
+  /** Personal sign-out link from the receipt email. */
+  @Public()
+  @Post("token")
+  @Throttle({ default: { ttl: 60_000, limit: 10 } })
+  submitToken(@Body() dto: PublicCheckOutTokenDto) {
+    return this.visitsService.publicCheckOutByToken(dto.token);
   }
 }

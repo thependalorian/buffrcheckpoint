@@ -6,11 +6,10 @@ import { AuditLog } from "../../common/decorators/audit-log.decorator";
 import { AuthenticatedOnly } from "../../common/decorators/authenticated-only.decorator";
 import { type AuthenticatedUser, CurrentUser } from "../../common/decorators/current-user.decorator";
 import { Public } from "../../common/decorators/public.decorator";
-import { RequireMfa } from "../../common/decorators/require-mfa.decorator";
 import { RequirePermission } from "../../common/decorators/require-permission.decorator";
 import { RequireVerifiedEmail } from "../../common/decorators/require-verified-email.decorator";
 import { PERMISSIONS } from "../../common/rbac/permissions";
-import { CreateOrganisationAdminDto } from "./dto/create-organisation-admin.dto";
+import { CreateOrganisationAdminDto, CreateOrganisationWithBuffrIdDto } from "./dto/create-organisation-admin.dto";
 import { OnboardingService } from "./onboarding.service";
 import { OnboardingTestVisitService } from "./onboarding-test-visit.service";
 import { StaffTrainingService } from "./staff-training.service";
@@ -46,10 +45,18 @@ export class OnboardingController {
     return this.onboardingService.createOrganisationAdmin(dto);
   }
 
+  // Create an organisation from a Buffr ID sign-in: the owner is the person who signed in, with no Checkpoint password.
+  @Public()
+  @Throttle({ default: { ttl: 900_000, limit: 5 } })
+  @HttpCode(HttpStatus.CREATED)
+  @Post("organisation-buffr-id")
+  createOrganisationWithBuffrId(@Body() dto: CreateOrganisationWithBuffrIdDto) {
+    return this.onboardingService.createOrganisationWithBuffrId(dto);
+  }
+
   @Get("test-visit")
   @RequirePermission(PERMISSIONS.ONBOARDING_MANAGE)
   @RequireVerifiedEmail()
-  @RequireMfa()
   async testVisit(@CurrentUser() user: AuthenticatedUser) {
     const latest = await this.testVisits.latest(user);
     if (latest) return { visit: latest, target: null };
@@ -61,7 +68,6 @@ export class OnboardingController {
   @Post("test-visit")
   @RequirePermission(PERMISSIONS.ONBOARDING_MANAGE)
   @RequireVerifiedEmail()
-  @RequireMfa()
   @AuditLog({ action: "organisation_onboarding.test_visit", resourceType: "visitor_visits" })
   createTestVisit(@Body() dto: ClientIdDto, @CurrentUser() user: AuthenticatedUser) {
     return this.testVisits.create(dto.id, user);

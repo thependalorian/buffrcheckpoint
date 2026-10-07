@@ -15,10 +15,6 @@ export class CreateKioskExperienceConfigDto {
 
 export class CreateKioskExperienceVersionDto {
   @IsOptional()
-  @IsUUID()
-  brandingProfileVersionId?: string;
-
-  @IsOptional()
   @IsInt()
   @Min(30)
   idleTimeoutSeconds?: number;

@@ -7,6 +7,7 @@ import { OnboardingStateModule } from "../onboarding-state/onboarding-state.modu
 import { RbacModule } from "../rbac/rbac.module";
 import { AuthController } from "./auth.controller";
 import { AuthService } from "./auth.service";
+import { BuffrIdService } from "./buffr-id.service";
 import { OnboardingEvidenceService } from "./onboarding-evidence.service";
 import { OnboardingPresenceService } from "./onboarding-presence.service";
 import { OnboardingProgressController } from "./onboarding-progress.controller";
@@ -27,11 +28,12 @@ import { JwtStrategy } from "./strategies/jwt.strategy";
   controllers: [AuthController, OnboardingProgressController],
   providers: [
     AuthService,
+    BuffrIdService,
     JwtStrategy,
     OnboardingEvidenceService,
     OnboardingPresenceService,
     OnboardingProgressService,
   ],
-  exports: [AuthService, JwtModule, OnboardingEvidenceService],
+  exports: [AuthService, BuffrIdService, JwtModule, OnboardingEvidenceService],
 })
 export class AuthModule {}

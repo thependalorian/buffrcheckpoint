@@ -144,6 +144,17 @@ export class BillingController {
     return this.service.sendInvoiceReminder(invoiceId);
   }
 
+  @Post("platform/billing/invoices/:invoiceId/credit-notes")
+  @RequirePermission(PERMISSIONS.PLATFORM_BILLING_MANAGE)
+  @AuditLog({ action: "invoice.credit_note", resourceType: "invoice" })
+  issueCreditNote(
+    @Param("invoiceId") invoiceId: string,
+    @Body() dto: { amount: string; reason: string },
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.service.issueCreditNote(invoiceId, dto, user);
+  }
+
   @Get("platform/billing/invoices/:invoiceId/document")
   @RequirePermission(PERMISSIONS.PLATFORM_BILLING_MANAGE)
   async downloadInvoicePlatform(

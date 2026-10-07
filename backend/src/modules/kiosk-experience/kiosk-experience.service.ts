@@ -1,7 +1,6 @@
 import { ConflictException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 import { and, desc, eq, isNull } from "drizzle-orm";
 
-import { resolvePublicAssetUrl } from "../../common/assets/public-asset-url";
 import type { AuthenticatedUser } from "../../common/decorators/current-user.decorator";
 import type { Database } from "../../db/client";
 import { DB } from "../../db/db.module";
@@ -11,7 +10,6 @@ import {
   kioskExperienceConfigurationVersions,
 } from "../../db/schema";
 import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.service";
-import { SiteBrandingService } from "../site-branding/site-branding.service";
 import { SiteQrReferencesService } from "../site-qr-references/site-qr-references.service";
 import { VisitorPolicyService } from "../visitor-policy/visitor-policy.service";
 import type { CreateKioskExperienceConfigDto, CreateKioskExperienceVersionDto } from "./dto/kiosk-experience.dto";
@@ -21,8 +19,9 @@ export interface EffectiveKioskExperience {
   config: typeof kioskExperienceConfigurations.$inferSelect;
   version: typeof kioskExperienceConfigurationVersions.$inferSelect;
   channels: (typeof kioskExperienceConfigurationVersionChannels.$inferSelect)[];
-  branding: Awaited<ReturnType<SiteBrandingService["getPublishedForSite"]>>;
-  logoUrl: string | null;
+  /** Always null: custom branding was retired. Kept so installed kiosk builds, which still read the field, keep working. */
+  branding: null;
+  logoUrl: null;
   privacyNoticeContent: {
     versionId: string;
     policyName: string | null;
@@ -46,7 +45,6 @@ export class KioskExperienceService {
   constructor(
     @Inject(DB) private readonly db: Database,
     private readonly typeDefs: TypeDefinitionLookupService,
-    private readonly siteBrandingService: SiteBrandingService,
     private readonly siteQrReferencesService: SiteQrReferencesService,
     private readonly visitorPolicyService: VisitorPolicyService,
   ) {}
@@ -109,7 +107,6 @@ export class KioskExperienceService {
       .values({
         id: versionId,
         kioskExperienceConfigurationId: configId,
-        brandingProfileVersionId: dto.brandingProfileVersionId ?? null,
         versionNumber,
         idleTimeoutSeconds: Math.max(MIN_IDLE_TIMEOUT_SECONDS, dto.idleTimeoutSeconds ?? 120),
         idleWarningSeconds: Math.max(MIN_IDLE_WARNING_SECONDS, dto.idleWarningSeconds ?? 30),
@@ -212,65 +209,32 @@ export class KioskExperienceService {
       })),
     );
 
-    const brandingBundle = await this.siteBrandingService.getPublishedForSite(siteId, user);
-    const branding = brandingBundle
-      ? {
-          ...brandingBundle,
-          channels: await Promise.all(
-            brandingBundle.channels.map(async (row) => ({
-              ...row,
-              captureChannelCode: (await this.typeDefs.codeById(row.captureChannelCode)) ?? row.captureChannelCode,
-            })),
-          ),
-          languages: await Promise.all(
-            brandingBundle.languages.map(async (row) => ({
-              ...row,
-              languageCode: (await this.typeDefs.codeById(row.languageCode)) ?? row.languageCode,
-            })),
-          ),
-        }
-      : null;
-
-    const logoUrl = resolvePublicAssetUrl(branding?.version.logoArtifactId ?? null);
-    const languageCodes = (branding?.languages ?? [])
-      .map((row) => row.languageCode)
-      .filter((code): code is string => typeof code === "string");
-
     let privacyNoticeContent: EffectiveKioskExperience["privacyNoticeContent"] = null;
-    const privacyVersionId = branding?.version.privacyNoticeVersionId;
-    if (privacyVersionId) {
-      try {
-        const content = await this.visitorPolicyService.getVersionContent(privacyVersionId, user);
-        privacyNoticeContent = {
-          versionId: content.id,
-          policyName: content.policyName,
-          contentText: content.contentText,
-          contentUrl: content.contentUrl,
-        };
-      } catch {
-        privacyNoticeContent = null;
-      }
+    try {
+      privacyNoticeContent = await this.visitorPolicyService.getPublishedPrivacyNotice(user);
+    } catch {
+      privacyNoticeContent = null;
     }
 
     const publicCheckInQr = await this.siteQrReferencesService.resolvePublicCheckInForSite(siteId, user);
 
-    return { config, version, channels, branding, logoUrl, privacyNoticeContent, languageCodes, publicCheckInQr };
+    // Languages come from the platform default until per-site languages are configured somewhere other than branding.
+    return {
+      config,
+      version,
+      channels,
+      branding: null,
+      logoUrl: null,
+      privacyNoticeContent,
+      languageCodes: ["en"],
+      publicCheckInQr,
+    };
   }
 
   /** Snapshot FK ids for visit check-in audit evidence. */
   async resolveSnapshotIds(siteId: string, deviceId: string | undefined, user: AuthenticatedUser) {
     const effective = await this.getEffective(siteId, deviceId, user);
-    if (!effective) {
-      return { brandingProfileVersionId: null, kioskExperienceConfigurationVersionId: null };
-    }
-
-    const brandingProfileVersionId =
-      effective.version.brandingProfileVersionId ?? effective.branding?.version.id ?? null;
-
-    return {
-      brandingProfileVersionId,
-      kioskExperienceConfigurationVersionId: effective.version.id,
-    };
+    return { kioskExperienceConfigurationVersionId: effective?.version.id ?? null };
   }
 
   private async resolveConfig(siteId: string, deviceId: string | undefined, organisationId: string) {

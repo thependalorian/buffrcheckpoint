@@ -71,6 +71,8 @@ export const applicationUsers = pgTable(
     emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
     mfaEnabled: boolean("mfa_enabled").notNull().default(false),
     mfaSecretReference: text("mfa_secret_reference"),
+    /** Buffr ID account (OIDC `sub`). Null until the person signs in with Buffr ID once. */
+    buffrIdSubject: text("buffr_id_subject"),
     statusCode: uuid("status_code").references(() => typeDefinition.id),
     /** Consecutive / windowed failed password attempts; reset on success. */
     failedLoginCount: integer("failed_login_count").notNull().default(0),

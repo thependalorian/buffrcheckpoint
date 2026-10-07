@@ -8,6 +8,7 @@ import { notificationDeliveryInstructions, notificationDeliveryStatusEvents } fr
 import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.service";
 import { SmsContactConfirmationService } from "../integrations/telecoms/sms-contact-confirmation.service";
 import { createEmailAdapter, type NotificationChannelAdapter } from "./email.adapter";
+import { EmailBudgetExhaustedError } from "./smtp-email.adapter";
 import { randomUUID } from "node:crypto";
 
 export interface EmailAttachment {
@@ -27,6 +28,8 @@ export interface SendNotificationInput {
 }
 
 const MAX_DELIVERY_ATTEMPTS = 5;
+/** How long a dispatcher owns a row it has claimed but not finished with (crash recovery: the row becomes due again). */
+const CLAIM_LEASE_MS = 60_000;
 
 /** Full jitter-free exponential backoff, capped at 1 hour. */
 function backoffMs(attemptCount: number): number {
@@ -98,12 +101,44 @@ export class NotificationsService {
   /**
    * Called only by NotificationDispatchWorkerService. Attempts one delivery
    * for an already-enqueued row and updates its status + retry bookkeeping.
-   * No SELECT ... FOR UPDATE SKIP LOCKED — assumes a single dispatcher
-   * instance, same assumption HostNotificationEscalationEvaluationService
-   * already makes for its polling loop.
+   *
+   * Rows are claimed first (conditional update on attempt_count + status, see
+   * below) instead of assuming a single dispatcher instance: two app
+   * instances polling the same outbox were observed racing one row — both
+   * could send it, and both counted the retries, so a message could land
+   * twice and burn its five attempts in half the time.
    */
   async attemptDelivery(row: typeof notificationDeliveryInstructions.$inferSelect) {
     const channelCode = await this.typeDefs.codeById(row.channelCode);
+
+    if (channelCode === "email") {
+      // Over the mailbox's hourly or daily cap: leave the message queued for the next window. Checked before the claim, so
+      // waiting for the budget to reset never consumes a retry.
+      if (
+        "hasRoom" in this.emailAdapter &&
+        typeof this.emailAdapter.hasRoom === "function" &&
+        !this.emailAdapter.hasRoom()
+      ) {
+        return;
+      }
+    }
+
+    // Claim: exactly one dispatcher wins this row, everyone else skips it. The lease also covers a crash mid-send.
+    const claimed = await this.db
+      .update(notificationDeliveryInstructions)
+      .set({
+        attemptCount: row.attemptCount + 1,
+        nextAttemptAt: new Date(Date.now() + CLAIM_LEASE_MS),
+      })
+      .where(
+        and(
+          eq(notificationDeliveryInstructions.id, row.id),
+          eq(notificationDeliveryInstructions.statusCode, row.statusCode),
+          eq(notificationDeliveryInstructions.attemptCount, row.attemptCount),
+        ),
+      )
+      .returning({ id: notificationDeliveryInstructions.id });
+    if (claimed.length === 0) return;
 
     let delivered = false;
     let failureReason: string | null = null;
@@ -117,6 +152,14 @@ export class NotificationsService {
         });
         delivered = result.delivered;
       } catch (error) {
+        if (error instanceof EmailBudgetExhaustedError) {
+          // The mailbox hit its cap mid-send: not a failed attempt, so hand the claim back.
+          await this.db
+            .update(notificationDeliveryInstructions)
+            .set({ attemptCount: row.attemptCount })
+            .where(eq(notificationDeliveryInstructions.id, row.id));
+          return;
+        }
         failureReason = error instanceof Error ? error.message : String(error);
         this.logger.warn(`Notification dispatch failed for visit ${row.visitId}: ${failureReason}`);
       }
@@ -153,6 +196,10 @@ export class NotificationsService {
 
     if (nextAttemptCount >= MAX_DELIVERY_ATTEMPTS) {
       const failedStatus = await this.typeDefs.id("notification_delivery_status", "failed");
+      // The message is dead: say so loudly. This is the line that would have surfaced "no verification email arrived".
+      this.logger.error(
+        `Notification permanently failed [${channelCode}] to=${row.recipientReference} subject=${row.subject ?? "-"}: ${failureReason ?? "unknown error"}`,
+      );
       await this.db
         .update(notificationDeliveryInstructions)
         .set({ statusCode: failedStatus, attemptCount: nextAttemptCount, failureReason })

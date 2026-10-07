@@ -1,7 +1,7 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from "@nestjs/common";
 import { and, desc, eq, isNull } from "drizzle-orm";
 
-import { buildPublicCheckInQrUrl } from "../../common/assets/public-asset-url";
+import { buildPublicCheckInQrUrl, buildPublicQrUrl, isPublicQrType } from "../../common/assets/public-asset-url";
 import type { AuthenticatedUser } from "../../common/decorators/current-user.decorator";
 import type { Database } from "../../db/client";
 import { DB } from "../../db/db.module";
@@ -26,13 +26,12 @@ export class SiteQrReferencesService {
   ) {}
 
   async create(dto: CreateSiteQrReferenceDto, user: AuthenticatedUser) {
-    // Only QR types with a live consuming journey may be issued. Other
-    // site_qr_type codes exist in type_definition for roadmap/schema, but
-    // printing them today is a dead end (§11.9.8.1 / Tier 2 gap triage).
-    const implementedQrTypes = new Set(["public_site_checkin"]);
-    if (!implementedQrTypes.has(dto.qrTypeCode)) {
+    // Only QR types with a live consuming journey may be issued: a printed code that opens nothing is a dead end. The public
+    // pages live in the website (/check-in, /emergency, /induction); pre-registration and sign-out use signed links, not site
+    // references, and device support QR codes are issued from the device itself (GET /devices/:id/support-qr).
+    if (!isPublicQrType(dto.qrTypeCode)) {
       throw new BadRequestException(
-        `QR type "${dto.qrTypeCode}" has no consuming journey yet. Issue public_site_checkin only.`,
+        `QR type "${dto.qrTypeCode}" is not issued as a site reference. Issue one of: public_site_checkin, emergency_info, contractor_induction.`,
       );
     }
     const qrTypeCode = await this.typeDefs.id("site_qr_type", dto.qrTypeCode);
@@ -58,10 +57,12 @@ export class SiteQrReferencesService {
         const typeRow = await this.db.query.typeDefinition.findFirst({
           where: eq(typeDefinition.id, row.qrTypeCode),
         });
+        const code = typeRow?.code ?? row.qrTypeCode;
         return {
           ...row,
-          qrTypeCode: typeRow?.code ?? row.qrTypeCode,
+          qrTypeCode: code,
           qrTypeLabel: typeRow?.label ?? typeRow?.code ?? "Unknown",
+          payload: isPublicQrType(code) ? buildPublicQrUrl(code, row.siteId, row.id) : null,
         };
       }),
     );
@@ -147,7 +148,13 @@ export class SiteQrReferencesService {
       rotation: created,
       opaqueToken,
       checkInUrl: buildPublicCheckInQrUrl(targetRef.siteId, targetRef.id),
+      payload: await this.payloadFor(targetRef.qrTypeCode, targetRef.siteId, targetRef.id),
     };
+  }
+
+  private async payloadFor(qrTypeId: string, siteId: string, referenceId: string): Promise<string | null> {
+    const type = await this.db.query.typeDefinition.findFirst({ where: eq(typeDefinition.id, qrTypeId) });
+    return type && isPublicQrType(type.code) ? buildPublicQrUrl(type.code, siteId, referenceId) : null;
   }
 
   /** Active public site check-in QR for kiosk welcome display. */
@@ -249,6 +256,15 @@ export class SiteQrReferencesService {
    * public_site_checkin QR (no auth). Used by GET/POST /public/check-in.
    */
   async validatePublicCheckInReference(siteId: string, referenceId: string): Promise<ValidatedPublicCheckInReference> {
+    return this.validatePublicReference(siteId, referenceId, "public_site_checkin");
+  }
+
+  /** The same proof for any public QR type: the site exists, the reference is of this type, not deleted, and its rotation is still active. */
+  async validatePublicReference(
+    siteId: string,
+    referenceId: string,
+    qrTypeCode: "public_site_checkin" | "emergency_info" | "contractor_induction",
+  ): Promise<ValidatedPublicCheckInReference> {
     if (!siteId || !referenceId) {
       throw new BadRequestException("site and ref query parameters are required");
     }
@@ -258,7 +274,7 @@ export class SiteQrReferencesService {
     });
     if (!site) throw new NotFoundException("Check-in link is not valid for this site");
 
-    const publicCheckInType = await this.typeDefs.id("site_qr_type", "public_site_checkin");
+    const publicCheckInType = await this.typeDefs.id("site_qr_type", qrTypeCode);
     const reference = await this.db.query.siteQrReferences.findFirst({
       where: and(
         eq(siteQrReferences.id, referenceId),
@@ -268,7 +284,7 @@ export class SiteQrReferencesService {
         isNull(siteQrReferences.deletedAt),
       ),
     });
-    if (!reference) throw new NotFoundException("Check-in link is not valid");
+    if (!reference) throw new NotFoundException("This QR code is not valid");
 
     const now = new Date();
     const rotation = await this.db.query.siteQrReferenceRotations.findFirst({
@@ -279,7 +295,7 @@ export class SiteQrReferencesService {
       orderBy: [desc(siteQrReferenceRotations.activeFrom)],
     });
     if (!rotation || rotation.activeUntil <= now) {
-      throw new NotFoundException("Check-in link has expired — ask reception for a new QR");
+      throw new NotFoundException("This QR code has expired. Ask reception for a new one.");
     }
 
     return {

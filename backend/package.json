@@ -25,7 +25,7 @@
     "audit:routes": "nest build && node scripts/audit-route-policy.cjs"
   },
   "dependencies": {
-    "@aws-sdk/client-s3": "3.787.0",
+    "@aws-sdk/client-s3": "3.1140.0",
     "@neondatabase/serverless": "^0.10.4",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.0",
@@ -44,6 +44,8 @@
     "drizzle-orm": "^0.45.2",
     "exceljs": "4.4.0",
     "helmet": "^8.0.0",
+    "jose": "5.10.0",
+    "nodemailer": "10.0.12",
     "otplib": "12.0.1",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
@@ -62,6 +64,7 @@
     "@types/express": "^5.0.0",
     "@types/jest": "^30.0.0",
     "@types/node": "^22.10.7",
+    "@types/nodemailer": "8.0.2",
     "@types/passport-jwt": "^4.0.1",
     "@types/passport-local": "^1.0.38",
     "@types/supertest": "^6.0.2",
@@ -84,7 +87,10 @@
   },
   "overrides": {
     "multer": "^2.3.0",
-    "tar": "^7.5.20"
+    "tar": "^7.5.20",
+    "fast-xml-parser": "4.5.7",
+    "proxy-addr": "2.0.8",
+    "uuid": "11.1.1"
   },
   "jest": {
     "moduleFileExtensions": [

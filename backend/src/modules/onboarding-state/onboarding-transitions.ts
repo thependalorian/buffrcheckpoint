@@ -31,11 +31,14 @@ const PROGRESSION: readonly OnboardingStatus[] = [
   "live",
 ];
 
+// MFA comes after onboarding (D-20), so `mfa_enrolled` is no longer a stage an organisation must pass through. The status stays valid
+// so existing rows and history still read; new organisations go from email_verified straight to in_progress.
+//
 // Normal application flow. Anything else (backward moves, suspension,
 // un-suspension) is an ops override with a recorded reason.
 const FORWARD_EDGES: Readonly<Record<OnboardingStatus, readonly OnboardingStatus[]>> = {
   pending_email_verification: ["email_verified"],
-  email_verified: ["mfa_enrolled"],
+  email_verified: ["mfa_enrolled", "in_progress"],
   mfa_enrolled: ["in_progress"],
   in_progress: ["ready_for_golive", "live"],
   ready_for_golive: ["live"],
@@ -95,5 +98,7 @@ export function earlyStagePath(from: OnboardingStatus, target: OnboardingStatus)
   const fromIndex = PROGRESSION.indexOf(from);
   const targetIndex = PROGRESSION.indexOf(target);
   if (fromIndex < 0 || fromIndex >= targetIndex) return [];
-  return PROGRESSION.slice(fromIndex + 1, targetIndex + 1) as OnboardingStatus[];
+  const path = PROGRESSION.slice(fromIndex + 1, targetIndex + 1) as OnboardingStatus[];
+  // Skip the retired mfa_enrolled stage unless it is the explicit target (legacy callers).
+  return target === "mfa_enrolled" ? path : path.filter((status) => status !== "mfa_enrolled");
 }

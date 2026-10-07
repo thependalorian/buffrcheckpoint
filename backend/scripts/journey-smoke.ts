@@ -14,8 +14,10 @@
 import { randomUUID } from "node:crypto";
 
 const API = (process.env.API_BASE ?? "http://localhost:3001").replace(/\/$/, "");
-const EMAIL = process.env.DEMO_EMAIL ?? "kiosk-demo@buffrcheckpoint.test";
-const PASSWORD = process.env.DEMO_PASSWORD ?? "KioskDemo!2026";
+// No default credentials: the demo sign-ins were removed, and a published password is a back door. Supply a test account.
+const EMAIL = process.env.DEMO_EMAIL;
+const PASSWORD = process.env.DEMO_PASSWORD;
+if (!EMAIL || !PASSWORD) throw new Error("Set DEMO_EMAIL and DEMO_PASSWORD to a test account in a non-production environment");
 
 async function req(path: string, init: RequestInit & { token?: string } = {}) {
   const headers: Record<string, string> = {

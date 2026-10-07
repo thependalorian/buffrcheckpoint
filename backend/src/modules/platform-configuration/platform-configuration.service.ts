@@ -114,6 +114,17 @@ export class PlatformConfigurationService {
     });
   }
 
+  /** A keyed JSON setting, or null when it has never been written. */
+  async getSetting<T>(settingKey: string): Promise<T | null> {
+    const row = await this.findByKey(settingKey);
+    return row ? (row.settingValue as T) : null;
+  }
+
+  /** Writes a keyed JSON setting and appends the before/after row to its change log. */
+  async setSetting(settingKey: string, value: unknown, user: AuthenticatedUser, note?: string) {
+    return this.upsert(settingKey, value, user, note);
+  }
+
   private async findByKey(settingKey: string) {
     return (
       (await this.db.query.platformConfigurationSetting.findFirst({

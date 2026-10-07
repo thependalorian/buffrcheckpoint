@@ -68,6 +68,7 @@ export class ContactService {
           templateCode: "ops_contact_ack",
           organisationId,
           to: input.email.trim().toLowerCase(),
+          recipientName: input.name.trim(),
           variables: {
             name: input.name.trim(),
             signupUrl,

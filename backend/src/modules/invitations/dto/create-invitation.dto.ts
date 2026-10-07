@@ -1,4 +1,4 @@
-import { IsDateString, IsOptional, IsString, IsUUID } from "class-validator";
+import { IsDateString, IsOptional, IsString, IsUUID, MaxLength } from "class-validator";
 
 export class CreateInvitationDto {
   @IsUUID()
@@ -20,4 +20,13 @@ export class CreateInvitationDto {
 
   @IsDateString()
   expiresAt!: string;
+
+  /**
+   * Where to send the invitation. Optional and never stored: it is used once, to email the check-in link, and then forgotten.
+   * The host chooses to send it, so this is the host's own act, not a mailing list.
+   */
+  @IsOptional()
+  @IsString()
+  @MaxLength(160)
+  visitorEmail?: string;
 }

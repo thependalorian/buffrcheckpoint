@@ -1,4 +1,4 @@
-import { date, index, integer, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { date, index, integer, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 import { analyticsEtlRun } from "./analytics";
 import { organisations } from "./organisations";
@@ -29,6 +29,8 @@ export const visitSurveyResponses = pgTable(
       .notNull()
       .references(() => typeDefinition.id),
     captureChannelCode: uuid("capture_channel_code").references(() => typeDefinition.id),
+    /** Optional visitor comment as a protected personal-data envelope (migration 0062). Never plain text. */
+    commentProtected: jsonb("comment_protected"),
     submittedAt: timestamp("submitted_at", { withTimezone: true }).notNull().defaultNow(),
     deletedAt: timestamp("deleted_at", { withTimezone: true }),
   },

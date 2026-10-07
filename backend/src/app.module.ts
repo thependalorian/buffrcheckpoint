@@ -7,6 +7,7 @@ import { SentryGlobalFilter, SentryModule } from "@sentry/nestjs/setup";
 import { AppController } from "./app.controller";
 import { AccessControlModule } from "./common/access-control/access-control.module";
 import { DataProtectionModule } from "./common/data-protection/data-protection.module";
+import { MfaAfterGoLiveGuard } from "./common/guards/mfa-after-go-live.guard";
 import { RbacGuard } from "./common/guards/rbac.guard";
 import { SessionAudienceGuard } from "./common/guards/session-audience.guard";
 import { TenantScopeGuard } from "./common/guards/tenant-scope.guard";
@@ -57,7 +58,7 @@ import { RetentionPolicyModule } from "./modules/retention-policy/retention-poli
 import { ScheduleModule } from "./modules/schedule/schedule.module";
 import { ScheduledReportsModule } from "./modules/scheduled-reports/scheduled-reports.module";
 import { SecurityZonesModule } from "./modules/security-zones/security-zones.module";
-import { SiteBrandingModule } from "./modules/site-branding/site-branding.module";
+import { SiteNoticesModule } from "./modules/site-notices/site-notices.module";
 import { SiteQrReferencesModule } from "./modules/site-qr-references/site-qr-references.module";
 import { SitesModule } from "./modules/sites/sites.module";
 import { SupportSessionsModule } from "./modules/support-sessions/support-sessions.module";
@@ -121,9 +122,9 @@ import { VisitsModule } from "./modules/visits/visits.module";
     VisitSurveyModule,
     AnomalyRulesModule,
     ScheduledReportsModule,
-    SiteBrandingModule,
     KioskExperienceModule,
     SiteQrReferencesModule,
+    SiteNoticesModule,
     HostNotificationEscalationModule,
     RegionsModule,
     SecurityZonesModule,
@@ -153,6 +154,7 @@ import { VisitsModule } from "./modules/visits/visits.module";
     { provide: APP_GUARD, useClass: ThrottlerGuard },
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: SessionAudienceGuard },
+    { provide: APP_GUARD, useClass: MfaAfterGoLiveGuard },
     { provide: APP_GUARD, useClass: TenantScopeGuard },
     { provide: APP_GUARD, useClass: RbacGuard },
     { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },

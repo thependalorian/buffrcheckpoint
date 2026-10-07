@@ -61,7 +61,6 @@ BEGIN
   UPDATE sites SET organisation_id = v_new WHERE organisation_id = v_old;
   UPDATE security_zones SET organisation_id = v_new WHERE organisation_id = v_old;
   UPDATE site_hosts SET organisation_id = v_new WHERE organisation_id = v_old;
-  UPDATE site_branding_profiles SET organisation_id = v_new WHERE organisation_id = v_old;
   UPDATE kiosk_experience_configurations SET organisation_id = v_new WHERE organisation_id = v_old;
   UPDATE site_qr_references SET organisation_id = v_new WHERE organisation_id = v_old;
   UPDATE site_qr_reference_rotations SET organisation_id = v_new WHERE organisation_id = v_old;
@@ -128,15 +127,4 @@ BEGIN
     legal_name = 'Buffr Checkpoint Kiosk Demo (retired)',
     trading_name = 'Buffr Checkpoint Kiosk Demo (retired)'
   WHERE id = v_old AND deleted_at IS NULL;
-
-  -- Keep Analytics branding tokens on published demo version
-  UPDATE site_branding_profile_versions
-  SET
-    organisation_display_name = 'Buffr Analytics',
-    welcome_message = 'Welcome to Buffr Analytics',
-    site_display_name = COALESCE(site_display_name, 'Demo Front Desk'),
-    brand_colour_token = '#CF1161',
-    help_contact_reference = 'team@buffranalytics.com',
-    logo_artifact_id = '/org-assets/buffr-analytics/icon.png'
-  WHERE id = 'b1111111-1111-4111-8111-111111111102';
 END $$;

@@ -1,6 +1,7 @@
 import { HeadBucketCommand, S3Client } from "@aws-sdk/client-s3";
 import { Inject, Injectable } from "@nestjs/common";
 import { and, count, desc, eq, gte, sql } from "drizzle-orm";
+import nodemailer from "nodemailer";
 
 import type { Database } from "../../db/client";
 import { DB } from "../../db/db.token";
@@ -8,6 +9,7 @@ import { analyticsEtlRun, notificationDeliveryInstructions, pmsSyncRunLog } from
 import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.service";
 import { adumoConfigFromEnv } from "../billing/adumo.service";
 import { bankPaymentInstructions } from "../documents/document-renderer.service";
+import { chooseTransport, smtpConfigFromEnv } from "../notifications/smtp-config";
 
 export type IntegrationStatus = "healthy" | "degraded" | "down" | "not_configured";
 
@@ -113,7 +115,53 @@ export class IntegrationHealthService {
   }
 
   private async email(): Promise<IntegrationHealth> {
-    const name = "Email (Resend)";
+    const transport = chooseTransport();
+    if (transport === "smtp") return this.smtpMailbox();
+    if (transport === "resend") return this.resend();
+    return {
+      name: "Email",
+      status: "not_configured",
+      latencyMs: null,
+      detail: "No email transport configured (set SMTP_USER and SMTP_PASS)",
+    };
+  }
+
+  /** Connects to the mailbox and authenticates without sending anything, so a changed password or a blocked mailbox shows up here. */
+  private async smtpMailbox(): Promise<IntegrationHealth> {
+    const name = "Email (Buffr mailbox, SMTP)";
+    let config: ReturnType<typeof smtpConfigFromEnv>;
+    try {
+      config = smtpConfigFromEnv();
+    } catch (error) {
+      return { name, status: "down", latencyMs: null, detail: message(error) };
+    }
+    const transporter = nodemailer.createTransport({
+      host: config.host,
+      port: config.port,
+      secure: config.secure,
+      auth: { user: config.user, pass: config.pass },
+      connectionTimeout: PROBE_TIMEOUT_MS,
+      greetingTimeout: PROBE_TIMEOUT_MS,
+      socketTimeout: PROBE_TIMEOUT_MS,
+    });
+    try {
+      const { ms } = await timed(() => transporter.verify());
+      return {
+        name,
+        status: ms > 2000 ? "degraded" : "healthy",
+        latencyMs: ms,
+        detail: `Signed in as ${config.user}; limits ${config.perHour} an hour, ${config.perDay} a day`,
+      };
+    } catch (error) {
+      // The provider's reply can echo the account; keep only the first line and never the password.
+      return { name, status: "down", latencyMs: null, detail: message(error).replace(config.pass, "***") };
+    } finally {
+      transporter.close();
+    }
+  }
+
+  private async resend(): Promise<IntegrationHealth> {
+    const name = "Email (Resend fallback)";
     const key = process.env.RESEND_API_KEY;
     if (!key) return { name, status: "not_configured", latencyMs: null, detail: "RESEND_API_KEY not set" };
     try {

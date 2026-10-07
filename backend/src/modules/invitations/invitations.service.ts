@@ -1,11 +1,17 @@
-import { BadRequestException, Inject, Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, Inject, Injectable, Logger, NotFoundException, Optional } from "@nestjs/common";
 import { and, eq, gte, inArray, isNull, lte } from "drizzle-orm";
 
+import {
+  PersonalDataProtectionService,
+  type ProtectedPersonalDataEnvelope,
+} from "../../common/data-protection/personal-data-protection.service";
 import type { AuthenticatedUser } from "../../common/decorators/current-user.decorator";
 import type { Database } from "../../db/client";
 import { DB } from "../../db/db.module";
-import { sites, typeDefinition, visitInvitationStatusEvents, visitInvitations } from "../../db/schema";
+import { siteHosts, sites, typeDefinition, visitInvitationStatusEvents, visitInvitations } from "../../db/schema";
 import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.service";
+import { TemplatedEmailService } from "../notifications/templated-email.service";
+import { deliverableEmail, formatWhen } from "../notifications/visitor-email";
 import { buildInvitationCheckInUrl, generateOpaqueInvitationToken, invitationTokenHmac } from "./invitation-token.util";
 import { randomBytes, randomUUID } from "node:crypto";
 
@@ -18,13 +24,18 @@ export interface CreateInvitationInput {
   expiresAt: string;
   validFrom?: string;
   maximumRedemptions?: number;
+  visitorEmail?: string;
 }
 
 @Injectable()
 export class InvitationsService {
+  private readonly logger = new Logger(InvitationsService.name);
+
   constructor(
     @Inject(DB) private readonly db: Database,
     private readonly typeDefs: TypeDefinitionLookupService,
+    @Optional() private readonly templatedEmail?: TemplatedEmailService,
+    @Optional() private readonly dataProtection?: PersonalDataProtectionService,
   ) {}
 
   async create(input: CreateInvitationInput, user: AuthenticatedUser) {
@@ -64,11 +75,50 @@ export class InvitationsService {
       reason: "created",
     });
 
-    return {
-      ...created,
-      qrUrl: buildInvitationCheckInUrl(opaqueToken),
-      opaqueToken,
-    };
+    const qrUrl = buildInvitationCheckInUrl(opaqueToken);
+    const emailed = await this.sendInvite(created, input, qrUrl, user).catch((error) => {
+      this.logger.warn(`Invitation email not sent: ${error instanceof Error ? error.message : String(error)}`);
+      return false;
+    });
+    return { ...created, qrUrl, opaqueToken, emailed };
+  }
+
+  /** Emails the check-in link when the host gave an address. The address is used once and is not stored. */
+  private async sendInvite(
+    invitation: { siteId: string; hostId: string; expectedFrom: Date | null; expectedUntil: Date | null },
+    input: CreateInvitationInput,
+    qrUrl: string,
+    user: AuthenticatedUser,
+  ): Promise<boolean> {
+    const to = deliverableEmail(input.visitorEmail);
+    if (!to || !this.templatedEmail) return false;
+    const [site, host] = await Promise.all([
+      this.db.query.sites.findFirst({
+        where: and(eq(sites.id, invitation.siteId), eq(sites.organisationId, user.organisationId)),
+      }),
+      this.db.query.siteHosts.findFirst({
+        where: and(eq(siteHosts.id, invitation.hostId), eq(siteHosts.organisationId, user.organisationId)),
+      }),
+    ]);
+    const hostName =
+      host?.hostNameProtected && this.dataProtection
+        ? this.dataProtection.decrypt(host.hostNameProtected as ProtectedPersonalDataEnvelope)
+        : "Reception";
+    const siteName = site?.name ?? "our site";
+    const expectedAt = formatWhen(invitation.expectedFrom);
+    const validUntil = formatWhen(invitation.expectedUntil);
+    const sent = await this.templatedEmail.send({
+      templateCode: "visitor_prereg_invite",
+      organisationId: user.organisationId,
+      to,
+      recipientName: input.visitorReference,
+      variables: { siteName, hostName, expectedAt, validUntil, checkInUrl: qrUrl },
+      fallback: {
+        subject: `You are invited to visit ${siteName}`,
+        body: `You have been invited to visit ${siteName}.\n\nHost: ${hostName}\nExpected: ${expectedAt}\nValid until: ${validUntil}\n\nOpen this link on arrival to check in quickly:\n${qrUrl}`,
+      },
+    });
+    return sent !== null;
   }
 
   async revoke(invitationId: string, reason: string, user: AuthenticatedUser) {

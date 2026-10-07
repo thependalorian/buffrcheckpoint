@@ -2,14 +2,12 @@
 -- Site: 74c72c99-93dc-4b33-934b-9b365e9924cf ("Demo Front Desk")
 -- Org:  b51f0704-12a7-45d4-8b0d-3642785b6e77 (Buffr Analytics)
 
--- Idempotent: skip if a published branding profile already exists for this site.
+-- Idempotent: skip if a kiosk experience already exists for this site. (Custom branding was retired; this seed no longer creates any.)
 DO $$
 DECLARE
   v_org UUID := 'b51f0704-12a7-45d4-8b0d-3642785b6e77';
   v_site UUID := '74c72c99-93dc-4b33-934b-9b365e9924cf';
   v_published UUID;
-  v_branding_profile UUID := 'b1111111-1111-4111-8111-111111111101';
-  v_branding_version UUID := 'b1111111-1111-4111-8111-111111111102';
   v_kiosk_config UUID := 'b2222222-2222-4222-8222-222222222201';
   v_kiosk_version UUID := 'b2222222-2222-4222-8222-222222222202';
   v_qr_ref UUID := 'b3333333-3333-4333-8333-333333333301';
@@ -21,42 +19,21 @@ BEGIN
   WHERE domain = 'configuration_version_status' AND code = 'published';
 
   IF EXISTS (
-    SELECT 1 FROM site_branding_profiles
+    SELECT 1 FROM kiosk_experience_configurations
     WHERE organisation_id = v_org AND site_id = v_site AND deleted_at IS NULL
   ) THEN
     RETURN;
   END IF;
 
-  INSERT INTO site_branding_profiles (id, organisation_id, site_id, profile_name)
-  VALUES (v_branding_profile, v_org, v_site, 'Demo Front Desk branding');
-
-  INSERT INTO site_branding_profile_versions (
-    id, branding_profile_id, version_number, logo_artifact_id, brand_colour_token,
-    welcome_message, organisation_display_name, site_display_name, help_contact_reference,
-    effective_from, published_at, status_code
-  ) VALUES (
-    v_branding_version, v_branding_profile, 1, '/org-assets/buffr-analytics/icon.png', '#CF1161',
-    'Welcome to Buffr Analytics', 'Buffr Analytics', 'Demo Front Desk', 'team@buffranalytics.com',
-    NOW(), NOW(), v_published
-  );
-
-  INSERT INTO site_branding_profile_version_languages (id, branding_profile_version_id, language_code)
-  SELECT gen_random_uuid(), v_branding_version, id
-  FROM type_definition WHERE domain = 'language_code' AND code IN ('en', 'af');
-
-  INSERT INTO site_branding_profile_version_channels (id, branding_profile_version_id, capture_channel_code)
-  SELECT gen_random_uuid(), v_branding_version, id
-  FROM type_definition WHERE domain = 'capture_channel' AND code IN ('kiosk', 'assisted', 'qr', 'nfc_badge', 'ussd');
-
   INSERT INTO kiosk_experience_configurations (id, organisation_id, site_id, config_name)
   VALUES (v_kiosk_config, v_org, v_site, 'Demo default kiosk experience');
 
   INSERT INTO kiosk_experience_configuration_versions (
-    id, kiosk_experience_configuration_id, branding_profile_version_id, version_number,
+    id, kiosk_experience_configuration_id, version_number,
     idle_timeout_seconds, idle_warning_seconds, maintenance_mode_enabled,
     accessibility_large_text_enabled, effective_from, published_at, status_code
   ) VALUES (
-    v_kiosk_version, v_kiosk_config, v_branding_version, 1,
+    v_kiosk_version, v_kiosk_config, 1,
     120, 30, FALSE, FALSE, NOW(), NOW(), v_published
   );
 

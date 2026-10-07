@@ -10,7 +10,6 @@ const none: EvidenceSnapshot = {
   formWithFields: false,
   siteQr: false,
   kioskConfig: false,
-  brandingPublished: false,
   accessPolicy: false,
   device: false,
   testVisit: false,
@@ -36,8 +35,7 @@ describe("missingEvidence", () => {
     ]);
   });
 
-  it("requires a published branding version, a test visit and the user's training acknowledgement", () => {
-    expect(missingEvidence("branding", "kiosk", none)).toEqual(["site_branding.published_version"]);
+  it("requires a test visit and the user's training acknowledgement", () => {
     expect(missingEvidence("flow_tests", "kiosk", none)).toEqual(["visits.test_visit"]);
     expect(missingEvidence("role_training", "kiosk", none)).toEqual(["training.acknowledged"]);
   });

@@ -29,6 +29,8 @@ export interface HostListRow {
   hasContact: boolean;
 }
 
+import { searchHosts } from "./host-search";
+
 @Injectable()
 export class HostsService {
   constructor(
@@ -64,7 +66,11 @@ export class HostsService {
     } satisfies HostListRow;
   }
 
-  async listBySite(siteId: string | undefined, user: AuthenticatedUser): Promise<HostListRow[]> {
+  async listBySite(
+    siteId: string | undefined,
+    user: AuthenticatedUser,
+    search?: { q?: string; limit?: number },
+  ): Promise<HostListRow[]> {
     const rows = siteId
       ? await this.db.query.siteHosts.findMany({
           where: and(
@@ -77,7 +83,7 @@ export class HostsService {
           where: and(eq(siteHosts.organisationId, user.organisationId), isNull(siteHosts.deletedAt)),
         });
 
-    return rows.map((host) => {
+    const listed = rows.map((host) => {
       let displayName = "Host";
       if (host.hostNameProtected) {
         try {
@@ -96,6 +102,7 @@ export class HostsService {
         hasContact: Boolean(host.hostContactProtected),
       };
     });
+    return search ? searchHosts(listed, search.q, search.limit) : listed;
   }
 
   async getById(hostId: string, user: AuthenticatedUser) {

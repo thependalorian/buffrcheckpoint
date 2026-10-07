@@ -1,7 +1,7 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { and, desc, eq, gte, inArray, lt, lte, or, type SQL } from "drizzle-orm";
 
-import { type AppendAuditEventInput, appendAuditEvent, computeAuditEventHash } from "../../common/audit/audit-chain";
+import { type AppendAuditEventInput, appendAuditEvent, verifyChain } from "../../common/audit/audit-chain";
 import type { AuthenticatedUser } from "../../common/decorators/current-user.decorator";
 import type { TabularExport } from "../../common/export/tabular";
 import type { Database } from "../../db/client";
@@ -117,20 +117,7 @@ export class AuditService {
       where: eq(auditEvents.organisationId, user.organisationId),
       orderBy: [auditEvents.occurredAt],
     });
-
-    let expectedPrevHash: string | null = null;
-
-    for (const event of events) {
-      if (event.prevEventHash !== expectedPrevHash) {
-        return { valid: false, brokenAtEventId: event.id };
-      }
-      const recomputed = computeAuditEventHash(event);
-      if (recomputed !== event.eventHash) {
-        return { valid: false, brokenAtEventId: event.id };
-      }
-      expectedPrevHash = event.eventHash;
-    }
-
-    return { valid: true, brokenAtEventId: null };
+    // Followed by links, not by timestamps: events written in the same millisecond tie on time.
+    return verifyChain(events);
   }
 }

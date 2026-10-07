@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 
+import { NotificationsModule } from "../notifications/notifications.module";
 import { SupportTicketsController } from "./support-tickets.controller";
 import { SupportTicketsService } from "./support-tickets.service";
 import { SupportTicketsCustomerController } from "./support-tickets-customer.controller";
@@ -11,6 +12,7 @@ import { SupportTicketsCustomerController } from "./support-tickets-customer.con
 // org can actually open a ticket and read staff replies — see migration
 // 0028).
 @Module({
+  imports: [NotificationsModule],
   controllers: [SupportTicketsController, SupportTicketsCustomerController],
   providers: [SupportTicketsService],
   exports: [SupportTicketsService],

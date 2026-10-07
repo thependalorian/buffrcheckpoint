@@ -1,10 +1,23 @@
 import { BadRequestException, Inject, Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
 import { and, asc, eq, isNull, sql } from "drizzle-orm";
 
+import {
+  PersonalDataProtectionService,
+  type ProtectedPersonalDataEnvelope,
+} from "../../common/data-protection/personal-data-protection.service";
 import type { Database } from "../../db/client";
 import { DB } from "../../db/db.token";
 import { typeDefinition, visitorVisits, visitSurveyResponseStatusEvents, visitSurveyResponses } from "../../db/schema";
 import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.service";
+import {
+  clampLimit,
+  type Distribution,
+  distributionFrom,
+  isStarScore,
+  normaliseComment,
+  SurveyRuleError,
+  summarise,
+} from "./survey-rules";
 import { verifySurveyToken } from "./survey-token";
 import { randomUUID } from "node:crypto";
 
@@ -22,6 +35,7 @@ export class VisitSurveyService {
   constructor(
     @Inject(DB) private readonly db: Database,
     private readonly typeDefs: TypeDefinitionLookupService,
+    private readonly dataProtection: PersonalDataProtectionService,
   ) {}
 
   /** The five rating options in display order (score = sortOrder). */
@@ -33,14 +47,31 @@ export class VisitSurveyService {
       .orderBy(asc(typeDefinition.sortOrder));
   }
 
-  async submit(input: { token: string; ratingCode: string }) {
+  /** Either the star count (1 to 5) or the rating code; the star count wins when both are given. */
+  async submit(input: { token: string; ratingCode?: string; rating?: number; comment?: string }) {
     const verified = verifySurveyToken(input.token);
     if (!verified) throw new UnauthorizedException("This survey link has expired");
     const { visitId, channel } = verified;
 
+    let comment: string | null;
+    try {
+      comment = normaliseComment(input.comment);
+    } catch (error) {
+      if (error instanceof SurveyRuleError) throw new BadRequestException(error.message);
+      throw error;
+    }
+
+    let ratingCode = input.ratingCode;
+    if (input.rating !== undefined && input.rating !== null) {
+      if (!isStarScore(input.rating)) throw new BadRequestException("Rating must be a whole number from 1 to 5");
+      const options = await this.ratingOptions();
+      ratingCode = options.find((option) => Number(option.score) === input.rating)?.code;
+    }
+    if (!ratingCode) throw new BadRequestException("Choose a rating from 1 to 5");
+
     let ratingId: string;
     try {
-      ratingId = await this.typeDefs.id("satisfaction_rating", input.ratingCode);
+      ratingId = await this.typeDefs.id("satisfaction_rating", ratingCode);
     } catch {
       throw new BadRequestException("Unknown rating");
     }
@@ -66,6 +97,8 @@ export class VisitSurveyService {
         ratingCode: ratingId,
         statusCode: submitted,
         captureChannelCode: captureChannel,
+        // The comment is personal data: it is stored only as an encrypted envelope and is never logged.
+        commentProtected: comment ? this.dataProtection.encrypt(comment) : null,
       })
       .onConflictDoNothing({
         target: [visitSurveyResponses.organisationId, visitSurveyResponses.visitId],
@@ -82,6 +115,102 @@ export class VisitSurveyService {
       toStatusCode: submitted,
     });
     return { recorded: true, duplicate: false };
+  }
+
+  /**
+   * Staff view for one organisation: average, count, a 1 to 5 distribution, a breakdown by site and the most recent comments.
+   * Read live from the responses (the daily fact table has no distribution or comments). Tenant-scoped by organisationId.
+   */
+  async detail(input: {
+    organisationId: string;
+    from: string;
+    to: string;
+    siteId?: string;
+    commentLimit?: number;
+    includeComments?: boolean;
+  }) {
+    const timeZone = process.env.ANALYTICS_TIMEZONE ?? "Africa/Windhoek";
+    const inPeriod = sql`(r.submitted_at AT TIME ZONE ${timeZone})::date BETWEEN ${input.from}::date AND ${input.to}::date`;
+    const siteFilter = input.siteId ? sql`AND r.site_id = ${input.siteId}` : sql``;
+    const limit = clampLimit(input.commentLimit);
+
+    const [distributionResult, siteResult, commentResult] = await Promise.all([
+      this.db.execute(sql`
+        SELECT t.sort_order::int AS score, count(*)::int AS n
+          FROM visit_survey_responses r
+          JOIN type_definition t ON t.id = r.rating_code
+         WHERE r.organisation_id = ${input.organisationId} AND r.deleted_at IS NULL AND ${inPeriod} ${siteFilter}
+         GROUP BY t.sort_order`),
+      this.db.execute(sql`
+        SELECT r.site_id AS site_id, s.name AS site_name, count(*)::int AS n, sum(t.sort_order)::int AS total
+          FROM visit_survey_responses r
+          JOIN type_definition t ON t.id = r.rating_code
+          JOIN sites s ON s.id = r.site_id
+         WHERE r.organisation_id = ${input.organisationId} AND r.deleted_at IS NULL AND ${inPeriod} ${siteFilter}
+         GROUP BY r.site_id, s.name
+         ORDER BY count(*) DESC, s.name`),
+      // Comments are personal data: they are read only when the caller holds the permission that allows it.
+      input.includeComments === false
+        ? Promise.resolve({ rows: [] as unknown[] })
+        : this.db.execute(sql`
+        SELECT r.id AS id, r.site_id AS site_id, s.name AS site_name, r.submitted_at AS submitted_at,
+               t.sort_order::int AS score, r.comment_protected AS comment_protected
+          FROM visit_survey_responses r
+          JOIN type_definition t ON t.id = r.rating_code
+          JOIN sites s ON s.id = r.site_id
+         WHERE r.organisation_id = ${input.organisationId} AND r.deleted_at IS NULL AND r.comment_protected IS NOT NULL
+           AND ${inPeriod} ${siteFilter}
+         ORDER BY r.submitted_at DESC
+         LIMIT ${limit}`),
+    ]);
+
+    const distribution: Distribution = distributionFrom(distributionResult.rows as Array<{ score: number; n: number }>);
+    const comments: Array<{
+      id: string;
+      siteId: string;
+      siteName: string;
+      submittedAt: string;
+      rating: number;
+      comment: string;
+    }> = [];
+    for (const row of commentResult.rows as Array<{
+      id: string;
+      site_id: string;
+      site_name: string;
+      submitted_at: string | Date;
+      score: number;
+      comment_protected: unknown;
+    }>) {
+      try {
+        const text = this.dataProtection.decrypt(row.comment_protected as ProtectedPersonalDataEnvelope);
+        comments.push({
+          id: row.id,
+          siteId: row.site_id,
+          siteName: row.site_name,
+          submittedAt: new Date(row.submitted_at).toISOString(),
+          rating: Number(row.score),
+          comment: text,
+        });
+      } catch {
+        // An unreadable envelope is skipped, never shown or logged.
+      }
+    }
+
+    return {
+      period: { from: input.from, to: input.to },
+      ...summarise(distribution),
+      distribution,
+      bySite: (siteResult.rows as Array<{ site_id: string; site_name: string; n: number; total: number }>).map(
+        (row) => ({
+          siteId: row.site_id,
+          siteName: row.site_name,
+          responses: Number(row.n),
+          averageRating: Number(row.n) ? Math.round((Number(row.total) / Number(row.n)) * 100) / 100 : null,
+        }),
+      ),
+      recentComments: comments,
+      commentsIncluded: input.includeComments !== false,
+    };
   }
 
   /**

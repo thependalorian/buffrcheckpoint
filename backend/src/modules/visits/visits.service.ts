@@ -2,7 +2,6 @@ import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundEx
 import { EventEmitter2 } from "@nestjs/event-emitter";
 import { and, desc, eq, gte, inArray, isNull, lt, lte, or, type SQL } from "drizzle-orm";
 
-import { resolvePublicAssetUrl } from "../../common/assets/public-asset-url";
 import { isVisitStatusCode } from "../../common/canonical-codes";
 import {
   PersonalDataProtectionService,
@@ -15,6 +14,12 @@ import {
   VisitRosterChangedEvent,
   type VisitRosterChangeReason,
 } from "../../common/domain-events/visit-roster-changed.event";
+import {
+  VISITOR_CHECKED_IN_EVENT,
+  VISITOR_CHECKED_OUT_EVENT,
+  VisitorCheckedInEvent,
+  VisitorCheckedOutEvent,
+} from "../../common/domain-events/visitor-email.events";
 import type { TabularExport } from "../../common/export/tabular";
 import type { Database } from "../../db/client";
 import { DB } from "../../db/db.module";
@@ -34,14 +39,16 @@ import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.ser
 import { InvitationsService } from "../invitations/invitations.service";
 import { KioskExperienceService } from "../kiosk-experience/kiosk-experience.service";
 import { buildHostNotificationHtml } from "../notifications/host-notification-email";
-import { SiteBrandingService } from "../site-branding/site-branding.service";
+import { deliverableEmail } from "../notifications/visitor-email";
 import { SiteQrReferencesService } from "../site-qr-references/site-qr-references.service";
 import { createSurveyToken } from "../visit-survey/survey-token";
+import { buildSurveyUrl } from "../visit-survey/survey-url";
 import { VisitorDataMinimisationService } from "../visitor-policy/visitor-data-minimisation.service";
 import { VisitorPolicyService } from "../visitor-policy/visitor-policy.service";
 import { VisitorWaitQueueService } from "../visitor-wait-queue/visitor-wait-queue.service";
 import type { CheckInDto } from "./dto/check-in.dto";
 import type { PublicCheckInDto, PublicCheckOutDto } from "./dto/public-check-in.dto";
+import { buildSignOutUrl, verifySignOutToken } from "./sign-out-token";
 import { resolveVisitorNextSteps } from "./visitor-next-steps";
 import { randomUUID } from "node:crypto";
 
@@ -59,16 +66,6 @@ export interface VisitRosterRow {
   requiresAction: boolean;
 }
 
-export interface PublicCheckInBranding {
-  organisationDisplayName: string | null;
-  siteDisplayName: string | null;
-  welcomeMessage: string | null;
-  brandColourToken: string | null;
-  logoUrl: string | null;
-  helpContactReference: string | null;
-  brandingScope: "site" | "organisation";
-}
-
 export interface PublicCheckInContext {
   siteId: string;
   siteName: string;
@@ -78,7 +75,6 @@ export interface PublicCheckInContext {
   purposeCategories: Array<{ code: string; label: string }>;
   visitorTypes: Array<{ code: string; label: string }>;
   privacyNoticeSummary: string;
-  branding: PublicCheckInBranding | null;
 }
 
 @Injectable()
@@ -89,7 +85,6 @@ export class VisitsService {
     private readonly dataProtection: PersonalDataProtectionService,
     private readonly events: EventEmitter2,
     private readonly kioskExperience: KioskExperienceService,
-    private readonly siteBranding: SiteBrandingService,
     private readonly siteQrReferences: SiteQrReferencesService,
     private readonly invitations: InvitationsService,
     private readonly waitQueue: VisitorWaitQueueService,
@@ -191,8 +186,7 @@ export class VisitsService {
       .map((row) => ({ code: row.code, label: row.label }))
       .sort((a, b) => a.label.localeCompare(b.label));
 
-    const branding = await this.resolvePublicBranding(validated.organisationId, validated.siteId);
-    const displaySiteName = branding?.siteDisplayName?.trim() || validated.siteName;
+    const displaySiteName = validated.siteName;
 
     return {
       siteId: validated.siteId,
@@ -204,7 +198,6 @@ export class VisitsService {
       visitorTypes,
       privacyNoticeSummary:
         "By checking in you acknowledge that your visit details (name, contact, organisation, host, and purpose) are processed for site security, host notification, and retention under this site's visitor policy.",
-      branding,
     };
   }
 
@@ -268,8 +261,7 @@ export class VisitsService {
       audience: "admin",
     };
 
-    const branding = await this.resolvePublicBranding(validated.organisationId, validated.siteId);
-    const displaySiteName = branding?.siteDisplayName?.trim() || validated.siteName;
+    const displaySiteName = validated.siteName;
 
     const visit = await this.insertCheckIn(
       {
@@ -315,9 +307,6 @@ export class VisitsService {
       visitorName,
       hostDisplayName: nextSteps.hostDisplayName,
       hostDepartment: nextSteps.hostDepartment,
-      organisationDisplayName: branding?.organisationDisplayName ?? null,
-      welcomeMessage: branding?.welcomeMessage ?? null,
-      brandColourToken: branding?.brandColourToken ?? null,
       checkedInAt: visit.checkedInAt.toISOString(),
       visitorPass: {
         confirmationCode,
@@ -342,21 +331,6 @@ export class VisitsService {
         peopleAhead: nextSteps.peopleAhead,
         confirmationCode,
       },
-    };
-  }
-
-  private async resolvePublicBranding(organisationId: string, siteId: string): Promise<PublicCheckInBranding | null> {
-    const bundle = await this.siteBranding.getPublishedForOrganisationSite(organisationId, siteId);
-    if (!bundle?.version) return null;
-    const { version } = bundle;
-    return {
-      organisationDisplayName: version.organisationDisplayName ?? null,
-      siteDisplayName: version.siteDisplayName ?? null,
-      welcomeMessage: version.welcomeMessage ?? null,
-      brandColourToken: version.brandColourToken ?? null,
-      logoUrl: resolvePublicAssetUrl(version.logoArtifactId),
-      helpContactReference: version.helpContactReference ?? null,
-      brandingScope: bundle.brandingScope,
     };
   }
 
@@ -469,7 +443,6 @@ export class VisitsService {
         serverAcceptedAt: new Date(),
         offlineCaptured: dto.offlineCaptured ?? false,
         retentionPolicyVersion: 1,
-        brandingProfileVersionId: experienceSnapshot.brandingProfileVersionId,
         kioskExperienceConfigurationVersionId: experienceSnapshot.kioskExperienceConfigurationVersionId,
       })
       .onConflictDoNothing({ target: visitorVisits.id })
@@ -526,6 +499,8 @@ export class VisitsService {
         queue = null;
       }
 
+      this.emitVisitorReceipt(dto, inserted[0], hostRow, user.organisationId);
+
       // Section 8.8 host notification — email via Resend when configured;
       // Communication analogue (BIAN Business Support or custom tree).
       const hostContact = hostRow?.hostContactProtected
@@ -576,7 +551,6 @@ export class VisitsService {
           "Please come to reception to meet them.",
         ];
 
-        const brandingForMail = await this.resolvePublicBranding(user.organisationId, dto.siteId);
         const html = buildHostNotificationHtml({
           visitorName,
           siteLabel,
@@ -588,7 +562,6 @@ export class VisitsService {
           queueNumber: queue?.queueNumber ?? null,
           peopleAhead: queue?.peopleAhead ?? null,
           hostDepartment: hostRow?.department ?? null,
-          brandColour: brandingForMail?.brandColourToken ?? null,
         });
 
         this.events.emit(
@@ -640,6 +613,76 @@ export class VisitsService {
   // double check-out request (e.g. a flaky network retry) is a no-op, not
   // an error, and the status log only gains a new row on the transition
   // that actually happened.
+  /** Receipt to the visitor, only when they typed an email address at check-in. The listener applies the organisation's switch. */
+  private emitVisitorReceipt(
+    dto: CheckInDto,
+    visit: typeof visitorVisits.$inferSelect,
+    hostRow: typeof siteHosts.$inferSelect | undefined,
+    organisationId: string,
+  ) {
+    const email = deliverableEmail(dto.visitorEmail);
+    if (!email) return;
+    void (async () => {
+      try {
+        const site = await this.db.query.sites.findFirst({
+          where: and(eq(sites.id, dto.siteId), eq(sites.organisationId, organisationId)),
+        });
+        const hostName = hostRow?.hostNameProtected
+          ? this.dataProtection.decrypt(hostRow.hostNameProtected as ProtectedPersonalDataEnvelope)
+          : "Reception";
+        this.events.emit(
+          VISITOR_CHECKED_IN_EVENT,
+          new VisitorCheckedInEvent(
+            visit.id,
+            organisationId,
+            email,
+            dto.visitorName?.trim() || null,
+            site?.name ?? "the site",
+            hostName,
+            visit.checkedInAt ?? new Date(),
+            buildSignOutUrl(visit.id),
+          ),
+        );
+      } catch {
+        // A receipt is a courtesy: never let it affect the check-in.
+      }
+    })();
+  }
+
+  /** Thank-you at sign-out. The address was stored encrypted at check-in; nothing is sent when there is none. */
+  private async emitVisitorSignOutThanks(visit: typeof visitorVisits.$inferSelect) {
+    try {
+      if (!visit.visitorId) return;
+      const personal = await this.db.query.visitorPersonalData.findFirst({
+        where: eq(visitorPersonalData.visitorId, visit.visitorId),
+      });
+      if (!personal) return;
+      const payload = JSON.parse(
+        this.dataProtection.decrypt(personal.encryptedPayload as ProtectedPersonalDataEnvelope),
+      ) as { email?: string | null; name?: string | null };
+      const email = deliverableEmail(payload.email);
+      if (!email || !visit.checkedOutAt) return;
+      const site = await this.db.query.sites.findFirst({
+        where: and(eq(sites.id, visit.siteId), eq(sites.organisationId, visit.organisationId)),
+      });
+      this.events.emit(
+        VISITOR_CHECKED_OUT_EVENT,
+        new VisitorCheckedOutEvent(
+          visit.id,
+          visit.organisationId,
+          email,
+          payload.name?.trim() || null,
+          site?.name ?? "the site",
+          visit.checkedInAt ?? visit.checkedOutAt,
+          visit.checkedOutAt,
+          buildSurveyUrl(visit.id),
+        ),
+      );
+    } catch {
+      // A thank-you is a courtesy: never let it affect the sign-out.
+    }
+  }
+
   async checkOut(visitId: string, user: AuthenticatedUser) {
     const checkedOutStatus = await this.typeDefs.id("visit_status", "checked_out");
     const now = new Date();
@@ -667,6 +710,7 @@ export class VisitsService {
       });
       await this.waitQueue.completeForVisit(visitId, user).catch(() => undefined);
       this.emitRosterChanged(updated[0], "checked_out");
+      void this.emitVisitorSignOutThanks(updated[0]);
       return updated[0];
     }
 
@@ -680,21 +724,19 @@ export class VisitsService {
   }
 
   /**
-   * Self-service / kiosk sign-out by phone at a site (FR-K03).
-   * Does not expose a visitor directory — phone must match an open visit.
+   * The open visit at a site for a phone number, newest first, or null. Matching uses the keyed phone hash, so no visitor directory is
+   * exposed: the caller must already know the number. Shared by phone sign-out and the contractor induction acknowledgement.
    */
-  async signOutByPhone(siteId: string, visitorPhone: string, user: AuthenticatedUser) {
+  async findOpenVisitsByPhone(siteId: string, organisationId: string, visitorPhone: string) {
     const phoneHmacs = this.dataProtection.phoneLookupHmacCandidates(visitorPhone);
     const personalRows = await this.db.query.visitorPersonalData.findMany({
       where: inArray(visitorPersonalData.phoneLookupHmac, phoneHmacs),
     });
-    if (personalRows.length === 0) {
-      throw new NotFoundException("No open visit found for that phone at this site");
-    }
+    if (personalRows.length === 0) return [];
     const visitorIds = personalRows.map((row) => row.visitorId);
-    const openVisits = await this.db.query.visitorVisits.findMany({
+    return this.db.query.visitorVisits.findMany({
       where: and(
-        eq(visitorVisits.organisationId, user.organisationId),
+        eq(visitorVisits.organisationId, organisationId),
         eq(visitorVisits.siteId, siteId),
         inArray(visitorVisits.visitorId, visitorIds),
         isNull(visitorVisits.checkedOutAt),
@@ -702,6 +744,10 @@ export class VisitsService {
       ),
       orderBy: [desc(visitorVisits.checkedInAt)],
     });
+  }
+
+  async signOutByPhone(siteId: string, visitorPhone: string, user: AuthenticatedUser) {
+    const openVisits = await this.findOpenVisitsByPhone(siteId, user.organisationId, visitorPhone);
     const visit = openVisits[0];
     if (!visit) {
       throw new NotFoundException("No open visit found for that phone at this site");
@@ -718,6 +764,36 @@ export class VisitsService {
         remainingOpen > 0
           ? `Signed out the most recent visit. ${remainingOpen} other open visit(s) remain for this phone — sign out again if needed.`
           : undefined,
+    };
+  }
+
+  /** Sign-out from the personal link in the receipt email. The token names one visit; nothing else is needed from the visitor. */
+  async publicCheckOutByToken(token: string) {
+    const visitId = verifySignOutToken(token.trim());
+    if (!visitId) throw new BadRequestException("This sign-out link is not valid or has expired");
+    const visit = await this.db.query.visitorVisits.findFirst({
+      where: and(eq(visitorVisits.id, visitId), isNull(visitorVisits.deletedAt)),
+    });
+    if (!visit) throw new NotFoundException("Visit not found");
+    const site = await this.db.query.sites.findFirst({ where: eq(sites.id, visit.siteId) });
+    const systemUser: AuthenticatedUser = {
+      userId: "00000000-0000-0000-0000-000000000001",
+      organisationId: visit.organisationId,
+      siteId: visit.siteId,
+      roleCode: "system",
+      permissions: [],
+      emailVerified: true,
+      mfaEnabled: true,
+      audience: "admin",
+    };
+    const checkedOut = await this.checkOut(visit.id, systemUser);
+    return {
+      visitId: checkedOut.id,
+      siteId: checkedOut.siteId,
+      siteName: site?.name ?? "this site",
+      checkedOutAt: checkedOut.checkedOutAt?.toISOString() ?? new Date().toISOString(),
+      confirmationCode: visit.id.replace(/-/g, "").slice(0, 8).toUpperCase(),
+      surveyToken: createSurveyToken(checkedOut.id, "qr"),
     };
   }
 

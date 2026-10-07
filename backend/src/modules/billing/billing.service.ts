@@ -40,6 +40,7 @@ import { bankPaymentInstructions, DocumentRendererService } from "../documents/d
 import { KybService } from "../kyb/kyb.service";
 import { TemplatedEmailService } from "../notifications/templated-email.service";
 import { AdumoService, adumoAmount } from "./adumo.service";
+import { assertCreditAllowed, CreditNoteError, creditNoteNumber, formatCents, parseCents } from "./credit-note";
 import { randomUUID } from "node:crypto";
 
 // reviewed_by on a card payment's reconciliation row: the nil UUID marks an
@@ -564,6 +565,113 @@ export class BillingService implements OnModuleInit {
       ),
     );
     return { ok: true, emailed: recipients.length };
+  }
+
+  /**
+   * Issues a credit note against an open invoice (platform billing staff). The note is an immutable row; the invoice amount is never
+   * edited. The balance after the note is returned and sent to the customer so the figures can be reconciled by eye. Crediting more
+   * than is outstanding is refused: that would be a refund, which is a separate money movement.
+   */
+  async issueCreditNote(invoiceId: string, input: { amount: string; reason: string }, user: AuthenticatedUser) {
+    const row = await this.db.query.invoice.findFirst({
+      where: and(eq(invoice.id, invoiceId), isNull(invoice.deletedAt)),
+    });
+    if (!row) throw new NotFoundException("Invoice not found");
+    const reason = (input.reason ?? "").trim();
+    if (reason.length < 5 || reason.length > 500) throw new BadRequestException("Give a reason of 5 to 500 characters");
+
+    const [voidStatus, confirmedStatus] = await Promise.all([
+      this.typeDefs.id("invoice_status", "void"),
+      this.typeDefs.id("payment_status", "confirmed"),
+    ]);
+    if (row.statusCode === voidStatus) throw new ConflictException("This invoice is void");
+
+    const [payments, credits] = await Promise.all([
+      this.db.query.paymentTransaction.findMany({
+        where: and(eq(paymentTransaction.invoiceId, invoiceId), eq(paymentTransaction.statusCode, confirmedStatus)),
+      }),
+      this.db.query.invoiceCreditNote.findMany({ where: eq(invoiceCreditNote.invoiceId, invoiceId) }),
+    ]);
+    const sum = (rows: Array<{ amount: string }>) => rows.reduce((total, r) => total + parseCents(String(r.amount)), 0);
+
+    let creditCents: number;
+    let balanceAfterCents: number;
+    try {
+      creditCents = parseCents(input.amount);
+      balanceAfterCents = assertCreditAllowed(
+        {
+          invoiceCents: parseCents(String(row.amount)),
+          confirmedPaymentCents: sum(payments),
+          creditCents: sum(credits),
+        },
+        creditCents,
+      );
+    } catch (error) {
+      if (error instanceof CreditNoteError) throw new BadRequestException(error.message);
+      throw error;
+    }
+
+    const noteNumber = creditNoteNumber(row.invoiceNumber, credits.length);
+    const [created] = await this.db
+      .insert(invoiceCreditNote)
+      .values({
+        id: randomUUID(),
+        invoiceId: row.id,
+        amount: formatCents(creditCents),
+        currencyCode: row.currencyCode,
+        reason,
+        issuedBy: user.userId,
+      })
+      .returning();
+
+    await this.notifyCreditNoteIssued(
+      row,
+      noteNumber,
+      formatCents(creditCents),
+      formatCents(balanceAfterCents),
+      reason,
+    );
+    return {
+      id: created.id,
+      creditNoteNumber: noteNumber,
+      amount: formatCents(creditCents),
+      balanceAfter: formatCents(balanceAfterCents),
+      currencyCode: row.currencyCode,
+    };
+  }
+
+  private async notifyCreditNoteIssued(
+    row: { id: string; organisationId: string; invoiceNumber: string; currencyCode: string },
+    creditNoteNumber: string,
+    amount: string,
+    balanceAfter: string,
+    reason: string,
+  ) {
+    const adminBase = (process.env.PUBLIC_ADMIN_BASE_URL ?? "https://admin.buffrcheckpoint.com").replace(/\/$/, "");
+    const invoiceUrl = `${adminBase}/dashboard/billing?invoice=${row.id}`;
+    const recipients = await this.organisationAdminEmails(row.organisationId);
+    await Promise.all(
+      recipients.map((email) =>
+        this.templatedEmail.send({
+          templateCode: "credit_note_issued",
+          organisationId: row.organisationId,
+          to: email,
+          variables: {
+            creditNoteNumber,
+            invoiceNumber: row.invoiceNumber,
+            amount,
+            currencyCode: row.currencyCode,
+            balanceAfter,
+            reason,
+            invoiceUrl,
+          },
+          fallback: {
+            subject: `Credit note ${creditNoteNumber}`,
+            body: `Credit note ${creditNoteNumber} for ${amount} ${row.currencyCode} has been issued against invoice ${row.invoiceNumber}.\n\nReason: ${reason}\nBalance after credit: ${balanceAfter} ${row.currencyCode}\n\n${invoiceUrl}`,
+          },
+        }),
+      ),
+    );
   }
 
   async renderInvoiceDocument(invoiceId: string, organisationId?: string, format: "html" | "pdf" = "pdf") {
@@ -1277,7 +1385,7 @@ export class BillingService implements OnModuleInit {
     }
   }
 
-  private async notifyPopRejected(invoiceId: string, amount: string, currencyCode: string, note?: string) {
+  private async notifyPopRejected(invoiceId: string, _amount: string, _currencyCode: string, note?: string) {
     const detail = await this.getInvoiceById(invoiceId);
     const adminBase = (process.env.PUBLIC_ADMIN_BASE_URL ?? "https://admin.buffrcheckpoint.com").replace(/\/$/, "");
     const invoiceUrl = `${adminBase}/dashboard/billing?invoice=${detail.id}`;

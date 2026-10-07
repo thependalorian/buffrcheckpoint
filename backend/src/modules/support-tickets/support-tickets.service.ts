@@ -4,8 +4,9 @@ import { and, desc, eq, isNull } from "drizzle-orm";
 import type { AuthenticatedUser } from "../../common/decorators/current-user.decorator";
 import type { Database } from "../../db/client";
 import { DB } from "../../db/db.module";
-import { supportTicket, supportTicketComments, supportTicketStatusEvents } from "../../db/schema";
+import { applicationUsers, supportTicket, supportTicketComments, supportTicketStatusEvents } from "../../db/schema";
 import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.service";
+import { TemplatedEmailService } from "../notifications/templated-email.service";
 import { randomUUID } from "node:crypto";
 
 export interface CreateTicketInput {
@@ -20,6 +21,7 @@ export class SupportTicketsService {
   constructor(
     @Inject(DB) private readonly db: Database,
     private readonly typeDefs: TypeDefinitionLookupService,
+    private readonly templatedEmail: TemplatedEmailService,
   ) {}
 
   async list() {
@@ -83,7 +85,28 @@ export class SupportTicketsService {
       actorId: user.userId,
     });
 
+    await this.acknowledgeToRequester(ticket, user);
     return ticket;
+  }
+
+  /** The person who opened the ticket gets a receipt, when they belong to the organisation it is for (not for tickets staff open on a customer's behalf). */
+  private async acknowledgeToRequester(ticket: typeof supportTicket.$inferSelect, user: AuthenticatedUser) {
+    if (!ticket.organisationId || ticket.organisationId !== user.organisationId) return;
+    const requester = await this.db.query.applicationUsers.findFirst({ where: eq(applicationUsers.id, user.userId) });
+    if (!requester) return;
+    const reference = ticket.id.slice(0, 8).toUpperCase();
+    await this.templatedEmail.send({
+      templateCode: "support_ticket_ack",
+      organisationId: ticket.organisationId,
+      to: requester.email,
+      // The seeded row asks for {{ticketId}} (as support_ticket_reply does); {{ticketReference}} is kept for rows seeded
+      // before migration 0064, and {{name}} for the greeting of those rows — the requester has no stored name here.
+      variables: { name: "", subject: ticket.subject, ticketId: reference, ticketReference: reference },
+      fallback: {
+        subject: `We received your request: ${ticket.subject}`,
+        body: `We received your support request.\n\nSubject: ${ticket.subject}\nReference: ${reference}\n\nOur team will reply by email and in the Support section of your dashboard. Reply to this email to add details.`,
+      },
+    });
   }
 
   async updateStatus(ticketId: string, statusCode: string, user: AuthenticatedUser, note?: string) {
@@ -140,7 +163,28 @@ export class SupportTicketsService {
       .insert(supportTicketComments)
       .values({ id: randomUUID(), ticketId, authorId: user.userId, authorTypeCode, body })
       .returning();
+    if (user.roleCode === "platform_support") await this.notifyRequesterOfReply(ticket, body);
     return comment;
+  }
+
+  /** A reply from our team is emailed to the person who opened the ticket, so they do not have to keep checking the dashboard. */
+  private async notifyRequesterOfReply(ticket: typeof supportTicket.$inferSelect, reply: string) {
+    if (!ticket.organisationId || !ticket.requestedBy) return;
+    const requester = await this.db.query.applicationUsers.findFirst({
+      where: eq(applicationUsers.id, ticket.requestedBy),
+    });
+    if (!requester) return;
+    const reference = ticket.id.slice(0, 8).toUpperCase();
+    await this.templatedEmail.send({
+      templateCode: "support_ticket_reply",
+      organisationId: ticket.organisationId,
+      to: requester.email,
+      variables: { subject: ticket.subject, ticketId: reference, reply: reply.trim().slice(0, 4000) },
+      fallback: {
+        subject: `Re: ${ticket.subject} [${reference}]`,
+        body: `Our team has replied to your support request.\n\nReference: ${reference}\nSubject: ${ticket.subject}\n\n${reply.trim().slice(0, 4000)}\n\nReply to this email to add details, or open the Support section of your dashboard.`,
+      },
+    });
   }
 
   async listComments(ticketId: string) {

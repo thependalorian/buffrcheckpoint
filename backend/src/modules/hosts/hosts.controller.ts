@@ -43,8 +43,18 @@ export class HostsController {
 
   @Get()
   @RequirePermission(PERMISSIONS.VISIT_READ_SITE)
-  listBySite(@Query("siteId") siteId: string | undefined, @CurrentUser() user: AuthenticatedUser) {
-    return this.hostsService.listBySite(siteId, user);
+  listBySite(
+    @Query("siteId") siteId: string | undefined,
+    @Query("q") q: string | undefined,
+    @Query("limit") limit: string | undefined,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    // With ?q= (even empty) the list is the check-in picker: active hosts only, ranked, capped. Without it, the full admin list.
+    return this.hostsService.listBySite(
+      siteId,
+      user,
+      q === undefined ? undefined : { q, limit: limit ? Number(limit) : undefined },
+    );
   }
 
   @Get(":id")

@@ -90,7 +90,7 @@ export class SupportSessionsService {
   private async notifyOrganisationAdmins(
     organisationId: string,
     organisationName: string,
-    grantId: string,
+    _grantId: string,
     note?: string,
   ) {
     const memberships = await this.db.query.organisationMemberships.findMany({
@@ -368,7 +368,7 @@ export class SupportSessionsService {
         isNull(privilegedAccessGrants.deletedAt),
       ),
     });
-    if (!grant || !grant.expiresAt || grant.expiresAt <= now) {
+    if (!grant?.expiresAt || grant.expiresAt <= now) {
       throw new ForbiddenException("No active, customer-approved grant with that id for this user");
     }
 

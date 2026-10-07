@@ -1,4 +1,4 @@
-/** Resolve branding/policy artifact ids to fetchable URLs for kiosk/admin. */
+/** Resolve policy artifact ids to fetchable URLs for kiosk/admin. */
 export function resolvePublicAssetUrl(artifactId: string | null | undefined): string | null {
   if (!artifactId) return null;
   if (artifactId.startsWith("http://") || artifactId.startsWith("https://") || artifactId.startsWith("data:image/")) {
@@ -6,30 +6,12 @@ export function resolvePublicAssetUrl(artifactId: string | null | undefined): st
   }
   if (artifactId.startsWith("inline:")) return null;
 
-  // Uploaded branding assets live in private object storage and are served by
-  // the API's public read route (site-branding.controller `assets/...`).
-  if (artifactId.startsWith("asset:site-branding/")) {
-    const apiBase = (process.env.PUBLIC_API_BASE_URL ?? "https://api.buffrcheckpoint.com").replace(/\/$/, "");
-    return `${apiBase}/site-branding/assets/${artifactId.slice("asset:site-branding/".length)}`;
-  }
-
   const base =
     process.env.PUBLIC_ASSET_BASE_URL ??
     process.env.VISITOR_CHECKIN_BASE_URL ??
     process.env.PUBLIC_WEB_BASE_URL ??
     process.env.CORS_ORIGIN?.split(",")[0]?.trim() ??
     "http://localhost:3000";
-
-  // Visitor-facing tenant assets (org logos) must resolve on the website host,
-  // not admin — even when PUBLIC_ASSET_BASE_URL points at the admin app.
-  if (artifactId.startsWith("/org-assets/")) {
-    const webBase = (
-      process.env.VISITOR_CHECKIN_BASE_URL ??
-      process.env.PUBLIC_WEB_BASE_URL ??
-      "https://buffrcheckpoint.com"
-    ).replace(/\/$/, "");
-    return `${webBase}${artifactId}`;
-  }
 
   if (artifactId.startsWith("/")) return `${base.replace(/\/$/, "")}${artifactId}`;
   return `${base.replace(/\/$/, "")}/${artifactId}`;
@@ -50,4 +32,33 @@ export function buildPublicCheckInQrUrl(siteId: string, referenceId: string): st
     "https://buffrcheckpoint.com";
   const normalizedBase = base.replace(/\/$/, "");
   return `${normalizedBase}/check-in?site=${siteId}&ref=${referenceId}`;
+}
+
+/** QR types a visitor or contractor scans with a phone, mapped to the public page that opens. */
+const PUBLIC_QR_PATHS: Readonly<Record<string, string>> = {
+  public_site_checkin: "/check-in",
+  emergency_info: "/emergency",
+  contractor_induction: "/induction",
+};
+
+export function isPublicQrType(typeCode: string): boolean {
+  return typeCode in PUBLIC_QR_PATHS;
+}
+
+/** The URL printed in a site QR code of the given type: site-bound and free of personal data. */
+export function buildPublicQrUrl(typeCode: string, siteId: string, referenceId: string): string {
+  const path = PUBLIC_QR_PATHS[typeCode];
+  if (!path) throw new Error(`QR type "${typeCode}" has no public page`);
+  const base =
+    process.env.VISITOR_CHECKIN_BASE_URL ??
+    process.env.PUBLIC_WEB_BASE_URL ??
+    process.env.PUBLIC_ASSET_BASE_URL ??
+    "https://buffrcheckpoint.com";
+  return `${base.replace(/\/$/, "")}${path}?site=${siteId}&ref=${referenceId}`;
+}
+
+/** The URL in a device support QR: an admin page that needs a sign-in and the device permission, so the code itself reveals nothing. */
+export function buildDeviceSupportUrl(deviceId: string): string {
+  const base = (process.env.PUBLIC_ADMIN_BASE_URL ?? "https://admin.buffrcheckpoint.com").replace(/\/$/, "");
+  return `${base}/dashboard/devices/${deviceId}`;
 }

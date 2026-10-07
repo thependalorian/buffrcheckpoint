@@ -146,7 +146,7 @@ export class VercelBlobArtifactStore implements ArtifactStore {
 
   async readFile(fileReference: string, name: string): Promise<Buffer> {
     const result = await get(`${fileReference}/${name}`, { access: "private" });
-    if (!result || result.statusCode !== 200) {
+    if (result?.statusCode !== 200) {
       throw new Error(`Artifact not found: ${fileReference}/${name}`);
     }
     return Buffer.from(await new Response(result.stream).arrayBuffer());

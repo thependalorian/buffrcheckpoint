@@ -16,7 +16,6 @@ export interface EvidenceSnapshot {
   formWithFields: boolean;
   siteQr: boolean;
   kioskConfig: boolean;
-  brandingPublished: boolean;
   accessPolicy: boolean;
   device: boolean;
   testVisit: boolean;
@@ -60,9 +59,6 @@ export function missingEvidence(
     case "check_in_channels":
       need(facts.siteQr, "site_qr.active");
       if (route === "kiosk") need(facts.kioskConfig, "kiosk_experience.config");
-      break;
-    case "branding":
-      need(facts.brandingPublished, "site_branding.published_version");
       break;
     case "risk_identity_approval":
       need(facts.accessPolicy, "access_policy.at_least_one");
@@ -121,13 +117,6 @@ export class OnboardingEvidenceService {
         EXISTS (SELECT 1 FROM site_qr_references q WHERE q.organisation_id = ${organisationId} AND q.deleted_at IS NULL) AS site_qr,
         EXISTS (SELECT 1 FROM kiosk_experience_configurations k
                 WHERE k.organisation_id = ${organisationId} AND k.deleted_at IS NULL) AS kiosk_config,
-        EXISTS (SELECT 1 FROM site_branding_profiles bp
-                JOIN site_branding_profile_versions bv ON bv.branding_profile_id = bp.id AND bv.deleted_at IS NULL
-                JOIN type_definition bs ON bs.id = bv.status_code
-                  AND bs.domain = 'configuration_version_status' AND bs.code = 'published'
-                LEFT JOIN sites bsite ON bsite.id = bp.site_id AND bsite.deleted_at IS NULL
-                WHERE bp.organisation_id = ${organisationId} AND bp.deleted_at IS NULL
-                  AND ((bp.site_id IS NULL AND bp.region_id IS NULL) OR bsite.id IS NOT NULL)) AS branding_published,
         EXISTS (SELECT 1 FROM access_policy a WHERE a.organisation_id = ${organisationId} AND a.deleted_at IS NULL) AS access_policy,
         EXISTS (SELECT 1 FROM managed_kiosk_devices md WHERE md.organisation_id = ${organisationId} AND md.deleted_at IS NULL) AS device,
         EXISTS (SELECT 1 FROM visitor_visits vv
@@ -148,7 +137,6 @@ export class OnboardingEvidenceService {
       formWithFields: flag("form_with_fields"),
       siteQr: flag("site_qr"),
       kioskConfig: flag("kiosk_config"),
-      brandingPublished: flag("branding_published"),
       accessPolicy: flag("access_policy"),
       device: flag("device"),
       testVisit: flag("test_visit"),

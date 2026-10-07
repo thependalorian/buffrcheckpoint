@@ -6,7 +6,10 @@
 -- directly (their real endpoints are cross-tenant aggregate reads or
 -- grant-gated support sessions targeting *other* orgs).
 --
--- Login: platform-ops-demo@buffrcheckpoint.test / PlatformOps!2026
+-- Login: platform-ops-demo@buffrcheckpoint.test. No password is seeded (the previous
+-- seeded password was public in this repository and has been retired; the production row
+-- was locked on 2026-10-06). Set one through the password-reset flow in a local or staging
+-- environment only, using BUFFR_DEV_PASSWORD (BUFFR_ID_AND_DOMAINS.md Part B 17.4).
 
 DO $$
 DECLARE
@@ -34,7 +37,7 @@ BEGIN
         demo_user_id,
         home_org_id,
         'platform-ops-demo@buffrcheckpoint.test',
-        '$2a$12$iF5iqKB6aDUXvYheUBuMr.ewYtop4MGWlDKHfekB4d4DDkrRjbeRi', -- PlatformOps!2026
+        NULL, -- no seeded password; see header
         NOW(),
         FALSE
       );

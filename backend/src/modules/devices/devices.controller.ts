@@ -51,6 +51,13 @@ export class DevicesController {
     return this.devicesService.getById(id, user);
   }
 
+  /** What a device support QR contains. The code opens an admin page that needs a sign-in and this permission, so it reveals nothing itself. */
+  @Get(":id/support-qr")
+  @RequirePermission(PERMISSIONS.DEVICE_MANAGE)
+  supportQr(@Param("id") id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.devicesService.supportQr(id, user);
+  }
+
   @Get(":id/status-history")
   @RequirePermission(PERMISSIONS.DEVICE_MANAGE)
   statusHistory(@Param("id") id: string, @CurrentUser() user: AuthenticatedUser) {

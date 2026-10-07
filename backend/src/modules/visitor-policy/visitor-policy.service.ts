@@ -808,6 +808,37 @@ export class VisitorPolicyService {
       .orderBy(visitorPolicyDocuments.policyCode, desc(visitorPolicyVersions.versionNumber));
   }
 
+  /**
+   * The organisation's current privacy notice: the latest published version of its `privacy_notice` policy, or null when none is
+   * published. This is what a kiosk shows before check-in; it no longer depends on any branding profile.
+   */
+  async getPublishedPrivacyNotice(user: AuthenticatedUser) {
+    const publishedStatus = await this.typeDefs.id("policy_version_status", "published");
+    const [row] = await this.db
+      .select({ id: visitorPolicyVersions.id })
+      .from(visitorPolicyVersions)
+      .innerJoin(visitorPolicyDocuments, eq(visitorPolicyVersions.policyDocumentId, visitorPolicyDocuments.id))
+      .where(
+        and(
+          eq(visitorPolicyDocuments.organisationId, user.organisationId),
+          eq(visitorPolicyDocuments.policyCode, "privacy_notice"),
+          isNull(visitorPolicyDocuments.deletedAt),
+          isNull(visitorPolicyVersions.deletedAt),
+          eq(visitorPolicyVersions.statusCode, publishedStatus),
+        ),
+      )
+      .orderBy(desc(visitorPolicyVersions.versionNumber))
+      .limit(1);
+    if (!row) return null;
+    const content = await this.getVersionContent(row.id, user);
+    return {
+      versionId: content.id,
+      policyName: content.policyName,
+      contentText: content.contentText,
+      contentUrl: content.contentUrl,
+    };
+  }
+
   async getVersionContent(versionId: string, user: AuthenticatedUser) {
     const row = await this.db
       .select({

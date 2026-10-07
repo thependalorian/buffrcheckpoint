@@ -74,8 +74,8 @@ describe("OnboardingStateService", () => {
   it("walks a new organisation forward one logged step at a time", async () => {
     const { service, batches, changes } = harness("email_verified");
     await service.advanceIfEarlyStage("org-1", "in_progress", "owner");
-    // email_verified -> mfa_enrolled -> in_progress: two state updates, each with its log row.
-    expect(batches).toHaveLength(2);
+    // email_verified -> in_progress: one state update with its log row (the mfa_enrolled stage is retired, D-20).
+    expect(batches).toHaveLength(1);
     for (const ops of batches) expect(ops).toHaveLength(2);
     expect(changes).toEqual(["org-1"]);
   });

@@ -93,8 +93,10 @@ describe("OnboardingProgressService", () => {
 
   it("allows skipping an optional step but not a required one", async () => {
     const { service, onboardingState } = build({});
-    await service.skipStep(user, "branding");
-    expect(onboardingState.commitProgress).toHaveBeenCalledWith(expect.objectContaining({ skipped: ["branding"] }));
+    await service.skipStep(user, "risk_identity_approval");
+    expect(onboardingState.commitProgress).toHaveBeenCalledWith(
+      expect.objectContaining({ skipped: ["risk_identity_approval"] }),
+    );
     await expect(service.skipStep(user, "site_hierarchy")).rejects.toBeInstanceOf(BadRequestException);
   });
 
@@ -126,13 +128,13 @@ describe("OnboardingProgressService", () => {
   it("reports blocked steps and other editors in readiness", async () => {
     const noSite = new Proxy({} as EvidenceSnapshot, { get: (_t, key) => key !== "site" && key !== "host" });
     const { service, presence } = build({ route: null, facts: noSite });
-    presence.heartbeat("o1", { stepCode: "branding", userId: "u2", email: "maria@example.test" });
+    presence.heartbeat("o1", { stepCode: "check_in_channels", userId: "u2", email: "maria@example.test" });
     const readiness = await service.readiness(user);
     const launchRoute = readiness.steps.find((step) => step.code === "launch_route");
     const flowTests = readiness.steps.find((step) => step.code === "flow_tests");
     expect(launchRoute?.blockedBy).toEqual(["sites.at_least_one"]);
     expect(flowTests?.blockedBy).toEqual(["sites.at_least_one", "hosts.at_least_one"]);
-    expect(readiness.editing).toEqual([{ stepCode: "branding", email: "maria@example.test" }]);
+    expect(readiness.editing).toEqual([{ stepCode: "check_in_channels", email: "maria@example.test" }]);
   });
 
   it("moves to ready for go-live when the last required step is completed", async () => {

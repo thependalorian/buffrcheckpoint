@@ -3,7 +3,6 @@ import { IsIn, IsString } from "class-validator";
 
 import { AuditLog } from "../../common/decorators/audit-log.decorator";
 import { type AuthenticatedUser, CurrentUser } from "../../common/decorators/current-user.decorator";
-import { RequireMfa } from "../../common/decorators/require-mfa.decorator";
 import { RequirePermission } from "../../common/decorators/require-permission.decorator";
 import { RequireVerifiedEmail } from "../../common/decorators/require-verified-email.decorator";
 import { PERMISSIONS } from "../../common/rbac/permissions";
@@ -38,7 +37,6 @@ export class OnboardingProgressController {
   @Get("readiness")
   @RequirePermission(PERMISSIONS.ONBOARDING_MANAGE)
   @RequireVerifiedEmail()
-  @RequireMfa()
   readiness(@CurrentUser() user: AuthenticatedUser) {
     return this.progress.readiness(user);
   }
@@ -46,7 +44,6 @@ export class OnboardingProgressController {
   @Get("evidence")
   @RequirePermission(PERMISSIONS.ONBOARDING_MANAGE)
   @RequireVerifiedEmail()
-  @RequireMfa()
   evidence(@CurrentUser() user: AuthenticatedUser, @Query("step") step: string) {
     return this.progress.evidenceFor(user, step);
   }
@@ -55,7 +52,6 @@ export class OnboardingProgressController {
   @HttpCode(HttpStatus.OK)
   @RequirePermission(PERMISSIONS.ONBOARDING_MANAGE)
   @RequireVerifiedEmail()
-  @RequireMfa()
   @AuditLog({ action: "organisation_onboarding.launch_route", resourceType: "organisation_onboarding_states" })
   launchRoute(@Body() dto: LaunchRouteDto, @CurrentUser() user: AuthenticatedUser) {
     return this.progress.setLaunchRoute(user, dto.route);
@@ -64,7 +60,6 @@ export class OnboardingProgressController {
   @Post("complete-step")
   @RequirePermission(PERMISSIONS.ONBOARDING_MANAGE)
   @RequireVerifiedEmail()
-  @RequireMfa()
   @AuditLog({ action: "organisation_onboarding.complete_step", resourceType: "organisation_onboarding_states" })
   completeStep(@Body() dto: OnboardingStepDto, @CurrentUser() user: AuthenticatedUser) {
     return this.progress.completeStep(user, dto.stepCode);
@@ -75,7 +70,6 @@ export class OnboardingProgressController {
   @HttpCode(HttpStatus.OK)
   @RequirePermission(PERMISSIONS.ONBOARDING_MANAGE)
   @RequireVerifiedEmail()
-  @RequireMfa()
   presence(@Body() dto: OnboardingStepDto, @CurrentUser() user: AuthenticatedUser) {
     return this.progress.heartbeat(user, dto.stepCode);
   }
@@ -84,7 +78,6 @@ export class OnboardingProgressController {
   @HttpCode(HttpStatus.OK)
   @RequirePermission(PERMISSIONS.ONBOARDING_MANAGE)
   @RequireVerifiedEmail()
-  @RequireMfa()
   @AuditLog({ action: "organisation_onboarding.skip_step", resourceType: "organisation_onboarding_states" })
   skipStep(@Body() dto: OnboardingStepDto, @CurrentUser() user: AuthenticatedUser) {
     return this.progress.skipStep(user, dto.stepCode);

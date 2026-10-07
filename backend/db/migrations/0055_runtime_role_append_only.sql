@@ -21,15 +21,22 @@ BEGIN
 END
 $$;
 
-GRANT CONNECT ON DATABASE neondb TO buffr_checkpoint_runtime;
+-- Database and owner names differ between Neon (neondb, neondb_owner) and a replay database, so neither is hard-coded.
+DO $$
+BEGIN
+  EXECUTE format('GRANT CONNECT ON DATABASE %I TO buffr_checkpoint_runtime', current_database());
+END
+$$;
 GRANT USAGE ON SCHEMA public TO buffr_checkpoint_runtime;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO buffr_checkpoint_runtime;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO buffr_checkpoint_runtime;
 -- Tables created later by the owner (every future migration) get the same grants.
-ALTER DEFAULT PRIVILEGES FOR ROLE neondb_owner IN SCHEMA public
-  GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO buffr_checkpoint_runtime;
-ALTER DEFAULT PRIVILEGES FOR ROLE neondb_owner IN SCHEMA public
-  GRANT USAGE, SELECT ON SEQUENCES TO buffr_checkpoint_runtime;
+DO $$
+BEGIN
+  EXECUTE format('ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO buffr_checkpoint_runtime', current_user);
+  EXECUTE format('ALTER DEFAULT PRIVILEGES FOR ROLE %I IN SCHEMA public GRANT USAGE, SELECT ON SEQUENCES TO buffr_checkpoint_runtime', current_user);
+END
+$$;
 
 -- Append-only: logs, status histories, audit and acknowledgement rows are
 -- corrected by new rows, never edited (CLAUDE.md §2). Code audit 2026-10-05:

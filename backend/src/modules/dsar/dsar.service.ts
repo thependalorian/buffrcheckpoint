@@ -260,7 +260,7 @@ export class DsarService {
       "dsar",
       [
         { name: "data.json", content: JSON.stringify(dataJson, null, 2) },
-        { name: "visits.csv", content: csvHeader + csvBody + "\n" },
+        { name: "visits.csv", content: `${csvHeader + csvBody}\n` },
         { name: "README.txt", content: readme },
         { name: "schema.txt", content: schema },
       ],

@@ -351,7 +351,9 @@ export class ScheduledReportsService {
       templateCode: "scheduled_ops_daily_summary",
       organisationId,
       to,
-      variables: { date: due.from },
+      // The seeded template says {{period}}; callers used to pass only {{date}}, so the subject and body went out reading
+      // "Buffr Checkpoint daily summary, {{period}}".
+      variables: { period: due.from, date: due.from },
       fallback: { subject: `Checkpoint ops summary, ${due.from}`, body: lines.join("\n") },
       attachments: [
         {

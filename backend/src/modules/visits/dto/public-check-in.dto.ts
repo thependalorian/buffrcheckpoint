@@ -115,3 +115,10 @@ export class SignOutByPhoneDto {
   @MaxLength(40)
   visitorPhone!: string;
 }
+
+export class PublicCheckOutTokenDto {
+  @IsString()
+  @MinLength(16)
+  @MaxLength(512)
+  token!: string;
+}

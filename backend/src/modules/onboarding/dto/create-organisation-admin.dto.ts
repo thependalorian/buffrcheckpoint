@@ -1,4 +1,4 @@
-import { IsEmail, IsString, MinLength } from "class-validator";
+import { IsEmail, IsOptional, IsString, MinLength } from "class-validator";
 
 import { NormaliseEmail } from "../../../common/decorators/normalise-email.decorator";
 
@@ -18,4 +18,25 @@ export class CreateOrganisationAdminDto {
   @IsString()
   @MinLength(8)
   password!: string;
+
+  // Honeypot: the real form never fills this in and hides it from people. Bots that complete every field do.
+  @IsOptional()
+  @IsString()
+  website?: string;
+}
+
+export class CreateOrganisationWithBuffrIdDto {
+  @IsString()
+  @MinLength(20)
+  idToken!: string;
+
+  @IsString()
+  organisationName!: string;
+
+  @IsString()
+  sectorCode!: string;
+
+  @IsOptional()
+  @IsString()
+  nonce?: string;
 }

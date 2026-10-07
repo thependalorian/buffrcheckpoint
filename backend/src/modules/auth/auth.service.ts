@@ -1,10 +1,12 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   HttpException,
   HttpStatus,
   Inject,
   Injectable,
+  NotFoundException,
   UnauthorizedException,
 } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
@@ -13,6 +15,7 @@ import { and, desc, eq, gt, isNull, sql } from "drizzle-orm";
 import { authenticator } from "otplib";
 
 import { ScopedPermissionEvaluationService } from "../../common/access-control/scoped-permission-evaluation.service";
+import { appendAuditEvent } from "../../common/audit/audit-chain";
 import { ADMIN_SESSION_TTL, OPS_ENROLL_TTL, OPS_SESSION_TTL } from "../../common/auth/session-audience";
 import { sessionCache } from "../../common/auth/session-cache";
 import {
@@ -52,6 +55,12 @@ import {
 } from "../onboarding/onboarding-steps";
 import { OnboardingStateService } from "../onboarding-state/onboarding-state.service";
 import { RbacService } from "../rbac/rbac.service";
+import {
+  BuffrIdService,
+  legacyPasswordAllowedForRole,
+  legacyPasswordMode,
+  type SignInSurface,
+} from "./buffr-id.service";
 import type { ConfirmPasswordResetDto, RequestPasswordResetDto } from "./dto/password-reset.dto";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 
@@ -59,6 +68,19 @@ const BCRYPT_ROUNDS = 12;
 const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000;
 const PASSWORD_RESET_MAX_PER_HOUR = 3;
 const EMAIL_VERIFICATION_TTL_MS = Number(process.env.EMAIL_VERIFICATION_TTL_MS ?? 24 * 60 * 60 * 1000);
+/** "Resend confirmation email" pressed again (or scripted) must not blast the same inbox: one link per window. */
+export const EMAIL_VERIFICATION_RESEND_COOLDOWN_MS = Number(
+  process.env.EMAIL_VERIFICATION_RESEND_COOLDOWN_MS ?? 60_000,
+);
+
+/** Whether a confirmation link issued at `issuedAt` is still inside the resend cooldown window. */
+export function withinResendCooldown(
+  issuedAt: Date,
+  now: Date = new Date(),
+  cooldownMs: number = EMAIL_VERIFICATION_RESEND_COOLDOWN_MS,
+): boolean {
+  return now.getTime() - issuedAt.getTime() < cooldownMs;
+}
 const MFA_CHALLENGE_TTL_MS = 10 * 60 * 1000;
 /** Failed passwords within this window count toward lockout. */
 const LOGIN_FAILURE_WINDOW_MS = 5 * 60 * 1000;
@@ -114,6 +136,7 @@ export class AuthService {
     private readonly templatedEmail: TemplatedEmailService,
     private readonly rbac: RbacService,
     private readonly onboardingState: OnboardingStateService,
+    private readonly buffrId: BuffrIdService,
   ) {}
 
   async register(dto: RegisterInput): Promise<{ ok: true; email: string; emailVerificationRequired: true }> {
@@ -179,6 +202,10 @@ export class AuthService {
       throw new UnauthorizedException(INVALID_CREDENTIALS);
     }
 
+    if (!legacyPasswordAllowedForRole(roleCode)) {
+      throw new ForbiddenException("Sign in with Buffr ID");
+    }
+
     if (user.mfaEnabled) {
       const challenge = await this.createMfaChallenge(user.id, user.organisationId);
       return { mfaRequired: true, mfaChallengeToken: challenge };
@@ -193,6 +220,7 @@ export class AuthService {
    * without it receives a 15-minute token that can only enrol MFA.
    */
   async platformLogin(email: string, password: string): Promise<LoginResult> {
+    if (legacyPasswordMode() !== "on") throw new ForbiddenException("Platform staff sign in with Buffr ID");
     const user = await this.checkCredentials(email, password);
     const { roleCode } = await this.resolveSessionRole(user.id);
     if (roleCode !== PLATFORM_ROLE) {
@@ -248,6 +276,72 @@ export class AuthService {
     return user;
   }
 
+  /**
+   * Sign in with a Buffr ID ID token (Part B, phase B: Buffr ID as identity broker). Buffr ID proves who the person is; the
+   * organisation, role and onboarding state are Checkpoint's. A person is found by their Buffr ID subject, or linked once by a
+   * verified email that matches exactly one active Checkpoint user. The session that comes back is the ordinary Checkpoint session,
+   * so every guard, audience rule, support-session rule and kiosk path downstream is unchanged.
+   */
+  async signInWithBuffrId(idToken: string, surface: SignInSurface, nonce?: string): Promise<AccessTokenResult> {
+    const identity = await this.buffrId.verifyIdToken(idToken, surface, nonce);
+
+    let user = await this.db.query.applicationUsers.findFirst({
+      where: and(eq(applicationUsers.buffrIdSubject, identity.subject), isNull(applicationUsers.deletedAt)),
+    });
+    let linked = false;
+    if (!user) {
+      const candidates = await this.db
+        .select()
+        .from(applicationUsers)
+        .where(and(sql`lower(${applicationUsers.email}) = ${identity.email}`, isNull(applicationUsers.deletedAt)));
+      if (candidates.length !== 1) {
+        throw new NotFoundException(
+          "There is no Checkpoint account for this Buffr ID. Create your organisation first.",
+        );
+      }
+      user = candidates[0];
+      if (user.buffrIdSubject && user.buffrIdSubject !== identity.subject) {
+        throw new UnauthorizedException("This Checkpoint account is linked to a different Buffr ID");
+      }
+      linked = true;
+    }
+
+    const { roleCode } = await this.resolveSessionRole(user.id);
+    if (!roleCode) throw new UnauthorizedException("Account has no role assignment — contact your administrator");
+    if (surface === "ops") {
+      if (roleCode !== PLATFORM_ROLE) throw new UnauthorizedException(INVALID_CREDENTIALS);
+      if (!identity.twoFactorEnabled) {
+        throw new ForbiddenException(
+          "Platform staff need two-step sign-in. Turn it on in your Buffr ID, then sign in again.",
+        );
+      }
+    } else if (roleCode === PLATFORM_ROLE) {
+      throw new UnauthorizedException(INVALID_CREDENTIALS);
+    }
+
+    const firstVerification = !user.emailVerifiedAt;
+    await this.db
+      .update(applicationUsers)
+      .set({
+        buffrIdSubject: identity.subject,
+        emailVerifiedAt: user.emailVerifiedAt ?? new Date(),
+        mfaEnabled: identity.twoFactorEnabled, // Buffr ID is the source of truth for two-step sign-in
+      })
+      .where(eq(applicationUsers.id, user.id));
+    sessionCache.invalidateUser(user.id);
+    if (firstVerification) {
+      await this.onboardingState.advanceIfEarlyStage(user.organisationId, "email_verified", user.id);
+    }
+    await appendAuditEvent(this.db, {
+      organisationId: user.organisationId,
+      actorId: user.id,
+      actionCode: linked ? "auth.buffr_id.linked" : "auth.buffr_id.sign_in",
+      resourceType: "application_user",
+      resourceId: user.id,
+    });
+    return this.issueFullSession(user.id, user.organisationId, roleCode, true, identity.twoFactorEnabled, surface);
+  }
+
   async verifyEmail(rawToken: string): Promise<AccessTokenResult> {
     const tokenHash = hashOpaqueToken(rawToken, "EMAIL_VERIFICATION_PEPPER");
     const candidate = await this.db.query.emailVerificationTokens.findFirst({
@@ -294,6 +388,14 @@ export class AuthService {
     });
     // Anti-enumeration: always succeed.
     if (!user || user.emailVerifiedAt) {
+      return { ok: true };
+    }
+    // Already sent one moments ago: quietly succeed instead of sending a second copy of the same link.
+    const latest = await this.db.query.emailVerificationTokens.findFirst({
+      where: eq(emailVerificationTokens.userId, user.id),
+      orderBy: desc(emailVerificationTokens.createdAt),
+    });
+    if (latest && withinResendCooldown(latest.createdAt)) {
       return { ok: true };
     }
     await this.issueEmailVerification(user.id, user.organisationId, user.email);
@@ -1012,8 +1114,8 @@ export class AuthService {
     canManageOnboarding = true,
   ): string {
     if (!emailVerified) return "/auth/check-email";
-    if (!mfaEnabled) return "/auth/mfa/setup";
-    if (statusCode === "live") return "/dashboard/overview";
+    // MFA comes after onboarding: optional while an organisation is being set up, required once it is live.
+    if (statusCode === "live") return mfaEnabled ? "/dashboard/overview" : "/auth/mfa/setup";
     if (!canManageOnboarding) return "/onboarding/waiting";
     if (stepCode) return `/onboarding/${stepCode.replace(/_/g, "-")}`;
     return "/onboarding/organisation-profile";
