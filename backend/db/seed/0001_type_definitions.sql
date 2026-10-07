@@ -121,7 +121,7 @@ INSERT INTO type_definition (domain, code, label, sort_order) VALUES
   -- organisation_sector (Addendum Section 7.1 "Public-Sector Tenant Policy").
   -- Config over code (Wiebe rule 1): a sector missing from this list is a
   -- seed INSERT, never a hardcoded frontend enum. The list is deliberately
-  -- short and flat (11 sectors and Other): one code per organisation, no
+  -- short and flat (13 sectors and Other): one code per organisation, no
   -- groups, so analytics count by the stored code. Consolidated from 20 in
   -- migration 0065_organisation_sector_consolidation.sql.
   ('organisation_sector', 'sme', 'Corporate office or professional services', 1),
@@ -135,6 +135,8 @@ INSERT INTO type_definition (domain, code, label, sort_order) VALUES
   ('organisation_sector', 'hospitality_tourism', 'Hospitality, tourism and entertainment', 9),
   ('organisation_sector', 'retail_trade', 'Retail and wholesale', 10),
   ('organisation_sector', 'manufacturing', 'Manufacturing, construction and agriculture', 11),
+  ('organisation_sector', 'ngo_nonprofit', 'Non-profit and community organisations', 12),
+  ('organisation_sector', 'religious_faith_based', 'Faith-based organisations', 13),
   ('organisation_sector', 'other', 'Other', 99),
 
   -- invitation_status (Section 11.4.5 invitations.ts)

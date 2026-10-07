@@ -1,9 +1,10 @@
--- 0065: consolidate the organisation sector list from 20 values to 12 (11 sectors and Other).
+-- 0065: consolidate the organisation sector list from 20 values to 14 (13 sectors and Other).
 --
 -- Why: 20 sectors overwhelmed the people choosing one at sign-up and made ops and analytics read a long tail of near-empty
 -- categories (Retail beside Trade, Media beside Entertainment, Mining beside Energy). The new list follows the common
 -- industry classifications (finance, health, energy and utilities, transport, technology and telecom, retail, manufacturing,
--- education, hospitality and entertainment, government, corporate and professional services) and keeps Other as the catch-all.
+-- education, hospitality and entertainment, government, corporate and professional services), plus non-profit and
+-- faith-based organisations (visitor-heavy sites the owner chose to keep visible), and keeps Other as the catch-all.
 --
 -- Shape: the list stays flat. One code per organisation, no parent or child sectors, no display groups, so analytics count
 -- organisations by the single stored code. Retired codes are soft-deleted (rows kept so history still resolves), and each
@@ -28,6 +29,8 @@ FROM (VALUES
   ('hospitality_tourism',   'Hospitality, tourism and entertainment',     9),
   ('retail_trade',          'Retail and wholesale',                      10),
   ('manufacturing',         'Manufacturing, construction and agriculture', 11),
+  ('ngo_nonprofit',         'Non-profit and community organisations',    12),
+  ('religious_faith_based', 'Faith-based organisations',                 13),
   ('other',                 'Other',                                     99)
 ) AS v(code, label, sort_order)
 WHERE NOT EXISTS (
@@ -49,6 +52,8 @@ FROM (VALUES
   ('hospitality_tourism',   'Hospitality, tourism and entertainment',     9),
   ('retail_trade',          'Retail and wholesale',                      10),
   ('manufacturing',         'Manufacturing, construction and agriculture', 11),
+  ('ngo_nonprofit',         'Non-profit and community organisations',    12),
+  ('religious_faith_based', 'Faith-based organisations',                 13),
   ('other',                 'Other',                                     99)
 ) AS v(code, label, sort_order)
 WHERE t.domain = 'organisation_sector'
@@ -69,9 +74,7 @@ JOIN (VALUES
   ('real_estate',             'sme'),
   ('media_entertainment',     'hospitality_tourism'),
   ('construction',            'manufacturing'),
-  ('agriculture',             'manufacturing'),
-  ('ngo_nonprofit',           'other'),
-  ('religious_faith_based',   'other')
+  ('agriculture',             'manufacturing')
 ) AS m(old_code, new_code) ON m.old_code = old_t.code
 JOIN type_definition new_t
   ON new_t.domain = 'organisation_sector' AND new_t.code = m.new_code AND new_t.deleted_at IS NULL
@@ -84,6 +87,6 @@ SET deleted_at = NOW()
 WHERE domain = 'organisation_sector'
   AND deleted_at IS NULL
   AND code IN ('bank', 'critical_infrastructure', 'mining_energy', 'telecom_ict', 'professional_services', 'real_estate',
-               'media_entertainment', 'construction', 'agriculture', 'ngo_nonprofit', 'religious_faith_based');
+               'media_entertainment', 'construction', 'agriculture');
 
 COMMIT;

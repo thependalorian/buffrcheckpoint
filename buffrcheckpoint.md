@@ -160,7 +160,7 @@
 >    registers for **any** organisation that needs governed presence —
 >    banks, government, healthcare, critical infrastructure, corporate,
 >    hospitality, education, and other sectors via `organisation_sector`
->    (11 sectors + Other since migration 0065; it was 20 + Other). Beachhead GTM priorities (§15.1) remain a *sales*
+>    (13 sectors + Other since migration 0065; it was 20 + Other). Beachhead GTM priorities (§15.1) remain a *sales*
 >    sequence, not a product ceiling. This blueprint does **not** name
 >    individual pilot properties.
 > 2. **Existing-system integrations (series).** Where a site already runs
@@ -1051,7 +1051,7 @@
 >    Registration only offered 5 sectors (bank/government/healthcare/
 >    critical-infrastructure/SME) — the original regulated first-mover
 >    verticals, not a real ceiling. Expanded to 20 sectors plus an explicit
->    (superseded 2026-10-07: consolidated to 11 sectors + Other, see "Organisation sectors", migration 0065)
+>    (superseded 2026-10-07: consolidated to 13 sectors + Other, see "Organisation sectors", migration 0065)
 >    "Other" catch-all (`backend/db/seed/0005_organisation_sector_expansion.sql`,
 >    applied live) — config over code (Wiebe rule 1): a still-missing sector
 >    is a future seed INSERT, not a schema change.
@@ -2733,7 +2733,7 @@ Branch `feat/analytics-etl-and-launch-polish` carried 264 uncommitted files. The
 | Type check, all four web packages | Pass | `tsc --noEmit` exit 0 in backend, admin, ops-console, website (admin, ops and website after `next typegen`, as CI does) |
 | Unit tests | Pass | backend 315/315 (60 suites), admin 35/35, ops-console 2/2, website 10/10 |
 | End-to-end, backend | Pass, 37/37 (6 suites) | Run on a disposable Neon branch of `buffr-checkpoint-eu` with migrations 0056 to 0064 applied, email transport off, local artifact store; branch deleted afterwards. Production was not touched |
-| Production migration level | Partly migrated | `application_users.buffr_id_subject` (0058) exists; `comment_protected` (0062) does not. 0056 to 0064 are re-runnable, but the exact applied set was not enumerated |
+| Production migration level | Not verified | An earlier note here said production already had 0058 but not 0062. That check actually ran against `backend/.env`, which points at the `dev-local` branch (a copy of production), not production, so it is withdrawn. Migrations are not tracked in a table, so the real level must be read with the owner credential before the rollout: check the 0058 column `application_users.buffr_id_subject`, the 0062 column `comment_protected`, and whether the branding tables (dropped by 0056) still exist |
 
 Defects found and fixed in this pass:
 - Two e2e specs asserted https public links but took their base URLs from the developer's `.env` (localhost), so they failed on any machine with a dev `.env`. They now pin the public base URLs themselves (`backend/test/visitor-journey.e2e-spec.ts`, `site-notices.e2e-spec.ts`).
@@ -2748,9 +2748,9 @@ Acceptance state at this date (`scripts/acceptance/state.json`): of 66 items, 4 
 
 #### Organisation sectors (2026-10-07, built, migration 0065 not yet applied to production)
 
-**Decision.** The sector list was 20 values plus Other. That overwhelmed people choosing one at sign-up and spread ops and analytics across near-empty categories (Retail beside Trade, Media beside Entertainment, Mining beside Energy). It is now 12 values: 11 sectors and Other. The list follows the common industry classifications in two published lists (a 12-sector business-sectors list and a 20-industry list, which overlap heavily) and Checkpoint's own buyers.
+**Decision.** The sector list was 20 values plus Other. That overwhelmed people choosing one at sign-up and spread ops and analytics across near-empty categories (Retail beside Trade, Media beside Entertainment, Mining beside Energy). It is now 14 values: 13 sectors and Other (the first cut was 12; non-profit and faith-based were added back by the owner on 2026-10-07 because they are real, visitor-heavy segments). The list follows the common industry classifications in two published lists (a 12-sector business-sectors list and a 20-industry list, which overlap heavily) and Checkpoint's own buyers.
 
-**The list is flat.** One code per organisation, no parent or child sectors, no display groups. Analytics count organisations by the one stored code, so ops, sign-up and analytics all see the same 12 values. Sectors must never be rolled up into groups in the UI or in analytics queries.
+**The list is flat.** One code per organisation, no parent or child sectors, no display groups. Analytics count organisations by the one stored code, so ops, sign-up and analytics all see the same 14 values. Sectors must never be rolled up into groups in the UI or in analytics queries.
 
 | Order | Code | Label | Replaces |
 |---|---|---|---|
@@ -2765,26 +2765,44 @@ Acceptance state at this date (`scripts/acceptance/state.json`): of 66 items, 4 
 | 9 | `hospitality_tourism` | Hospitality, tourism and entertainment | `hospitality_tourism`, `media_entertainment` |
 | 10 | `retail_trade` | Retail and wholesale | `retail_trade` |
 | 11 | `manufacturing` | Manufacturing, construction and agriculture | `manufacturing`, `construction`, `agriculture` |
-| 99 | `other` | Other | `other`, `ngo_nonprofit`, `religious_faith_based` |
+| 12 | `ngo_nonprofit` | Non-profit and community organisations | `ngo_nonprofit` |
+| 13 | `religious_faith_based` | Faith-based organisations | `religious_faith_based` |
+| 99 | `other` | Other | `other` |
 
 Notes on the choices:
 - `government` keeps its code. The Public-Sector Tenant Policy (Addendum §7.1) is the organisation default retention policy for organisations whose `sector_code` is `government`, so that policy is unchanged. No backend code branches on any sector code.
 - `sme` keeps its code and moves first as the self-serve default (3 production organisations already use it). The label no longer says SME.
 - Critical infrastructure is no longer its own value. Energy, mining and utilities and Transport and logistics cover it. If a regulated critical-infrastructure segment needs its own reporting, that is one INSERT (below), not a code change.
-- Non-profit and faith-based organisations now fall under Other. This is the one judgment call in the list; if they turn out to be a real segment, add a value.
+- Non-profit and faith-based organisations keep their own values (owner decision 2026-10-07).
 - Adding a sector later is one INSERT into `type_definition` (domain `organisation_sector`); no migration, no deploy.
 
 **How it was built.**
-- `backend/db/migrations/0065_organisation_sector_consolidation.sql`: one transaction, idempotent. Inserts the missing values, sets label and order, re-points organisations on a retired code to the code that covers them, and soft-deletes the 11 retired codes (rows kept so history resolves). `db/seed/0001_type_definitions.sql` now seeds the final 12; `0005_organisation_sector_expansion.sql` is removed.
+- `backend/db/migrations/0065_organisation_sector_consolidation.sql`: one transaction, idempotent. Inserts the missing values, sets label and order, re-points organisations on a retired code to the code that covers them, and soft-deletes the 9 retired codes (rows kept so history resolves). `db/seed/0001_type_definitions.sql` now seeds the final 14; `0005_organisation_sector_expansion.sql` is removed.
 - `GET /public/organisation-sectors` (public, throttled, `code` and `label` only, configured order) serves sign-up, which has no session. The old hardcoded lists in the admin sign-up form and the organisation profile form (two copies that disagreed on order) are gone; both read from the API. If the list cannot load, sign-up falls back to the single value Other so registration is never blocked.
 - Ops console organisations list shows each organisation's sector and filters by exact sector code, with a count per sector.
-- Guards: an admin test fails the build if sector codes are spelled out in admin source again; an e2e test asserts exactly 12 flat, unique codes with Other last and the retired codes absent.
+- Guards: an admin test fails the build if sector codes are spelled out in admin source again; an e2e test asserts exactly 14 flat, unique codes with Other last and the retired codes absent.
 
-**Verified.** On a disposable Neon branch of production, with 10 test organisations planted on 10 retired codes: after 0065, 0 organisations were on a retired code, the 12 active values were in the table above, 11 were soft-deleted, and a second run changed nothing. Backend e2e 38/38, backend unit 316/316, admin 39/39, ops-console 2/2, all four type checks clean. Production was not touched; the branch was deleted.
+**Verified.** On a disposable Neon branch of production, with 11 test organisations planted on 11 retired codes: after 0065, 0 organisations were on a retired code, the 14 active values were in the table above, 9 were soft-deleted, non-profit and faith-based organisations stayed on their own values, and a second run changed nothing. Backend e2e 38/38, backend unit 316/316, admin 39/39, ops-console 2/2, all four type checks clean. Production was not touched; the branch was deleted.
 
 **Defects fixed in this pass.** The two admin forms held separate hardcoded copies of the list (rule: fixed lists live in `type_definition`); the ops console could not show or filter by sector; the sector sample in the platform-configuration email test used a code (`hospitality`) that never existed.
 
 **Not done, owner-gated.** Applying 0065 to production belongs to the rollout order below (additive migrations, API deploy, then admin, ops-console and website, because the new forms call the new endpoint). The website sign-up page only links to the admin sign-up and has no sector field; that is left as is.
+
+#### Production rollout of this branch (2026-10-07): not executed
+
+The owner asked for the rollout after the sector work. The assistant's session was denied access to read the production database with the owner credential, so no production read, migration or deploy was run. Production is unchanged. Everything below is ready; it needs the owner (or a session where that access is allowed).
+
+Rollout, in this order (runbook above; every step has a measurable check):
+1. **Restore point.** `neonctl branches create --project-id falling-frog-15538162 --name pre-rollout-2026-10-07` (branch of main). Check: the branch exists. 0056 is destructive and this is its rollback.
+2. **Read the production level.** Check for `application_users.buffr_id_subject` (0058), `comment_protected` on the survey table (0062) and the branding tables (0056). Check: a written list of which of 0056 to 0065 are applied.
+3. **Apply the additive migrations** 0057 to 0064 that are missing, in order, with `psql -v ON_ERROR_STOP=1 -f` using the owner role from the operator's machine. Check: no error; the 0058 and 0062 columns exist.
+4. **Deploy the API:** `cd backend && railway up --service api --detach`. Check: `GET /health` returns 200 with `"database":"ok"`.
+5. **Apply 0065** (sector consolidation). Check: 14 active `organisation_sector` rows, and `select count(*) from organisations o join type_definition t on t.id = o.sector_code where t.deleted_at is not null` returns 0.
+6. **Deploy admin, ops-console, website:** `vercel --prod --yes` in each. Admin and ops call `/public/organisation-sectors`, so they must follow the API. Check: the three URLs in the runbook return 200 and the admin sign-up lists 14 sectors.
+7. **Apply 0056** (drops the retired branding tables, forward-only). Only after step 6. Check: the branding tables are gone, `smoke-production.sh` passes 6/6, and one sign-up and one check-in complete.
+8. **Re-run** `./scripts/acceptance-gate.sh run a0 --auto-only`.
+
+Known exposure during the window: between step 5 and step 6 the old admin sign-up still offers retired sector codes and a sign-up with one would be rejected. All production organisations are test organisations, so the window is accepted. Field kiosks that still call the retired branding endpoints will lose them at step 7 until they take the next kiosk build.
 
 **Production database state (1 October 2026).** Migrations `0041_analytics_etl`,
 `0042_card_payments` and `0043_retention_disposition` are applied to the
@@ -5139,7 +5157,7 @@ schema/
 │       dsar_request_type, audit_event_type, capture_channel,
 │       visitor_type (Part Three §4 — general/pre-registered/contractor/
 │         delivery/interview/vip/healthcare/event/temp-staff/restricted-site),
-│       language, organisation_sector (11 sectors + Other, flat;
+│       language, organisation_sector (13 sectors + Other, flat;
 │         `government` carries Addendum §7.1 "Public-Sector Tenant
 │         Policy"; see "Organisation sectors", migration 0065), invitation_status, evidence_pack_status,
 │       support_access_reason,
