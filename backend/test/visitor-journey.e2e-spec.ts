@@ -82,6 +82,10 @@ describe("Visitor journey and credit notes (e2e)", () => {
     process.env.EMAIL_VERIFICATION_PEPPER = process.env.EMAIL_VERIFICATION_PEPPER ?? "test-email-pepper";
     process.env.MFA_CHALLENGE_PEPPER = process.env.MFA_CHALLENGE_PEPPER ?? "test-mfa-challenge-pepper";
     process.env.QR_TOKEN_PEPPER = process.env.QR_TOKEN_PEPPER ?? "test-qr-pepper";
+    // The assertions are about public https links; a developer .env points these at localhost, so pin them here.
+    process.env.PUBLIC_WEB_BASE_URL = "https://buffrcheckpoint.com";
+    process.env.VISITOR_CHECKIN_BASE_URL = "https://buffrcheckpoint.com";
+    process.env.PUBLIC_ASSET_BASE_URL = "https://api.buffrcheckpoint.com";
     authenticator.options = { window: 1 };
 
     const moduleFixture: TestingModule = await Test.createTestingModule({ imports: [AppModule] }).compile();
