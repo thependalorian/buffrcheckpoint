@@ -1835,7 +1835,7 @@ Items only the owner, counsel or a named third party can close.
 2. **Hosting model.** Shared Namibia-hosted cloud, private cloud, on-premise or hybrid; until decided, no residency claim (§16.2).
 3. **Key management.** Which managed key service; and the rotation and re-encryption plan. Confirm production values for the data key, lookup peppers and token peppers are strong, since production now refuses weak or missing values (§14.3).
 4. **Default retention.** Approved as on by default at 365 days (decision made 2026-10-08); counsel to confirm the figure; tier day counts for other categories.
-5. **Recovery targets.** Confirm or change the RTO and RPO of §16.3; Neon history plan; the `NEON_API_KEY` repository secret exists (set 2026-10-07) but the snapshot workflow is not on the default branch yet, so it has not run; merge it, then run it once and record the result.
+5. **Recovery targets.** Confirm or change the RTO and RPO of §16.3; Neon history plan; the `NEON_API_KEY` repository secret is set and verified: the snapshot workflow ran successfully on 2026-10-07 after the idempotency fix, and runs daily.
 6. **Counsel review** of the Terms, Privacy Policy and processor agreement before publication (§6.2, §18.2).
 7. **Data Protection Bill status** confirmation before any customer-facing statement (§18.1).
 8. **ISO 27001 certification** as a later milestone, and if so the body and date; **ISMS roles**: risk owners, internal auditor, management-review cadence (§19).
