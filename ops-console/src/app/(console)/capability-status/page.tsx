@@ -10,7 +10,6 @@ interface PublicCapabilityStatusResponse {
   diginamVerification: PublicStatus;
   nationalEidNfc: PublicStatus;
   nfcBadgeCheckIn: PublicStatus;
-  ussd: PublicStatus;
   qrInvitationCheckIn: PublicStatus;
   smsContactConfirmation: PublicStatus;
   cimsoInnterchange: PublicStatus;
@@ -20,7 +19,6 @@ const LABELS: Record<keyof PublicCapabilityStatusResponse, string> = {
   diginamVerification: "DigiNam verification",
   nationalEidNfc: "National e-ID NFC",
   nfcBadgeCheckIn: "NFC badge check-in",
-  ussd: "USSD",
   qrInvitationCheckIn: "QR invitation check-in",
   smsContactConfirmation: "SMS contact confirmation",
   cimsoInnterchange: "CiMSO INNterchange (PMS)",
