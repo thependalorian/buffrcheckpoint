@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import Image from "next/image";
 
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,24 @@ export default function LoginPage() {
     async (_prev: { error?: string }, formData: FormData) => loginAction(formData),
     {},
   );
+
+  const [buffrId, setBuffrId] = useState<{ enabled: boolean; legacyPassword: string }>({ enabled: false, legacyPassword: "on" });
+  useEffect(() => {
+    fetch("/api/auth/buffr-id/config", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((b) => b && setBuffrId({ enabled: b.enabled === true, legacyPassword: b.legacyPassword ?? "on" }))
+      .catch(() => undefined);
+  }, []);
+  const urlError = typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("error");
+  const errorText: Record<string, string> = {
+    buffr_id_unavailable: "Buffr ID sign-in is not available right now.",
+    buffr_id_state: "That sign-in expired. Start again.",
+    buffr_id_denied: "Buffr ID sign-in was cancelled.",
+    buffr_id_token: "Buffr ID could not confirm your sign-in.",
+    buffr_id_two_step: "Platform staff need two-step sign-in. Turn it on in Buffr ID, then sign in again.",
+    buffr_id_failed: "That Buffr ID is not a platform staff account.",
+  };
+  const passwordOpen = !buffrId.enabled || buffrId.legacyPassword === "on";
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -31,6 +49,15 @@ export default function LoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {buffrId.enabled ? (
+            <div className="mb-4 space-y-3">
+              {urlError && errorText[urlError] ? <p className="text-destructive text-sm">{errorText[urlError]}</p> : null}
+              <Button asChild className="w-full">
+                <a href="/api/auth/buffr-id/start">Continue with Buffr ID</a>
+              </Button>
+            </div>
+          ) : null}
+          {passwordOpen ? (
           <CardForm action={formAction} className="space-y-4 p-0 ring-0">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
@@ -45,6 +72,7 @@ export default function LoginPage() {
               {pending ? "Signing in…" : "Sign in"}
             </Button>
           </CardForm>
+          ) : null}
         </CardContent>
       </Card>
     </main>

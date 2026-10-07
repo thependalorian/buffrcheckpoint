@@ -50,7 +50,7 @@ customer admin screens — break-glass still hands off to `admin/`.
 No self-registration — a `platform_support` account is provisioned
 directly in the database. A demo one exists in the dev DB:
 `platform-ops-demo@buffrcheckpoint.test` (see
-`backend/db/seed/0017_platform_support_demo.sql` for how to create another).
+`backend/db/seed/demo/0017_platform_support_demo.sql` for how to create another).
 Its home org FK is Buffr Analytics (`b51f0704-…`) after seed `0018` —
 platform_support never acts on that home org directly; real work is
 cross-tenant aggregate reads or grant-gated support sessions.

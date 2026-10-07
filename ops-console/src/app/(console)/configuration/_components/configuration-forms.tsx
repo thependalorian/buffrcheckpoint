@@ -26,7 +26,14 @@ const TEMPLATE_TOKENS: Record<string, string[]> = {
   invoice_issued: ["invoiceNumber", "organisationName", "amount", "currencyCode", "dueAt", "invoiceUrl"],
   invoice_reminder: ["invoiceNumber", "organisationName", "amount", "currencyCode", "dueAt", "invoiceUrl"],
   pop_received_ack: ["invoiceNumber", "amount", "currencyCode"],
-  pop_received_ops: ["invoiceNumber", "organisationName", "amount", "currencyCode", "submittedByEmail", "opsBillingUrl"],
+  pop_received_ops: [
+    "invoiceNumber",
+    "organisationName",
+    "amount",
+    "currencyCode",
+    "submittedByEmail",
+    "opsBillingUrl",
+  ],
   pop_rejected: ["invoiceNumber", "note", "invoiceUrl"],
   payment_confirmed: ["invoiceNumber", "amount", "currencyCode"],
   receipt_issued: ["invoiceNumber", "amount", "currencyCode", "receiptUrl"],
@@ -37,9 +44,23 @@ const TEMPLATE_TOKENS: Record<string, string[]> = {
   kyb_rejected: ["organisationName", "note"],
   host_visitor_arrived: ["visitorName", "siteLabel", "detailBlock"],
   host_escalation: ["actionCode", "visitId", "siteLabel", "visitorName"],
-  support_ticket_ack: ["name", "ticketReference"],
-  visitor_prereg_invite: ["siteLabel", "visitDate", "preregUrl"],
-  credit_note_issued: ["creditNoteNumber", "amount", "currencyCode"],
+  support_ticket_ack: ["ticketId", "subject"],
+  visitor_prereg_invite: ["siteName", "hostName", "expectedAt", "validUntil", "checkInUrl"],
+  visitor_visit_receipt: ["siteName", "hostName", "checkedInAt", "visitReference", "signOutUrl"],
+  visitor_signout_thanks: ["siteName", "checkedInAt", "checkedOutAt", "duration", "ratingUrl"],
+  credit_note_issued: [
+    "creditNoteNumber",
+    "invoiceNumber",
+    "amount",
+    "currencyCode",
+    "balanceAfter",
+    "reason",
+    "invoiceUrl",
+  ],
+  support_ticket_reply: ["ticketId", "subject", "reply"],
+  scheduled_ops_daily_summary: ["period"],
+  scheduled_site_manager_digest: ["organisationName", "from", "to"],
+  scheduled_board_compliance_monthly: ["organisationName", "from", "to", "period"],
 };
 
 export function TemplateForm({ template }: { template: TemplateRow }) {
@@ -63,19 +84,12 @@ export function TemplateForm({ template }: { template: TemplateRow }) {
           {template.updatedAt ? ` · last edited ${new Date(template.updatedAt).toLocaleString()}` : ""}
         </p>
         {tokens.length > 0 ? (
-          <p className="mt-1 text-muted-foreground text-xs">
-            Tokens: {tokens.map((t) => `{{${t}}}`).join(" · ")}
-          </p>
+          <p className="mt-1 text-muted-foreground text-xs">Tokens: {tokens.map((t) => `{{${t}}}`).join(" · ")}</p>
         ) : null}
       </div>
       <div className="space-y-1">
         <Label htmlFor={`subject-${template.id}`}>Subject</Label>
-        <Input
-          id={`subject-${template.id}`}
-          name="subject"
-          defaultValue={template.subject ?? ""}
-          className="w-full"
-        />
+        <Input id={`subject-${template.id}`} name="subject" defaultValue={template.subject ?? ""} className="w-full" />
       </div>
       <div className="space-y-1">
         <Label htmlFor={`body-${template.id}`}>Body</Label>
