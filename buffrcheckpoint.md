@@ -552,12 +552,12 @@
 | DSAR packaged export | FULL | v0.20 |
 | Organisation capability enablement API + admin UI | FULL | v0.22 `/organisation/capability-enablement`; Site Experience → Capabilities |
 | Effective org capability flags (kiosk) | FULL | v0.22 `GET /capability-enablement/effective` |
-| Migration 0017 schema completion | FULL | visitor_category on invitations; ack capture_channel; SMS/USSD logs |
+| Migration 0017 schema completion | FULL | visitor_category on invitations; ack capture_channel; SMS logs (the USSD session logs were retired with USSD) |
 | DigiNam relying-party adapter live | NOT STARTED | discovery → public not_available |
 | National e-ID NFC adapter live | NOT STARTED | targeted in register |
 | QR invitation check-in lifecycle | FULL | v0.21 token/revoke/resolve; register `live`; admin pickers/revoke v0.22 |
-| SMS contact confirmation gateway | PARTIAL | v0.22 event scaffold + org gate, and (2026-10-07) a BulkSMS Namibia adapter, live-tested with one real message. Off until the arrangement row is set active and the capability is approved live in the ops console — **not a Core sellable claim**; optional add-on when live. See "SMS provider: BulkSMS Namibia" |
-| Live USSD aggregator webhook | NOT STARTED | v0.22 DB arrangement guard + session status log; menu flow not live — **not a Core sellable claim**; optional add-on when live |
+| SMS contact confirmation gateway | PARTIAL | v0.22 event scaffold + org gate, and (2026-10-07) a BulkSMS Namibia adapter, visitor text templates and usage billing at N$1.00 per text, live-tested with one real message. Off until the key is set, the arrangement is active, the capability is approved live and the organisation has the SMS add-on — **not a Core sellable claim**. See "Visitor messaging and SMS" |
+| Live USSD aggregator webhook | RETIRED 2026-10-07 | Not built and not planned (decision record, "Channels we do not build"). The webhook, session service and kiosk screen are removed; the unused database tables are kept for history |
 | Kiosk visitor-session privacy wipe (FR-K10) | FULL | v0.22 outbox pending wipe + QR/NFC privacy gate + abandon |
 | Platform Ops Console app | FULL | v0.24 — schema, backend (`platform-control-plane` module), and `ops-console/` all built and live-verified end-to-end against the real dev DB: every console screen (Overview, Organisations + per-org detail with Rollup/CRM/Billing/KYB tabs, CRM, Billing + POP review, KYB, Capability Status with dual-approval, Support Access, Incidents, Tickets + comments, Analytics/churn queue, Audit) is real and wired to live endpoints, not stubbed. `admin/`'s support-session entry route (with live countdown banner) and customer-facing `/dashboard/billing` (invoice list + POP upload) are both built. The break-glass grant flow is customer-consent-gated (§11.9.1a) and was verified live end-to-end: request → inert → customer sees + approves/denies → session mint → grant revoke → 403. See Section 11.9.1a for the full build notes and one real bug this live testing caught and fixed before ship. |
 | Other QR product types (pre-reg, emergency, …) | FULL in code, not yet deployed | Emergency information and contractor induction are site QR references that open `/emergency` and `/induction`; pre-registration and sign-out are signed links; the device support QR opens a sign-in-gated admin page. See "Site notices and QR types (2026-10-07)" |
@@ -1400,6 +1400,8 @@ But NFC must never become the only access path.
 
 ## 4.2 Why feature-phone inclusion is non-negotiable
 
+> **Retired 2026-10-07.** USSD, WhatsApp and feature-phone sessions are not built (see "Channels we do not build: strategy decision"). Visitors without a usable smartphone are served by assisted check-in, permanently. Read what follows as background only; where it disagrees with that decision, the decision wins. SMS survives as a usage-billed add-on ("Visitor messaging and SMS").
+
 Feature phones remain significant in Namibia and across Africa, particularly outside urban centres. A product that assumes every visitor has a smartphone, NFC capability, mobile data, or digital identity will exclude people at the exact institutions that most need a secure check-in process: public offices, clinics, banks, and rural service points.
 
 The device-ownership data available to this blueprint makes the exclusion risk concrete rather than theoretical. Only **28.5% of Namibians own a smartphone**. In rural areas, the pattern inverts what an urban-built product would assume: **rural feature-phone ownership, at 25.4%, actually exceeds rural smartphone ownership, at 15.1%**. In other words, a strategy that treats NFC or QR as the *only* channel — either of which requires a smartphone — without assisted front desk (and eventually SMS/USSD) would silently exclude roughly seven in ten Namibians nationally, and would exclude the *majority* device type in rural areas specifically, which is exactly where many of the regulated sites this product targets actually operate: bank branches, clinics, and government offices outside the main urban centres.
@@ -1541,7 +1543,7 @@ enum — each capability's real lifecycle is different):
 | `nfc_badge_checkin` (site-issued NFC badge/token/phone credential) | `live` only | Genuinely built and working today — no approval gate outside Buffr Checkpoint's own control |
 | `diginam_verification` (display: **DigiNam relying-party verification**) | `discovery → approved → pilot → live → suspended` | The national ecosystem being live is a separate fact (see correction below); this tracks only Buffr Checkpoint's own integration approval lifecycle |
 | `national_eid_nfc` (physical National e-ID card read via NFC) | `discovery → targeted → pilot → live → suspended` | Retains `targeted` because a real MoHA rollout month exists (Section 4a.6) as an intermediate state between discovery and a running pilot |
-| `ussd` | `not_started → provider_testing → pilot → live → suspended` | Reflects the real dependency on a telecom-operator/aggregator arrangement (Section 5, "USSD is not offline") |
+| `ussd` | retired 2026-10-07 | Removed as a capability. The public capability response still carries a constant `ussd: "not_available"` for kiosk apps already in the field, until every kiosk runs a build from after that date |
 | `qr_invitation_checkin` | `not_started → pilot → live → suspended` | Pre-registration invitation QR with opaque token lifecycle |
 | `sms_contact_confirmation` | `not_started → provider_testing → pilot → live → suspended` | Neutral SMS confirmation channel; no PII in message body |
 
@@ -1625,7 +1627,7 @@ Channels share one encrypted visit record. **Recommended use** below is packagin
 | **NFC badge / token** | Contractors, repeat visitors, staff | Credential possession | Yes | Optional / Professional fast lane when entitlement + capability allow |
 | **NFC phone credential** | Smartphone users | Credential possession; stronger if wallet/secure element supported | Depends on configuration | Optional / Professional convenient fast lane |
 | **DigiNam credential verification** | Visitors with an enabled digital identity | Verified identity, subject to integration | Usually online or cached according to rules | Verify — higher-risk or pre-registered visits (sell only when register is live) |
-| **USSD** | Feature-phone users | SIM/session possession; not identity proof | Requires GSM network, not data | Optional add-on — inclusive remote/onsite when aggregator live (§11.9.0a) |
+| **USSD** | *(retired 2026-10-07)* | Not offered. Visitors without a usable smartphone are served by assisted check-in | | |
 | **SMS** | Feature-phone and smartphone users | SMS/OTP possession; not identity proof | Requires GSM network | Optional add-on — confirmation, sign-out, fallback when MT gateway live |
 | **Printed one-time code** | Anyone | Site presence only | Yes | Kiosk/guard fallback during outages |
 
@@ -1642,7 +1644,7 @@ These are the only codes the API, kiosk, and admin may persist on
 | Code | Canonical name | Meaning | Typical method | Suitable for |
 |---|---|---|---|---|
 | **V0** | Self-asserted identity | Visitor entered details; no external confirmation | Kiosk/manual entry | Ordinary low-risk office visits |
-| **V1** | Contact-channel possession | Visitor controls the stated phone/session | SMS OTP or USSD session | Standard visitor flows |
+| **V1** | Contact-channel possession | Visitor controls the stated phone/session | SMS OTP | Standard visitor flows |
 | **V2** | Site-issued credential possession | Visitor holds a known NFC badge/token | NFC badge mapped to approved profile | Contractors, repeat visitors |
 | **V3** | DigiNam / NPKI verified identity | Verified through approved DigiNam/NPKI relying-party flow | Credential validation through approved interface | Regulated or higher-risk visits |
 | **V4** | Official e-ID cryptographic validation | Government e-ID cryptographically validated under approved protocol | Official NFC reader and relying-party process | Restricted zones, critical sites |
@@ -1709,6 +1711,8 @@ That avoids the dangerous mistake of treating a phone number, static QR code, or
 ---
 
 # 6. Feature-Phone User Journeys
+
+> **Retired 2026-10-07.** USSD, WhatsApp and feature-phone sessions are not built (see "Channels we do not build: strategy decision"). Visitors without a usable smartphone are served by assisted check-in, permanently. Read what follows as background only; where it disagrees with that decision, the decision wins. SMS survives as a usage-billed add-on ("Visitor messaging and SMS").
 
 ## 6.1 Feature phone without e-ID: can they use the service?
 
@@ -1867,7 +1871,7 @@ Arrival
 
 ```text
 Host pre-registers visit
-→ visitor receives neutral SMS/email/WhatsApp invitation
+→ visitor receives neutral SMS or email invitation
 → visitor arrives
 → scans rotating QR or enters one-time code / taps NFC credential
 → record matched
@@ -2204,6 +2208,8 @@ is not the honest state.
 
 ## 10.2 Feature-phone screen
 
+> **Retired 2026-10-07.** USSD, WhatsApp and feature-phone sessions are not built (see "Channels we do not build: strategy decision"). Visitors without a usable smartphone are served by assisted check-in, permanently. Read what follows as background only; where it disagrees with that decision, the decision wins. SMS survives as a usage-billed add-on ("Visitor messaging and SMS").
+
 ```text
 ┌─────────────────────────────────────────────┐
 │         CHECK IN WITH A FEATURE PHONE       │
@@ -2320,7 +2326,7 @@ is not the honest state.
 ┌──────────────────────┐         ┌─────────────────────┐      ┌───────────────────┐
 │ Namibia-hosted        │         │ Notification Service │      │ Append-only Audit │
 │ PostgreSQL            │         │ SMS · USSD · Email   │      │ Log / SIEM        │
-│ Tenant/site isolation │         │ WhatsApp where used  │      │ Evidence exports  │
+│ Tenant/site isolation │         │ SMS where used       │      │ Evidence exports  │
 └──────────────────────┘         └─────────────────────┘      └───────────────────┘
             │
             ▼
@@ -2459,7 +2465,7 @@ inline and the built system wins.
 | ETA, PKI, CRAN Root CA journey, relying-party boundary | Regulatory sections citing GN 75/2020, GN 182/2026 (GG 8949), GN 335/2025, GN 953/2025, CRAN GN 401/2026; NPKI direction notes | s20 and Chapter 5 in force from 15 June 2026 per GN 182/2026 (source PDF listed in the sources table). Kiosk tap/draw remains acknowledgement evidence, never a recognised electronic signature. |
 | Data protection landscape and minimisation | Privacy and data-minimisation rules; §5.2 visitor and protected PII model | No Act in force; never claim "fully compliant". |
 | Core data model, visitor vs visit, envelopes, lookup HMACs | §5 Full canonical data model | Unchanged. |
-| DigiNam / national e-ID / USSD / SMS | §4.4 Capability status; §10 DigiNam and national e-ID capability rule | Roadmap capabilities only; not in marketing until the register says live. |
+| DigiNam / national e-ID / SMS | §4.4 Capability status; §10 DigiNam and national e-ID capability rule | Roadmap capabilities only; not in marketing until the register says live. |
 | Hosting and data residency | §11 Hosting and public-claim correction | No "hosted in Namibia" claim. |
 | Kiosk and admin visual strategy | §11.6.5 Visual, Image Placement and Product Demonstration Strategy | Unchanged. |
 | Analytics ETL, fact tables, endpoints, forecast | §11.1b Analytics and ETL | The guide's table sketches differ from the deployed schema. Migration `0041_analytics_etl.sql` is authoritative: `dwell_minutes_total NUMERIC(14,2)`, `dwell_sample_count`, `etl_run_id` on facts, and `type_definition` codes (`etl_run_status`, `etl_run_kind`) instead of text status columns. |
@@ -2704,8 +2710,8 @@ Output must be empty apart from permitted test fixtures.
 | Retention purge/archive scheduler | **Built** (2026-10-01) | Opt-in worker (`RETENTION_DISPOSITION_ENABLED`); dry-run first. Analytics backfills count live visits only, so disposed history drops out of rebuilt facts |
 | DigiNam relying-party adapter | Not started | Approved relying-party arrangement and tested interface |
 | National e-ID NFC adapter | Not started | Official protocol and interoperability testing |
-| SMS confirmation gateway | **Adapter built, live-tested 2026-10-07; off** | Owner: set `BULK_SMS_API_KEY` on the API, set the `bulksmsnam` arrangement active, approve the capability live (dual approval, evidence). See "SMS provider: BulkSMS Namibia" |
-| USSD aggregator | Not started | Licensed operator or aggregator arrangement |
+| SMS confirmation gateway | **Adapter, templates and usage billing built, live-tested 2026-10-07; off** | Owner: set `BULK_SMS_API_KEY` on the API, set the `bulksmsnam` arrangement active, approve the capability live (dual approval, evidence), attach the `sms` add-on to an organisation. See "Visitor messaging and SMS" |
+| USSD aggregator | **Retired 2026-10-07** | Decision: USSD adds recurring telco cost for a small audience; assisted check-in is the inclusion path |
 | Badge printing | Not started | Printer SDK and device path |
 | Contractor induction schema (Release 1.5) | Not started | Safety induction workflow |
 | Analytics ETL and dashboards | **Built** (2026-09-30) | §11.1b; the guide listed this as deferred |
@@ -2804,23 +2810,70 @@ Rollout, in this order (runbook above; every step has a measurable check):
 
 Known exposure during the window: between step 5 and step 6 the old admin sign-up still offers retired sector codes and a sign-up with one would be rejected. All production organisations are test organisations, so the window is accepted. Field kiosks that still call the retired branding endpoints will lose them at step 7 until they take the next kiosk build.
 
-#### SMS provider: BulkSMS Namibia (2026-10-07, built and live-tested, off by default)
+#### Channels we do not build: strategy decision (2026-10-07)
 
-**Provider.** BulkSMS Namibia (`bulksmsnam.com`), a Namibian credit-based gateway for MTC and TN Mobile. It publishes no API reference and the docs page is behind a login, so the contract was taken from the two calls in the account dashboard and then confirmed against the live API: `POST /api/v1/send` with `{to, message}` answers `{success, messageId, to, creditsUsed, creditsRemaining}`; `GET /api/v1/balance` answers `{credits, email, name}`; both authenticate with an `X-API-Key` header. Pricing seen on the site: N$0.50 (100 credits) down to N$0.30 (5,000 credits) per SMS; 1 credit = 1 SMS; credits never expire. Delivery receipts, sender-ID rules and rate limits are not documented; ask the provider before relying on them.
+Strategy is as much deciding what not to do. The owner decided, for Buffr Checkpoint:
 
-**Built.**
-- `backend/src/modules/integrations/telecoms/bulksmsnam.client.ts`: reads `BULK_SMS_API_KEY` (never logged, sent in the header only; optional `BULK_SMS_BASE_URL`). Normalises Namibian mobiles to `+264` E.164 (081, 083 and 085 prefixes), refuses a message longer than 160 characters so a send cannot silently cost several credits, times out at 15 seconds, and reports failures as an error class only (no key, number or text in errors).
-- `SmsContactConfirmationService` now sends through it when the effective capability is live and the active arrangement is `bulksmsnam` with a key configured. It records `sent` with the provider `messageId` as the message reference, or the error class (`provider_rejected`, `provider_unreachable`, ...). It stores the recipient only as an HMAC and never the text. The existing `sms` notification channel uses this path, so nothing else changed.
-- Migration `0066_bulksmsnam_provider_arrangement.sql` adds the provider row with `active = false` (idempotent, tested on a Neon branch that was then deleted).
-- 22 new unit tests (number normalisation, request shape, key never in the URL, refusal before spend, rejection and unreachable handling, the three service paths) run with a fake `fetch` and spend no credits.
+| Channel | Decision | Why |
+|---|---|---|
+| USSD | **Not built.** Removed from code, kiosk app, website copy, capability list and configuration | It adds recurring telco and aggregator cost (short code, session fees, an operator arrangement) for a small audience. Cost with no matching revenue is a decision not to make |
+| WhatsApp | **Not built.** Removed as a channel | Redundant. Email and SMS already reach any visitor who has a phone |
+| Feature-phone sessions | **Not built** (they were a USSD flow) | Same reason as USSD |
+| **Assisted check-in** | **The inclusion path, permanently** | Reception checks in visitors with no phone, a basic phone, low literacy or a disability. It costs nothing per visit and needs no telco. It is a standing part of every plan, not a stop-gap until another channel arrives |
 
-**Live check.** The key in `backend/.env` was exercised once: the balance call (10 credits), then one message to the owner's number (1 credit used, 9 left) answered with a `messageId`. Nothing else was sent.
+What the product does: QR and phone web check-in, assisted check-in, NFC and kiosk as optional fast lanes, **email** to reach a visitor (free to us) and **SMS** to reach a visitor by text (paid, so billed to the organisation by use).
 
-**Off by default, three gates.** The API must have `BULK_SMS_API_KEY`; the `bulksmsnam` arrangement must be set active; and the `smsContactConfirmation` capability must be approved live in the ops console. Until all three hold, the SMS channel answers `provider_not_live` as before. Setting the key and activating the row on production is the owner's step.
+What changed in the repository: the USSD webhook, session service and its DTO, the webhook guard, the kiosk USSD screen, tile and navigation, the `ussd` capability, and the `whatsapp`/`ussd` notification channel codes are removed. Migration 0067 soft-deletes the `whatsapp` and `ussd` configuration rows (notification channel, capture channel, identity verification provider, capability code); no table was dropped and no operational row touched. The unused `feature_phone_check_in_sessions` and `feature_phone_check_in_session_status_log` tables are kept for history and can be dropped when the owner approves.
 
-**Rules that still apply.** Messages must be neutral ("Your visit has been recorded"), never a visitor's name, ID, host or purpose (risk register, lock-screen leak). The adapter limits length and format; it cannot judge content, so callers must pass neutral templates. The API key was pasted into a chat session during setup: rotate it in the BulkSMS dashboard once testing is finished.
+**One deliberate leftover.** `GET /public/capability-status` and `GET /capability-enablement/effective` still return `ussd: "not_available"`, a constant, marked deprecated in `capability-status.service.ts`. Kiosk apps already in the field parse that response with a required `ussd` field; without it they fail to read capabilities and switch NFC and QR off. The new kiosk build does not read it. Delete the constant (one line, its default and one test line) once every kiosk runs a build from after 2026-10-07.
 
-**Not built.** Delivery receipts and webhook status (the provider documents none), per-organisation send caps and cost metering (needed before the add-on is sold), and OTP flows on top of the channel.
+Sections of this blueprint that still describe USSD, feature-phone sessions or WhatsApp (§4.2, §6, §10.2, the feature-phone journey in the PRD material, the telecoms regulation notes, §13 notifications) are superseded by this decision and are marked retired where they start. Where the decision and an older section disagree, this decision wins.
+
+#### Visitor messaging and SMS (2026-10-07, built, tested, off by default)
+
+**What a visitor receives today (review).** Visitor messaging was email only: a check-in receipt with a personal sign-out link, a sign-out thank-you with a rating link, and a pre-registration invitation. Each is an ops-editable template, can be switched off per organisation, and is sent only to an address the visitor typed (or a host typed for them). SMS now mirrors the first two, and the third once pre-registration captures a mobile number (it does not yet, so that template is seeded but not wired).
+
+**Provider.** BulkSMS Namibia (`bulksmsnam.com`), a Namibian credit gateway for MTC and TN Mobile. It publishes no API reference and the docs page is behind a login, so the contract came from the two dashboard calls and was confirmed against the live API: `POST /api/v1/send` with `{to, message}` answers `{success, messageId, to, creditsUsed, creditsRemaining}`; `GET /api/v1/balance` answers `{credits, email, name}`; both authenticate with an `X-API-Key` header. 1 credit = 1 SMS and credits never expire. Delivery receipts, sender-ID rules and rate limits are undocumented; ask the provider before relying on them.
+
+**Templates** (seeded by migration 0067 into `platform_notification_template`, channel `sms`, editable in the ops console; defaults in `sms-template-catalog.ts`):
+
+| Code | Sent when | Default wording |
+|---|---|---|
+| `visitor_visit_receipt_sms` | A visitor checks in and typed a mobile number | `{{organisationName}}: visit recorded, ref {{visitReference}}. Sign out when you leave: {{signOutUrl}}` |
+| `visitor_signout_thanks_sms` | A visitor signs out and gave a mobile number | `Thank you for visiting {{organisationName}}. Rate your visit in one tap: {{ratingUrl}}` |
+| `visitor_prereg_invite_sms` | A host pre-registers a visitor with a mobile number (not wired yet) | `{{organisationName}} has pre-registered you for {{visitDate}}. Check in on arrival: {{checkInUrl}}` |
+
+Rules every text follows, enforced by `sms-text.ts` and tests: **neutral** (organisation name, reference and a link only; never a visitor's name, ID, host or purpose, because a text shows on a lock screen); **one segment** (at most 160 characters, GSM 7-bit only, since a single non-GSM character halves a segment and costs several credits; accents are folded, emoji dropped); only the organisation name is ever shortened to fit, never a link or reference; if it still does not fit, nothing is sent.
+
+**Short links.** The email sign-out and rating links are about 110 characters and cannot share a text with any wording. Texts use a fixed-width 41-character signed token (kind, visit id, expiry, 72-bit signature) at `/o/<token>` (sign out) and `/r/<token>` (rate), about 70 characters in all. The website redirects each to the existing page and the API verifies the token; a sign-out token is never accepted as a rating token. Same 24-hour life and same one-visit scope as the long links, which still work.
+
+**Pricing: SMS is an add-on billed by use.** Email costs us nothing; each text is bought from the provider (N$0.30 to N$0.50), so the organisation is charged **N$1.00 per text sent** (setting `sms_unit_price:default`, override `sms_unit_price:<organisation id>`). The `sms` add-on has no monthly fee, and a month with no texts costs nothing. A text needs: the organisation's active `sms` add-on, a month under the **safety limit** (default 1,000 texts, setting `sms_limit:default` or `sms_limit:<organisation id>`; this stops a runaway from sending thousands of billable texts and is not an allowance included in a price), the organisation's own switch (the three kinds appear in Email and Text Notifications), a Namibian mobile number, and a message that fits one segment. A refused text never reaches the provider, so it spends no credit; the refusal is recorded (`addon_not_active`, `monthly_limit_reached`).
+
+**Billing.** `POST /platform/billing/sms-usage-invoices {organisationId, month}` (billing staff) invoices one finished month: texts handed to the provider that month times the price. The invoice number is fixed per organisation and month (`SMS-<org>-<YYYYMM>`) and unique, so a month can never be billed twice, a repeat or concurrent call returns the existing invoice, a month that has not ended is refused, and a month with no texts creates nothing. `GET /platform/billing/sms-usage` previews a month, and `GET /notifications/sms-usage` shows an organisation its own month so far. Money is held in whole cents; months run on Windhoek time (UTC+2). Sending is counted from the immutable `sms_contact_confirmation_events` log, so invoice and log reconcile.
+
+**Built.** `bulksmsnam.client.ts` (key only in a header, never logged; number normalisation to `+264`; 160-character guard; 15-second timeout; errors carry a class, never the key, number or text), `SmsContactConfirmationService` (sends through it behind the capability gate, records `sent` with the provider `messageId`, stores the recipient only as an HMAC and never the text), `SmsEntitlementService`, `TemplatedSmsService`, `VisitorSmsListener`, billing service methods, the preferences list, and migrations 0066 (inactive provider row) and 0067 (templates, add-on, retirements). About 64 new tests (58 backend, 3 admin, 3 website; backend total 316 to 374), none of which spends a credit.
+
+**Live check.** The key in `backend/.env` was exercised once: the balance call (10 credits), then one message to the owner's number, which arrived (1 credit used, 9 left).
+
+**Off by default, four gates.** The API needs `BULK_SMS_API_KEY`; the `bulksmsnam` arrangement must be set active; the `smsContactConfirmation` capability must be approved live in the ops console (dual approval, with evidence); and the organisation needs the `sms` add-on attached. Until all four hold, nothing is sent.
+
+**Owner steps.** Attach the add-on to an organisation in the ops billing screen; run the monthly usage invoice (no scheduler yet, so it is a manual monthly step); confirm N$1.00 and the 1,000 limit. Rotate the API key in the BulkSMS dashboard when testing ends: it was pasted into a chat session during setup.
+
+**Not built.** Delivery receipts and webhook status (undocumented by the provider), an automatic monthly invoice run, an ops button for the usage invoice (it is an API call today), a mobile number on pre-registration (so the invitation text cannot send), and OTP flows on top of the channel.
+
+#### Cleanup and alignment review (2026-10-07)
+
+Run with the workspace cleanup-and-alignment skill after the sector, SMS and channel changes. One `audit` run with six measured steps and seven findings is recorded in the workspace-ops database (project `buffrcheckpoint`); the findings are not repeated in a report file.
+
+Checks with their results: migrations 0001 to 0067 contain no trigger or function, no `ON DELETE CASCADE` (the six text hits are comments stating the rule), no CHECK list, no FLOAT or DOUBLE money column, and none of 0056 to 0067 creates a table or hard-deletes a row; the changed source has no `console.*`, no emoji and no string-built SQL.
+
+Fixed in the same pass: **102 dependencies and 2 overrides were on `^` or `~` ranges** (backend 40 and 2, admin 47, website 15) and are now pinned to the exact versions already installed, with lockfiles synced (specifier lines only) and `npm ci --dry-run` passing; **the notification channel list was hardcoded** in the request DTO and a type although channels are configuration, so the service now validates against `notification_channel` and answers 400 for an unknown or retired channel.
+
+Open, with the reason:
+- **Notification outbox retention (owner decision).** `notification_delivery_instructions` keeps the recipient address or mobile number and the message text, including sign-out and rating link tokens, with no purge. Email already did this and SMS adds mobile numbers. The owner must choose a retention period (for example redact recipient and message 30 days after delivery, keep the status events); it is then a small job in the existing retention-disposition worker.
+- **Copy on pages (scope, not a gate).** The ops console has no copy module across its 28 pages and the 9 marketing pages inline their text; admin follows the rule with 10 copy modules. Recommended next pass: add `ops-console/src/lib/copy` and move page strings module by module.
+
+Accepted: internal outcome codes of the SMS path (text values written by a pre-existing scaffold), the unused feature-phone tables kept until the owner approves a drop, and the deprecated constant `ussd` in the capability responses (see "Channels we do not build").
 
 **Production database state (1 October 2026).** Migrations `0041_analytics_etl`,
 `0042_card_payments` and `0043_retention_disposition` are applied to the
@@ -3068,7 +3121,7 @@ Every message goes through the notification outbox
 dispatcher. A failed send retries with exponential backoff (30 s doubling,
 capped at 1 hour) up to 5 attempts, then the row is marked `failed` and shows
 in the ops integration health panel. Email (SMTP through the Buffr mailbox, `hello@buffr.ai`) is the only live channel;
-SMS, USSD and WhatsApp are registered channel codes with no provider yet, so
+SMS is the only live text channel (BulkSMS Namibia, off until activated); USSD and WhatsApp were retired as channels on 2026-10-07, so
 there is no automatic channel fallback today. The fallback for a host who
 misses an arrival is the escalation rule, not another channel.
 
@@ -3218,7 +3271,7 @@ when it does not. Uptime monitors must alert on any non-200. This closes the
 "200 with a dead database" failure mode.
 
 Uptime monitor (to set up in Better Stack or UptimeRobot, 1-minute interval,
-alert after 2 consecutive failures, to email plus SMS or WhatsApp):
+alert after 2 consecutive failures, to email plus SMS):
 
 | Check | URL | Expect |
 |---|---|---|
@@ -5898,7 +5951,7 @@ reproduced verbatim below — headings and prose copy only.
 | Hero | H1: "Built for Africa's Compliance." — Sub: "Buffr Checkpoint replaces shared paper registers with isolated visitor records, risk-based identity controls, and offline-first operation, so every visitor can check in securely, with dignity." |
 | **Paper Register Risk** (H2) — v0.7: **moved directly after the hero**, per Section 11.6.5.3 | "A paper visitor register is an everyday privacy and governance failure." — now a real designed comparison (redacted gray-bar "paper" card vs. a structured encrypted-record card), not two plain bullet lists, each still carrying its original 5-item list — closing line: "The platform's real advantage isn't the tablet or the NFC reader. Buffr Checkpoint turns a neglected paper process into a properly governed system." |
 | Capabilities grid (H2) | "One secure record architecture. Every inclusion channel." — 6 cards: NFC-forward check-in, Feature-phone inclusive, Offline-first operation, Risk-based access control, Audit-ready evidence, Multi-channel one record (each with a one-sentence description, rewritten in v0.6) |
-| **Every visitor can check in** (H2, new in v0.7) | "Every visitor can check in." — the six-channel strip (NFC badge, QR invitation, Kiosk, USSD, SMS, Assisted entry) converging on "One isolated, encrypted visitor record" |
+| **Every visitor can check in** (H2, new in v0.7) | "Every visitor can check in." — the five-channel strip (NFC badge, QR invitation, Kiosk, SMS, Assisted entry) converging on "One isolated, encrypted visitor record" |
 | How It Works (H2) | 5 steps: Arrival, Verification, Record, Notify, Access & Sign-Out (one-sentence description each) |
 | **Operational proof** (H2, new in v0.7) | "A governed control platform, not a guest book." — 3 real product screenshots (Front Desk roster, Device Compliance Register, Compliance Dashboard), each with a one-line caption |
 | **Final CTA** (new in v0.7, previously buried inside the Paper Register card) | Sodium-Yellow high-contrast panel: "Replace your paper register before it becomes your next privacy incident." |
@@ -5920,7 +5973,7 @@ reproduced verbatim below — headings and prose copy only.
 | Section | Copy |
 |---|---|
 | `<title>` | "Pricing: Buffr Checkpoint" |
-| Hero | H1: "Simple, channel-inclusive pricing." — Sub: three plans, monthly or annual; NFC from Professional; USSD/SMS from Core |
+| Hero | H1: "Simple, channel-inclusive pricing." — Sub: three plans, monthly or annual; NFC from Professional; SMS as a usage-billed add-on |
 | Tier cards | **3 subscription tiers** (Core, Professional, Verify) with monthly/annual toggle (annual = 10× monthly) — Professional featured |
 | Add-ons | **Hidden on marketing** (ops/sales catalog only via `GET /platform/billing/catalog`) — public `GET /public/pricing` returns plans only |
 | Per-channel marginal cost (H2) | "Every channel produces the same isolated, encrypted record downstream…" — 7-row cost table |
@@ -6246,7 +6299,7 @@ capability-status badges, and (only under Professional / add-ons) optional NFC o
 | Checkpoint Verify | Identity assurance ladder and DigiNam capability status |
 | Add-on: physical access control | Zone map, credential lifecycle, escorted-entry flow |
 | Add-on: controls review and evidence | Evidence pack and control-test dashboard |
-| Optional: kiosk / SMS / USSD / NFC | Device or messaging only when sold as add-on — never implied as Core CAPEX |
+| Optional: kiosk / SMS / NFC | Device or messaging only when sold as add-on — never implied as Core CAPEX |
 
 ### 11.6.5.6 About page placement strategy
 
@@ -6397,7 +6450,7 @@ higher-complexity layouts than the Home page's pieces, not done this pass.
 |---|---|---|
 | Hero | "This solves a real problem I have." | Direct risk statement plus a real product screen |
 | Paper-register comparison | "We're exposed today." | Restrained contrast between shared paper and an isolated record |
-| Multi-channel section | "This works for all our visitors." | Equal visual treatment of NFC, QR, USSD, SMS, assisted, and kiosk |
+| Multi-channel section | "This works for all our visitors." | Equal visual treatment of NFC, QR, SMS, assisted, and kiosk |
 | Platform page | "This is serious enough for our IT/security team." | Diagrams, RBAC, audit evidence, device governance |
 | Pricing | "This is understandable and proportionate." | Simple tiers, no hidden complexity, hardware separated out |
 | About | "This team understands our environment." | Real Namibian context, actual people/hardware, no stock imagery |
@@ -7368,9 +7421,9 @@ risk-based controls (Sections 4–8, 13).
 | Admin configures sites, hosts, forms, devices, RBAC | ✓ Site Experience nav + create/publish/rotate sheet forms | Per-field version editor | Workflow-builder UI |
 | Site branding / kiosk experience / QR / escalation | ✓ Schema `0010`–`0012` + API + admin UI + escalation worker + **status transitions** | — | — |
 | Host approve/reject | ✓ `POST /visits/:id/approve` · `POST /visits/:id/reject` | Admin UI buttons on roster | — |
-| Kiosk: welcome / branding / maintenance | ✓ Welcome + logo URL/disk cache + NFC/USSD tiles + language + a11y | NFC reader mode (Phase 5) | Badge print |
+| Kiosk: welcome / branding / maintenance | ✓ Welcome + logo URL/disk cache + NFC tile + language + a11y | NFC reader mode (Phase 5) | Badge print |
 | Kiosk: manual / assisted / QR check-in | ✓ | NFC fast lane hardware path | — |
-| Kiosk: USSD continuity | ✓ **Dedicated USSD instructions screen** (capability-gated tile) | Live USSD gateway integration | — |
+| Kiosk: USSD continuity | *(retired 2026-10-07)* The USSD instructions screen and tile were removed from the kiosk | — | — |
 | Kiosk: privacy notice before capture | ✓ Gate + policy text + **pre-check-in server ack** + post-check-in ack | Digital signature capture | — |
 | Kiosk: session clear / timeout | ✓ Idle handler + form reset + **pointer/scroll activity tracking** | — | — |
 | Internal Operations Console (capability status) | API exists (`PATCH /capability-status`) | — | Separate internal app — **not** in customer `admin/` sidebar (see `admin/src/navigation/sidebar/sidebar-items.ts`) |
@@ -8144,7 +8197,7 @@ Visitor receives confirmation or badge
 ```text
 Host creates invitation in Admin Platform
         ↓
-System sends branded invitation by email/SMS/WhatsApp where enabled
+System sends branded invitation by email or SMS where enabled
         ↓
 Invitation contains:
 - Organisation logo
@@ -8172,6 +8225,8 @@ See Section 8.3 and Section 12. NFC is a convenience and throughput channel
 — not the only pathway (Section 4, Executive Thesis).
 
 #### Feature-phone visitor journey
+
+> **Retired 2026-10-07.** USSD, WhatsApp and feature-phone sessions are not built (see "Channels we do not build: strategy decision"). Visitors without a usable smartphone are served by assisted check-in, permanently. Read what follows as background only; where it disagrees with that decision, the decision wins. SMS survives as a usage-billed add-on ("Visitor messaging and SMS").
 
 See Section 6 and Section 8.5. The kiosk remains useful to feature-phone
 users: it displays **site-specific instructions, rotating code, visual cues,
@@ -8254,7 +8309,7 @@ versioned notices is a gap (§11.9.0).
 | Walk-in self-service | Kiosk home | Check-in confirmation | Section 8.1 |
 | Pre-registered arrival | QR/reference | Confirmed visit | Section 8.2 |
 | NFC contractor arrival | Badge tap | Access outcome | Section 8.3 |
-| Feature-phone check-in | USSD/SMS instructions | Confirmed reference | Section 6, 8.5 |
+| Feature-phone check-in | *(retired 2026-10-07)* Assisted check-in at reception | Confirmed reference | Section 4.2 |
 | Assisted check-in | Help request | Secure check-in | Section 8.1, §11.7.6 |
 | DigiNam verification | Optional identity choice | V3 outcome where formally enabled | Section 8.4, 4a.7 |
 | National e-ID NFC | Official credential tap | V4 outcome where enabled | Section 4a, 4a.7 |
@@ -8308,7 +8363,7 @@ in the customer admin sidebar.
 |---|---|---|
 | Email | Host notification and password reset | Required baseline |
 | SMS | OTP, neutral confirmation, feature-phone fallback | Provider-dependent |
-| USSD | Feature-phone check-in/check-out | Formal operator arrangement required |
+| USSD | *(retired 2026-10-07)* | Not offered |
 | NFC | Repeat visitor/contractor credentials | Current physical fast lane |
 | QR | Pre-registration and appointment arrival | Standard — partial in kiosk |
 | DigiNam/NPKI | Higher-assurance identity verification | Only where formally enabled (4a.7) |
@@ -8366,7 +8421,7 @@ in the customer admin sidebar.
 
 | ID | Requirement | Alignment |
 |---|---|---|
-| NFR-I01 | Feature-phone path (USSD/SMS/assisted) must remain available when capability policy allows. | §4.2, §6 |
+| NFR-I01 | Visitors without a usable smartphone must always have the assisted check-in path (USSD was retired 2026-10-07). | §4.2, §6 |
 | NFR-I02 | Public kiosk touch targets ≥ 48dp. | §11.7.4 |
 | NFR-I03 | Large-text accessibility toggle from kiosk experience config. | Experience sync |
 | NFR-I04 | Language selector where site configures multiple languages. | FR-K01 |
@@ -9236,7 +9291,7 @@ For higher-risk access, use:
 | Backups | Tested restore procedures, encrypted backups, defined recovery objectives |
 | Vulnerability management | Dependency scanning, patch policy, penetration testing, secure code review |
 | Incident response | Documented playbooks, client notification rules, evidence preservation |
-| Third-party risk | SMS/USSD, DigiNam, hosting, MDM, NFC vendors assessed and contractually controlled |
+| Third-party risk | SMS, DigiNam, hosting, MDM, NFC vendors assessed and contractually controlled |
 | Business continuity | Offline process, spare-device model, power continuity, secure non-paper fallback |
 
 ## 13.2 PSD-12-inspired resilience target
@@ -9273,7 +9328,7 @@ For Buffr Checkpoint, the platform is not only software. It is a managed portfol
 | **Information assets** | Visitor records, audit logs, retention rules | Client as controller; Buffr Checkpoint as processor where applicable | Privacy breach, excessive retention, unauthorised access |
 | **Software assets** | Kiosk app, API, admin portal, integrations | Buffr Checkpoint | Vulnerabilities, supply-chain compromise, technical debt |
 | **Trust assets** | Certificates, signing keys, DigiNam verifier permissions | Buffr Checkpoint / client depending on design | Misuse, expiry, compromise, lack of authorisation |
-| **Service assets** | USSD short code, SMS routes, cloud tenancy, support contracts | Buffr Checkpoint | Vendor lock-in, outage, cross-border data exposure |
+| **Service assets** | SMS provider account, cloud tenancy, support contracts | Buffr Checkpoint | Vendor lock-in, outage, cross-border data exposure |
 | **Operational assets** | Procedures, training, playbooks, control registers | Client and Buffr Checkpoint | Policy not embedded in practice |
 
 ## 14.2 Apply the four ISO 55000 principles
@@ -9433,13 +9488,13 @@ in application code — never trust client-supplied amounts.
 
 | Offer | Kind | What it includes | Best customer | List price (NAD/mo) |
 |---|---|---|---|---|
-| **Checkpoint Site** *(was Core; 1 site, no extra sites)* | Subscription | **Public site QR** (admin create/rotate/print) + phone web check-in, **assisted front-desk entry**, RBAC, encrypted visitor record, sign-out, reports. **Tablet not required.** Offline-capable software architecture. Does **not** include live USSD/SMS until adapters are live (§11.9.0a). | One office, branch, or clinic | 1,500 |
-| **Checkpoint Network** *(was Professional; 3 sites included, N$950 per extra site)* | Subscription | Everything in Site, plus multi-site dashboard, host notification, pre-registration / invitation QR, audit export, site-manager reporting. **Entitlement** to enable **NFC phone/badge**, **SMS**, **USSD**, and **dedicated kiosk/tablet experience** when platform capability register + org enablement allow (priced in-plan and/or as catalog add-ons — never marketed live ahead of the register). | Branch networks, clinic groups, corporate offices | 4,500 |
+| **Checkpoint Site** *(was Core; 1 site, no extra sites)* | Subscription | **Public site QR** (admin create/rotate/print) + phone web check-in, **assisted front-desk entry**, RBAC, encrypted visitor record, sign-out, reports. **Tablet not required.** Offline-capable software architecture. Does **not** include SMS, which is a separate usage-billed add-on. | One office, branch, or clinic | 1,500 |
+| **Checkpoint Network** *(was Professional; 3 sites included, N$950 per extra site)* | Subscription | Everything in Site, plus multi-site dashboard, host notification, pre-registration / invitation QR, audit export, site-manager reporting. **Entitlement** to enable **NFC phone/badge**, **SMS** (usage-billed add-on), and **dedicated kiosk/tablet experience** when platform capability register + org enablement allow (priced in-plan and/or as catalog add-ons — never marketed live ahead of the register). | Branch networks, clinic groups, corporate offices | 4,500 |
 | **Checkpoint Assure** *(was Verify; 3 sites included, N$1,500 per extra site)* | Subscription | Everything in Network, DigiNam verifier workflow where approved, visitor assurance levels, high-risk visit policies, compliance dashboard | Government, regulated institutions | 9,500 |
 | **Physical access control** | Add-on | Physical access-control integration, contractor credentials, zones, escort rules, emergency roster | Critical infrastructure and large enterprises | 5,000 |
 | **Controls review and evidence** | Add-on | Annual controls review, retention test, RBAC review, recovery test, evidence pack | Regulated and assurance-led customers | 4,500 |
 | **Kiosk / tablet license** *(optional)* | Add-on or Professional entitlement | Dedicated Android/offline kiosk UX and MDM — hardware CAPEX stays §15.3 | High-volume doors, accessibility-led sites | Sales-quoted |
-| **SMS / USSD messaging** *(optional)* | Add-on or Professional entitlement | Telco MT / USSD aggregator — sell only when §11.9.0a is FULL/live | Feature-phone-heavy catchments | Pass-through or packaged |
+| **SMS messaging** *(optional add-on)* | Add-on, no monthly fee | BulkSMS Namibia credits bought by us; **N$1.00 per text sent, invoiced monthly** (setting `sms_unit_price:default`), monthly safety limit 1,000 texts | Organisations whose visitors prefer a text to an email | Usage-billed |
 | **NFC fast lane** *(optional)* | Professional entitlement | Phone-NFC and badge-NFC on the same encrypted visit record | Regulated high-traffic sites | In Professional when enabled |
 
 Annual billing is priced as **ten months for twelve** (two months free) relative to the published monthly from-price.
@@ -9453,7 +9508,7 @@ Attached add-ons are stored on `organisation_subscription_addon` with a price sn
 | Initial assessment/configuration fee | Covers site survey, RBA design, field configuration, policy mapping, and deployment plan |
 | Hardware sale or lease | Tablets, readers, mounts, printers, UPS units, spare devices |
 | Per-site subscription | Covers platform access, hosting, updates, support, reporting |
-| Messaging consumption | SMS/USSD costs passed through or packaged transparently |
+| Messaging consumption | SMS is billed by use at N$1.00 per text sent, no bundle and no monthly fee |
 | Integration fee | DigiNam, access control, HR directory, SSO, visitor pre-registration |
 | Assurance retainer | Quarterly/annual control testing and board/audit evidence |
 | Training | Front desk, host, security, compliance, and system administrator training |
@@ -9482,10 +9537,10 @@ Every channel in Section 5.1 and Section 6 produces the same isolated, encrypted
 | Channel | Marginal cost | Positioning |
 |---|---|---|
 | Public site QR + phone web | $0 | **Core default** — admin QR lifecycle already FULL; zero marginal software cost. |
-| Assisted front-desk entry | $0 | **Core mandatory inclusion** — covers no phone / feature phone until SMS/USSD are live. |
+| Assisted front-desk entry | $0 | **Core mandatory inclusion** — the inclusion path for visitors with no phone, a basic phone, low literacy or a disability. |
 | Dedicated kiosk / tablet | $0 software; hardware CAPEX separate (§15.3) | Optional add-on / Professional entitlement — not required for Core. |
-| USSD | Telco integration cost, session-based | Optional add-on when live (§11.9.0a NOT STARTED today) — **not** a Core sellable claim. |
-| SMS | Per-message telco cost: BulkSMS Namibia sells credits at N$0.50 down to N$0.30 per SMS (1 credit = 1 SMS, no expiry; checked 2026-10-07) | Optional add-on when live (§11.9.0a PARTIAL today) — **not** a Core sellable claim. |
+| USSD | *(retired 2026-10-07)* Would have added recurring telco cost for a small audience | Not offered. |
+| SMS | Per-message telco cost: BulkSMS Namibia sells credits at N$0.50 down to N$0.30 per SMS (1 credit = 1 SMS, no expiry; checked 2026-10-07). Charged to the organisation at **N$1.00 per text sent** | Optional add-on, usage-billed, when live (§11.9.0a PARTIAL today) — **not** a Core sellable claim. |
 | QR pre-registration / invitation | $0 marginal | Professional. |
 | NFC (phone-tap) | $0 marginal | Professional entitlement when enabled — optional fast lane, not Core default. |
 | NFC (physical badge, NTAG213/215) | ~$0.20–$0.40 per unit landed | Optional hardware for frequent visitors/contractors. |
@@ -9525,8 +9580,8 @@ Measurable wedge for Core: a site can print a public check-in QR from admin, run
 | **Lead with the paper-register risk** | Show the exposure safely in a live demo: one page, multiple people's data, no audit trail. |
 | **Sell governance, not tablets** | Core is software: admin QR + phone web check-in + assisted entry. Tablets and readers are optional CAPEX / add-ons (Section 15.3). |
 | **Be QR-first by default** | Admin generates a public site check-in QR (`Site Experience → Site QR Codes`); visitors use `/check-in?site=&ref=` on their phone. Zero device CAPEX for the site. |
-| **Be inclusion-honest** | Assisted front-desk check-in is the mandatory path for no phone, low literacy, disabilities, and feature-phone visitors until SMS/USSD are live and enabled. |
-| **Treat kiosk / SMS / USSD / NFC as optional add-ons** | Same encrypted visit record; not separate products. Enable when platform capability register + org enablement allow. |
+| **Be inclusion-honest** | Assisted front-desk check-in is the mandatory path for no phone, a basic phone, low literacy and disabilities. It is permanent, not a stop-gap. |
+| **Treat kiosk / SMS / NFC as optional add-ons** | Same encrypted visit record; not separate products. Enable when platform capability register + org enablement allow. |
 | **Own the offline problem** | Most foreign SaaS is cloud-first; Buffr Checkpoint should be operationally credible when connectivity fails. |
 | **Use risk-based configuration** | Each customer receives a tailored site/visit/zone policy, not a generic registration form. |
 | **Make assurance recurring** | Sell a quarterly or annual control review, not only software and hardware. |
@@ -9540,7 +9595,7 @@ This table should anchor the competitive-positioning section of every pitch deck
 |---|---|---|---|
 | Isolated, private visitor records | No — every visitor reads the prior visitor's data | Yes | Yes |
 | Start without buying a tablet | Yes (paper) | Often yes (QR only) | Yes — Core = admin public site QR + phone web + assisted front desk |
-| Works with no smartphone | Yes (manual only, no privacy or audit trail) | Rarely | Yes — assisted front desk on Core; SMS/USSD as optional add-ons when live (§11.9.0a) |
+| Works with no smartphone | Yes (manual only, no privacy or audit trail) | Rarely | Yes — assisted front desk on Core; SMS as an optional usage-billed add-on |
 | Offline-first operation | Yes (paper never goes offline, but has none of the other properties below) | No (most foreign SaaS is cloud-first) | Yes — encrypted local cache and sync queue when kiosk add-on is deployed (§8.5) |
 | Tap-to-check-in (NFC) | No | Rare / enterprise-only | Optional / Professional entitlement — phone-NFC and badge-NFC |
 | Government e-ID readiness | No | No | Architected ahead of national rollout (§4a); not sold as live until register says so |
@@ -9647,10 +9702,10 @@ Per-site pricing needs a site quantity on the subscription (or an `additional_si
 | System | Role |
 |---|---|
 | **Subscription catalog** | `subscription_catalog_item` plans vs add-ons (§15.2); Core features must match shippable FULL surfaces. |
-| **Capability status register** | DigiNam, e-ID NFC, USSD, SMS, NFC badge check-in — public badges and org enablement; never market "live" ahead of the register (§4a.7). |
+| **Capability status register** | DigiNam, e-ID NFC, SMS, NFC badge check-in — public badges and org enablement; never market "live" ahead of the register (§4a.7). |
 | **Pilot metrics (§17.2)** | Completion rate and duration **by channel**; paper-register fallbacks; offline-sync success when kiosk deployed. |
 | **CAPEX discipline (§15.3)** | Tablets, NFC readers, mounts sold/leased separately — never buried in Core MRR. |
-| **Sales / packaging cadence** | Revisit tier copy when USSD or SMS adapters go live; until then assisted front desk carries inclusion claims. |
+| **Sales / packaging cadence** | Revisit tier copy when the SMS add-on goes live; until then assisted front desk carries inclusion claims. |
 
 ---
 
@@ -9721,7 +9776,7 @@ These should be treated as planning hypotheses, not forecasts:
 | Months 4–6 | Core product pilot at 3–5 sites, offline and RBAC validation |
 | Months 7–9 | Commercial launch; NFC badges; pre-registration; audit packs |
 | Months 10–12 | 15–30 active sites; at least one regulated reference customer; annual assurance offering |
-| Year 2 | DigiNam verifier capability where formally enabled; USSD rollout; access-control integration; regional entry assessment |
+| Year 2 | DigiNam verifier capability where formally enabled; access-control integration; regional entry assessment |
 
 ## 17.4 Alpha testing and UAT plan
 
@@ -9935,7 +9990,7 @@ outside Buffr, or model prompts.
 | A0 exit | Eng lead | Product owner | Ops | Design partners (optional) |
 | A1 exit | Partner site champion | Product owner | Legal / privacy | Eng |
 | A2 mid / final | Pilot site champions | Product owner + commercial | Assurance | Board / advisors as needed |
-| Scope carve-outs (SMS/USSD/DigiNam) | Eng | Product owner | Capability register owner | Sales (must not oversell) |
+| Scope carve-outs (SMS/DigiNam) | Eng | Product owner | Capability register owner | Sales (must not oversell) |
 
 ### 17.4.8 Sign-off form (copy per stage)
 
@@ -10039,7 +10094,7 @@ sign-off rules, separate decision line.
 |---|---|---|
 | Brand confusion caused by the word “Buffr” | Customers may assume affiliation with another similarly named service | Obtain trademark, company-name, domain, and market-confusion legal review before launch. |
 | DigiNam ecosystem live but no product integration authority | Misleading marketing, failed rollout, reputational damage | Market as “DigiNam-ready” until relying-party approval, interface access, test evidence, and contracts exist. |
-| USSD short-code delays or operator dependency | Feature-phone channel delayed | Ship kiosk + assisted + SMS fallback first; build USSD adapter in parallel. |
+| ~~USSD short-code delays or operator dependency~~ | Retired with USSD (2026-10-07) | No USSD adapter is built, so there is no short-code or operator dependency. |
 | Application database role is the owner (2026-10-05) | Audit and status-log rows can be edited or deleted by the running application, undermining evidence integrity claims (§20.2) | Migration 0055 restores the least-privilege `buffr_checkpoint_runtime` role with append-only REVOKEs; switch the API's `DATABASE_URL` to it (Open work, §11.1c). |
 | NFC tag cloning | Unauthorised access | Never use static UID alone; use secure tokens, cryptographic credentials, expiry, revocation, and server-side policy checks. |
 | Offline data exposure on stolen kiosk | Privacy breach | Device encryption, MDM, kiosk lock, minimal local cache, remote wipe, secure key handling. |
@@ -10377,6 +10432,8 @@ This is both a CRAN compliance control and an ISO 55001/55002-aligned asset-mana
 
 # 3. USSD, SMS and Telecoms Regulation
 
+> **Retired 2026-10-07.** USSD, WhatsApp and feature-phone sessions are not built (see "Channels we do not build: strategy decision"). Visitors without a usable smartphone are served by assisted check-in, permanently. Read what follows as background only; where it disagrees with that decision, the decision wins. SMS survives as a usage-billed add-on ("Visitor messaging and SMS").
+
 ## 3.1 The correct operating model
 
 Buffr Checkpoint should **not attempt to become a telecommunications operator**.
@@ -10427,6 +10484,8 @@ Buffr Checkpoint should not operate carrier infrastructure, spectrum, or an unli
 | SMS/USSD costs escalate | Meter usage by customer/site and include transparent pass-through or bundled allowances. |
 
 ## 3.4 Feature-phone control design
+
+> **Retired 2026-10-07.** USSD, WhatsApp and feature-phone sessions are not built (see "Channels we do not build: strategy decision"). Visitors without a usable smartphone are served by assisted check-in, permanently. Read what follows as background only; where it disagrees with that decision, the decision wins. SMS survives as a usage-billed add-on ("Visitor messaging and SMS").
 
 A feature-phone visitor can absolutely use Buffr Checkpoint, but the product must not confuse accessible check-in with high-assurance identity verification.
 
@@ -10827,6 +10886,8 @@ Update the capability register and roadmap **only** from confirmed answers.
 
 ### F. USSD, SMS and feature-phone inclusion
 
+> **Retired 2026-10-07.** USSD, WhatsApp and feature-phone sessions are not built (see "Channels we do not build: strategy decision"). Visitors without a usable smartphone are served by assisted check-in, permanently. Read what follows as background only; where it disagrees with that decision, the decision wins. SMS survives as a usage-billed add-on ("Visitor messaging and SMS").
+
 29. Can Buffr obtain a USSD short code directly or only via licensed operator/aggregator?
 30. Operators/aggregators for multi-network USSD in Namibia.
 31. Approval, commercial, technical, security, and data-processing arrangements.
@@ -11173,7 +11234,7 @@ The video demonstrates: configurable visitor types and forms, privacy notices an
 | **Digital signature** | Not yet a defined workflow. | Support basic on-screen acknowledgement/signature; treat it as visitor acknowledgement, not automatically as a legally recognised electronic signature. | **P0** |
 | **Pre-registration** | Mentioned, but needs full design. | Add host-driven invitation workflow with one-time QR, NFC option, SMS link, and feature-phone code. | **P0** |
 | **Returning visitors** | Current “search by name” approach creates privacy risk. | Do **not** use open public name search. Use NFC credential, QR invitation, mobile OTP, visit reference, or assisted staff lookup. | **P0** |
-| **Host notifications** | Included conceptually. | Add notifications through email first, then SMS and WhatsApp where appropriate; Teams/Slack in later enterprise release. | **P0** |
+| **Host notifications** | Included conceptually. | Add notifications through email first, then SMS where appropriate; Teams/Slack in later enterprise release. | **P0** |
 | **Check-out** | Covered, but needs enforcement. | Add self-service, NFC, QR, USSD/SMS, and assisted check-out. Flag stale open visits. | **P0** |
 | **Live visitor roster / emergency evacuation** | Included conceptually. | Build a live “who is on site?” emergency roster, controlled by role and site. | **P0** |
 | **Multi-location administration** | Present in architecture, not fully productised. | Add organisation → region → site → zone hierarchy. | **P0** |
@@ -11183,7 +11244,7 @@ The video demonstrates: configurable visitor types and forms, privacy notices an
 | **Safety induction videos / agreements** | Missing. | Add visitor/contractor induction workflow: watch video, acknowledge policy, complete required questions, then receive access. | **P1** |
 | **CSV import of visitors** | Missing. | Add secure bulk import for scheduled events/contractors, with template validation, encryption, expiry, and import audit log. | **P1** |
 | **Language selection** | Missing. | Add English first, then Afrikaans, Oshiwambo, Otjiherero, Khoekhoegowab, Rukwangali, Silozi, and other client-selected languages. | **P1** |
-| **Teams / Slack integrations** | Not needed for launch. | Add as an enterprise integration, after email/SMS/WhatsApp workflows are stable. | **P2** |
+| **Teams / Slack integrations** | Not needed for launch. | Add as an enterprise integration, after email/SMS workflows are stable. | **P2** |
 | **Access-control integration** | Not yet designed as a controlled module. | Integrate with physical access control only after a separate security threat model and customer-specific risk assessment. | **P2** |
 | **Visitor satisfaction survey** | Not core to the privacy/access proposition. | Optional post-visit module; do not prioritise over control, audit, and inclusion capabilities. | **P3** |
 
@@ -11322,7 +11383,7 @@ The controlled integration layer.
 - email;
 - SMS;
 - USSD;
-- WhatsApp where appropriate;
+- SMS where appropriate (WhatsApp retired 2026-10-07);
 - Microsoft Teams and Slack;
 - access-control systems;
 - DigiNam/NPKI verifier interface;
@@ -11553,6 +11614,8 @@ Prerequisite: the site has at least one **active** `site_hosts` row;
 otherwise the form tells the visitor to see reception.
 
 ## 6.2 Feature-phone flow
+
+> **Retired 2026-10-07.** USSD, WhatsApp and feature-phone sessions are not built (see "Channels we do not build: strategy decision"). Visitors without a usable smartphone are served by assisted check-in, permanently. Read what follows as background only; where it disagrees with that decision, the decision wins. SMS survives as a usage-billed add-on ("Visitor messaging and SMS").
 
 ```text
 Visitor arrives
@@ -13159,6 +13222,8 @@ The backend derives tenant/site/device from the authenticated enrolled kiosk ide
 
 ## 5.8 Notifications, SMS and USSD model
 
+> **Retired 2026-10-07.** USSD, WhatsApp and feature-phone sessions are not built (see "Channels we do not build: strategy decision"). Visitors without a usable smartphone are served by assisted check-in, permanently. Read what follows as background only; where it disagrees with that decision, the decision wins. SMS survives as a usage-billed add-on ("Visitor messaging and SMS").
+
 | Table | Required fields | Purpose |
 |---|---|---|
 | `notification_delivery_instructions` | `id`, `organisation_id`, `visit_id nullable`, `recipient_reference`, `channel_code`, `status_code`, `subject nullable`, `message`, `html nullable`, `attempt_count`, `next_attempt_at`, `failure_reason nullable`, `sent_at nullable` | Real outbox record (implemented v0.23) — message content persisted at enqueue time, drained by `NotificationDispatchWorkerService`. |
@@ -13333,6 +13398,8 @@ export type AuthenticateNfcCredentialCommand = z.infer<
 ```
 
 ## Start a feature-phone session
+
+> **Retired 2026-10-07.** USSD, WhatsApp and feature-phone sessions are not built (see "Channels we do not build: strategy decision"). Visitors without a usable smartphone are served by assisted check-in, permanently. Read what follows as background only; where it disagrees with that decision, the decision wins. SMS survives as a usage-billed add-on ("Visitor messaging and SMS").
 
 ```ts
 export const startFeaturePhoneCheckInSessionCommandSchema = z.object({
