@@ -1,10 +1,11 @@
-import { Inject, Injectable } from "@nestjs/common";
+import { Inject, Injectable, Optional } from "@nestjs/common";
 import { eq } from "drizzle-orm";
 
 import type { Database } from "../../../db/client";
 import { DB } from "../../../db/db.module";
 import { smsContactConfirmationEvents, telecommunicationsProviderArrangements } from "../../../db/schema";
 import { CapabilityStatusService } from "../../capability-status/capability-status.service";
+import { BULKSMSNAM_PROVIDER_CODE, BulkSmsNamClient, SmsSendError } from "./bulksmsnam.client";
 import { createHmac, randomUUID } from "node:crypto";
 
 export interface SmsContactConfirmationInput {
@@ -20,6 +21,7 @@ export class SmsContactConfirmationService {
   constructor(
     @Inject(DB) private readonly db: Database,
     private readonly capabilityStatus: CapabilityStatusService,
+    @Optional() private readonly bulkSms: BulkSmsNamClient = new BulkSmsNamClient(),
   ) {}
 
   private recipientHmac(value: string): string {
@@ -55,6 +57,17 @@ export class SmsContactConfirmationService {
       );
     }
 
+    if (arrangement.providerCode === BULKSMSNAM_PROVIDER_CODE && this.bulkSms.isConfigured()) {
+      try {
+        const sent = await this.bulkSms.send(input.recipientReference, input.message);
+        return this.recordOutcome(input, "sent", arrangement.providerCode, undefined, sent.providerReference);
+      } catch (error) {
+        // Only the error class is stored and returned: never the provider's body, the key, the number or the text.
+        const code = error instanceof SmsSendError ? error.code : "provider_error";
+        return this.recordOutcome(input, code, arrangement.providerCode, `SMS was not sent (${code}).`);
+      }
+    }
+
     return this.recordOutcome(
       input,
       "provider_not_live",
@@ -68,8 +81,9 @@ export class SmsContactConfirmationService {
     outcomeCode: string,
     providerCode: string | null,
     message?: string,
+    providerReference?: string,
   ) {
-    const messageReference = randomUUID();
+    const messageReference = providerReference ?? randomUUID();
     await this.db.insert(smsContactConfirmationEvents).values({
       id: randomUUID(),
       organisationId: input.organisationId,
@@ -82,10 +96,13 @@ export class SmsContactConfirmationService {
     });
 
     return {
-      delivered: false,
+      delivered: outcomeCode === "sent",
       outcomeCode,
       messageReference,
-      failureReason: message ?? "SMS contact confirmation is scaffolded only until provider arrangement is approved.",
+      failureReason:
+        outcomeCode === "sent"
+          ? undefined
+          : (message ?? "SMS contact confirmation is scaffolded only until provider arrangement is approved."),
     };
   }
 }

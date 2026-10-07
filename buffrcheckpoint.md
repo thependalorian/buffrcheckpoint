@@ -556,7 +556,7 @@
 | DigiNam relying-party adapter live | NOT STARTED | discovery → public not_available |
 | National e-ID NFC adapter live | NOT STARTED | targeted in register |
 | QR invitation check-in lifecycle | FULL | v0.21 token/revoke/resolve; register `live`; admin pickers/revoke v0.22 |
-| SMS contact confirmation gateway | NOT STARTED | v0.22 event scaffold + org gate; no live MT provider — **not a Core sellable claim**; optional add-on when live |
+| SMS contact confirmation gateway | PARTIAL | v0.22 event scaffold + org gate, and (2026-10-07) a BulkSMS Namibia adapter, live-tested with one real message. Off until the arrangement row is set active and the capability is approved live in the ops console — **not a Core sellable claim**; optional add-on when live. See "SMS provider: BulkSMS Namibia" |
 | Live USSD aggregator webhook | NOT STARTED | v0.22 DB arrangement guard + session status log; menu flow not live — **not a Core sellable claim**; optional add-on when live |
 | Kiosk visitor-session privacy wipe (FR-K10) | FULL | v0.22 outbox pending wipe + QR/NFC privacy gate + abandon |
 | Platform Ops Console app | FULL | v0.24 — schema, backend (`platform-control-plane` module), and `ops-console/` all built and live-verified end-to-end against the real dev DB: every console screen (Overview, Organisations + per-org detail with Rollup/CRM/Billing/KYB tabs, CRM, Billing + POP review, KYB, Capability Status with dual-approval, Support Access, Incidents, Tickets + comments, Analytics/churn queue, Audit) is real and wired to live endpoints, not stubbed. `admin/`'s support-session entry route (with live countdown banner) and customer-facing `/dashboard/billing` (invoice list + POP upload) are both built. The break-glass grant flow is customer-consent-gated (§11.9.1a) and was verified live end-to-end: request → inert → customer sees + approves/denies → session mint → grant revoke → 403. See Section 11.9.1a for the full build notes and one real bug this live testing caught and fixed before ship. |
@@ -2704,7 +2704,7 @@ Output must be empty apart from permitted test fixtures.
 | Retention purge/archive scheduler | **Built** (2026-10-01) | Opt-in worker (`RETENTION_DISPOSITION_ENABLED`); dry-run first. Analytics backfills count live visits only, so disposed history drops out of rebuilt facts |
 | DigiNam relying-party adapter | Not started | Approved relying-party arrangement and tested interface |
 | National e-ID NFC adapter | Not started | Official protocol and interoperability testing |
-| SMS confirmation gateway | Not started | Live provider contract |
+| SMS confirmation gateway | **Adapter built, live-tested 2026-10-07; off** | Owner: set `BULK_SMS_API_KEY` on the API, set the `bulksmsnam` arrangement active, approve the capability live (dual approval, evidence). See "SMS provider: BulkSMS Namibia" |
 | USSD aggregator | Not started | Licensed operator or aggregator arrangement |
 | Badge printing | Not started | Printer SDK and device path |
 | Contractor induction schema (Release 1.5) | Not started | Safety induction workflow |
@@ -2803,6 +2803,24 @@ Rollout, in this order (runbook above; every step has a measurable check):
 8. **Re-run** `./scripts/acceptance-gate.sh run a0 --auto-only`.
 
 Known exposure during the window: between step 5 and step 6 the old admin sign-up still offers retired sector codes and a sign-up with one would be rejected. All production organisations are test organisations, so the window is accepted. Field kiosks that still call the retired branding endpoints will lose them at step 7 until they take the next kiosk build.
+
+#### SMS provider: BulkSMS Namibia (2026-10-07, built and live-tested, off by default)
+
+**Provider.** BulkSMS Namibia (`bulksmsnam.com`), a Namibian credit-based gateway for MTC and TN Mobile. It publishes no API reference and the docs page is behind a login, so the contract was taken from the two calls in the account dashboard and then confirmed against the live API: `POST /api/v1/send` with `{to, message}` answers `{success, messageId, to, creditsUsed, creditsRemaining}`; `GET /api/v1/balance` answers `{credits, email, name}`; both authenticate with an `X-API-Key` header. Pricing seen on the site: N$0.50 (100 credits) down to N$0.30 (5,000 credits) per SMS; 1 credit = 1 SMS; credits never expire. Delivery receipts, sender-ID rules and rate limits are not documented; ask the provider before relying on them.
+
+**Built.**
+- `backend/src/modules/integrations/telecoms/bulksmsnam.client.ts`: reads `BULK_SMS_API_KEY` (never logged, sent in the header only; optional `BULK_SMS_BASE_URL`). Normalises Namibian mobiles to `+264` E.164 (081, 083 and 085 prefixes), refuses a message longer than 160 characters so a send cannot silently cost several credits, times out at 15 seconds, and reports failures as an error class only (no key, number or text in errors).
+- `SmsContactConfirmationService` now sends through it when the effective capability is live and the active arrangement is `bulksmsnam` with a key configured. It records `sent` with the provider `messageId` as the message reference, or the error class (`provider_rejected`, `provider_unreachable`, ...). It stores the recipient only as an HMAC and never the text. The existing `sms` notification channel uses this path, so nothing else changed.
+- Migration `0066_bulksmsnam_provider_arrangement.sql` adds the provider row with `active = false` (idempotent, tested on a Neon branch that was then deleted).
+- 22 new unit tests (number normalisation, request shape, key never in the URL, refusal before spend, rejection and unreachable handling, the three service paths) run with a fake `fetch` and spend no credits.
+
+**Live check.** The key in `backend/.env` was exercised once: the balance call (10 credits), then one message to the owner's number (1 credit used, 9 left) answered with a `messageId`. Nothing else was sent.
+
+**Off by default, three gates.** The API must have `BULK_SMS_API_KEY`; the `bulksmsnam` arrangement must be set active; and the `smsContactConfirmation` capability must be approved live in the ops console. Until all three hold, the SMS channel answers `provider_not_live` as before. Setting the key and activating the row on production is the owner's step.
+
+**Rules that still apply.** Messages must be neutral ("Your visit has been recorded"), never a visitor's name, ID, host or purpose (risk register, lock-screen leak). The adapter limits length and format; it cannot judge content, so callers must pass neutral templates. The API key was pasted into a chat session during setup: rotate it in the BulkSMS dashboard once testing is finished.
+
+**Not built.** Delivery receipts and webhook status (the provider documents none), per-organisation send caps and cost metering (needed before the add-on is sold), and OTP flows on top of the channel.
 
 **Production database state (1 October 2026).** Migrations `0041_analytics_etl`,
 `0042_card_payments` and `0043_retention_disposition` are applied to the
@@ -9467,7 +9485,7 @@ Every channel in Section 5.1 and Section 6 produces the same isolated, encrypted
 | Assisted front-desk entry | $0 | **Core mandatory inclusion** — covers no phone / feature phone until SMS/USSD are live. |
 | Dedicated kiosk / tablet | $0 software; hardware CAPEX separate (§15.3) | Optional add-on / Professional entitlement — not required for Core. |
 | USSD | Telco integration cost, session-based | Optional add-on when live (§11.9.0a NOT STARTED today) — **not** a Core sellable claim. |
-| SMS | Per-message telco cost | Optional add-on when live (§11.9.0a NOT STARTED today) — **not** a Core sellable claim. |
+| SMS | Per-message telco cost: BulkSMS Namibia sells credits at N$0.50 down to N$0.30 per SMS (1 credit = 1 SMS, no expiry; checked 2026-10-07) | Optional add-on when live (§11.9.0a PARTIAL today) — **not** a Core sellable claim. |
 | QR pre-registration / invitation | $0 marginal | Professional. |
 | NFC (phone-tap) | $0 marginal | Professional entitlement when enabled — optional fast lane, not Core default. |
 | NFC (physical badge, NTAG213/215) | ~$0.20–$0.40 per unit landed | Optional hardware for frequent visitors/contractors. |
