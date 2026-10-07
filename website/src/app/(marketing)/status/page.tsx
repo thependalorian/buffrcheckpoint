@@ -23,7 +23,7 @@ const INFRA_ROWS = [
   {
     name: "Kiosk sync",
     status: "Operational",
-    note: "Experience and branding sync; offline capture on device when connectivity drops.",
+    note: "Experience sync; offline capture on device when connectivity drops.",
   },
 ];
 

@@ -11,11 +11,7 @@ export const metadata: Metadata = {
 
 type SearchParams = Promise<{ site?: string; ref?: string; inv?: string; lang?: string }>;
 
-/**
- * Neutral container — organisation chrome (hero/logo/footer) is owned by
- * CheckInBrandedShell after context loads. Checkpoint product marks
- * only appear when no published branding exists.
- */
+/** Neutral container: the page frame is CheckInShell, Checkpoint's own header and footer. */
 export default async function CheckInPage({ searchParams }: { searchParams: SearchParams }) {
   const params = await searchParams;
   const siteId = params.site?.trim() ?? "";

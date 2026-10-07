@@ -10,15 +10,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { apiBaseUrl } from "@/lib/api";
+import { signOutLinkCopy } from "@/lib/copy/check-out";
 import { AnalyticsEvents, track } from "@/lib/observability/track";
 
-import { CheckInBrandedShell } from "../check-in/check-in-branded-shell";
+import { CheckInShell } from "../check-in/check-in-shell";
 import { VisitSurvey } from "./visit-survey";
 
 export default function CheckOutClient() {
   const params = useSearchParams();
   const siteId = params.get("site")?.trim() || "";
   const referenceId = params.get("ref")?.trim() || "";
+  const signOutToken = params.get("v")?.trim() || "";
   const [visitorPhone, setVisitorPhone] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState<{
@@ -82,22 +84,66 @@ export default function CheckOutClient() {
     }
   }
 
-  if (!siteId || !referenceId) {
+  async function handleTokenSignOut() {
+    setSubmitting(true);
+    track(AnalyticsEvents.checkOutStarted);
+    try {
+      const res = await fetch(`${apiBaseUrl()}/public/check-out/token`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: signOutToken }),
+      });
+      if (!res.ok) throw new Error(signOutLinkCopy.failed);
+      const data = (await res.json()) as { confirmationCode: string; siteName?: string; checkedOutAt: string; surveyToken?: string };
+      setDone({
+        confirmationCode: data.confirmationCode,
+        siteName: data.siteName ?? "this site",
+        checkedOutAt: data.checkedOutAt,
+        surveyToken: data.surveyToken ?? null,
+      });
+      track(AnalyticsEvents.checkOutCompleted);
+    } catch (error) {
+      track(AnalyticsEvents.checkOutFailed);
+      toast.error(error instanceof Error ? error.message : signOutLinkCopy.failed);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (signOutToken && !done) {
     return (
-      <CheckInBrandedShell branding={null} siteNameFallback="Visitor sign-out">
+      <CheckInShell>
+        <div className="space-y-5">
+          <h1 className="text-2xl font-semibold tracking-tight" style={{ color: "#3D1152" }}>
+            {signOutLinkCopy.title}
+          </h1>
+          <p className="text-sm" style={{ color: "#705C67" }}>
+            {signOutLinkCopy.body}
+          </p>
+          <Button type="button" onClick={handleTokenSignOut} disabled={submitting} className="w-full">
+            {submitting ? signOutLinkCopy.working : signOutLinkCopy.button}
+          </Button>
+        </div>
+      </CheckInShell>
+    );
+  }
+
+  if (!signOutToken && (!siteId || !referenceId)) {
+    return (
+      <CheckInShell>
         <div className="space-y-3">
           <h1 className="text-2xl font-semibold tracking-tight">Sign-out link incomplete</h1>
           <p className="text-sm text-muted-foreground">
             Scan the site QR again, or ask reception to check you out from the front desk.
           </p>
         </div>
-      </CheckInBrandedShell>
+      </CheckInShell>
     );
   }
 
   if (done) {
     return (
-      <CheckInBrandedShell branding={null} siteNameFallback={done.siteName}>
+      <CheckInShell>
         <div className="space-y-4">
           <h1 className="text-2xl font-semibold tracking-tight" style={{ color: "#3D1152" }}>
             You are signed out
@@ -110,12 +156,12 @@ export default function CheckOutClient() {
           </p>
           {done.surveyToken ? <VisitSurvey token={done.surveyToken} /> : null}
         </div>
-      </CheckInBrandedShell>
+      </CheckInShell>
     );
   }
 
   return (
-    <CheckInBrandedShell branding={null} siteNameFallback="Visitor sign-out">
+    <CheckInShell>
       <form onSubmit={handleSubmit} className="space-y-5">
         <div className="space-y-2">
           <h1 className="text-2xl font-semibold tracking-tight" style={{ color: "#3D1152" }}>
@@ -142,6 +188,6 @@ export default function CheckOutClient() {
           {submitting ? "Signing out…" : "Sign out"}
         </Button>
       </form>
-    </CheckInBrandedShell>
+    </CheckInShell>
   );
 }

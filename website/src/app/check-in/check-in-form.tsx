@@ -11,7 +11,7 @@ import { apiBaseUrl, newClientId } from "@/lib/api";
 import { isFieldRequired, isFieldVisible } from "@/lib/form-rules";
 import { AnalyticsEvents, track } from "@/lib/observability/track";
 
-import { CheckInBrandedShell, type CheckInBranding } from "./check-in-branded-shell";
+import { CheckInShell } from "./check-in-shell";
 
 type HostOption = { id: string; displayName: string; department: string | null };
 type CodeOption = { code: string; label: string };
@@ -25,8 +25,10 @@ type CheckInContext = {
   purposeCategories: CodeOption[];
   visitorTypes: CodeOption[];
   privacyNoticeSummary: string;
-  branding: CheckInBranding | null;
 };
+
+/** Checkpoint's own accent. Organisations cannot change it. */
+const CHECK_IN_ACCENT = "#CF1161";
 
 type FormField = {
   fieldCode: string;
@@ -80,9 +82,6 @@ type DoneState = {
   visitorName: string;
   hostDisplayName: string;
   hostDepartment: string | null;
-  organisationDisplayName: string | null;
-  welcomeMessage: string | null;
-  brandColourToken: string | null;
   checkedInAt: string;
   visitId: string;
   nextSteps: NextSteps | null;
@@ -146,7 +145,6 @@ export function CheckInForm({ siteId, referenceId, initialLanguageCode = "en" }:
         setContext(data);
         track(AnalyticsEvents.checkInStarted, {
           host_count: data.hosts.length,
-          has_branding: Boolean(data.branding),
         });
         // Do not auto-pick a host — visitor must choose who they are meeting.
         if (data.visitorTypes.find((t) => t.code === "general")) setVisitorTypeCode("general");
@@ -233,10 +231,8 @@ export function CheckInForm({ siteId, referenceId, initialLanguageCode = "en" }:
     };
   }, [context, visitorTypeCode, siteId, referenceId, languageCode]);
 
-  const branding = context?.branding ?? null;
-  const accent = branding?.brandColourToken || "#CF1161";
+  const accent = CHECK_IN_ACCENT;
   const selectedHost = context?.hosts.find((host) => host.id === hostId);
-  const siteFallback = context?.siteName || "this site";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -335,9 +331,6 @@ export function CheckInForm({ siteId, referenceId, initialLanguageCode = "en" }:
         visitorName: data.visitorName || visitorName.trim(),
         hostDisplayName: hostName,
         hostDepartment: hostDept,
-        organisationDisplayName: data.organisationDisplayName ?? branding?.organisationDisplayName ?? null,
-        welcomeMessage: data.welcomeMessage ?? branding?.welcomeMessage ?? null,
-        brandColourToken: data.brandColourToken ?? branding?.brandColourToken ?? null,
         checkedInAt: data.checkedInAt,
         visitId: data.visitId || "",
         visitorPass: data.visitorPass ?? {
@@ -384,15 +377,15 @@ export function CheckInForm({ siteId, referenceId, initialLanguageCode = "en" }:
 
   if (loading) {
     return (
-      <CheckInBrandedShell branding={null} siteNameFallback="Visitor check-in">
+      <CheckInShell>
         <p className="text-sm text-muted-foreground">Loading check-in…</p>
-      </CheckInBrandedShell>
+      </CheckInShell>
     );
   }
 
   if (loadError || !context) {
     return (
-      <CheckInBrandedShell branding={null} siteNameFallback="Visitor check-in">
+      <CheckInShell>
         <div className="space-y-3">
           <h1 className="text-2xl font-semibold tracking-tight">Check-in unavailable</h1>
           <p className="text-sm text-muted-foreground">
@@ -402,30 +395,18 @@ export function CheckInForm({ siteId, referenceId, initialLanguageCode = "en" }:
             Ask reception for a fresh public site QR, or scan the printed check-in QR for this location.
           </p>
         </div>
-      </CheckInBrandedShell>
+      </CheckInShell>
     );
   }
 
   if (done) {
-    const doneAccent = done.brandColourToken || accent;
+    const doneAccent = accent;
     const steps = done.nextSteps;
     const hostLine = done.hostDepartment
       ? `${done.hostDisplayName} · ${done.hostDepartment}`
       : done.hostDisplayName;
     return (
-      <CheckInBrandedShell
-        branding={
-          branding ?? {
-            organisationDisplayName: done.organisationDisplayName,
-            siteDisplayName: done.siteName,
-            welcomeMessage: done.welcomeMessage,
-            brandColourToken: done.brandColourToken,
-            logoUrl: null,
-            helpContactReference: null,
-          }
-        }
-        siteNameFallback={done.siteName}
-      >
+      <CheckInShell>
         <div className="space-y-5">
           <div className="h-1.5 w-16 rounded-full" style={{ backgroundColor: doneAccent }} aria-hidden />
           <div className="space-y-2">
@@ -508,14 +489,14 @@ export function CheckInForm({ siteId, referenceId, initialLanguageCode = "en" }:
             Sign out when you leave
           </a>
         </div>
-      </CheckInBrandedShell>
+      </CheckInShell>
     );
   }
 
   if (!context) return null;
 
   return (
-    <CheckInBrandedShell branding={branding} siteNameFallback={siteFallback}>
+    <CheckInShell privacyNoticeSummary={context.privacyNoticeSummary}>
       <form onSubmit={handleSubmit} className="space-y-6">
         {selectedHost ? (
           <p className="rounded-md border border-[#EDEBEC] bg-white/70 px-3 py-2 text-sm" style={{ color: "#705C67" }}>
@@ -917,6 +898,6 @@ export function CheckInForm({ siteId, referenceId, initialLanguageCode = "en" }:
           {submitting ? "Checking in…" : "Check in"}
         </Button>
       </form>
-    </CheckInBrandedShell>
+    </CheckInShell>
   );
 }
