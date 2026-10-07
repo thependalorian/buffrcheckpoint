@@ -6,14 +6,17 @@ set -euo pipefail
 
 API_BASE="${API_BASE:-https://api.buffrcheckpoint.com}"
 WEB_BASE="${WEB_BASE:-https://buffrcheckpoint.com}"
-SITE_ID="${SITE_ID:-74c72c99-93dc-4b33-934b-9b365e9924cf}"
-REF_ID="${REF_ID:-b3333333-3333-4333-8333-333333333301}"
+# A site with an active public check-in QR, for the form check. There is deliberately no default: the old demo site no longer exists in
+# production, and a default that points at nothing fails every run for the wrong reason. Without both, that check is reported as SKIPPED.
+SITE_ID="${SITE_ID:-}"
+REF_ID="${REF_ID:-}"
 
 TMPDIR_SMOKE="$(mktemp -d)"
 trap 'rm -rf "$TMPDIR_SMOKE"' EXIT
 
 PASS=0
 FAIL=0
+SKIP=0
 
 pass() {
   echo "PASS: $1"
@@ -23,6 +26,11 @@ pass() {
 fail() {
   echo "FAIL: $1"
   FAIL=$((FAIL + 1))
+}
+
+skip() {
+  echo "SKIPPED (not run): $1"
+  SKIP=$((SKIP + 1))
 }
 
 # One retry on curl transport failures only (exit != 0 from curl itself).
@@ -65,8 +73,15 @@ fi
 # 2) Public check-in form contract
 FORM_URL="$API_BASE/public/check-in/form?site=${SITE_ID}&ref=${REF_ID}&visitorTypeCode=general"
 BODY="$TMPDIR_SMOKE/form.json"
-CODE=$(curl_http "$BODY" "$FORM_URL" || true)
-if [[ "$CODE" == "200" ]]; then
+if [[ -z "$SITE_ID" || -z "$REF_ID" ]]; then
+  skip "GET /public/check-in/form: set SITE_ID and REF_ID to a site with an active public check-in QR"
+  CODE="skipped"
+else
+  CODE=$(curl_http "$BODY" "$FORM_URL" || true)
+fi
+if [[ "$CODE" == "skipped" ]]; then
+  :
+elif [[ "$CODE" == "200" ]]; then
   if python3 - "$BODY" <<'PY'
 import json, sys
 path = sys.argv[1]
@@ -88,7 +103,7 @@ else
 fi
 
 # 3) Website check-in page
-CHECKIN_URL="$WEB_BASE/check-in?site=${SITE_ID}&ref=${REF_ID}"
+CHECKIN_URL="$WEB_BASE/check-in${SITE_ID:+?site=${SITE_ID}&ref=${REF_ID}}"
 BODY="$TMPDIR_SMOKE/checkin.html"
 CODE=$(curl_http "$BODY" "$CHECKIN_URL" || true)
 if [[ "$CODE" == "200" ]]; then
@@ -128,8 +143,48 @@ else
   fail "POST /auth/login bad password → $CODE (expected 401 or 429); body=$(snippet "$BODY")"
 fi
 
+# 7) Sector list for sign-up is public and flat: at least one value, no duplicate codes
+BODY="$TMPDIR_SMOKE/sectors.json"
+CODE=$(curl_http "$BODY" "$API_BASE/public/organisation-sectors" || true)
+if [[ "$CODE" == "200" ]] && python3 - "$BODY" <<'PY'
+import json, sys
+rows = json.load(open(sys.argv[1]))
+codes = [r["code"] for r in rows]
+sys.exit(0 if codes and len(codes) == len(set(codes)) and all(set(r) == {"code", "label"} for r in rows) else 1)
+PY
+then
+  pass "GET /public/organisation-sectors → $CODE, flat list with unique codes"
+else
+  fail "GET /public/organisation-sectors → $CODE or contract failed; body=$(snippet "$BODY")"
+fi
+
+# 8) USSD is gone from the capability list
+BODY="$TMPDIR_SMOKE/capabilities.json"
+CODE=$(curl_http "$BODY" "$API_BASE/public/capability-status" || true)
+if [[ "$CODE" == "200" ]] && python3 - "$BODY" <<'PY'
+import json, sys
+sys.exit(0 if "ussd" not in json.load(open(sys.argv[1])) else 1)
+PY
+then
+  pass "GET /public/capability-status → $CODE, no ussd key"
+else
+  fail "GET /public/capability-status → $CODE or still lists ussd; body=$(snippet "$BODY")"
+fi
+
+# 9) Short links sent by text message redirect to the check-out and rating pages
+for kind in "o:check-out?v=" "r:rate?t="; do
+  prefix="${kind%%:*}"; target="${kind#*:}"
+  token="$(printf 'A%.0s' $(seq 1 41))"
+  LOCATION=$(curl -s -o /dev/null -m 30 -w "%{redirect_url}" "$WEB_BASE/$prefix/$token" || true)
+  if [[ "$LOCATION" == "$WEB_BASE/$target$token" ]]; then
+    pass "GET website /$prefix/<token> → redirects to /$target"
+  else
+    fail "GET website /$prefix/<token> → redirect '$LOCATION' (expected $WEB_BASE/$target$token)"
+  fi
+done
+
 echo ""
-echo "=== Summary: $PASS passed, $FAIL failed ==="
+echo "=== Summary: $PASS passed, $FAIL failed, $SKIP skipped ==="
 if [[ "$FAIL" -ne 0 ]]; then
   echo "smoke-production: FAILED — treat as product/network contract failure (not agent sandbox)."
   exit 1
