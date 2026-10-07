@@ -77,6 +77,20 @@ export function currentBillingMonth(now = new Date()): BillingMonth {
   return parseBillingMonth(key) as BillingMonth;
 }
 
+/** The `count` most recent months that have ended, newest first. The month in progress is never included. */
+export function lastClosedBillingMonths(count: number, now = new Date()): BillingMonth[] {
+  const months: BillingMonth[] = [];
+  let cursor = currentBillingMonth(now).start;
+  for (let i = 0; i < count; i += 1) {
+    // One millisecond before the start of the month in progress is inside the month before it.
+    const inside = new Date(cursor.getTime() - 1);
+    const month = currentBillingMonth(inside);
+    months.push(month);
+    cursor = month.start;
+  }
+  return months;
+}
+
 /** A month can be invoiced only once it has ended, so a late text can never be missed. */
 export function isMonthClosed(month: BillingMonth, now = new Date()): boolean {
   return now.getTime() >= month.end.getTime();

@@ -43,7 +43,10 @@ describe("Visitor journey and credit notes (e2e)", () => {
   const auth = () => ({ Authorization: `Bearer ${token}` });
   const outboxFor = async (to: string) =>
     db.query.notificationDeliveryInstructions.findMany({
-      where: and(eq(notificationDeliveryInstructions.recipientReference, to), isNull(notificationDeliveryInstructions.deletedAt)),
+      where: and(
+        eq(notificationDeliveryInstructions.recipientReference, to),
+        isNull(notificationDeliveryInstructions.deletedAt),
+      ),
       orderBy: desc(notificationDeliveryInstructions.nextAttemptAt),
     });
   const settle = (ms = 1500) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -78,7 +81,8 @@ describe("Visitor journey and credit notes (e2e)", () => {
   }
 
   beforeAll(async () => {
-    process.env.MFA_SECRET_ENCRYPTION_KEY = process.env.MFA_SECRET_ENCRYPTION_KEY ?? "test-mfa-secret-encryption-key-32chars!!";
+    process.env.MFA_SECRET_ENCRYPTION_KEY =
+      process.env.MFA_SECRET_ENCRYPTION_KEY ?? "test-mfa-secret-encryption-key-32chars!!";
     process.env.EMAIL_VERIFICATION_PEPPER = process.env.EMAIL_VERIFICATION_PEPPER ?? "test-email-pepper";
     process.env.MFA_CHALLENGE_PEPPER = process.env.MFA_CHALLENGE_PEPPER ?? "test-mfa-challenge-pepper";
     process.env.QR_TOKEN_PEPPER = process.env.QR_TOKEN_PEPPER ?? "test-qr-pepper";
@@ -97,7 +101,12 @@ describe("Visitor journey and credit notes (e2e)", () => {
     const ownerEmail = `e2e-visitor-${runId}@example.test`;
     const created = await request(app.getHttpServer())
       .post("/onboarding/organisation-admin")
-      .send({ organisationName: `E2E Visitor ${runId}`, sectorCode: "sme", email: ownerEmail, password: "testpassword123" })
+      .send({
+        organisationName: `E2E Visitor ${runId}`,
+        sectorCode: "sme",
+        email: ownerEmail,
+        password: "testpassword123",
+      })
       .expect(201);
     organisationId = created.body.organisationId as string;
     const user = await db.query.applicationUsers.findFirst({
@@ -113,7 +122,10 @@ describe("Visitor journey and credit notes (e2e)", () => {
       tokenHash: hashOpaqueToken(raw, "EMAIL_VERIFICATION_PEPPER"),
       expiresAt: new Date(Date.now() + 60 * 60 * 1000),
     });
-    const verified = await request(app.getHttpServer()).post("/auth/email-verification/verify").send({ token: raw }).expect(200);
+    const verified = await request(app.getHttpServer())
+      .post("/auth/email-verification/verify")
+      .send({ token: raw })
+      .expect(200);
     const start = await request(app.getHttpServer())
       .post("/auth/mfa/enroll/start")
       .set("Authorization", `Bearer ${verified.body.accessToken}`)
@@ -125,14 +137,23 @@ describe("Visitor journey and credit notes (e2e)", () => {
       .expect(201);
     token = confirm.body.accessToken as string;
 
-    const site = await request(app.getHttpServer()).post("/sites").set(auth()).send({ name: "Main reception" }).expect(201);
+    const site = await request(app.getHttpServer())
+      .post("/sites")
+      .set(auth())
+      .send({ name: "Main reception" })
+      .expect(201);
     siteId = site.body.id as string;
-    const host = await request(app.getHttpServer()).post("/hosts").set(auth()).send({ siteId, name: "Facilities Desk" }).expect(201);
+    const host = await request(app.getHttpServer())
+      .post("/hosts")
+      .set(auth())
+      .send({ siteId, name: "Facilities Desk" })
+      .expect(201);
     hostId = host.body.id as string;
   });
 
   afterAll(async () => {
-    if (organisationId) await db.update(organisations).set({ deletedAt: new Date() }).where(eq(organisations.id, organisationId));
+    if (organisationId)
+      await db.update(organisations).set({ deletedAt: new Date() }).where(eq(organisations.id, organisationId));
     await app.close();
   });
 
@@ -141,7 +162,10 @@ describe("Visitor journey and credit notes (e2e)", () => {
     await http.get("/notifications/preferences").expect(401);
     await http.get("/analytics/satisfaction/comments").expect(401);
     await http.post("/platform/billing/invoices/x/credit-notes").send({ amount: "1.00", reason: "test" }).expect(401);
-    await http.post("/public/check-out/token").send({ token: "x".repeat(40) }).expect(400);
+    await http
+      .post("/public/check-out/token")
+      .send({ token: "x".repeat(40) })
+      .expect(400);
     await http.post("/public/visit-survey").send({ token: "bad.token", rating: 5, comment: "hi" }).expect(401);
   });
 
@@ -196,9 +220,15 @@ describe("Visitor journey and credit notes (e2e)", () => {
 
   it("records a 5-star style rating with an encrypted comment, once", async () => {
     const comment = `Quick and polite ${runId}`;
-    await request(app.getHttpServer()).post("/public/visit-survey").send({ token: ratingToken, rating: 4, comment }).expect(201);
+    await request(app.getHttpServer())
+      .post("/public/visit-survey")
+      .send({ token: ratingToken, rating: 4, comment })
+      .expect(201);
     // The first answer wins; a retry changes nothing.
-    await request(app.getHttpServer()).post("/public/visit-survey").send({ token: ratingToken, rating: 1, comment: "changed" }).expect(201);
+    await request(app.getHttpServer())
+      .post("/public/visit-survey")
+      .send({ token: ratingToken, rating: 1, comment: "changed" })
+      .expect(201);
     const rows = await db.query.visitSurveyResponses.findMany({ where: eq(visitSurveyResponses.visitId, visitId) });
     expect(rows).toHaveLength(1);
     expect(JSON.stringify(rows[0].commentProtected)).not.toContain("Quick and polite");
@@ -212,8 +242,13 @@ describe("Visitor journey and credit notes (e2e)", () => {
     expect(figures.body.commentsIncluded).toBe(false);
     expect(JSON.stringify(figures.body)).not.toContain("Quick and polite");
 
-    const withComments = await request(app.getHttpServer()).get("/analytics/satisfaction/comments").set(auth()).expect(200);
-    expect(withComments.body.recentComments.map((c: { comment: string }) => c.comment)).toContain(`Quick and polite ${runId}`);
+    const withComments = await request(app.getHttpServer())
+      .get("/analytics/satisfaction/comments")
+      .set(auth())
+      .expect(200);
+    expect(withComments.body.recentComments.map((c: { comment: string }) => c.comment)).toContain(
+      `Quick and polite ${runId}`,
+    );
   });
 
   it("lets the organisation switch the receipt off, refuses to switch off security mail, and sends no receipt afterwards", async () => {
@@ -245,15 +280,36 @@ describe("Visitor journey and credit notes (e2e)", () => {
       amount: "1000.00",
       lineItems: [{ description: "Checkpoint plan", amount: "1000.00", quantity: 1 }],
     });
-    const staff = { userId: ownerUserId, organisationId, siteId: null, roleCode: "platform_billing", permissions: [], emailVerified: true, mfaEnabled: true, audience: "ops" as const };
+    const staff = {
+      userId: ownerUserId,
+      organisationId,
+      siteId: null,
+      roleCode: "platform_billing",
+      permissions: [],
+      emailVerified: true,
+      mfaEnabled: true,
+      audience: "ops" as const,
+    };
 
-    const first = await billing.issueCreditNote(invoice.id, { amount: "250.00", reason: "Goodwill for a delayed install" }, staff as never);
+    const first = await billing.issueCreditNote(
+      invoice.id,
+      { amount: "250.00", reason: "Goodwill for a delayed install" },
+      staff as never,
+    );
     expect(first.creditNoteNumber).toBe(`CN-${invoice.invoiceNumber}-01`);
     expect(first.balanceAfter).toBe("750.00");
 
-    await expect(billing.issueCreditNote(invoice.id, { amount: "750.01", reason: "Too much on purpose" }, staff as never)).rejects.toThrow(/cannot exceed the outstanding balance of 750.00/);
-    await expect(billing.issueCreditNote(invoice.id, { amount: "-5", reason: "Negative amount here" }, staff as never)).rejects.toThrow();
-    const second = await billing.issueCreditNote(invoice.id, { amount: "750.00", reason: "Settle the remainder" }, staff as never);
+    await expect(
+      billing.issueCreditNote(invoice.id, { amount: "750.01", reason: "Too much on purpose" }, staff as never),
+    ).rejects.toThrow(/cannot exceed the outstanding balance of 750.00/);
+    await expect(
+      billing.issueCreditNote(invoice.id, { amount: "-5", reason: "Negative amount here" }, staff as never),
+    ).rejects.toThrow();
+    const second = await billing.issueCreditNote(
+      invoice.id,
+      { amount: "750.00", reason: "Settle the remainder" },
+      staff as never,
+    );
     expect(second.creditNoteNumber).toBe(`CN-${invoice.invoiceNumber}-02`);
     expect(second.balanceAfter).toBe("0.00");
   });

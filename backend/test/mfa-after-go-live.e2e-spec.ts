@@ -12,7 +12,12 @@ import { sessionCache } from "../src/common/auth/session-cache";
 import { generateOpaqueToken, hashOpaqueToken } from "../src/common/crypto/secret-crypto";
 import type { Database } from "../src/db/client";
 import { DB } from "../src/db/db.module";
-import { applicationUsers, emailVerificationTokens, organisationOnboardingStates, organisations } from "../src/db/schema";
+import {
+  applicationUsers,
+  emailVerificationTokens,
+  organisationOnboardingStates,
+  organisations,
+} from "../src/db/schema";
 import { TypeDefinitionLookupService } from "../src/db/type-definition-lookup.service";
 import { randomUUID } from "node:crypto";
 
@@ -44,7 +49,12 @@ describe("MFA after onboarding (e2e)", () => {
     const ownerEmail = `e2e-mfa-gate-${runId}@example.test`;
     const created = await request(app.getHttpServer())
       .post("/onboarding/organisation-admin")
-      .send({ organisationName: `E2E MFA Gate ${runId}`, sectorCode: "sme", email: ownerEmail, password: "testpassword123" })
+      .send({
+        organisationName: `E2E MFA Gate ${runId}`,
+        sectorCode: "sme",
+        email: ownerEmail,
+        password: "testpassword123",
+      })
       .expect(201);
     organisationId = created.body.organisationId as string;
     const user = await db.query.applicationUsers.findFirst({
@@ -59,7 +69,10 @@ describe("MFA after onboarding (e2e)", () => {
       tokenHash: hashOpaqueToken(raw, "EMAIL_VERIFICATION_PEPPER"),
       expiresAt: new Date(Date.now() + 60 * 60 * 1000),
     });
-    const verified = await request(app.getHttpServer()).post("/auth/email-verification/verify").send({ token: raw }).expect(200);
+    const verified = await request(app.getHttpServer())
+      .post("/auth/email-verification/verify")
+      .send({ token: raw })
+      .expect(200);
     token = verified.body.accessToken as string;
     expect(verified.body.mfaEnabled).toBe(false);
   });

@@ -16,10 +16,14 @@ import {
   type CreateSubscriptionInput,
   type SubmitPopInput,
 } from "./billing.service";
+import { SmsUsageInvoicingService } from "./sms-usage-invoicing.service";
 
 @Controller()
 export class BillingController {
-  constructor(private readonly service: BillingService) {}
+  constructor(
+    private readonly service: BillingService,
+    private readonly smsInvoicing: SmsUsageInvoicingService,
+  ) {}
 
   /** Marketing pricing page — 3 plans + one add-on list with per-add-on costs. */
   @Public()
@@ -116,6 +120,14 @@ export class BillingController {
   @PlatformScoped()
   smsUsage(@Query("organisationId") organisationId: string, @Query("month") month: string) {
     return this.service.smsUsageForMonth(organisationId, month);
+  }
+
+  /** Runs the monthly sweep by hand: invoices every organisation that sent texts in the last three finished months. Same code as the scheduler. */
+  @Post("platform/billing/sms-usage-invoices/run")
+  @RequirePermission(PERMISSIONS.PLATFORM_BILLING_MANAGE)
+  @AuditLog({ action: "invoice.sms_usage_run", resourceType: "invoice" })
+  runSmsUsageInvoicing() {
+    return this.smsInvoicing.run();
   }
 
   /** Bills a finished month of texts to one organisation. Idempotent: one invoice per organisation and month. */

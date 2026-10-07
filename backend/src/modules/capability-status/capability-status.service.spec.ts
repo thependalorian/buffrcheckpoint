@@ -91,14 +91,13 @@ function buildService(opts: {
     qrInvitationCheckIn: (platformLive.qr_invitation_checkin as "live") ?? "not_available",
     smsContactConfirmation: (platformLive.sms_contact_confirmation as "live") ?? "not_available",
     cimsoInnterchange: (platformLive.cimso_innterchange as "live") ?? "not_available",
-    ussd: "not_available",
   });
 
   return { service, db, typeDefs };
 }
 
 describe("CapabilityStatusService.listPublic defaults", () => {
-  it("includes all six live capability keys plus the deprecated constant ussd with safe defaults", async () => {
+  it("includes all six public capability keys with safe defaults", async () => {
     const typeDefs = { id: jest.fn(), codeById: jest.fn() };
     const db = {
       query: {
@@ -117,7 +116,6 @@ describe("CapabilityStatusService.listPublic defaults", () => {
       qrInvitationCheckIn: "not_available",
       smsContactConfirmation: "not_available",
       cimsoInnterchange: "not_available",
-      ussd: "not_available",
     });
   });
 });

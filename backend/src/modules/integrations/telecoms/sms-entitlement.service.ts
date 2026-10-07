@@ -89,6 +89,18 @@ export class SmsEntitlementService {
     return Number((result.rows[0] as { sent?: number } | undefined)?.sent ?? 0);
   }
 
+  /** Organisations that had at least one text handed to the provider inside [start, end). */
+  async organisationsWithUsage(start: Date, end: Date): Promise<string[]> {
+    const result = await this.db.execute(sql`
+      SELECT DISTINCT organisation_id
+      FROM sms_contact_confirmation_events
+      WHERE outcome_code = 'sent'
+        AND occurred_at >= ${start.toISOString()}
+        AND occurred_at < ${end.toISOString()}
+      ORDER BY organisation_id`);
+    return (result.rows as Array<{ organisation_id: string }>).map((row) => row.organisation_id);
+  }
+
   async usageFor(organisationId: string, month: BillingMonth = currentBillingMonth()): Promise<SmsUsageSummary> {
     const [sent, unitPrice, limit] = await Promise.all([
       this.sentBetween(organisationId, month.start, month.end),
