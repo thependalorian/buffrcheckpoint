@@ -43,7 +43,7 @@ export async function setupKioskExperienceAndPublish(input: KioskSetupInput): Pr
       idleWarningSeconds: input.idleWarningSeconds ?? 30,
       maintenanceModeEnabled: input.maintenanceModeEnabled ?? false,
       maintenanceMessage: input.maintenanceMessage,
-      captureChannelCodes: input.captureChannelCodes ?? ["kiosk", "assisted", "qr", "nfc_badge", "ussd"],
+      captureChannelCodes: input.captureChannelCodes ?? ["kiosk", "assisted", "qr", "nfc_badge"],
     });
     await api.post(`/kiosk-experience/${config.id}/versions/${version.id}/publish`);
     revalidatePath("/dashboard/site-experience/kiosk");

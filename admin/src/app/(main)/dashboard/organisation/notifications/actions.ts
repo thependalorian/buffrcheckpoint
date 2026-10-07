@@ -7,6 +7,8 @@ import { api } from "@/lib/api/client";
 
 export interface EmailPreference {
   templateCode: string;
+  /** How the message is sent. Older API responses omit it, which means email. */
+  channel?: "email" | "sms";
   trigger: string;
   audience: string;
   enabled: boolean;

@@ -56,7 +56,7 @@ export function PreferencesForm({ initial }: { initial: EmailPreference[] }) {
                   {copy.columns.sentWhen}: {row.trigger.toLowerCase()}.
                 </p>
                 <p className="text-muted-foreground text-sm">
-                  {copy.columns.to}: {emailAudience(row.audience)}.
+                  {copy.columns.to}: {emailAudience(row.audience, row.channel)}.
                 </p>
               </div>
               <Switch
@@ -71,6 +71,9 @@ export function PreferencesForm({ initial }: { initial: EmailPreference[] }) {
         })}
       </ul>
       <p className="text-muted-foreground text-sm">{copy.note}</p>
+      {saved.some((row) => row.channel === "sms") ? (
+        <p className="text-muted-foreground text-sm">{copy.smsNote}</p>
+      ) : null}
       <Button onClick={save} disabled={pending || changes.length === 0}>
         {copy.save}
       </Button>

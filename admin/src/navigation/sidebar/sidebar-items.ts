@@ -318,7 +318,7 @@ export const sidebarItems: NavGroup[] = [
       },
       {
         id: "email-notifications",
-        title: "Email Notifications",
+        title: "Notifications",
         url: "/dashboard/organisation/notifications",
         icon: Mail,
         badge: "new",

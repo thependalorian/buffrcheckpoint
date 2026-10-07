@@ -7,7 +7,6 @@ interface PublicCapabilityStatus {
   diginamVerification: string;
   nationalEidNfc: string;
   nfcBadgeCheckIn: string;
-  ussd: string;
   qrInvitationCheckIn: string;
   smsContactConfirmation: string;
   cimsoInnterchange: string;
@@ -23,7 +22,6 @@ const CAPABILITY_CATALOG = [
   { code: "qr_invitation_checkin", label: "QR invitation check-in", key: "qrInvitationCheckIn" as const },
   { code: "diginam_verification", label: "DigiNam verification", key: "diginamVerification" as const },
   { code: "national_eid_nfc", label: "National e-ID NFC", key: "nationalEidNfc" as const },
-  { code: "ussd", label: "USSD feature-phone check-in", key: "ussd" as const },
   { code: "sms_contact_confirmation", label: "SMS contact confirmation", key: "smsContactConfirmation" as const },
   {
     code: "cimso_innterchange",
