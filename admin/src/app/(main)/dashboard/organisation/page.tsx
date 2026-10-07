@@ -1,7 +1,9 @@
-import { OrganisationProfileForm } from "./_components/organisation-profile-form";
 import { DashboardPageHeader } from "@/components/dashboard-page-header";
 import { DashboardErrorState } from "@/components/dashboard-state";
 import { api } from "@/lib/api/client";
+import { loadOrganisationSectors } from "@/lib/sectors";
+
+import { OrganisationProfileForm } from "./_components/organisation-profile-form";
 
 interface OrganisationRow {
   id: string;
@@ -12,6 +14,7 @@ interface OrganisationRow {
 }
 
 export default async function OrganisationPage() {
+  const sectors = await loadOrganisationSectors();
   let organisation: OrganisationRow | null = null;
   let error: string | null = null;
   try {
@@ -34,6 +37,7 @@ export default async function OrganisationPage() {
           tradingName={organisation.tradingName ?? organisation.legalName}
           defaultTimezone={organisation.defaultTimezone}
           sectorCode={organisation.sectorCode}
+          sectors={sectors}
         />
       ) : null}
     </div>

@@ -120,29 +120,21 @@ INSERT INTO type_definition (domain, code, label, sort_order) VALUES
 
   -- organisation_sector (Addendum Section 7.1 "Public-Sector Tenant Policy").
   -- Config over code (Wiebe rule 1): a sector missing from this list is a
-  -- seed INSERT, never a migration or a hardcoded frontend enum. Broadened
-  -- past the original 5 regulated-first-mover sectors so registration
-  -- isn't gated on an organisation's category — see 0005_organisation_sector_expansion.sql
-  -- for the sectors added after initial rollout.
-  ('organisation_sector', 'bank', 'Bank / financial institution', 1),
-  ('organisation_sector', 'government', 'Government / public office', 2),
-  ('organisation_sector', 'healthcare', 'Healthcare', 3),
-  ('organisation_sector', 'critical_infrastructure', 'Critical infrastructure', 4),
-  ('organisation_sector', 'sme', 'SME / corporate office', 5),
-  ('organisation_sector', 'education', 'Education / academic institution', 6),
-  ('organisation_sector', 'hospitality_tourism', 'Hospitality / tourism', 7),
-  ('organisation_sector', 'retail_trade', 'Retail / trade', 8),
-  ('organisation_sector', 'manufacturing', 'Manufacturing / industrial', 9),
-  ('organisation_sector', 'agriculture', 'Agriculture / agro-processing', 10),
-  ('organisation_sector', 'mining_energy', 'Mining / energy', 11),
-  ('organisation_sector', 'transport_logistics', 'Transport / logistics', 12),
-  ('organisation_sector', 'telecom_ict', 'Telecom / ICT', 13),
-  ('organisation_sector', 'real_estate', 'Real estate / property management', 14),
-  ('organisation_sector', 'professional_services', 'Professional / consulting services', 15),
-  ('organisation_sector', 'ngo_nonprofit', 'NGO / non-profit', 16),
-  ('organisation_sector', 'construction', 'Construction', 17),
-  ('organisation_sector', 'media_entertainment', 'Media / entertainment', 18),
-  ('organisation_sector', 'religious_faith_based', 'Religious / faith-based organisation', 19),
+  -- seed INSERT, never a hardcoded frontend enum. The list is deliberately
+  -- short and flat (11 sectors and Other): one code per organisation, no
+  -- groups, so analytics count by the stored code. Consolidated from 20 in
+  -- migration 0065_organisation_sector_consolidation.sql.
+  ('organisation_sector', 'sme', 'Corporate office or professional services', 1),
+  ('organisation_sector', 'government', 'Government and public administration', 2),
+  ('organisation_sector', 'financial_services', 'Banking, finance and insurance', 3),
+  ('organisation_sector', 'healthcare', 'Healthcare', 4),
+  ('organisation_sector', 'education', 'Education and training', 5),
+  ('organisation_sector', 'energy_utilities', 'Energy, mining and utilities', 6),
+  ('organisation_sector', 'transport_logistics', 'Transport and logistics', 7),
+  ('organisation_sector', 'technology_telecom', 'Technology and telecommunications', 8),
+  ('organisation_sector', 'hospitality_tourism', 'Hospitality, tourism and entertainment', 9),
+  ('organisation_sector', 'retail_trade', 'Retail and wholesale', 10),
+  ('organisation_sector', 'manufacturing', 'Manufacturing, construction and agriculture', 11),
   ('organisation_sector', 'other', 'Other', 99),
 
   -- invitation_status (Section 11.4.5 invitations.ts)

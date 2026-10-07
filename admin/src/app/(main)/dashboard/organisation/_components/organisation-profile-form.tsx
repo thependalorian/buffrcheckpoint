@@ -4,33 +4,12 @@ import { useState, useTransition } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { updateOrganisationAction } from "../actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import type { OrganisationSector } from "@/lib/sectors";
 
-const SECTORS = [
-  { code: "bank", label: "Bank / financial institution" },
-  { code: "government", label: "Government / public office" },
-  { code: "healthcare", label: "Healthcare" },
-  { code: "critical_infrastructure", label: "Critical infrastructure" },
-  { code: "sme", label: "SME / corporate office" },
-  { code: "education", label: "Education / academic institution" },
-  { code: "hospitality_tourism", label: "Hospitality / tourism" },
-  { code: "retail_trade", label: "Retail / trade" },
-  { code: "manufacturing", label: "Manufacturing / industrial" },
-  { code: "agriculture", label: "Agriculture / agro-processing" },
-  { code: "mining_energy", label: "Mining / energy" },
-  { code: "transport_logistics", label: "Transport / logistics" },
-  { code: "telecom_ict", label: "Telecom / ICT" },
-  { code: "real_estate", label: "Real estate / property management" },
-  { code: "professional_services", label: "Professional / consulting services" },
-  { code: "ngo_nonprofit", label: "NGO / non-profit" },
-  { code: "construction", label: "Construction" },
-  { code: "media_entertainment", label: "Media / entertainment" },
-  { code: "religious_faith_based", label: "Religious / faith-based organisation" },
-  { code: "other", label: "Other" },
-];
+import { updateOrganisationAction } from "../actions";
 
 const TIMEZONES = ["Africa/Windhoek", "Africa/Johannesburg", "UTC"];
 
@@ -39,11 +18,13 @@ export function OrganisationProfileForm({
   tradingName,
   defaultTimezone,
   sectorCode,
+  sectors,
 }: {
   legalName: string;
   tradingName: string;
   defaultTimezone: string;
   sectorCode: string | null;
+  sectors: OrganisationSector[];
 }) {
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -105,7 +86,7 @@ export function OrganisationProfileForm({
           defaultValue={sectorCode ?? "other"}
           className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
         >
-          {SECTORS.map((s) => (
+          {sectors.map((s) => (
             <option key={s.code} value={s.code}>
               {s.label}
             </option>

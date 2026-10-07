@@ -8,10 +8,17 @@ import { apiFetch, loadOrError } from "@/lib/api";
 
 import { RequestGrantForm } from "./_components/request-grant-form";
 
+interface SectorOption {
+  code: string;
+  label: string;
+}
+
 interface OrgRow {
   id: string;
   legalName: string;
   tradingName: string | null;
+  sectorCode: string | null;
+  sectorLabel: string | null;
   lifecycleStage: string | null;
   healthScore: number | null;
   churnRiskBand: string | null;
@@ -24,8 +31,16 @@ function churnRiskBadgeVariant(band: string): "destructive" | "outline" | "secon
   return "secondary";
 }
 
-export default async function OrganisationsPage() {
-  const result = await loadOrError(() => apiFetch<OrgRow[]>("/platform/dashboard/organisations"));
+export default async function OrganisationsPage({ searchParams }: { searchParams: Promise<{ sector?: string }> }) {
+  const sector = (await searchParams).sector?.trim() || undefined;
+  const result = await loadOrError(async () => {
+    const [orgs, sectors] = await Promise.all([
+      apiFetch<OrgRow[]>("/platform/dashboard/organisations"),
+      // The filter list is the configured sector list; if it cannot load the page still works without the filter.
+      apiFetch<SectorOption[]>("/public/organisation-sectors").catch(() => [] as SectorOption[]),
+    ]);
+    return { orgs, sectors };
+  });
 
   if (result.error || !result.data) {
     return (
@@ -36,7 +51,12 @@ export default async function OrganisationsPage() {
     );
   }
 
-  const orgs = result.data;
+  const { orgs: allOrgs, sectors } = result.data;
+  // Exact sector code only: sectors are never merged or grouped, so this matches what analytics count.
+  const orgs = sector ? allOrgs.filter((org) => org.sectorCode === sector) : allOrgs;
+  const countBySector = new Map<string, number>();
+  for (const org of allOrgs)
+    if (org.sectorCode) countBySector.set(org.sectorCode, (countBySector.get(org.sectorCode) ?? 0) + 1);
 
   return (
     <div>
@@ -52,8 +72,36 @@ export default async function OrganisationsPage() {
         </Button>
       </div>
 
+      {sectors.length > 0 ? (
+        <form className="mt-4 flex flex-wrap gap-3" method="get">
+          <select
+            name="sector"
+            defaultValue={sector ?? ""}
+            aria-label="Sector"
+            className="rounded-md border border-border bg-background px-2 py-1.5 text-sm"
+          >
+            <option value="">All sectors ({allOrgs.length})</option>
+            {sectors.map((option) => (
+              <option key={option.code} value={option.code}>
+                {option.label} ({countBySector.get(option.code) ?? 0})
+              </option>
+            ))}
+          </select>
+          <button type="submit" className="rounded-md border border-border px-3 py-1.5 text-sm hover:bg-muted">
+            Filter
+          </button>
+        </form>
+      ) : null}
+
       <div className="mt-6">
-        {orgs.length === 0 ? (
+        {orgs.length === 0 && sector ? (
+          <EmptyState
+            title="No organisations in this sector"
+            description="Choose another sector, or show all sectors."
+            actionHref="/organisations"
+            actionLabel="Show all sectors"
+          />
+        ) : orgs.length === 0 ? (
           <EmptyState
             title="No organisations on the platform yet"
             description="Customer orgs appear here after onboarding. Until then CRM prospects and capability status still work."
@@ -69,7 +117,8 @@ export default async function OrganisationsPage() {
                     {org.tradingName ?? org.legalName}
                   </Link>
                   <p className="text-muted-foreground text-xs">
-                    {org.lifecycleStage ?? "no lifecycle stage"} · MRR NAD {org.mrr.toFixed(2)}
+                    {org.sectorLabel ?? "no sector"} · {org.lifecycleStage ?? "no lifecycle stage"} · MRR NAD{" "}
+                    {org.mrr.toFixed(2)}
                   </p>
                 </div>
                 <div className="flex items-center gap-3">

@@ -69,7 +69,7 @@ export class PlatformConfigurationController {
       adminEmail: opsInbox,
       adminUrl: "https://admin.buffrcheckpoint.com",
       opsOrgUrl: "https://ops.buffrcheckpoint.com/organisations",
-      sectorCode: "hospitality",
+      sectorCode: "hospitality_tourism",
       name: "Sample Contact",
       company: "Sample Co",
       message: "This is a test enquiry body.",

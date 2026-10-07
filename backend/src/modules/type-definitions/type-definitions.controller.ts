@@ -1,5 +1,7 @@
 import { BadRequestException, Controller, Get, Query } from "@nestjs/common";
+import { Throttle } from "@nestjs/throttler";
 
+import { Public } from "../../common/decorators/public.decorator";
 import { TypeDefinitionsService } from "./type-definitions.service";
 
 // Authenticated (global JwtAuthGuard) but not permission-gated beyond that
@@ -15,5 +17,18 @@ export class TypeDefinitionsController {
   list(@Query("domain") domain: string | undefined) {
     if (!domain) throw new BadRequestException("domain query parameter is required");
     return this.typeDefinitionsService.listByDomain(domain);
+  }
+}
+
+// Sign-up has no session, so the sector list it needs must be public. It is configuration, not tenant data.
+@Controller("public")
+export class PublicSectorsController {
+  constructor(private readonly typeDefinitionsService: TypeDefinitionsService) {}
+
+  @Public()
+  @Get("organisation-sectors")
+  @Throttle({ default: { ttl: 60_000, limit: 60 } })
+  organisationSectors() {
+    return this.typeDefinitionsService.listOrganisationSectors();
   }
 }

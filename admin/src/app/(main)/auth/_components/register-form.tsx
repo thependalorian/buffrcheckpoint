@@ -14,36 +14,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useBuffrIdConfig } from "@/lib/auth/use-buffr-id-config";
 import { authCopy } from "@/lib/copy/auth";
 import { AnalyticsEvents, track } from "@/lib/observability/track";
-
-const SECTOR_OPTIONS = [
-  { code: "sme", label: "SME / corporate office" },
-  { code: "bank", label: "Bank / financial institution" },
-  { code: "government", label: "Government / public office" },
-  { code: "healthcare", label: "Healthcare" },
-  { code: "critical_infrastructure", label: "Critical infrastructure" },
-  { code: "education", label: "Education / academic institution" },
-  { code: "hospitality_tourism", label: "Hospitality / tourism" },
-  { code: "retail_trade", label: "Retail / trade" },
-  { code: "manufacturing", label: "Manufacturing / industrial" },
-  { code: "agriculture", label: "Agriculture / agro-processing" },
-  { code: "mining_energy", label: "Mining / energy" },
-  { code: "transport_logistics", label: "Transport / logistics" },
-  { code: "telecom_ict", label: "Telecom / ICT" },
-  { code: "real_estate", label: "Real estate / property management" },
-  { code: "professional_services", label: "Professional / consulting services" },
-  { code: "ngo_nonprofit", label: "NGO / non-profit" },
-  { code: "construction", label: "Construction" },
-  { code: "media_entertainment", label: "Media / entertainment" },
-  { code: "religious_faith_based", label: "Religious / faith-based organisation" },
-  { code: "other", label: "Other" },
-];
+import { useOrganisationSectors } from "@/lib/use-organisation-sectors";
 
 export function RegisterForm() {
   const router = useRouter();
   const buffrId = useBuffrIdConfig();
   const urlError = typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("error");
   const [organisationName, setOrganisationName] = useState("");
-  const [sectorCode, setSectorCode] = useState(SECTOR_OPTIONS[0].code);
+  const { sectors, loaded: sectorsLoaded } = useOrganisationSectors();
+  const [chosenSector, setChosenSector] = useState<string | null>(null);
+  // The first configured sector until the person picks one.
+  const sectorCode = chosenSector ?? sectors[0].code;
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   // Honeypot: hidden from people, filled in by bots. The API refuses a sign-up that has it.
@@ -86,7 +67,14 @@ export function RegisterForm() {
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       <div aria-hidden="true" className="absolute -left-[9999px] h-0 w-0 overflow-hidden">
         <label htmlFor="website">Website</label>
-        <input id="website" name="website" tabIndex={-1} autoComplete="off" value={website} onChange={(e) => setWebsite(e.target.value)} />
+        <input
+          id="website"
+          name="website"
+          tabIndex={-1}
+          autoComplete="off"
+          value={website}
+          onChange={(e) => setWebsite(e.target.value)}
+        />
       </div>
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="organisationName">Organisation name</Label>
@@ -103,12 +91,12 @@ export function RegisterForm() {
       </div>
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="sectorCode">Sector</Label>
-        <Select value={sectorCode} onValueChange={setSectorCode}>
+        <Select value={sectorCode} onValueChange={setChosenSector} disabled={!sectorsLoaded}>
           <SelectTrigger id="sectorCode" className="w-full">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {SECTOR_OPTIONS.map((option) => (
+            {sectors.map((option) => (
               <SelectItem key={option.code} value={option.code}>
                 {option.label}
               </SelectItem>
@@ -120,44 +108,50 @@ export function RegisterForm() {
         <p className="text-muted-foreground text-sm">{authCopy.buffrId.registerNote}</p>
       ) : (
         <>
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="email">Email</Label>
-        <div className="relative">
-          <Mail className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            id="email"
-            type="email"
-            autoComplete="email"
-            required
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            className="pl-8"
-          />
-        </div>
-      </div>
-      <div className="flex flex-col gap-1.5">
-        <Label htmlFor="password">Password</Label>
-        <div className="relative">
-          <Lock className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            id="password"
-            type="password"
-            autoComplete="new-password"
-            minLength={8}
-            required
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            className="pl-8"
-          />
-        </div>
-        <p className="text-muted-foreground text-xs">At least 8 characters.</p>
-      </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="email">Email</Label>
+            <div className="relative">
+              <Mail className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                id="email"
+                type="email"
+                autoComplete="email"
+                required
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                className="pl-8"
+              />
+            </div>
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="password">Password</Label>
+            <div className="relative">
+              <Lock className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                id="password"
+                type="password"
+                autoComplete="new-password"
+                minLength={8}
+                required
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                className="pl-8"
+              />
+            </div>
+            <p className="text-muted-foreground text-xs">At least 8 characters.</p>
+          </div>
         </>
       )}
-      {urlError && authCopy.buffrId.errors[urlError] ? <p className="text-destructive text-sm">{authCopy.buffrId.errors[urlError]}</p> : null}
+      {urlError && authCopy.buffrId.errors[urlError] ? (
+        <p className="text-destructive text-sm">{authCopy.buffrId.errors[urlError]}</p>
+      ) : null}
       {error ? <p className="text-destructive text-sm">{error}</p> : null}
       <Button type="submit" disabled={submitting} className="w-full">
-        {buffrId.enabled ? authCopy.buffrId.registerContinue : submitting ? authCopy.register.submitting : authCopy.register.submit}
+        {buffrId.enabled
+          ? authCopy.buffrId.registerContinue
+          : submitting
+            ? authCopy.register.submitting
+            : authCopy.register.submit}
       </Button>
       <p className="text-center text-muted-foreground text-sm">
         {authCopy.register.haveAccount}{" "}

@@ -20,4 +20,13 @@ export class TypeDefinitionsService {
       orderBy: [asc(typeDefinition.sortOrder)],
     });
   }
+
+  /**
+   * The organisation sectors for sign-up and the profile page, in configured display order. Every sector is its own code;
+   * nothing is merged or grouped here, because analytics count organisations by sector code.
+   */
+  async listOrganisationSectors() {
+    const rows = await this.listByDomain("organisation_sector");
+    return rows.map((row) => ({ code: row.code, label: row.label }));
+  }
 }

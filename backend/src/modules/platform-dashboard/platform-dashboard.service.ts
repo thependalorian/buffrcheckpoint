@@ -143,11 +143,12 @@ export class PlatformDashboardService {
   /** Org directory — aggregate rollup only (name, lifecycle stage, latest health/churn band, MRR), no visitor PII. */
   async listOrganisations() {
     const orgs = await this.db.query.organisations.findMany({ where: isNull(organisations.deletedAt) });
-    const [snapshots, subs, stageDefs, bandDefs] = await Promise.all([
+    const [snapshots, subs, stageDefs, bandDefs, sectorDefs] = await Promise.all([
       this.db.select().from(organisationHealthSnapshot).orderBy(desc(organisationHealthSnapshot.computedAt)),
       this.db.query.organisationSubscription.findMany({ where: isNull(organisationSubscription.deletedAt) }),
       this.db.query.typeDefinition.findMany({ where: eq(typeDefinition.domain, "crm_lifecycle_stage") }),
       this.db.query.typeDefinition.findMany({ where: eq(typeDefinition.domain, "churn_risk_band") }),
+      this.db.query.typeDefinition.findMany({ where: eq(typeDefinition.domain, "organisation_sector") }),
     ]);
 
     const latestSnapshotByOrg = new Map<string, (typeof snapshots)[number]>();
@@ -156,13 +157,18 @@ export class PlatformDashboardService {
     const mrrByOrg = new Map(subs.map((s) => [s.organisationId, Number(s.mrrAmount)]));
     const stageLabel = new Map(stageDefs.map((d) => [d.id, d.label]));
     const bandLabel = new Map(bandDefs.map((d) => [d.id, d.code]));
+    // One entry per sector code; never collapsed into groups, so ops filters and analytics see the same 20 values.
+    const sectorById = new Map(sectorDefs.map((d) => [d.id, { code: d.code, label: d.label }]));
 
     return orgs.map((org) => {
+      const sector = org.sectorCode ? (sectorById.get(org.sectorCode) ?? null) : null;
       const snapshot = latestSnapshotByOrg.get(org.id);
       return {
         id: org.id,
         legalName: org.legalName,
         tradingName: org.tradingName,
+        sectorCode: sector?.code ?? null,
+        sectorLabel: sector?.label ?? null,
         lifecycleStage: org.lifecycleStageCode ? (stageLabel.get(org.lifecycleStageCode) ?? null) : null,
         healthScore: snapshot ? Number(snapshot.healthScore) : null,
         churnRiskBand: snapshot ? (bandLabel.get(snapshot.churnRiskBandCode) ?? null) : null,

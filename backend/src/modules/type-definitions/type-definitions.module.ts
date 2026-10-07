@@ -1,10 +1,10 @@
 import { Module } from "@nestjs/common";
 
-import { TypeDefinitionsController } from "./type-definitions.controller";
+import { PublicSectorsController, TypeDefinitionsController } from "./type-definitions.controller";
 import { TypeDefinitionsService } from "./type-definitions.service";
 
 @Module({
-  controllers: [TypeDefinitionsController],
+  controllers: [TypeDefinitionsController, PublicSectorsController],
   providers: [TypeDefinitionsService],
   exports: [TypeDefinitionsService],
 })
