@@ -2725,7 +2725,7 @@ Output must be empty apart from permitted test fixtures.
 
 #### Repository and verification record (2026-10-07)
 
-Branch `feat/analytics-etl-and-launch-polish` carried 264 uncommitted files. They are now committed in nine commits, split by package (governance, backend, admin, ops, website, kiosk, scripts, social-team move, acceptance, e2e fix). Nothing is deployed from them yet.
+Branch `feat/analytics-etl-and-launch-polish` carried 264 uncommitted files. They are now committed in eight commits split by package (governance, backend, admin, ops, website, kiosk, scripts, social-team move), followed by the journey-smoke, e2e and blueprint commits below. Nothing is deployed from them yet.
 
 | Check | Result | Evidence |
 |---|---|---|
