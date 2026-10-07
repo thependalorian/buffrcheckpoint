@@ -1,10 +1,15 @@
 #!/usr/bin/env npx ts-node
+import { authenticator } from "otplib";
+
 /**
  * Continuous journey smoke tests against a running API (local or prod).
  *
  * Usage:
- *   DEMO_EMAIL=... DEMO_PASSWORD=... API_BASE=https://api.buffrcheckpoint.com \
+ *   DEMO_EMAIL=... DEMO_PASSWORD=... [DEMO_TOTP_SECRET=...] API_BASE=https://api.buffrcheckpoint.com \
  *     npx ts-node scripts/journey-smoke.ts
+ *
+ * DEMO_TOTP_SECRET is the base32 authenticator secret of the test account. It is required when the
+ * account has MFA (login answers mfaRequired); the script never reads or stores it anywhere else.
  *
  * Covers:
  *   1) emergency trigger → roster → resolve
@@ -17,7 +22,9 @@ const API = (process.env.API_BASE ?? "http://localhost:3001").replace(/\/$/, "")
 // No default credentials: the demo sign-ins were removed, and a published password is a back door. Supply a test account.
 const EMAIL = process.env.DEMO_EMAIL;
 const PASSWORD = process.env.DEMO_PASSWORD;
-if (!EMAIL || !PASSWORD) throw new Error("Set DEMO_EMAIL and DEMO_PASSWORD to a test account in a non-production environment");
+const TOTP_SECRET = process.env.DEMO_TOTP_SECRET;
+if (!EMAIL || !PASSWORD)
+  throw new Error("Set DEMO_EMAIL and DEMO_PASSWORD to a test account in a non-production environment");
 
 async function req(path: string, init: RequestInit & { token?: string } = {}) {
   const headers: Record<string, string> = {
@@ -50,7 +57,18 @@ async function main() {
     method: "POST",
     body: JSON.stringify({ email: EMAIL, password: PASSWORD }),
   });
-  const token = (login.accessToken as string) || (login.token as string);
+  let session = login;
+  if (login.mfaRequired) {
+    assert(TOTP_SECRET, "login requires MFA: set DEMO_TOTP_SECRET to the test account's authenticator secret");
+    session = await req("/auth/mfa/challenge/verify", {
+      method: "POST",
+      body: JSON.stringify({
+        challengeToken: login.mfaChallengeToken,
+        code: authenticator.generate(TOTP_SECRET),
+      }),
+    });
+  }
+  const token = (session.accessToken as string) || (session.token as string);
   assert(token, "login did not return accessToken");
 
   const sites = (await req("/sites", { token })) as unknown as Array<{ id: string; name: string }>;
