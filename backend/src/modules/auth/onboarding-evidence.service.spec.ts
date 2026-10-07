@@ -7,6 +7,7 @@ const none: EvidenceSnapshot = {
   launchRoute: false,
   privacyNoticePublished: false,
   retentionPolicy: false,
+  standardsAccepted: false,
   formWithFields: false,
   siteQr: false,
   kioskConfig: false,
@@ -28,11 +29,18 @@ describe("missingEvidence", () => {
     ]);
   });
 
-  it("requires both a published notice and a retention policy", () => {
+  it("requires a published notice, a retention policy and the owner's acceptance of the standards", () => {
     expect(missingEvidence("notices_retention", "qr_first", none)).toEqual([
       "privacy_policy.published_version",
       "retention_policy.at_least_one",
+      "standards.accepted",
     ]);
+  });
+
+  it("is satisfied by the defaults plus one acceptance, with nothing for the owner to type", () => {
+    const withDefaults = { ...none, privacyNoticePublished: true, retentionPolicy: true };
+    expect(missingEvidence("notices_retention", "qr_first", withDefaults)).toEqual(["standards.accepted"]);
+    expect(missingEvidence("notices_retention", "qr_first", { ...withDefaults, standardsAccepted: true })).toEqual([]);
   });
 
   it("requires a test visit and the user's training acknowledgement", () => {

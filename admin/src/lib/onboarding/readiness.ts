@@ -1,7 +1,8 @@
 import type { OnboardingStepCode } from "@/lib/copy/onboarding";
 
 export type LaunchRoute = "qr_first" | "kiosk";
-export type StepRequirement = "required" | "recommended" | "conditional" | "not_applicable";
+/** `auto` steps are completed for the owner from Checkpoint's defaults; they are listed, never asked for. */
+export type StepRequirement = "required" | "auto" | "recommended" | "conditional" | "not_applicable";
 export type StepState = "done" | "skipped" | "todo";
 
 export interface ReadinessStep {
@@ -13,6 +14,35 @@ export interface ReadinessStep {
   blockedBy: string[];
 }
 
+/** Business verification as ops decide it. `none` until the owner submits. */
+export type KybStatus = "none" | "pending" | "verified" | "rejected" | "expired";
+
+/** Everything go-live depends on, shown from the start (backend `goLive` block). */
+export interface GoLiveBlock {
+  subscription: { status: string | null; operationalUseAllowed: boolean };
+  kyb: { status: KybStatus | string; submittedAt: string | null };
+  /** Agreements (`terms`, `privacy`) whose current version the organisation has not accepted. */
+  legalPending: string[];
+  standardsAccepted: boolean;
+  testArrivalDone: boolean;
+  launchAcknowledged: boolean;
+}
+
+/** The organisation's standards as they stand now (backend `GET /auth/onboarding/standards`). */
+export interface StandardsSummary {
+  privacyNotice: { versionId: string; versionNumber: number; text: string | null; isStandard: boolean } | null;
+  retention: { days: number; version: number; isStandard: boolean } | null;
+  form: {
+    definitionId: string;
+    versionId: string;
+    name: string | null;
+    fields: Array<{ code: string; label: string; required: boolean }>;
+  } | null;
+  accepted: boolean;
+  acceptedAt: string | null;
+  ready: boolean;
+}
+
 export interface Readiness {
   status: string | null;
   /** When onboarding began; analytics report elapsed time from here. */
@@ -21,6 +51,7 @@ export interface Readiness {
   currentStep: OnboardingStepCode;
   missingBeforeGolive: OnboardingStepCode[];
   steps: ReadinessStep[];
+  goLive: GoLiveBlock;
   /** Other administrators editing setup right now (advisory, §11.9.15.9). */
   editing: Array<{ stepCode: OnboardingStepCode; email: string }>;
 }
@@ -28,29 +59,8 @@ export interface Readiness {
 /** The four visible treatments of §11.9.15.3. */
 export type StepStatus = "ready" | "blocked" | "complete" | "not_needed";
 
-export const REQUIREMENT_ORDER: readonly StepRequirement[] = [
-  "required",
-  "recommended",
-  "conditional",
-  "not_applicable",
-];
-
-/** Steps that must be done before a site can accept its first check-in, in checklist order. */
-export const FIRST_CHECK_IN_STEPS: readonly OnboardingStepCode[] = [
-  "organisation_profile",
-  "site_hierarchy",
-  "hosts_departments",
-  "launch_route",
-  "notices_retention",
-  "visitor_categories",
-  "check_in_channels",
-];
-
-/**
- * Organisations that started before the checklist was reorganised (v0.33/v0.34
- * release, 2026-10-05) keep every completion and get a one-line explanation.
- */
-export const SETUP_REORGANISED_AT = "2026-10-06T00:00:00Z";
+/** Organisations that started before this date had the longer checklist; they keep every completion and get a one-line note. */
+export const SETUP_REORGANISED_AT = "2026-10-08T00:00:00Z";
 
 export function deriveStatus(step: ReadinessStep): StepStatus {
   if (step.state === "done") return "complete";
@@ -60,37 +70,30 @@ export function deriveStatus(step: ReadinessStep): StepStatus {
   return "ready";
 }
 
-/** Groups checklist steps by requirement, keeping checklist order inside each group; empty groups are dropped. */
-export function groupByRequirement(steps: readonly ReadinessStep[]) {
-  return REQUIREMENT_ORDER.map((requirement) => ({
-    requirement,
-    steps: steps.filter((step) => step.requirement === requirement),
-  })).filter((group) => group.steps.length > 0);
+/** The three things the owner does on the default route, in order. Everything else is done for them or added later. */
+export const OWNER_STEPS = ["flow_tests", "notices_retention", "golive_approval"] as const;
+export type OwnerStep = (typeof OWNER_STEPS)[number];
+
+/** How many of the owner's required steps are done, and how many there are: an honest count, never padded. */
+export function ownerProgress(steps: readonly ReadinessStep[]): { done: number; total: number } {
+  const required = steps.filter((step) => step.requirement === "required");
+  return { done: required.filter((step) => step.state === "done").length, total: required.length };
 }
 
-/** Required steps still open before the first check-in, which the header counts. */
-export function stepsToFirstCheckIn(steps: readonly ReadinessStep[]): number {
+/** Steps the system completed, or is completing, for the owner. Any of them not done is surfaced so nothing is silently wrong. */
+export function autoSteps(steps: readonly ReadinessStep[]): ReadinessStep[] {
+  return steps.filter((step) => step.requirement === "auto");
+}
+
+/** Things the owner can add whenever they like: optional, conditional and not-needed steps. */
+export function addLaterSteps(steps: readonly ReadinessStep[]): ReadinessStep[] {
   return steps.filter(
-    (step) => FIRST_CHECK_IN_STEPS.includes(step.code) && step.requirement === "required" && step.state !== "done",
-  ).length;
-}
-
-/**
- * The one action the home page leads with: the server's current step (first
- * required incomplete step). If that step is blocked, its first prerequisite's
- * step comes first instead, so the card is always actionable.
- */
-export function nextBestAction(readiness: Pick<Readiness, "currentStep" | "steps">): ReadinessStep | null {
-  const current = readiness.steps.find((step) => step.code === readiness.currentStep);
-  if (!current || current.state === "done") return null;
-  if (current.blockedBy.length === 0) return current;
-  return (
-    readiness.steps.find(
-      (step) => step.state !== "done" && step.blockedBy.length === 0 && step.requirement === "required",
-    ) ?? current
+    (step) =>
+      step.requirement === "recommended" || step.requirement === "conditional" || step.requirement === "not_applicable",
   );
 }
 
+/** Organisations that started before setup was shortened keep every completion and get a one-line explanation. */
 export function showReorganisedNote(readiness: Pick<Readiness, "startedAt" | "launchRoute" | "steps">): boolean {
   const started = Date.parse(readiness.startedAt);
   return (
@@ -104,12 +107,4 @@ export function showReorganisedNote(readiness: Pick<Readiness, "startedAt" | "la
 export function elapsedSeconds(startedAt: string, now: number = Date.now()): number {
   const started = Date.parse(startedAt);
   return Number.isNaN(started) ? 0 : Math.max(0, Math.round((now - started) / 1000));
-}
-
-/** Steps whose evidence can be recorded straight from the step page. */
-export const EVIDENCE_ACTION_STEPS = ["role_training"] as const;
-export type EvidenceActionStep = (typeof EVIDENCE_ACTION_STEPS)[number];
-
-export function isEvidenceActionStep(stepCode: string): stepCode is EvidenceActionStep {
-  return (EVIDENCE_ACTION_STEPS as readonly string[]).includes(stepCode);
 }

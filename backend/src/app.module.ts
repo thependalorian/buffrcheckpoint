@@ -40,6 +40,7 @@ import { TelecomsModule } from "./modules/integrations/telecoms/telecoms.module"
 import { InvitationsModule } from "./modules/invitations/invitations.module";
 import { KioskExperienceModule } from "./modules/kiosk-experience/kiosk-experience.module";
 import { KybModule } from "./modules/kyb/kyb.module";
+import { LegalModule } from "./modules/legal/legal.module";
 import { LegalHoldsModule } from "./modules/legal-holds/legal-holds.module";
 import { NotificationsModule } from "./modules/notifications/notifications.module";
 import { OnboardingModule } from "./modules/onboarding/onboarding.module";
@@ -89,6 +90,7 @@ import { VisitsModule } from "./modules/visits/visits.module";
     AccessControlModule,
     DataProtectionModule,
     AuthModule,
+    LegalModule,
     OnboardingModule,
     CapabilityStatusModule,
     OrganisationsModule,

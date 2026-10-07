@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Post, Query } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, HttpStatus, Post } from "@nestjs/common";
 import { IsIn, IsString } from "class-validator";
 
 import { AuditLog } from "../../common/decorators/audit-log.decorator";
@@ -41,11 +41,22 @@ export class OnboardingProgressController {
     return this.progress.readiness(user);
   }
 
-  @Get("evidence")
+  // The visitor privacy notice, retention period and check-in form as they stand, and whether the owner has accepted them.
+  @Get("standards")
   @RequirePermission(PERMISSIONS.ONBOARDING_MANAGE)
   @RequireVerifiedEmail()
-  evidence(@CurrentUser() user: AuthenticatedUser, @Query("step") step: string) {
-    return this.progress.evidenceFor(user, step);
+  standards(@CurrentUser() user: AuthenticatedUser) {
+    return this.progress.standardsSummary(user);
+  }
+
+  // The owner accepts the standards as they stand (Checkpoint's wording, or their own edits). Now or just before go-live.
+  @Post("standards/accept")
+  @HttpCode(HttpStatus.OK)
+  @RequirePermission(PERMISSIONS.ONBOARDING_MANAGE)
+  @RequireVerifiedEmail()
+  @AuditLog({ action: "organisation_onboarding.accept_standards", resourceType: "organisation_onboarding_states" })
+  acceptStandards(@CurrentUser() user: AuthenticatedUser) {
+    return this.progress.acceptStandards(user);
   }
 
   @Post("launch-route")

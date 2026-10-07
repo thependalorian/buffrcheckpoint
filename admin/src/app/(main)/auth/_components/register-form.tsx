@@ -8,11 +8,13 @@ import { useRouter } from "next/navigation";
 import { Building2, Lock, Mail } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useBuffrIdConfig } from "@/lib/auth/use-buffr-id-config";
 import { authCopy } from "@/lib/copy/auth";
+import { LEGAL_LINKS } from "@/lib/legal-links";
 import { AnalyticsEvents, track } from "@/lib/observability/track";
 import { useOrganisationSectors } from "@/lib/use-organisation-sectors";
 
@@ -29,15 +31,21 @@ export function RegisterForm() {
   const [password, setPassword] = useState("");
   // Honeypot: hidden from people, filled in by bots. The API refuses a sign-up that has it.
   const [website, setWebsite] = useState("");
+  // Creating an account is acceptance of the Terms and the Privacy Policy, so it is never pre-ticked.
+  const [acceptTerms, setAcceptTerms] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
     setError(null);
+    if (!acceptTerms) {
+      setError(authCopy.register.terms.required);
+      return;
+    }
     if (buffrId.enabled) {
       // New organisations are created from a Buffr ID sign-in; the organisation details travel in the start request.
-      const params = new URLSearchParams({ intent: "register", org: organisationName, sector: sectorCode });
+      const params = new URLSearchParams({ intent: "register", org: organisationName, sector: sectorCode, terms: "1" });
       window.location.assign(`/api/auth/buffr-id/start?${params.toString()}`);
       return;
     }
@@ -46,7 +54,7 @@ export function RegisterForm() {
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ organisationName, sectorCode, email, password, website }),
+        body: JSON.stringify({ organisationName, sectorCode, email, password, website, acceptTerms }),
       });
       const result = await response.json();
       if (!response.ok) {
@@ -142,6 +150,36 @@ export function RegisterForm() {
           </div>
         </>
       )}
+      <div className="flex items-start gap-2.5">
+        <Checkbox
+          id="acceptTerms"
+          checked={acceptTerms}
+          onCheckedChange={(checked) => setAcceptTerms(checked === true)}
+          aria-describedby="acceptTermsText"
+          className="mt-0.5"
+        />
+        <Label id="acceptTermsText" htmlFor="acceptTerms" className="font-normal text-sm leading-snug">
+          {authCopy.register.terms.agree}{" "}
+          <a
+            href={LEGAL_LINKS.terms}
+            target="_blank"
+            rel="noreferrer"
+            className="text-sodium-yellow-ink underline underline-offset-4"
+          >
+            {authCopy.register.terms.termsLink}
+          </a>{" "}
+          {authCopy.register.terms.and}{" "}
+          <a
+            href={LEGAL_LINKS.privacy}
+            target="_blank"
+            rel="noreferrer"
+            className="text-sodium-yellow-ink underline underline-offset-4"
+          >
+            {authCopy.register.terms.privacyLink}
+          </a>
+          .
+        </Label>
+      </div>
       {urlError && authCopy.buffrId.errors[urlError] ? (
         <p className="text-destructive text-sm">{authCopy.buffrId.errors[urlError]}</p>
       ) : null}

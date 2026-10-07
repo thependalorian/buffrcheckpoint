@@ -13,6 +13,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Organisation name, sector, email, and password are required" }, { status: 400 });
   }
 
+  if (body.acceptTerms !== true) {
+    return NextResponse.json(
+      { error: "You must accept the Terms and Conditions and the Privacy Policy to create an account" },
+      { status: 400 },
+    );
+  }
+
   const response = await fetch(backendUrl("/onboarding/organisation-admin"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -21,6 +28,7 @@ export async function POST(request: Request) {
       sectorCode: body.sectorCode,
       email: body.email,
       password: body.password,
+      acceptTerms: true,
       website: typeof body.website === "string" ? body.website : undefined,
     }),
   });

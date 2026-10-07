@@ -89,7 +89,7 @@ describe("Site notices and QR types (e2e)", () => {
       .post("/onboarding/organisation-admin")
       .send({
         organisationName: `E2E Notices ${runId}`,
-        sectorCode: "sme",
+        sectorCode: "sme", acceptTerms: true,
         email: ownerEmail,
         password: "testpassword123",
       })

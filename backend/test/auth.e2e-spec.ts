@@ -112,7 +112,7 @@ describe("Secure onboarding auth (e2e)", () => {
       .post("/onboarding/organisation-admin")
       .send({
         organisationName: `E2E Org A ${runId}`,
-        sectorCode: "sme",
+        sectorCode: "sme", acceptTerms: true,
         email: email("org-a-admin"),
         password: "testpassword123",
       })
@@ -138,7 +138,7 @@ describe("Secure onboarding auth (e2e)", () => {
       .post("/onboarding/organisation-admin")
       .send({
         organisationName: `Should Not Exist ${runId}`,
-        sectorCode: "sme",
+        sectorCode: "sme", acceptTerms: true,
         email: email("org-a-admin"),
         password: "testpassword123",
       })
@@ -228,7 +228,7 @@ describe("Secure onboarding auth (e2e)", () => {
       .post("/onboarding/organisation-admin")
       .send({
         organisationName: `E2E Org B ${runId}`,
-        sectorCode: "sme",
+        sectorCode: "sme", acceptTerms: true,
         email: email("org-b-admin"),
         password: "testpassword123",
       })

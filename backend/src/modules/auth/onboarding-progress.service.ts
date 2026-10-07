@@ -5,10 +5,13 @@ import type { AuthenticatedUser } from "../../common/decorators/current-user.dec
 import type { Database } from "../../db/client";
 import { DB } from "../../db/db.module";
 import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.service";
+import { LegalService } from "../legal/legal.service";
 import { TemplatedEmailService } from "../notifications/templated-email.service";
 import {
+  autoSteps,
   canSkipStep,
   currentStep,
+  DEFAULT_LAUNCH_ROUTE,
   describeSteps,
   isLaunchRoute,
   isOnboardingStep,
@@ -21,8 +24,14 @@ import {
 } from "../onboarding/onboarding-steps";
 import type { OnboardingStateRow } from "../onboarding-state/onboarding-state.service";
 import { OnboardingStateService } from "../onboarding-state/onboarding-state.service";
+import { OrganisationStandardsService } from "../organisation-standards/organisation-standards.service";
 import { AuthService } from "./auth.service";
-import { blockedBy, missingEvidence, OnboardingEvidenceService } from "./onboarding-evidence.service";
+import {
+  blockedBy,
+  type EvidenceSnapshot,
+  missingEvidence,
+  OnboardingEvidenceService,
+} from "./onboarding-evidence.service";
 import { OnboardingPresenceService } from "./onboarding-presence.service";
 
 const SETUP_CLOSED = new Set(["ready_for_golive", "live", "suspended"]);
@@ -58,6 +67,8 @@ export class OnboardingProgressService {
     private readonly auth: AuthService,
     private readonly templatedEmail: TemplatedEmailService,
     private readonly presence: OnboardingPresenceService,
+    private readonly standards: OrganisationStandardsService,
+    private readonly legal: LegalService,
   ) {}
 
   /**
@@ -65,6 +76,10 @@ export class OnboardingProgressService {
    * prerequisites, plus who else is editing setup, for the readiness overview.
    */
   async readiness(user: AuthenticatedUser) {
+    // Steps the system completes from defaults are brought up to date first, so the owner never sees one as a to-do that is done.
+    await this.syncAutoSteps(user).catch((error) =>
+      this.logger.warn(`onboarding auto-steps not synced: ${error instanceof Error ? error.message : String(error)}`),
+    );
     const loaded = await this.load(user.organisationId);
     const facts = await this.evidence.snapshot(user.organisationId, user.userId);
     const steps = describeSteps(loaded.progress).map((step) => ({
@@ -78,11 +93,97 @@ export class OnboardingProgressService {
       launchRoute: loaded.progress.route,
       currentStep: currentStep(loaded.progress),
       missingBeforeGolive: missingBeforeGolive(loaded.progress),
+      goLive: await this.goLiveBlock(user, facts),
       steps,
       editing: this.presence
         .others(user.organisationId, user.userId)
         .map(({ stepCode, email }) => ({ stepCode, email })),
     };
+  }
+
+  /**
+   * Everything go-live depends on, in one place, so the owner sees it from the start instead of meeting it as a refusal at the
+   * end: the plan, business verification (reviewed by hand by Buffr ops), the current agreements, the standards, the first test
+   * arrival and the owner's launch acknowledgement.
+   */
+  private async goLiveBlock(user: AuthenticatedUser, facts: EvidenceSnapshot) {
+    const [subscription, kyb, legal] = await Promise.all([
+      this.auth.resolveSubscriptionEntitlement(user.organisationId),
+      this.db.execute(sql`
+        SELECT td.code AS status_code, v.submitted_at
+        FROM organisation_kyb_verification v JOIN type_definition td ON td.id = v.status_code
+        WHERE v.organisation_id = ${user.organisationId}
+        ORDER BY v.submitted_at DESC LIMIT 1`),
+      this.legal.status(user.organisationId),
+    ]);
+    const kybRow = kyb.rows[0] as { status_code?: string; submitted_at?: string | Date } | undefined;
+    return {
+      subscription: { status: subscription.status, operationalUseAllowed: subscription.operationalUseAllowed },
+      // `none` until the owner submits; then pending, verified, rejected or expired as ops decide.
+      kyb: {
+        status: kybRow?.status_code ?? "none",
+        submittedAt: kybRow?.submitted_at ? new Date(kybRow.submitted_at).toISOString() : null,
+      },
+      legalPending: legal.pending,
+      standardsAccepted: facts.standardsAccepted,
+      testArrivalDone: facts.testVisit,
+      launchAcknowledged: facts.trainingAcknowledged,
+    };
+  }
+
+  /**
+   * Completes the steps Checkpoint's defaults satisfy, and applies the default launch route. It only ever adds a completion when the
+   * evidence for the step exists right now, so it cannot mark anything done that is not, and it stops once setup is closed.
+   */
+  async syncAutoSteps(user: AuthenticatedUser): Promise<void> {
+    const before = await this.load(user.organisationId);
+    if (before.status && SETUP_CLOSED.has(before.status)) return;
+    const route: LaunchRoute = before.progress.route ?? DEFAULT_LAUNCH_ROUTE;
+    const facts = await this.evidence.snapshot(user.organisationId, user.userId);
+    // The default route is applied for the owner as soon as a site exists, in the same write that completes the step, so that step is
+    // satisfiable exactly when it is unblocked. Every other step needs its own evidence to exist right now.
+    const ready = autoSteps(route).filter((step) =>
+      step === "launch_route"
+        ? blockedBy(step, facts).length === 0
+        : missingEvidence(step, route, facts).length === 0 && blockedBy(step, facts).length === 0,
+    );
+    const alreadyDone = ready.every((step) => before.progress.completed.includes(step));
+    if (ready.length === 0 || (alreadyDone && before.progress.route !== null)) return;
+
+    await this.onboardingState.advanceIfEarlyStage(user.organisationId, "in_progress", user.userId, ready[0]);
+    await this.commit(user, ready[0], async ({ status, progress }) => {
+      const nextRoute = progress.route ?? (blockedBy("launch_route", facts).length === 0 ? DEFAULT_LAUNCH_ROUTE : null);
+      const completed = ready.reduce((list, step) => union(list, step), [...progress.completed]);
+      const skipped = progress.skipped.filter((code) => !ready.includes(code as OnboardingStepCode));
+      const unchanged =
+        completed.length === progress.completed.length &&
+        skipped.length === progress.skipped.length &&
+        nextRoute === progress.route;
+      if (unchanged) return null;
+      const after = { route: nextRoute, completed, skipped };
+      const readyForGolive = status === "in_progress" && missingBeforeGolive(after).length === 0;
+      return {
+        completed,
+        skipped,
+        route: nextRoute,
+        toStatus: readyForGolive ? "ready_for_golive" : null,
+        goliveApprovedBy: null,
+      };
+    });
+  }
+
+  /** What the owner is asked to accept: the visitor notice, the retention period and the check-in form, as they stand now. */
+  async standardsSummary(user: AuthenticatedUser) {
+    return this.standards.summary(user.organisationId);
+  }
+
+  /**
+   * The owner accepts the organisation standards as they stand (Checkpoint's wording, or their own edits). Recorded in the audit chain
+   * with a fingerprint of exactly what was accepted, then the review step completes. Can be done now or just before go-live.
+   */
+  async acceptStandards(user: AuthenticatedUser) {
+    await this.standards.accept(user);
+    return this.completeStep(user, "notices_retention");
   }
 
   /** Advisory heartbeat from a step page (§11.9.15.9); never blocks a write. */
@@ -100,17 +201,10 @@ export class OnboardingProgressService {
     };
   }
 
-  async evidenceFor(user: AuthenticatedUser, step: string) {
-    const code = this.requireStep(step);
-    const loaded = await this.load(user.organisationId);
-    const facts = await this.evidence.snapshot(user.organisationId, user.userId);
-    const missing = missingEvidence(code, loaded.progress.route, facts);
-    return { step: code, missingEvidence: missing, satisfied: missing.length === 0 };
-  }
-
   async setLaunchRoute(user: AuthenticatedUser, route: string) {
     if (!isLaunchRoute(route)) throw new BadRequestException(`Unknown launch route '${route}'`);
     await this.evidence.assertUnblocked(user.organisationId, user.userId, "launch_route");
+    const facts = await this.evidence.snapshot(user.organisationId, user.userId);
     await this.commit(user, "launch_route", async ({ status, progress }) => {
       if (progress.route === route && progress.completed.includes("launch_route")) return null;
       if (status && SETUP_CLOSED.has(status) && progress.route !== route) {
@@ -119,8 +213,18 @@ export class OnboardingProgressService {
           message: "The launch route cannot change after setup is complete. Ask Buffr support to reopen setup.",
         });
       }
+      // A different route can need different evidence for a step that was already complete (a kiosk needs a kiosk configuration where a
+      // QR-first site does not). A completion is only kept if it still holds under the new route, so go-live can never pass on
+      // evidence that no longer applies.
+      const stillHolds = progress.completed.filter((code) => {
+        const step = code as OnboardingStepCode;
+        if (!isOnboardingStep(step) || step === "launch_route") return true;
+        const requirement = stepRequirement(step, route);
+        if (requirement !== "required" && requirement !== "auto") return true;
+        return missingEvidence(step, route, facts).length === 0;
+      });
       return {
-        completed: union(progress.completed, "launch_route"),
+        completed: union(stillHolds, "launch_route"),
         skipped: progress.skipped.filter((code) => code !== "launch_route"),
         route,
         toStatus: null,
@@ -132,6 +236,8 @@ export class OnboardingProgressService {
 
   async completeStep(user: AuthenticatedUser, step: string) {
     const code = this.requireStep(step);
+    // Go-live counts the system's steps too (including the launch acknowledgement the owner has just given), so bring them up to date.
+    if (code === "golive_approval") await this.syncAutoSteps(user);
     // An organisation still in an activation stage enters setup on its first checklist write.
     await this.onboardingState.advanceIfEarlyStage(user.organisationId, "in_progress", user.userId, code);
 
@@ -157,6 +263,14 @@ export class OnboardingProgressService {
             code: "ONBOARDING_EVIDENCE_MISSING",
             message: "Complete the required steps before go-live approval",
             missingEvidence: missing.map((item) => `step.${item}`),
+          });
+        }
+        // Go-live is the owner's commitment, so it needs the current Terms and Privacy Policy accepted.
+        if (!(await this.legal.isCurrent(user.organisationId))) {
+          throw new BadRequestException({
+            code: "ONBOARDING_EVIDENCE_MISSING",
+            message: "Accept the current Terms and Privacy Policy before go-live",
+            missingEvidence: ["legal.current_versions"],
           });
         }
         await this.assertEntitled(user);

@@ -34,12 +34,15 @@ export function TestVisitPanel({
   target,
   startedAt,
   launchRoute,
+  embedded = false,
 }: {
   organisationName: string;
   initialVisit: TestVisit | null;
   target: TestVisitTarget | null;
   startedAt: string;
   launchRoute: LaunchRoute | null;
+  /** Inside the Setup home: no heading of its own and no link back to the page it is already on. */
+  embedded?: boolean;
 }) {
   const copy = onboardingCopy.testVisit;
   const { post, pending, error, setError, router, elapsed } = useStepWrite(startedAt);
@@ -107,8 +110,8 @@ export function TestVisitPanel({
   const place = visit ?? target;
 
   return (
-    <section className="space-y-4 rounded-md border px-4 py-4">
-      <h3 className="font-heading text-lg">{copy.title}</h3>
+    <section className={embedded ? "space-y-4" : "space-y-4 rounded-md border px-4 py-4"}>
+      {embedded ? null : <h3 className="font-heading text-lg">{copy.title}</h3>}
       {place ? (
         <div className="space-y-1 text-sm">
           <p className="text-muted-foreground">{copy.intro}</p>
@@ -157,11 +160,13 @@ export function TestVisitPanel({
             {copy.another}
           </Button>
         ) : null}
-        <Button asChild variant="ghost" className="min-h-11">
-          <Link href="/onboarding" prefetch={false}>
-            {onboardingCopy.backToOnboarding}
-          </Link>
-        </Button>
+        {embedded ? null : (
+          <Button asChild variant="ghost" className="min-h-11">
+            <Link href="/onboarding" prefetch={false}>
+              {onboardingCopy.backToOnboarding}
+            </Link>
+          </Button>
+        )}
       </div>
     </section>
   );

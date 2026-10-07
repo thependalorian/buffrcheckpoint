@@ -103,7 +103,7 @@ describe("Visitor journey and credit notes (e2e)", () => {
       .post("/onboarding/organisation-admin")
       .send({
         organisationName: `E2E Visitor ${runId}`,
-        sectorCode: "sme",
+        sectorCode: "sme", acceptTerms: true,
         email: ownerEmail,
         password: "testpassword123",
       })

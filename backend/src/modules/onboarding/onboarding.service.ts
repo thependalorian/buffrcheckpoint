@@ -15,6 +15,8 @@ import {
 import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.service";
 import { AuthService } from "../auth/auth.service";
 import { BuffrIdService, legacyPasswordMode } from "../auth/buffr-id.service";
+import { LegalService } from "../legal/legal.service";
+import { SIGNUP_DOCUMENTS } from "../legal/legal-documents";
 import { TemplatedEmailService } from "../notifications/templated-email.service";
 import type { CreateOrganisationAdminDto } from "./dto/create-organisation-admin.dto";
 import { assessSignup, emailDomain, signupLimitsFromEnv } from "./signup-abuse";
@@ -37,6 +39,7 @@ export class OnboardingService {
     private readonly authService: AuthService,
     private readonly buffrId: BuffrIdService,
     private readonly templatedEmail: TemplatedEmailService,
+    private readonly legal: LegalService,
   ) {}
 
   /** Refuses obvious sign-up abuse before anything is written or any email is sent (signup-abuse.ts). */
@@ -94,14 +97,21 @@ export class OnboardingService {
     idToken: string;
     organisationName: string;
     sectorCode: string;
+    acceptTerms: boolean;
     nonce?: string;
   }): Promise<OnboardingResult> {
+    if (input.acceptTerms !== true) {
+      throw new ForbiddenException(
+        "You must accept the Terms and Conditions and the Privacy Policy to create an account",
+      );
+    }
     const identity = await this.buffrId.verifyIdToken(input.idToken, "admin", input.nonce);
     const dto = {
       organisationName: input.organisationName,
       sectorCode: input.sectorCode,
       email: identity.email,
       password: "",
+      acceptTerms: true,
     };
     await this.assertNotAbusive({ ...dto, website: undefined });
     const existing = await this.db.query.applicationUsers.findFirst({
@@ -224,6 +234,9 @@ export class OnboardingService {
         eventHash: userEventHash,
       }),
     ]);
+
+    // Account creation is acceptance of the current Terms and Privacy Policy; the DTO refuses a request that does not say so.
+    await this.legal.accept({ userId, organisationId }, SIGNUP_DOCUMENTS);
 
     if (!opts.emailVerified) await this.authService.issueEmailVerification(userId, organisationId, dto.email);
     await this.notifyOpsOfNewOrganisation({

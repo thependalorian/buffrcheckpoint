@@ -1,4 +1,5 @@
 import {
+  autoSteps,
   canSkipStep,
   currentStep,
   describeSteps,
@@ -11,7 +12,16 @@ import {
   stepRequirement,
 } from "./onboarding-steps";
 
+/** Everything that must be done before go-live: the owner's required steps and the ones the system completes. */
 const requiredFor = (route: LaunchRoute) =>
+  ONBOARDING_STEPS.filter(
+    (step) =>
+      step !== "golive_approval" &&
+      (STEP_REQUIREMENTS[step][route] === "required" || STEP_REQUIREMENTS[step][route] === "auto"),
+  );
+
+/** What the owner actually has to do. */
+const ownerStepsFor = (route: LaunchRoute) =>
   ONBOARDING_STEPS.filter((step) => step !== "golive_approval" && STEP_REQUIREMENTS[step][route] === "required");
 
 describe("launch-readiness checklist", () => {
@@ -25,6 +35,37 @@ describe("launch-readiness checklist", () => {
     expect(ONBOARDING_STEPS.at(-1)).toBe("golive_approval");
   });
 
+  it("asks the owner for three things on the default route: standards, a first test arrival, and go-live", () => {
+    expect([...ownerStepsFor("qr_first"), "golive_approval"]).toEqual([
+      "notices_retention",
+      "flow_tests",
+      "golive_approval",
+    ]);
+  });
+
+  it("asks a kiosk owner for two more: a kiosk configuration and a device", () => {
+    expect(ownerStepsFor("kiosk")).toEqual(["notices_retention", "check_in_channels", "devices_mdm", "flow_tests"]);
+  });
+
+  it("completes setup for the owner from defaults: profile, site, host, route, form, QR and the launch acknowledgement", () => {
+    expect(autoSteps("qr_first")).toEqual([
+      "organisation_profile",
+      "site_hierarchy",
+      "hosts_departments",
+      "launch_route",
+      "visitor_categories",
+      "check_in_channels",
+      "role_training",
+    ]);
+    // The kiosk route keeps the channels step as the owner's, because a kiosk configuration is theirs to make.
+    expect(autoSteps("kiosk")).not.toContain("check_in_channels");
+    expect(autoSteps(null)).toEqual(autoSteps("qr_first"));
+  });
+
+  it("never lets the owner skip an automatic step", () => {
+    for (const step of autoSteps("qr_first")) expect(canSkipStep(step, "qr_first")).toBe(false);
+  });
+
   it("matches the documented requirement matrix", () => {
     expect(ONBOARDING_STEPS).not.toContain("branding"); // custom branding was retired
     expect(stepRequirement("devices_mdm", "qr_first")).toBe("not_applicable");
@@ -32,6 +73,8 @@ describe("launch-readiness checklist", () => {
     expect(stepRequirement("cran_evidence", "kiosk")).toBe("conditional");
     expect(stepRequirement("risk_identity_approval", "qr_first")).toBe("recommended");
     expect(stepRequirement("flow_tests", null)).toBe("required");
+    expect(stepRequirement("notices_retention", "qr_first")).toBe("required");
+    expect(stepRequirement("organisation_profile", "qr_first")).toBe("auto");
   });
 
   it.each(LAUNCH_ROUTES)("blocks go-live exactly when a required %s step is incomplete", (route) => {
@@ -53,19 +96,21 @@ describe("launch-readiness checklist", () => {
     ]);
   });
 
-  it("points at the first required incomplete step and never rewinds", () => {
-    expect(currentStep({ route: null, completed: [], skipped: [] })).toBe("organisation_profile");
-    expect(
-      currentStep({
-        route: null,
-        completed: ["organisation_profile", "site_hierarchy", "hosts_departments"],
-        skipped: [],
-      }),
-    ).toBe("launch_route");
-    // Completing a later optional step does not move the pointer back or forward.
-    const completed: OnboardingStepCode[] = ["organisation_profile", "risk_identity_approval"];
-    expect(currentStep({ route: "qr_first", completed, skipped: [] })).toBe("site_hierarchy");
+  it("points at the first step the owner has to do, then at go-live, and never rewinds", () => {
+    // A brand-new organisation: the system's steps are not the owner's, so the pointer is the standards review.
+    expect(currentStep({ route: null, completed: [], skipped: [] })).toBe("notices_retention");
+    // Standards accepted: the next thing is the first test arrival.
+    expect(currentStep({ route: "qr_first", completed: ["notices_retention"], skipped: [] })).toBe("flow_tests");
+    // Completing an optional step does not move the pointer.
+    const completed: OnboardingStepCode[] = ["notices_retention", "risk_identity_approval"];
+    expect(currentStep({ route: "qr_first", completed, skipped: [] })).toBe("flow_tests");
     expect(currentStep({ route: "qr_first", completed: requiredFor("qr_first"), skipped: [] })).toBe("golive_approval");
+  });
+
+  it("falls back to an automatic step only when nothing is left for the owner", () => {
+    const completed = ["notices_retention", "flow_tests"] as OnboardingStepCode[];
+    // The owner's steps are done, but the system's site step is not (say the only site was deleted): it is surfaced.
+    expect(currentStep({ route: "qr_first", completed, skipped: [] })).toBe("organisation_profile");
   });
 
   it("allows skipping only recommended and conditional steps", () => {

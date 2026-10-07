@@ -6,6 +6,13 @@ export const authCopy = {
     submitting: "Creating account...",
     haveAccount: "Already have an account?",
     signIn: "Sign in",
+    terms: {
+      agree: "I agree to the",
+      and: "and the",
+      termsLink: "Terms and Conditions",
+      privacyLink: "Privacy Policy",
+      required: "Please accept the Terms and Conditions and the Privacy Policy to create your account.",
+    },
   },
   buffrId: {
     continue: "Continue with Buffr ID",
@@ -24,6 +31,7 @@ export const authCopy = {
       buffr_id_failed: "We could not sign you in with Buffr ID. Try again or contact support.",
       no_account: "There is no Checkpoint organisation for this Buffr ID yet. Create your organisation below.",
       details_required: "Enter your organisation name and sector first.",
+      terms_required: "Please accept the Terms and Conditions and the Privacy Policy to create your account.",
       busy: "Sign-up is busy right now. Try again later.",
       create_failed: "We could not create your organisation. Try again or contact support.",
     } as Record<string, string>,

@@ -12,6 +12,7 @@ import { PERMISSIONS } from "../../common/rbac/permissions";
 import { CreateOrganisationAdminDto, CreateOrganisationWithBuffrIdDto } from "./dto/create-organisation-admin.dto";
 import { OnboardingService } from "./onboarding.service";
 import { OnboardingTestVisitService } from "./onboarding-test-visit.service";
+import { OrganisationDefaultsService } from "./organisation-defaults.service";
 import { StaffTrainingService } from "./staff-training.service";
 
 /** Client-generated id so a retried request never creates a second row. */
@@ -26,6 +27,7 @@ export class OnboardingController {
     private readonly onboardingService: OnboardingService,
     private readonly testVisits: OnboardingTestVisitService,
     private readonly training: StaffTrainingService,
+    private readonly defaults: OrganisationDefaultsService,
   ) {}
 
   // The only entry point for a brand-new customer (Section 17.1's
@@ -52,6 +54,17 @@ export class OnboardingController {
   @Post("organisation-buffr-id")
   createOrganisationWithBuffrId(@Body() dto: CreateOrganisationWithBuffrIdDto) {
     return this.onboardingService.createOrganisationWithBuffrId(dto);
+  }
+
+  // Fills in whatever the organisation is missing (site, first host, standard form, QR, privacy notice, retention) so setup opens with
+  // a working check-in. Idempotent: it never changes anything that already exists.
+  @Post("defaults")
+  @HttpCode(HttpStatus.OK)
+  @RequirePermission(PERMISSIONS.ONBOARDING_MANAGE)
+  @RequireVerifiedEmail()
+  @AuditLog({ action: "organisation_onboarding.defaults", resourceType: "organisation_onboarding_states" })
+  ensureDefaults(@CurrentUser() user: AuthenticatedUser) {
+    return this.defaults.ensure(user);
   }
 
   @Get("test-visit")

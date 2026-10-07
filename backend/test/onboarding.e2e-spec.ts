@@ -44,7 +44,7 @@ describe("Onboarding launch readiness (e2e)", () => {
       .post("/onboarding/organisation-admin")
       .send({
         organisationName: `E2E Readiness ${runId}`,
-        sectorCode: "sme",
+        sectorCode: "sme", acceptTerms: true,
         email: ownerEmail,
         password: "testpassword123",
       })

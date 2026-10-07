@@ -15,9 +15,9 @@ export default async function OnboardingLayout({ children }: { children: ReactNo
   if (!gate.emailVerified) {
     redirect("/auth/check-email");
   }
-  if (!gate.mfaEnabled) {
-    redirect("/auth/mfa/setup");
-  }
+  // Two-step sign-in is set up after go-live, not before: it is required once an organisation is live (the proxy and the API both
+  // enforce that), and sending a brand-new owner through a QR code and recovery codes before they have seen anything work is the
+  // detour setup no longer has.
   if (gate.onboardingComplete) {
     redirect("/dashboard/overview");
   }

@@ -13,7 +13,10 @@ export interface BuffrIdClient {
 }
 
 /** Null when Buffr ID sign-in is not configured for this deployment. */
-export function buffrIdClient(origin: string, env: Record<string, string | undefined> = process.env): BuffrIdClient | null {
+export function buffrIdClient(
+  origin: string,
+  env: Record<string, string | undefined> = process.env,
+): BuffrIdClient | null {
   const issuer = env.BUFFR_ID_ISSUER?.trim().replace(/\/$/, "");
   const clientId = env.BUFFR_ID_CLIENT_ID_ADMIN?.trim();
   const clientSecret = env.BUFFR_ID_CLIENT_SECRET_ADMIN?.trim();
@@ -60,6 +63,8 @@ export interface FlowState {
   next: string | null;
   organisationName: string | null;
   sectorCode: string | null;
+  /** The person ticked the agreement before being sent to Buffr ID. Only meaningful for `register`. */
+  acceptTerms: boolean;
 }
 
 export const FLOW_COOKIE = "bc_buffr_id_flow";
@@ -83,6 +88,7 @@ export function decodeFlow(raw: string | undefined): FlowState | null {
       next: typeof f.next === "string" ? f.next : null,
       organisationName: typeof f.organisationName === "string" ? f.organisationName : null,
       sectorCode: typeof f.sectorCode === "string" ? f.sectorCode : null,
+      acceptTerms: f.acceptTerms === true,
     };
   } catch {
     return null;
@@ -91,5 +97,9 @@ export function decodeFlow(raw: string | undefined): FlowState | null {
 
 /** Constant-time-enough comparison for the state parameter. */
 export function sameState(a: string | null, b: string): boolean {
-  return a !== null && a.length === b.length && createHash("sha256").update(a).digest().equals(createHash("sha256").update(b).digest());
+  return (
+    a !== null &&
+    a.length === b.length &&
+    createHash("sha256").update(a).digest().equals(createHash("sha256").update(b).digest())
+  );
 }

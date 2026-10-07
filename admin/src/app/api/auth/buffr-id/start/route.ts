@@ -1,6 +1,15 @@
 import { NextResponse } from "next/server";
 
-import { authorizeUrl, buffrIdClient, encodeFlow, FLOW_COOKIE, FLOW_MAX_AGE_SECONDS, type FlowIntent, pkcePair, randomToken } from "@/lib/auth/buffr-id";
+import {
+  authorizeUrl,
+  buffrIdClient,
+  encodeFlow,
+  FLOW_COOKIE,
+  FLOW_MAX_AGE_SECONDS,
+  type FlowIntent,
+  pkcePair,
+  randomToken,
+} from "@/lib/auth/buffr-id";
 import { safeNextPath } from "@/lib/auth/safe-next-path";
 
 // Starts a Buffr ID sign-in or sign-up. A GET: it only redirects, and the callback checks the state this sets.
@@ -14,6 +23,11 @@ export async function GET(request: Request) {
   const sectorCode = url.searchParams.get("sector")?.trim().slice(0, 80) || null;
   if (intent === "register" && (!organisationName || !sectorCode)) {
     return NextResponse.redirect(new URL("/auth/register?error=details_required", url.origin));
+  }
+  // Creating an organisation is acceptance of the Terms and the Privacy Policy; no account is started without it.
+  const acceptTerms = url.searchParams.get("terms") === "1";
+  if (intent === "register" && !acceptTerms) {
+    return NextResponse.redirect(new URL("/auth/register?error=terms_required", url.origin));
   }
 
   const { verifier, challenge } = pkcePair();
@@ -30,8 +44,15 @@ export async function GET(request: Request) {
       next: url.searchParams.get("next") ? safeNextPath(url.searchParams.get("next")) : null,
       organisationName,
       sectorCode,
+      acceptTerms,
     }),
-    { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/api/auth/buffr-id", maxAge: FLOW_MAX_AGE_SECONDS },
+    {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/api/auth/buffr-id",
+      maxAge: FLOW_MAX_AGE_SECONDS,
+    },
   );
   return response;
 }

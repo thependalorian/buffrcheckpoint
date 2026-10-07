@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { blockerText, onboardingCopy } from "@/lib/copy/onboarding";
 import { AnalyticsEvents, track } from "@/lib/observability/track";
-import { type EvidenceActionStep, elapsedSeconds, type LaunchRoute } from "@/lib/onboarding/readiness";
+import { elapsedSeconds, type LaunchRoute } from "@/lib/onboarding/readiness";
 
 import { rememberConflict } from "./conflict-notice";
 
@@ -31,7 +31,7 @@ export function useStepWrite(startedAt: string) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function post(path: string, body: Record<string, string>): Promise<StepResponse | null> {
+  async function post(path: string, body: Record<string, unknown>): Promise<StepResponse | null> {
     if (inFlight.current) return null;
     inFlight.current = true;
     setPending(true);
@@ -172,36 +172,6 @@ export function SkipStepButton({ stepCode, startedAt }: { stepCode: string; star
       <SaveError message={error} />
       <Button className="min-h-11" variant="ghost" onClick={handleSkip} disabled={pending}>
         {pending ? onboardingCopy.skipping : onboardingCopy.skip}
-      </Button>
-    </div>
-  );
-}
-
-const EVIDENCE_ACTION_PATHS: Record<EvidenceActionStep, string> = {
-  role_training: "/api/onboarding/training-acknowledgement",
-};
-
-/** Records the evidence a step needs (the launch acknowledgement) without leaving the step. */
-export function EvidenceActionButton({ stepCode, startedAt }: { stepCode: EvidenceActionStep; startedAt: string }) {
-  const { post, pending, error, router } = useStepWrite(startedAt);
-  const clientId = useRef<string | null>(null);
-  const [done, setDone] = useState(false);
-  const copy = onboardingCopy.evidenceActions[stepCode];
-
-  async function handleClick() {
-    clientId.current ??= crypto.randomUUID();
-    const result = await post(EVIDENCE_ACTION_PATHS[stepCode], { id: clientId.current });
-    if (!result || result.error) return;
-    setDone(true);
-    router.refresh();
-  }
-
-  return (
-    <div className="flex flex-col gap-2">
-      <SaveError message={error} />
-      {done ? <p className="text-sm">{copy.done}</p> : null}
-      <Button className="min-h-11" variant="outline" onClick={handleClick} disabled={pending || done}>
-        {pending ? copy.pending : copy.label}
       </Button>
     </div>
   );

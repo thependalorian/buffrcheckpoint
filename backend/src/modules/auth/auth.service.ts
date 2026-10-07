@@ -1110,15 +1110,15 @@ export class AuthService {
     emailVerified: boolean,
     mfaEnabled: boolean,
     statusCode?: string | null,
-    stepCode?: string | null,
+    _stepCode?: string | null,
     canManageOnboarding = true,
   ): string {
     if (!emailVerified) return "/auth/check-email";
     // MFA comes after onboarding: optional while an organisation is being set up, required once it is live.
     if (statusCode === "live") return mfaEnabled ? "/dashboard/overview" : "/auth/mfa/setup";
     if (!canManageOnboarding) return "/onboarding/waiting";
-    if (stepCode) return `/onboarding/${stepCode.replace(/_/g, "-")}`;
-    return "/onboarding/organisation-profile";
+    // Setup has one home: it shows where the organisation stands and leads with the next action. It never deep-links into a step page.
+    return "/onboarding";
   }
 
   /**

@@ -19,7 +19,11 @@ export async function GET(request: Request) {
   if (!client) return fail(url.origin, "buffr_id_unavailable");
 
   const cookieHeader = request.headers.get("cookie") ?? "";
-  const raw = cookieHeader.split(";").map((c) => c.trim()).find((c) => c.startsWith(`${FLOW_COOKIE}=`))?.slice(FLOW_COOKIE.length + 1);
+  const raw = cookieHeader
+    .split(";")
+    .map((c) => c.trim())
+    .find((c) => c.startsWith(`${FLOW_COOKIE}=`))
+    ?.slice(FLOW_COOKIE.length + 1);
   const flow = decodeFlow(raw);
   if (!flow || !sameState(url.searchParams.get("state"), flow.state)) return fail(url.origin, "buffr_id_state");
   const code = url.searchParams.get("code");
@@ -44,7 +48,12 @@ export async function GET(request: Request) {
   if (!idToken) return fail(url.origin, "buffr_id_token");
 
   const post = (path: string, body: Record<string, unknown>) =>
-    fetch(backendUrl(path), { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body), cache: "no-store" });
+    fetch(backendUrl(path), {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body),
+      cache: "no-store",
+    });
 
   if (flow.intent === "register") {
     const created = await post("/onboarding/organisation-buffr-id", {
@@ -52,9 +61,12 @@ export async function GET(request: Request) {
       nonce: flow.nonce,
       organisationName: flow.organisationName,
       sectorCode: flow.sectorCode,
+      acceptTerms: flow.acceptTerms,
     });
     if (!created.ok && created.status !== 409) {
-      return NextResponse.redirect(new URL(`/auth/register?error=${created.status === 429 ? "busy" : "create_failed"}`, url.origin));
+      return NextResponse.redirect(
+        new URL(`/auth/register?error=${created.status === 429 ? "busy" : "create_failed"}`, url.origin),
+      );
     }
   }
 

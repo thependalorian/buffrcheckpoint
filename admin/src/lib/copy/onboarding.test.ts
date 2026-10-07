@@ -49,8 +49,35 @@ describe("onboarding copy (§11.9.15.4)", () => {
     expect(blockerText("step.site_hierarchy")).toBe("Complete: First site");
   });
 
-  it("states the counts left to the first check-in in plain words", () => {
-    expect(onboardingCopy.overview.stepsLeft(3)).toBe("You are 3 steps away from accepting your first QR check-in.");
-    expect(onboardingCopy.overview.stepsLeft(1)).toBe("You are 1 step away from accepting your first QR check-in.");
+  it("states the owner's progress in plain words", () => {
+    expect(onboardingCopy.home.progress(1, 3)).toBe("1 of 3 done");
+    expect(onboardingCopy.home.standards.days(365)).toBe("365 days");
+    expect(onboardingCopy.home.standards.days(1)).toBe("1 day");
+  });
+
+  it("makes no compliance claim and puts the responsibility where it belongs", () => {
+    const text = onboardingCopy.home.standards.responsibility;
+    expect(text).toMatch(/responsible for its own legal obligations/);
+    expect(text).toMatch(/designed to support/);
+    expect(strings.join(" ").toLowerCase()).not.toMatch(/\bcompliant\b|\bcertified\b|guarantee/);
+  });
+
+  it("uses no em dash and no emoji anywhere in the setup copy", () => {
+    expect(strings.filter((text) => /\u2014|\p{Extended_Pictographic}/u.test(text))).toEqual([]);
+  });
+
+  it("tells the owner about two-step sign-in before they go live, not after", () => {
+    expect(onboardingCopy.home.goLive.afterGoLive).toMatch(/two-step sign-in/);
+    expect(onboardingCopy.home.goLive.afterGoLive).toMatch(/required once your organisation is live/);
+  });
+
+  it("says who reviews business verification and when it is needed", () => {
+    expect(onboardingCopy.home.goLive.kyb.why).toMatch(/paid plan/);
+    expect(onboardingCopy.home.goLive.kyb.why).toMatch(/reviews them by hand/);
+  });
+
+  it("explains the two new blockers", () => {
+    expect(blockerText("standards.accepted")).toMatch(/Accept your standards/);
+    expect(blockerText("legal.current_versions")).toMatch(/Terms and Privacy Policy/);
   });
 });

@@ -9,8 +9,9 @@ describe("resolveNextPath: MFA comes after onboarding", () => {
   });
 
   it("does not ask for MFA while onboarding", () => {
-    expect(next(true, false, "in_progress", "site_hierarchy")).toBe("/onboarding/site-hierarchy");
-    expect(next(true, false, null, null)).toBe("/onboarding/organisation-profile");
+    // Setup has one home, whichever step the organisation was last on.
+    expect(next(true, false, "in_progress", "site_hierarchy")).toBe("/onboarding");
+    expect(next(true, false, null, null)).toBe("/onboarding");
     expect(next(true, false, "in_progress", "x", false)).toBe("/onboarding/waiting");
   });
 

@@ -4,6 +4,7 @@ import { sql } from "drizzle-orm";
 import type { Database } from "../../db/client";
 import { DB } from "../../db/db.module";
 import { type LaunchRoute, type OnboardingStepCode, STEP_PREREQUISITES } from "../onboarding/onboarding-steps";
+import { STANDARDS_ACTION_PREFIX } from "../organisation-standards/organisation-standards.service";
 
 /** Facts the checklist depends on, read in one statement. */
 export interface EvidenceSnapshot {
@@ -13,6 +14,8 @@ export interface EvidenceSnapshot {
   launchRoute: boolean;
   privacyNoticePublished: boolean;
   retentionPolicy: boolean;
+  /** The owner accepted (or reviewed and kept) the organisation standards: recorded in the audit chain. */
+  standardsAccepted: boolean;
   formWithFields: boolean;
   siteQr: boolean;
   kioskConfig: boolean;
@@ -52,6 +55,7 @@ export function missingEvidence(
     case "notices_retention":
       need(facts.privacyNoticePublished, "privacy_policy.published_version");
       need(facts.retentionPolicy, "retention_policy.at_least_one");
+      need(facts.standardsAccepted, "standards.accepted");
       break;
     case "visitor_categories":
       need(facts.formWithFields, "forms.version_with_fields");
@@ -110,6 +114,8 @@ export class OnboardingEvidenceService {
                 JOIN type_definition vs ON vs.id = v.status_code AND vs.domain = 'policy_version_status' AND vs.code = 'published'
                 WHERE d.organisation_id = ${organisationId} AND d.deleted_at IS NULL) AS privacy_notice_published,
         EXISTS (SELECT 1 FROM retention_policies r WHERE r.organisation_id = ${organisationId} AND r.deleted_at IS NULL) AS retention_policy,
+        EXISTS (SELECT 1 FROM audit_events ae
+                WHERE ae.organisation_id = ${organisationId} AND ae.action_code LIKE ${`${STANDARDS_ACTION_PREFIX}%`}) AS standards_accepted,
         EXISTS (SELECT 1 FROM check_in_form_definitions f
                 JOIN check_in_form_versions fv ON fv.form_definition_id = f.id AND fv.deleted_at IS NULL
                 JOIN check_in_form_fields ff ON ff.form_version_id = fv.id AND ff.deleted_at IS NULL
@@ -134,6 +140,7 @@ export class OnboardingEvidenceService {
       launchRoute: flag("launch_route"),
       privacyNoticePublished: flag("privacy_notice_published"),
       retentionPolicy: flag("retention_policy"),
+      standardsAccepted: flag("standards_accepted"),
       formWithFields: flag("form_with_fields"),
       siteQr: flag("site_qr"),
       kioskConfig: flag("kiosk_config"),

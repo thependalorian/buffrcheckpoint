@@ -11,18 +11,16 @@ import {
   onboardingCopy,
   STEP_SLUG_TO_CODE,
 } from "@/lib/copy/onboarding";
-import { deriveStatus, isEvidenceActionStep, type Readiness } from "@/lib/onboarding/readiness";
+import { deriveStatus, OWNER_STEPS, type Readiness } from "@/lib/onboarding/readiness";
 
 import { OnboardingProgress } from "../_components/progress";
 import {
   CompleteStepButton,
-  EvidenceActionButton,
   OpenConfigLink,
   PresenceHeartbeat,
   SkipStepButton,
   StepViewTracker,
 } from "../_components/step-actions";
-import { type TestVisit, TestVisitPanel, type TestVisitTarget } from "../_components/test-visit-panel";
 
 const VALID_SLUGS = new Set(Object.keys(STEP_SLUG_TO_CODE));
 
@@ -37,6 +35,9 @@ export default async function OnboardingStepPage({ params }: { params: Promise<{
   if (!gate.canManageOnboarding) redirect("/onboarding/waiting");
 
   const stepCode = STEP_SLUG_TO_CODE[step as OnboardingStepSlug];
+  // The owner's three steps, and the launch acknowledgement that is part of going live, live on the Setup home. A bookmark or an old
+  // link to one of their old pages lands there instead of on a second, competing screen for the same action.
+  if ((OWNER_STEPS as readonly string[]).includes(stepCode) || stepCode === "role_training") redirect("/onboarding");
   const copy = onboardingCopy.steps[stepCode];
   const template = onboardingCopy.template;
   const readiness = await api.get<Readiness>("/auth/onboarding/readiness");
@@ -49,16 +50,8 @@ export default async function OnboardingStepPage({ params }: { params: Promise<{
   const secondaryLabel = "secondaryLabel" in copy ? copy.secondaryLabel : onboardingCopy.openSecondary;
   const optional = current.requirement === "recommended" || current.requirement === "conditional";
   const notApplicable = current.requirement === "not_applicable";
-  const missing =
-    stepCode === "golive_approval"
-      ? readiness.missingBeforeGolive.map((code) => `step.${code}`)
-      : current.missingEvidence;
+  const missing = current.missingEvidence;
   const editor = readiness.editing.find((entry) => entry.stepCode === stepCode);
-  const testVisit =
-    stepCode === "flow_tests" && status !== "blocked"
-      ? await api.get<{ visit: TestVisit | null; target: TestVisitTarget | null }>("/onboarding/test-visit")
-      : null;
-
   return (
     <div className="flex flex-col gap-6">
       <StepViewTracker stepCode={stepCode} startedAt={readiness.startedAt} />
@@ -134,23 +127,10 @@ export default async function OnboardingStepPage({ params }: { params: Promise<{
             {current.state === "done" ? <p className="text-sm">{template.alreadyDone}</p> : null}
             {current.state === "skipped" ? <p className="text-sm">{template.skipped}</p> : null}
 
-            {testVisit ? (
-              <TestVisitPanel
-                organisationName={gate.organisationName}
-                initialVisit={testVisit.visit}
-                target={testVisit.target}
-                startedAt={readiness.startedAt}
-                launchRoute={route}
-              />
-            ) : null}
-
             <div className="flex flex-wrap items-start gap-3">
               {copy.href.startsWith("/onboarding") ? null : <OpenConfigLink href={copy.href} />}
               {secondaryHref && (route === "kiosk" || stepCode !== "check_in_channels") ? (
                 <OpenConfigLink href={secondaryHref} label={secondaryLabel} />
-              ) : null}
-              {current.state !== "done" && isEvidenceActionStep(stepCode) && current.missingEvidence.length > 0 ? (
-                <EvidenceActionButton stepCode={stepCode} startedAt={readiness.startedAt} />
               ) : null}
               {current.state === "done" ? null : (
                 <CompleteStepButton

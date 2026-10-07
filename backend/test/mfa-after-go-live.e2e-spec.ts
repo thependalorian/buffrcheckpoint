@@ -51,7 +51,7 @@ describe("MFA after onboarding (e2e)", () => {
       .post("/onboarding/organisation-admin")
       .send({
         organisationName: `E2E MFA Gate ${runId}`,
-        sectorCode: "sme",
+        sectorCode: "sme", acceptTerms: true,
         email: ownerEmail,
         password: "testpassword123",
       })
