@@ -412,7 +412,7 @@
         {
           "id": "A3-SELL-CORE-ONLY",
           "kind": "manual",
-          "title": "Core sell sheet = FULL surfaces only (no DigiNam/USSD/SMS live claims)",
+          "title": "Core sell sheet = FULL surfaces only (no DigiNam/SMS live claims)",
           "required": true
         },
         {
