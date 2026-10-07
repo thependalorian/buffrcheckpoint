@@ -24,7 +24,7 @@ export const metadata: Metadata = {
 const LAYERS = [
   {
     title: "Check-in channels",
-    items: ["NFC badge or phone", "QR invitation", "Tablet kiosk", "USSD", "SMS", "Assisted entry"],
+    items: ["NFC badge or phone", "QR invitation", "Tablet kiosk", "SMS", "Assisted entry"],
   },
   {
     title: "Site edge",

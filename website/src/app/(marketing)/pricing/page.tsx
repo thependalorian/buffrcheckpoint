@@ -19,8 +19,7 @@ const COSTS = [
   ["Assisted front-desk entry", "Zero marginal cost", "Included on every plan"],
   ["Dedicated kiosk / tablet", "Hardware CAPEX separate", "Optional add-on / Network"],
   ["QR (visitor's phone)", "Zero marginal cost", "Site (public site) / Network (invitation)"],
-  ["USSD", "Telco integration, session-based", "Optional when live"],
-  ["SMS", "Per-message telco cost", "Optional when live"],
+  ["SMS", "Per-message cost, billed by use", "Optional add-on when live"],
   ["NFC (phone tap)", "Zero marginal cost", "Network when enabled"],
   ["NFC badge (physical)", "Hardware cost separate", "Optional hardware"],
 ];
@@ -72,7 +71,7 @@ const FALLBACK_PRICING: PublicPricingPayload = {
         "Host notification by email",
         "Pre-registration via QR",
         "NFC badge and phone check-in when enabled",
-        "Kiosk, SMS, and USSD entitlements when live",
+        "Kiosk entitlements when live",
         "Site-manager reporting",
         "Granular roles from the fixed catalogue",
         "Audit export",
@@ -150,7 +149,7 @@ export default async function PricingPage() {
       >
         <h1 className={`max-w-3xl ${marketingPageTitle}`}>Start with a printed QR code and the phones your visitors already carry.</h1>
         <p className="mt-6 max-w-2xl text-base text-muted-foreground sm:text-lg">
-          Site covers phone check-in and assisted entry at one location. Add kiosks, NFC, SMS, and USSD when your sites need
+          Site covers phone check-in and assisted entry at one location. Add kiosks, NFC, and SMS messaging when your sites need
           them.
         </p>
         {fromFallback ? (

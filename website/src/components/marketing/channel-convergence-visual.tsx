@@ -1,10 +1,9 @@
-import { ChevronDown, MessageSquare, Nfc, QrCode, ShieldCheck, Smartphone, Tablet, UserCheck } from "lucide-react";
+import { ChevronDown, MessageSquare, Nfc, QrCode, ShieldCheck, Tablet, UserCheck } from "lucide-react";
 
 const CHANNELS = [
   { icon: Nfc, label: "NFC badge" },
   { icon: QrCode, label: "QR invitation" },
   { icon: Tablet, label: "Tablet kiosk" },
-  { icon: Smartphone, label: "USSD" },
   { icon: MessageSquare, label: "SMS" },
   { icon: UserCheck, label: "Assisted entry" },
 ] as const;
@@ -13,7 +12,7 @@ const CHANNELS = [
 export function ChannelConvergenceVisual() {
   return (
     <div className="bc-surface-muted mx-auto min-w-0 max-w-5xl p-6 sm:p-10">
-      <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         {CHANNELS.map((channel) => (
           <li
             key={channel.label}

@@ -67,7 +67,7 @@ export default function PrivacyPage() {
                 <li>Host or department</li>
                 <li>Purpose category (not free-text by default)</li>
                 <li>Check-in and check-out timestamps</li>
-                <li>Capture channel (kiosk, NFC, QR, USSD, SMS, assisted)</li>
+                <li>Capture channel (kiosk, NFC, QR, SMS, assisted)</li>
                 <li>Identity assurance outcome ({IDENTITY_ASSURANCE_LADDER_SUMMARY})</li>
                 <li>Verification outcome and reference (not full credential payload)</li>
                 <li>Device and site identifiers</li>
@@ -136,7 +136,7 @@ export default function PrivacyPage() {
                 </li>
                 <li>
                   <strong className="text-foreground">Messaging:</strong> Licensed MTC, Telecom Namibia, or approved
-                  local aggregator for SMS and USSD.
+                  local aggregator for SMS.
                 </li>
                 <li>
                   <strong className="text-foreground">Identity:</strong> DigiNam/NPKI verifier, where formally enabled

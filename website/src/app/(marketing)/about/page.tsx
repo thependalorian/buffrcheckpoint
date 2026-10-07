@@ -49,7 +49,7 @@ export default function AboutPage() {
             </p>
             <p>
               NFC is the fastest way through the door. Plenty of visitors have no NFC phone or no phone at all,
-              so the same platform covers feature phones and assisted check-in at reception. Every channel writes to the
+              so the same platform covers visitors without one through assisted check-in at reception. Every channel writes to the
               same record.
             </p>
           </div>

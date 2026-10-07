@@ -32,7 +32,6 @@ export default async function StatusPage() {
 
   const capabilityRows = [
     { code: "nfc_badge_checkin" as const, label: "NFC badge check-in", status: caps.nfcBadgeCheckIn },
-    { code: "ussd" as const, label: "USSD", status: caps.ussd },
     { code: "qr_invitation_checkin" as const, label: "QR invitation check-in", status: caps.qrInvitationCheckIn },
     { code: "sms_contact_confirmation" as const, label: "SMS contact confirmation", status: caps.smsContactConfirmation },
     { code: "cimso_innterchange" as const, label: "CiMSO INNterchange (PMS)", status: caps.cimsoInnterchange },

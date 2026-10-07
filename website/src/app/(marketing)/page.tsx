@@ -25,7 +25,7 @@ const CAPABILITIES = [
   },
   {
     title: "Assisted front desk",
-    body: "Reception checks in visitors who have no phone, a feature phone, or trouble with the form. Their record gets the same encryption as a self check-in.",
+    body: "Reception checks in visitors who have no phone, a basic phone, or trouble with the form. Their record gets the same encryption as a self check-in.",
   },
   {
     title: "Keeps working offline",
@@ -41,7 +41,7 @@ const CAPABILITIES = [
   },
   {
     title: "Optional fast lanes",
-    body: "Add NFC badges, a dedicated kiosk, SMS, or USSD later. Each writes to the same record and switches on once our status page lists it as Live.",
+    body: "Add NFC badges, a dedicated kiosk, or SMS later. Each writes to the same record and switches on once our status page lists it as Live.",
   },
 ];
 
@@ -214,7 +214,7 @@ export default function HomePage() {
       <section className="border-b border-border bg-card">
         <div className="mx-auto min-w-0 max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-24">
           <h2 className="font-heading text-2xl font-light tracking-tight text-foreground sm:text-3xl lg:text-4xl">
-            Smartphone, feature phone, or no phone at all.
+            Smartphone, basic phone, or no phone at all.
           </h2>
           <p className="mt-4 max-w-3xl text-muted-foreground">
             Pick the channel that suits each visitor. The data protection stays the same on every one.

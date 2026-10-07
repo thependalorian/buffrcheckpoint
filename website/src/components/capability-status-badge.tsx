@@ -6,7 +6,6 @@ export type PublicCapabilityStatusResponse = {
   diginamVerification: PublicCapabilityStatusValue;
   nationalEidNfc: PublicCapabilityStatusValue;
   nfcBadgeCheckIn: PublicCapabilityStatusValue;
-  ussd: PublicCapabilityStatusValue;
   qrInvitationCheckIn: PublicCapabilityStatusValue;
   smsContactConfirmation: PublicCapabilityStatusValue;
   cimsoInnterchange: PublicCapabilityStatusValue;
@@ -16,7 +15,6 @@ export type CapabilityCode =
   | "diginam_verification"
   | "national_eid_nfc"
   | "nfc_badge_checkin"
-  | "ussd"
   | "qr_invitation_checkin"
   | "sms_contact_confirmation"
   | "cimso_innterchange";
@@ -25,7 +23,6 @@ const FALLBACK: PublicCapabilityStatusResponse = {
   diginamVerification: "not_available",
   nationalEidNfc: "not_available",
   nfcBadgeCheckIn: "not_available",
-  ussd: "not_available",
   qrInvitationCheckIn: "not_available",
   smsContactConfirmation: "not_available",
   cimsoInnterchange: "not_available",
@@ -35,7 +32,6 @@ const RESPONSE_KEYS: Record<CapabilityCode, keyof PublicCapabilityStatusResponse
   diginam_verification: "diginamVerification",
   national_eid_nfc: "nationalEidNfc",
   nfc_badge_checkin: "nfcBadgeCheckIn",
-  ussd: "ussd",
   qr_invitation_checkin: "qrInvitationCheckIn",
   sms_contact_confirmation: "smsContactConfirmation",
   cimso_innterchange: "cimsoInnterchange",

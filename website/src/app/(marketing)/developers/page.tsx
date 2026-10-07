@@ -27,7 +27,7 @@ const resources = [
   },
   {
     title: "Regulated capabilities",
-    body: "NFC badges, SMS, and live USSD menus are capability-gated platform features. Switching one on for your organisation has no effect until the platform marks it live.",
+    body: "NFC badges and SMS are capability-gated platform features. Switching one on for your organisation has no effect until the platform marks it live.",
   },
 ];
 
