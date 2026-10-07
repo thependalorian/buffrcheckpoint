@@ -2888,6 +2888,68 @@ Open, with the reason:
 
 Accepted: internal outcome codes of the SMS path (text values written by a pre-existing scaffold). Two items first listed as accepted were closed afterwards at the owner's request: the unused feature-phone tables were dropped (0068) and the deprecated constant `ussd` field was removed.
 
+#### Onboarding v2: ready on arrival (2026-10-07, plan and build record)
+
+**Why.** The owner's brief: retention and privacy policies are Checkpoint's to pre-configure from this blueprint's standards, and an organisation accepts or modifies them now or later; onboarding has too many touch points and too much back and forth. Research (sources below) agrees on the cure: a checklist of three to five outcome-bearing steps, working defaults so the product runs before any setup, configuration deferred until it is needed, honest and persistent progress, reversible dismissal, and the first win within minutes.
+
+**What the audit found (measured on the code, 2026-10-07).**
+
+| # | Finding | Evidence |
+|---|---|---|
+| 1 | Ten required steps on the default route, about 21 minutes of work | `STEP_REQUIREMENTS`, step copy times 1+2+2+1+5+3+2+1+2+2 |
+| 2 | Each step costs about three hops: overview, an explainer page, a separate dashboard page, back for "Mark complete" | `[step]/page.tsx` links out through `OpenConfigLink`, `CompleteStepButton` returns |
+| 3 | The owner is asked to re-enter what the system knows or can default: organisation name (typed at sign-up), a first site, a host, a launch route, a privacy notice, a retention number, a check-in form, a QR code | `missingEvidence` per step |
+| 4 | **A forced MFA wall before any value.** The onboarding layout redirects every user without MFA to `/auth/mfa/setup`, which has no skip. That contradicts decision D-20 (MFA after go-live) and the proxy's own rule | `onboarding/layout.tsx` against `proxy.ts gateRedirect` |
+| 5 | **No agreement is ever recorded.** The register form has no consent step; Checkpoint is processor for data the organisation controls | `register-form.tsx`, `CreateOrganisationAdminDto` |
+| 6 | **Hidden gates at the very end.** Business verification (KYB) and billing are not on the checklist at all. Go-live fails late with "requires an active or trial subscription", and a paid plan needs KYB verified first | `golive_approval` copy, `transitionSubscriptionStatus`, `assertEntitled` |
+| 7 | Time to first value is the last required step, not the first | `flow_tests` is step 9 of 13 |
+
+**Target flow (QR-first, the default).** Sign up and accept the Terms and Privacy Policy (recorded) -> confirm email (lands straight on setup, no MFA wall) -> **Setup home**: the site, a first host, the standard check-in form, the public QR, the standard visitor privacy notice and the standard retention period already exist -> three steps: (1) **Try your check-in** (scan the QR; the first value), (2) **Review your standards** (accept Checkpoint's, or edit first; now or at go-live), (3) **Go live** (one confirmation, with plan and business verification shown from the start, not discovered at the end). Everything else is "Add later", reachable but never required.
+
+**Rules for the build.**
+- The checklist for the default route shows three required steps, not ten. A step the system completes from defaults is `auto`: done for the owner, listed under "Set up for you" with a Review link, and it reappears as a to-do only if its evidence is later removed (for example the only site is deleted).
+- Defaults are created by one idempotent routine run when setup opens, as the owner, through the same services the screens use, so there is no second code path. It never overwrites anything the organisation already has.
+- No new table. Acceptances are written to the append-only, hash-linked audit chain (`agreement.accepted:<document>:<version>`), which already records actor, time and organisation. A dedicated acceptance table would be a schema decision for the owner; the audit rows can be migrated into one later.
+- MFA stays after go-live (D-20). The onboarding layout no longer redirects to MFA setup.
+- Launch route defaults to QR-first and can be changed at any time before go-live from "Add later"; the kiosk route keeps its device and channel requirements.
+
+**The Checkpoint standard (sourced from this blueprint, not invented).**
+
+| Standard | Source in this blueprint | What the default is |
+|---|---|---|
+| Visitor privacy notice | Privacy Policy structure and commitments (public page; section 1a.3): controller and processor, data we collect, how we use data, retention and deletion, security, rights, contact | Organisation is controller and names itself; Buffr Checkpoint is processor; data collected is exactly the default form's fields; used only for visitor access, host notification, audit and retention; encrypted in transit and at rest; rights requests go to the organisation; ID numbers, photos, health and biometric data are off by default |
+| Check-in form | Section 5.1 field classes (core, basic, sensitive, high risk; high-risk off by default) and section 11.9.4 "General visitor: name, host, purpose category" | Full name, mobile number, company, optional email, who you are visiting, purpose category, and a vehicle registration field shown only when the purpose is a vehicle. No ID or passport field (high risk, needs compliance approval) |
+| Retention | Section 8.9 lifecycle and the visitor-category retention tiers (Standard, Short, Restricted, Special); no day counts are specified | The Standard tier as a platform setting, **365 days, a placeholder for the owner and counsel to confirm** (one annual review cycle, then disposal). Disposal still needs the opt-in worker, which stays off |
+| Agreement wording | Section 1a.3 and the "practical legal position": designed to support privacy and retention controls; each client remains responsible for its own legal obligations; no compliance claims | The notice and the acceptance screens use that wording and make no compliance claim |
+
+**Agreements.** The organisation owner accepts the **Terms and Conditions** and the **Privacy Policy** at sign-up (a required checkbox; the API refuses an account without it), and accepts the **organisation standards** (notice, retention and form) at go-live or earlier. Each acceptance is an audit event carrying the document and version. Versions live in a platform setting (`legal_documents`), so legal can bump one without a deploy; when a version changes the owner is asked to accept the new one, and go-live requires the current versions. The Terms are scoped to the customer role model and carry the processor terms; counsel review before publication remains a pre-launch legal gate that engineering cannot close.
+
+**KYB and billing (answering "when, and who reviews").** KYB is business-identity verification at onboarding only (no ongoing monitoring). The owner submits the registration number, registered name, address and authorised signatory and may upload the registration document; **Buffr ops review it by hand** in the ops console (document viewer, verify or reject with a note, single or bulk, with an email to the organisation). It is required only to activate a **paid** subscription; a design-partner trial does not need it. Proof-of-payment is the second human review. Both are now visible from the start on the Setup home ("Before you go live"), prefilled where possible, instead of surfacing as a refusal at go-live.
+
+**Pages and components, one by one.**
+
+| Surface | Disposition |
+|---|---|
+| `onboarding/layout.tsx` | Rework: remove the MFA redirect; keep session, email and completion guards |
+| `onboarding/page.tsx` (overview) | Rebuild as the Setup home: three outcome steps, "Before you go live", "Set up for you", "Add later" |
+| `onboarding/[step]/page.tsx` and its explainer template | Keep for the optional and kiosk-only steps only; the three main steps no longer use it |
+| `_components/step-card.tsx` | Keep for "Add later" and "Set up for you" rows |
+| `_components/progress.tsx` | Keep for the optional step pages; the Setup home has its own three-step header |
+| `_components/test-visit-panel.tsx` | Reuse inside step 1 (the first-value moment) |
+| `_components/step-actions.tsx` | Keep the tracking, heartbeat and complete/skip buttons; add the standards and go-live actions |
+| `_components/conflict-notice.tsx`, `waiting/*` | Keep unchanged (multi-admin and invited-staff cases) |
+| `launch-route/*` | Keep as "Use a dedicated kiosk" under Add later; the default is applied for the owner |
+| `components/onboarding-config-banner.tsx` | Keep; wording updated to the new flow |
+| `auth/_components/register-form.tsx` | Add the agreement checkbox (also on the Buffr ID path) |
+| `auth/mfa/setup` | Unchanged page; no longer entered during onboarding |
+| `dashboard/kyb` | Prefill the registered name; explain who reviews and when |
+| `lib/copy/onboarding.ts`, `lib/onboarding/readiness.ts` | Rework for three steps, `auto`, and the go-live block |
+| Backend `onboarding-steps.ts`, evidence, progress, onboarding service | Add `auto`, defaults routine, standards acceptance, agreements, go-live block in readiness |
+
+**Done means (measured).** The default-route checklist has 3 required steps; a new organisation reaches a working QR with no typing after sign-up; the forced MFA redirect is gone; an account cannot be created without accepting the agreements, and the acceptance is in the audit chain; the standards can be accepted in one click and modified before or after; go-live shows plan and business verification before the last step; unit tests for the step model, defaults and standards content; the end-to-end suite passes on a disposable Neon branch; the admin type-checks and its tests pass.
+
+Sources for the research: [SaaS onboarding checklist UX patterns](https://www.saasui.design/blog/saas-onboarding-checklist-ux-patterns) (three to five outcome steps, reversible dismissal, honest progress, persist state); [The seven-step hostage situation you call onboarding](https://hackernoon.com/lite/the-seven-step-hostage-situation-you-call-onboarding) (delete welcome screens and profile walls, defer company information and invitations, value in two minutes); [SaaS onboarding patterns for activation](https://www.parallelhq.com/blog/saas-onboarding-patterns-activation) (templates over blank canvas, progressive disclosure, just-in-time permissions, deferred configuration, short checklists with time estimates); [Privacy by default in user onboarding](https://hoop.dev/blog/privacy-by-default-in-user-onboarding/) and [Secure Privacy retention templates](https://support.secureprivacy.ai/article/modifying-data-retention-period-for-legal-templates) (preconfigured retention and privacy defaults that can be accepted or changed at any time).
+
 **Production database state (1 October 2026).** Migrations `0041_analytics_etl`,
 `0042_card_payments` and `0043_retention_disposition` are applied to the
 production Neon branch (`falling-frog-15538162`, main). Each was checked after
