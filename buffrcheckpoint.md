@@ -74,7 +74,7 @@
 >    Services CC knocked from `live` back to `in_progress` three times on
 >    2026-09-18 and restored by direct SQL with no log row. Now: an explicit
 >    forward-only transition map (`pending_email_verification` →
->    `email_verified` → `mfa_enrolled` → `in_progress` → `ready_for_golive` →
+>    `email_verified` → `in_progress` (the `mfa_enrolled` stage was retired by D-20) → `ready_for_golive` →
 >    `live`; `suspended` ops-only). User activation advances the organisation
 >    only from early states. Backward moves happen only through the audited ops
 >    routes `POST /platform/organisations/:id/onboarding/reopen` and
@@ -133,7 +133,7 @@
 >    Ops Console arrival statistics with small-cell suppression.
 > 2. **Architecture guide merged** as §11.1c (CRM, ETL, payments, reporting,
 >    dashboards, UI), with its claims corrected against the build.
-> 3. **Retention disposition job → FULL (opt-in).** Migration 0043 +
+> 3. **Retention disposition job → FULL (opt-in: set RETENTION_DISPOSITION_ENABLED=true after reviewing a dry run; this is an owner decision because it irreversibly shreds data).** Migration 0043 +
 >    `retention-disposition` module: disposes visits past the effective
 >    policy, skips active legal holds (unreadable scopes fail closed),
 >    crypto-shreds subjects with no live visits or credentials, reconciles
@@ -560,8 +560,8 @@
 | Live USSD aggregator webhook | NOT STARTED | v0.22 DB arrangement guard + session status log; menu flow not live — **not a Core sellable claim**; optional add-on when live |
 | Kiosk visitor-session privacy wipe (FR-K10) | FULL | v0.22 outbox pending wipe + QR/NFC privacy gate + abandon |
 | Platform Ops Console app | FULL | v0.24 — schema, backend (`platform-control-plane` module), and `ops-console/` all built and live-verified end-to-end against the real dev DB: every console screen (Overview, Organisations + per-org detail with Rollup/CRM/Billing/KYB tabs, CRM, Billing + POP review, KYB, Capability Status with dual-approval, Support Access, Incidents, Tickets + comments, Analytics/churn queue, Audit) is real and wired to live endpoints, not stubbed. `admin/`'s support-session entry route (with live countdown banner) and customer-facing `/dashboard/billing` (invoice list + POP upload) are both built. The break-glass grant flow is customer-consent-gated (§11.9.1a) and was verified live end-to-end: request → inert → customer sees + approves/denies → session mint → grant revoke → 403. See Section 11.9.1a for the full build notes and one real bug this live testing caught and fixed before ship. |
-| Other QR product types (pre-reg, emergency, …) | NOT STARTED | |
-| Release 1.5 induction schema | NOT STARTED | |
+| Other QR product types (pre-reg, emergency, …) | FULL in code, not yet deployed | Emergency information and contractor induction are site QR references that open `/emergency` and `/induction`; pre-registration and sign-out are signed links; the device support QR opens a sign-in-gated admin page. See "Site notices and QR types (2026-10-07)" |
+| Release 1.5 induction schema | NOT STARTED | Only the separate induction workflow (courses, quizzes, expiry per person) is not started. The simple read-and-confirm contractor induction is built (see "Site notices and QR types (2026-10-07)") |
 | Kiosk dynamic form from site form version (FR-K09) | FULL | v0.28: Android `ManualCheckInViewModel`/`ManualCheckInScreen` + `FormRules` on `effectiveForm`; website + kiosk |
 | Organisation directory (BIAN-optional) | FULL | `organisation_units` + modes custom / bian_aligned / hybrid; admin CRUD + optional seeds |
 | Host email (Resend) | FULL | HTML host notification; honest fail without `RESEND_API_KEY` |
@@ -1336,7 +1336,7 @@ It is a **digital trust, privacy, operational-resilience, and evidence platform*
 
 Buffr Checkpoint should promise four outcomes:
 
-1. **Protect**  
+1. **Protect**  d
    No visitor sees another visitor’s details.
 
 2. **Verify proportionately**  
@@ -2139,7 +2139,7 @@ requirement for regulated, multi-site buyers.
    enrolment). Missing policy metadata is a 403, never an implicit allow, and
    `@RequireVerifiedEmail` / `@RequireMfa` are enforced whether or not a
    permission is declared. Onboarding step completion and go-live require
-   `organisation.onboarding.manage` plus verified email and MFA; a user's own
+   `organisation.onboarding.manage` plus verified email (MFA is required once the organisation is live, D-20); a user's own
    activation (email, MFA) never changes organisation-level state.
 
 ## 9.2a Separate front doors for customers and platform staff *(v2026-09-29, approved by the product owner)*
@@ -2699,7 +2699,7 @@ Output must be empty apart from permitted test fixtures.
 
 | Item | Status | Path |
 |---|---|---|
-| Least-privilege runtime role on Frankfurt | **Open — critical** (found 2026-10-05) | Production API connects as `neondb_owner`; the role from 0024 was never recreated after the Oregon→Frankfurt move, so no append-only REVOKE is in force. Migration `0055_runtime_role_append_only.sql` (idempotent) recreates the role and revokes UPDATE/DELETE on all 45 log/event tables; code audit found no app path that writes to them. Operator step: apply 0055 on a branch, `ALTER ROLE buffr_checkpoint_runtime PASSWORD …` out of band, run e2e as that role, then apply on production, switch Railway `DATABASE_URL`, redeploy, verify `has_table_privilege('audit_events','UPDATE') = false` |
+| Least-privilege runtime role on Frankfurt | **Closed 2026-10-07** (found 2026-10-05) | Production API now connects as `buffr_checkpoint_runtime` (migration 0055 applied). Read-only check on 2026-10-07: `has_table_privilege` on `audit_events` is UPDATE false, DELETE false, INSERT true. Migrations are still applied with the owner role from the operator's machine, never from the API. Re-run the check after any change to `DATABASE_URL`. |
 | Retention purge/archive scheduler | **Built** (2026-10-01) | Opt-in worker (`RETENTION_DISPOSITION_ENABLED`); dry-run first. Analytics backfills count live visits only, so disposed history drops out of rebuilt facts |
 | DigiNam relying-party adapter | Not started | Approved relying-party arrangement and tested interface |
 | National e-ID NFC adapter | Not started | Official protocol and interoperability testing |
@@ -2722,6 +2722,28 @@ Output must be empty apart from permitted test fixtures.
 | Ops Sentry tenant scrubbing, verified | **Built** (2026-10-02) | `ops-console/src/lib/observability/scrub-pii.test.ts` sends a fake organisation name, amount, KYB reference, session id, invoice number and MRR through every event field and asserts none survive. The scrubber now covers extra, contexts, tags, request data and breadcrumb data (admin too) |
 | First scheduled report delivered | **Confirmed** (2026-10-02) | Ops daily summary run `succeeded` at 07:01:59 Windhoek; outbox row `pending > sent` at 07:02:03 |
 | Kiosk survey on emulator | **Verified** (2026-10-02) | Unit tests (4) for the sign-out view model; Compose UI tests (2) on the Pixel Tablet emulator (Android 15): all five ratings render, a tap reports the code, Skip finishes. Ships with the next scheduled kiosk build |
+
+#### Repository and verification record (2026-10-07)
+
+Branch `feat/analytics-etl-and-launch-polish` carried 264 uncommitted files. They are now committed in nine commits, split by package (governance, backend, admin, ops, website, kiosk, scripts, social-team move, acceptance, e2e fix). Nothing is deployed from them yet.
+
+| Check | Result | Evidence |
+|---|---|---|
+| Type check, all four web packages | Pass | `tsc --noEmit` exit 0 in backend, admin, ops-console, website (admin, ops and website after `next typegen`, as CI does) |
+| Unit tests | Pass | backend 315/315 (60 suites), admin 35/35, ops-console 2/2, website 10/10 |
+| End-to-end, backend | Pass, 37/37 (6 suites) | Run on a disposable Neon branch of `buffr-checkpoint-eu` with migrations 0056 to 0064 applied, email transport off, local artifact store; branch deleted afterwards. Production was not touched |
+| Production migration level | Partly migrated | `application_users.buffr_id_subject` (0058) exists; `comment_protected` (0062) does not. 0056 to 0064 are re-runnable, but the exact applied set was not enumerated |
+
+Defects found and fixed in this pass:
+- Two e2e specs asserted https public links but took their base URLs from the developer's `.env` (localhost), so they failed on any machine with a dev `.env`. They now pin the public base URLs themselves (`backend/test/visitor-journey.e2e-spec.ts`, `site-notices.e2e-spec.ts`).
+- `backend/scripts/journey-smoke.ts` could not sign in to an account with MFA (A0-ENTRY-JOURNEY was blocked on this). It now completes the TOTP challenge when `DEMO_TOTP_SECRET` is set and fails with a clear message when MFA is required and the secret is missing. Not yet run live: it needs a test account and its authenticator secret.
+
+Rollout order for the pending migrations (owner-run, from the operator's machine with the owner role): apply the additive migrations 0057 to 0064, deploy the API, then apply 0056 (destructive: it drops the retired branding tables and is forward-only; roll back with a Neon point-in-time restore), then deploy admin, ops-console and website. Applying 0056 before the new API is live breaks the previous API, which still reads those tables.
+
+Acceptance state at this date (`scripts/acceptance/state.json`): of 66 items, 4 pass, 1 fails (A0-ENTRY-MFA), 61 pending (A0 20, A1 18, A2 15, A3 8). Items that need the owner, not code:
+- A0-ENTRY-MFA: four verified owner-operator accounts have no MFA. Each account holder must enrol their own authenticator (the secret must never be held by the platform). The after-go-live MFA guard (D-20) now enforces it for live organisations.
+- A0-ENTRY-JOURNEY: owner to supply a non-production test account and `DEMO_TOTP_SECRET`.
+- A0-01 to A0-16 manual items and the A0 sign-off: need a human tester on a device.
 
 **Production database state (1 October 2026).** Migrations `0041_analytics_etl`,
 `0042_card_payments` and `0043_retention_disposition` are applied to the
@@ -2968,7 +2990,7 @@ Every message goes through the notification outbox
 (`notification_delivery_instructions`): written first, then delivered by the
 dispatcher. A failed send retries with exponential backoff (30 s doubling,
 capped at 1 hour) up to 5 attempts, then the row is marked `failed` and shows
-in the ops integration health panel. Email (Resend) is the only live channel;
+in the ops integration health panel. Email (SMTP through the Buffr mailbox, `hello@buffr.ai`) is the only live channel;
 SMS, USSD and WhatsApp are registered channel codes with no provider yet, so
 there is no automatic channel fallback today. The fallback for a host who
 misses an arrival is the escalation rule, not another channel.
@@ -3004,6 +3026,90 @@ misses an arrival is the escalation rule, not another channel.
 
 Anomaly alerts are deliberately not emailed: they appear on the admin Anomaly
 Alerts page, and ops sees a 24-hour count in integration health.
+
+#### Email delivery, templates, personalisation and signatures (v2026-10-07)
+
+**Sender.** All Checkpoint email goes through the Buffr mailbox `hello@buffr.ai` over SMTP (Namecheap Private Email, `mail.privateemail.com`, port 465, TLS), the same mailbox the email agent uses. It replaces Resend, which stays only as a fallback (`EMAIL_TRANSPORT=resend`, or when no SMTP credentials are set). From is `Buffr Checkpoint <hello@buffr.ai>`; replies go to `hello@buffr.ai`. Every message carries `Auto-Submitted: auto-generated` and `X-Auto-Response-Suppress: All`, a Message-ID on `buffr.ai`, no tracking pixels and no rewritten links. Subjects and recipients are cleaned so a typed value cannot add a header.
+
+**Send budget.** A mailbox service limits how much one mailbox may send, and a provider that sees the limit exceeded can block the mailbox. Checkpoint sends at most `EMAIL_MAX_PER_HOUR` (60) per hour and `EMAIL_MAX_PER_DAY` (300) per day. Over the budget, mail waits in the outbox for the next window and is not counted as a failed attempt. Raise the caps only after confirming the plan's limits with Namecheap. At today's volume (verification, billing and host alerts) this is ample; visitor-facing bulk mail would not fit and would need a transactional provider.
+
+**Template structure.** Template bodies stay plain text, edited by ops in `platform_notification_template`. The layout reads the shape already in the text (`email-structure.ts`): a lone link becomes a button (with the label from the catalog), consecutive `Label: value` lines become a facts table, `1)` or `-` lines become a list, and "If you did not ..." becomes a security callout. Everything else is a paragraph. The plain text is the canonical part and carries the same greeting and signature as the HTML.
+
+**Personalisation.** "Hello Maria," when the recipient's name is known (contact enquiries, hosts), otherwise "Hello,". A body that already opens with its own greeting is not greeted twice. Names are cleaned: one line, no markup, never an email address.
+
+**Signatures.** Customer mail is signed "Kind regards," then the part of Buffr Checkpoint writing (the team, Billing with role Accounts, or Support with role Customer support), `hello@buffr.ai` and the website. Internal alerts to ops carry neither greeting nor signature. The human sales and ops signature files remain `branding/email-signature.*`.
+
+**Branding.** The Checkpoint identity only (mustard `#E0B000`, charcoal `#111111`, light `#F5F5F5`). The black wordmark would be unreadable on a dark-mode background, so the logo travels on its own light plate (`branding/email-logo.png`, served at `https://buffrcheckpoint.com/branding/email-logo.png`), and the card asks mail apps to stay light (`color-scheme` meta and a gradient ground that Gmail does not invert). Organisations cannot customise it (D-18). The footer reads "Buffr Checkpoint, visitor and access management, Namibia", the reply address and the website.
+
+**Catalog.** `backend/src/modules/notifications/template-catalog.ts` lists every email: what triggers it, who receives it, the action label, who signs it, and whether anything sends it yet. A test keeps the catalog, the seeded templates (migration 0038) and the codes used in the source in step, so an email cannot be added without being described.
+
+| Category | Templates (trigger, recipient) |
+|---|---|
+| Account security | `email_verification` (register or resend), `password_reset`, `password_changed`, `account_lockout`, `mfa_enabled` (to the user); `platform_staff_invitation` (to invited staff) |
+| Onboarding | `org_welcome` (new organisation, to the owner) |
+| Billing | `invoice_issued`, `invoice_reminder`, `pop_received_ack`, `pop_rejected`, `payment_confirmed`, `receipt_issued`, `subscription_activated`, `suspension_warning` (to organisation admins, signed Billing) |
+| Verification | `kyb_submitted_ack` (to the submitter), `kyb_verified`, `kyb_rejected` (to organisation admins) |
+| Visitor flow | `host_visitor_arrived` (host), `host_escalation` (escalation contact), `ops_contact_ack` (website enquirer) |
+| Support | `support_ticket_ack` (the person who opened a ticket; new 2026-10-07), `support_access_request` (organisation admins) |
+| Ops internal (no greeting, no signature) | `ops_new_organisation`, `ops_contact_enquiry`, `pop_received_ops` |
+| Reports | `scheduled_ops_daily_summary`, `scheduled_site_manager_digest`, `scheduled_board_compliance_monthly` |
+| Visitor, optional (organisation can switch off) | `visitor_prereg_invite` (host pre-registers a visitor and gives an address), `visitor_visit_receipt` (check-in, only if the visitor typed an address), `visitor_signout_thanks` (check-out, same condition) |
+| Billing, new | `credit_note_issued` (billing staff issue a credit note) |
+| Support, new | `support_ticket_reply` (platform staff reply on a ticket, to the requester) |
+
+**Visitor email, preferences, credit notes (2026-10-07, built, migrations 0061 and 0062 not yet applied to production).**
+- **Visitor mail rule.** A visitor is emailed only at an address they typed themselves (check-in form) or a host typed for them (pre-registration). The pre-registration address is used once and never stored. The receipt and thank-you read the address from the visitor's encrypted record. Each mail says why it was sent. Sign-out thanks and the receipt carry a personal link: the receipt links to a signed sign-out (`/check-out?v=`, 24 hours, closes that one visit) and the thank-you links to the rating page (`/rate?t=`).
+- **Switches.** `GET/PUT /notifications/preferences` (permission `SITE_CONFIGURE`) lets an organisation turn off the optional visitor emails. Security, billing and verification mail cannot be switched off, and a forged row cannot silence them. The state is the audited setting `notification_preferences:<organisation id>` in `platform_configuration_setting` (with its change log), so no table was added.
+- **Credit notes.** `POST /platform/billing/invoices/:id/credit-notes` (billing staff). The note is an immutable `invoice_credit_note` row, numbered `CN-<invoice>-NN`, capped at what is outstanding (crediting a paid invoice would be a refund, which is a different money movement and is refused). Amounts are handled as whole cents. The customer is emailed the amount and the balance after the credit. Open: the table has no `balance_after` column, so reconciliation is the returned and emailed figure; a snapshot column is a schema decision for the owner.
+- **Support reply.** When platform staff comment on a ticket, the requester is emailed. The sender supports a named signature (`signedBy`), but users have no display-name column, so replies are signed as Buffr Checkpoint Support until the owner decides where a staff name should live (it could come from the Buffr ID `name` claim).
+- **Host search.** `GET /hosts?siteId=&q=&limit=` returns active hosts ranked (prefix, then contains, then department), accent and case insensitive, capped at 100, for the manual check-in picker.
+- **Visit rating and feedback.** 5 stars plus an optional comment on the existing survey flow (`POST /public/visit-survey` with `rating` 1 to 5 and `comment` up to 1000 characters; the old `ratingCode` call still works for the kiosk). The comment is stored only as an encrypted envelope (migration 0062, one nullable column `comment_protected`, needs owner sign-off). `GET analytics/satisfaction/detail` (permission `visit.history.read`, which every read-only role holds) returns average, count, distribution and the per-site breakdown with no comments. `GET analytics/satisfaction/comments` (permission `site.configure`: owners and site managers) returns the same plus recent decrypted comments. The split exists because comments are free text that can carry personal data. The public page `/rate` and the check-out screen show the stars.
+
+**Verified 2026-10-07.** A real message and four real samples (password reset, invoice, welcome, host alert) were sent over the live mailbox to the owner's address; the unit tests cover the adapter, budget, structure, layout, personalisation and catalog.
+
+#### Site notices and QR types (2026-10-07)
+
+Built and tested, not yet deployed. Migration 0063 (one config row) is applied only to a throwaway branch so far and must be applied to production before the API is deployed.
+
+- **Site notices module** (`backend/src/modules/site-notices`): emergency information and contractor induction. The text is stored as versioned, published policy documents (policy codes `emergency_information` and `contractor_induction`, with an optional per-site override `<code>:<siteId>`), so no new table was added and each version keeps a content hash. A site with its own text uses it; every other site uses the all-sites text.
+- **Staff endpoints:** `GET /site-notices/:kind` and `PUT /site-notices/:kind` (`site.configure`; each save publishes a new version and supersedes the old one), `GET /site-notices/induction/visits/:visitId` (`visit.roster.read_live`; whether the induction applies to the visit and whether it was acknowledged).
+- **Public endpoints:** `GET /public/emergency-info`, `GET /public/induction` and `POST /public/induction/acknowledge` (10 a minute). The public pages return the site name and the notice text only, no visitor data.
+- **Acknowledgement rules:** a valid induction QR for the site; the phone of an open contractor visit at that site; the version currently published (a version replaced while the contractor was reading is refused with 409 and the page reloads it); one acknowledgement per visit and version, a repeat returns the first. It is recorded in `visitor_policy_acknowledgements` with method `phone_tap` (new config row, migration 0063), legal basis `mandatory_notice` and channel `qr`. A general visitor is refused with the reason.
+- **QR types issuable as site references:** `public_site_checkin`, `emergency_info`, `contractor_induction`. Each opens its own website page (`/check-in`, `/emergency`, `/induction`) and the list endpoint returns the URL to print for each row. Pre-registration and sign-out are signed links, not site references. The device support QR is not a site reference: `GET /devices/:id/support-qr` returns a link to the admin page `/dashboard/devices/:id`, which needs a sign-in and `device.provision`, so the printed code reveals nothing itself.
+- **Admin screens:** Site Notices (`/dashboard/site-experience/notices`, one editor per kind and per site), Site QR Codes (three types; the printable panel uses the URL from the backend), a device support page with a printable QR, Email Notifications (`/dashboard/organisation/notifications`, switches for the optional visitor emails), and Visit Feedback (`/dashboard/analytics/feedback`: average, 1 to 5 distribution, per-site table, and comments only for users holding `site.configure`; others see a note). Each has a sidebar item.
+- **Website:** `/emergency` and `/induction` (both noindex) and the personal sign-out link handling on `/check-out?v=`.
+- **Android kiosk:** the rating prompt now has a star value to select, an optional comment (1000 characters, trimmed, sent as null when blank), Send feedback and Skip. The kiosk unit tests in the checkout package pass (3 for comment normalisation, 5 for the view model including the comment case), and the 3 instrumented UI tests of the prompt pass on the Pixel_Tablet emulator.
+
+#### Release readiness, 2026-10-07 (evidence for deploying migrations 0061, 0062 and 0063)
+
+Migrations 0061 and 0062 were applied to production on 2026-10-07 with the owner role through neonctl and psql, after the rehearsal below; the check afterwards showed 34 templates (catalog 34 of 34), the comment column present and insertable by the runtime role. The API and website code is not deployed yet, so none of the new behaviour is live; the running API ignores the new column and templates. This is what was checked before applying.
+
+| Check | Result |
+|---|---|
+| Backend unit tests | 297 pass; type check clean; route policy audit `mutation_routes_without_policy=0` across 62 controllers |
+| Lint | Clean for every file touched in this release. Three errors remain in `organisation-directory.service.ts` (non-null assertions and an unused variable); they predate this work and a mechanical fix there breaks the type check, so it needs a real edit |
+| Website | Type check, 10 tests and `next build` pass; `/rate`, `/check-out`, `/emergency` and `/induction` build |
+| Admin | `next build`, 35 tests and the onboarding copy check pass |
+| Android kiosk | Unit tests in the checkout package pass (3 comment normalisation, 5 view model); the 3 instrumented UI tests of the rating prompt pass on the Pixel_Tablet emulator |
+| Migration rehearsal | A throwaway Neon branch of production: 0061 and 0062 applied twice, both runs clean (idempotent). Templates went 31 to 34, the comment column exists and the runtime role can insert and select it. Template catalog against the database: 34 of 34, none missing, none uncatalogued |
+| Site notices end to end | On a throwaway branch copy of production with 0063 applied twice: 9 of 9. Covers publishing and serving the emergency text, a version bump, a wrong-type QR refused, the induction acknowledged once by a checked-in contractor, a general visitor refused with the reason, a stale version refused with 409, the device support QR behind sign-in, and the QR list returning the URLs to print |
+| End-to-end on that branch | 28 of 28 across five suites (app, auth, MFA after go-live, onboarding, visitor journey). The visitor journey runs the whole path against a real database: check-in with an email address, receipt with the personal sign-out link, sign-out from the link (a second use is a no-op), one thank-you with the rating link, a rating with an encrypted comment (first answer wins, plain text not in the row), figures for the broad permission and comments only for the strict one, the organisation switch (security mail cannot be switched off, a switched-off receipt is not queued), host search, and credit notes (within the balance, refused above it, numbered per invoice, balance after returned) |
+| Production role | Read-only check: the API connects as `buffr_checkpoint_runtime`; on `audit_events` UPDATE false, DELETE false, INSERT true |
+
+**Defect found and fixed during the rehearsal: audit chain tip.** The writer found the end of an organisation's chain by newest `occurredAt`. Two events in the same millisecond tie, so the "newest" could be the older one; every retry then pointed at a predecessor that already had a successor and the request failed with a 500 after six attempts. The tip is now the event that no other event names as its predecessor (`chainTip`), and the verifier follows links instead of timestamps (`verifyChain`). Tests cover ties, forks, edits and orphans.
+
+**Historical forks, not fixable.** Running the verifier over the production-shaped data shows two organisations whose chains forked before the unique index of migration 0057: the demo tenant (37 events, 2 starts, 2 forked predecessors, 10 to 29 September) and one test organisation (3 events, 1 fork, 5 October). The old verifier flagged them too. Audit rows are immutable, so they are not rewritten; the remaining three organisations verify clean and no new fork can be written. Disclose this to an auditor rather than hide it.
+
+**Deploy order.** (1) Migrations 0061 and 0062: done. Apply 0063 (idempotent, one config row) to production before the API. (2) Deploy the API and wait for `GET /health` to return `database: ok`. (3) Deploy the website. (4) Check: the ops health panel shows the Buffr mailbox healthy; one invitation with an address reaches the owner's inbox; `GET /notifications/preferences` answers 401 without a token; `POST /public/check-out/token` with a bad token answers 400. Roll back by redeploying the previous API build: both migrations are additive and the old code ignores the new column and templates.
+
+**Still open after this release.**
+- **Separate induction workflow** (courses, quizzes, expiry per person, Release 1.5): not started. The contractor induction built here is acknowledged per visit and version, with no expiry per contractor.
+- **`NEON_API_KEY` GitHub secret:** not set, so `.github/workflows/neon-snapshot.yml` skips. neonctl and the Neon MCP cannot create keys. Create one in the Neon console (project-scoped to `falling-frog-15538162` if offered), then `gh secret set NEON_API_KEY -R thependalorian/buffrcheckpoint`.
+- **Named staff signatures:** users still have no display-name field, so replies go out as Buffr Checkpoint Support.
+- **Retention scheduler:** off, pending the owner's decision after a dry run.
+- **Historical audit chain forks** in two organisations: disclosed above, not rewritten.
+
+**Local development database.** `backend/.env` now points at the Neon branch `dev-local` (a copy of production taken on 2026-10-07), never at production. The previous value is kept in `backend/.env.previous-database-url` (git-ignored). End-to-end tests run against disposable branches. Repeated runs on one branch trip the sign-up abuse limiter (`SIGNUP_MAX_PER_HOUR`, default 20, and `SIGNUP_MAX_PENDING_PER_DOMAIN`, default 2, both counted in the database), which answers 429; this is the limiter working. Raise both for a rehearsal run, never in production.
 
 #### Deploy, rollback and monitoring runbook (v2026-10-01)
 
@@ -3087,6 +3193,17 @@ edit.
 | D-15 | Anomaly rules alert people and never block a visitor; alerts go to the customer's admin, not to Buffr ops or email | §7.2 forbids automated denial; the customer's staff act on alerts |
 | D-16 | Scheduled reports go only to verified users of the same organisation, chosen by role | No visitor data and no typed-in address can become a data-egress path |
 | D-17 | Every scheduled job claims its period in a run table before sending | A restart or a second instance never sends the same report twice |
+| D-18 | Custom branding (logo, brand colour, welcome message, display names, background) is retired; the onboarding step, admin page, API module and tables are removed (migration 0056). Check-in and the kiosk use Checkpoint's own look; the kiosk privacy notice is the organisation's published `privacy_notice` policy | Branding was the onboarding abandonment point and did not work reliably; the privacy notice and languages it carried are not branding |
+| D-19 | Demo and test organisations never exist in production. Demo seeds live in `backend/db/seed/demo/` (local and staging only); demo sign-ins and their published passwords are retired; no script carries a default credential. Production seed and test data was cleared on 2026-10-06 with `backend/db/maintenance/0001_clear_seed_organisation_data.sql` | A published password or a demo organisation in production is a back door and clutter |
+| D-20 | MFA comes after onboarding: optional while an organisation is being set up, required for every customer user once the organisation is live. The API enforces it (`MfaAfterGoLiveGuard`: only `/auth/*` and `/health` stay open) and the admin proxy sends the user to `/auth/mfa/setup`. The `mfa_enrolled` organisation status is retired from the path | Setup is not blocked by an extra step, and nobody operates a live organisation without MFA. Platform staff are unchanged: MFA is mandatory from the first login |
+| D-21 | The production API connects as the least-privilege role `buffr_checkpoint_runtime` (migration 0055), not as the database owner. Migrations run as the owner | Append-only audit and status-log tables must be append-only for the application |
+| D-22 | Email is sent over SMTP through the Buffr mailbox `hello@buffr.ai`, not Resend, within a send budget (60 an hour, 300 a day); Resend is only a fallback | One mailbox and one sender across Buffr; no third-party sender cost; the budget keeps the mailbox from being blocked |
+| D-23 | Sign-in with Buffr ID (Better Auth, OIDC with PKCE). Buffr ID proves who the person is; Checkpoint keeps its own roles, organisations, onboarding state, audiences, support sessions and kiosk credentials. The ID token is traded at `POST /auth/buffr-id/exchange` for an ordinary Checkpoint session, so nothing downstream changes. `LEGACY_PASSWORD_AUTH` (`on`, `kiosk`, `off`) narrows the old password sign-in in stages | Checkpoint never has to change again when other products join Buffr ID; migration is staged with coexistence, per BUFFR_ID_AND_DOMAINS.md Part B 12 |
+| D-24 | Transactional mail is structured: plain-text canonical body, a personalised greeting, a signature that names the part of the company writing, and a catalog entry for every template | Mail is consistent, checkable and cannot be added without being described |
+| D-25 | Emergency information and contractor induction are stored as versioned policy documents, and the contractor's confirmation goes in the existing acknowledgement table | No new table; a history and a content hash come with it |
+| D-26 | Optional-email switches and notice text use the existing audited configuration and policy tables, not new tables | Nothing to migrate or sign off, and changes are logged |
+| D-27 | Comments on visit ratings need `site.configure`; the rating figures need `visit.history.read` | Comments are free text that can carry personal data; every read-only role holds the history permission |
+| D-28 | The device support QR is gated by sign-in and permission and is not a site reference | The printed code can be photographed by anyone, so it must reveal nothing; a site reference is a public, rotating token |
 
 ## 11.2 Recommended stack
 
@@ -4857,8 +4974,9 @@ Drizzle ORM → PostgreSQL (Neon, matching buffr-host's pattern per Section 11.2
 - **Email verification:** `application_users.email_verified_at` stays null until
   the confirmation link is consumed (`POST /auth/email-verification/verify`).
   Signup never returns an access token. Login returns
-  `emailVerificationRequired` while unverified. Delivery uses Resend when
-  `RESEND_API_KEY` is configured; otherwise delivery evidence is fail-closed.
+  `emailVerificationRequired` while unverified. Delivery uses the Buffr mailbox
+  over SMTP when `SMTP_USER` and `SMTP_PASS` are set (Resend only as a fallback);
+  otherwise delivery evidence is fail-closed.
   Tokens are hashed, single-use, expiring, and rotatable via resend.
 - **MFA:** TOTP enrollment (`/auth/mfa/enroll/*`) stores an encrypted secret
   reference; confirmation returns one-time hashed recovery codes and re-issues
@@ -4880,7 +4998,7 @@ Drizzle ORM → PostgreSQL (Neon, matching buffr-host's pattern per Section 11.2
   completion is idempotent, optional steps can be skipped (recorded in
   `skipped_step_codes`), and updates use optimistic concurrency (`version`).
   Step completion and go-live require `organisation.onboarding.manage`,
-  verified email, MFA, and (for go-live) an active or trial subscription. The
+  verified email, and (for go-live) an active or trial subscription. MFA is required once the organisation is live (D-20). The
   admin proxy redirects incomplete organisations away from operational
   `/dashboard/*` routes; invited users without onboarding authority see a
   "setup in progress" page. The customer-facing experience of this checklist
@@ -6524,8 +6642,7 @@ wasn't the first time this pass touched the contract:
 |---|---|
 | Kiosk setup screen — Backend base URL | `http://192.168.11.17:3001/` (this Mac's LAN IP at time of writing — re-check with `ipconfig getifaddr en0` if it changes) |
 | Kiosk setup screen — Site ID | `74c72c99-93dc-4b33-934b-9b365e9924cf` ("Demo Front Desk") |
-| Login — email | `kiosk-demo@buffrcheckpoint.test` |
-| Login — password | `KioskDemo!2026` |
+| Login | A test account in a non-production environment. The demo sign-in `kiosk-demo@buffrcheckpoint.test` and its published password were retired on 2026-10-06 (decision D-19). |
 | Organisation | **Buffr Analytics** — legal "Buffr Financial Services CC" / trading "Buffr Analytics" (`b51f0704-12a7-45d4-8b0d-3642785b6e77`, CC/2024/09322). Demo Front Desk site, kiosk-demo user, hosts, forms, and published branding all live on this org (seed `0018_unify_kiosk_demo_under_buffr_analytics.sql`). Visitor chrome: `brand_colour_token` `#CF1161`, help `team@buffranalytics.com`, logo `/org-assets/buffr-analytics/icon.png`. |
 | Demo host | Prefer a person/department (Finance, Engineering, People, IT). Reception Desk remains for deliveries. Seed `0013_demo_front_desk_hosts.sql`. |
 
@@ -6540,7 +6657,7 @@ or **emulator smoke tests** without a local backend, use
 |---|---|
 | Backend base URL | `https://api.buffrcheckpoint.com/` |
 | Site ID | `74c72c99-93dc-4b33-934b-9b365e9924cf` |
-| Login | `kiosk-demo@buffrcheckpoint.test` / `KioskDemo!2026` |
+| Login | A test account in a non-production environment (the demo sign-in was retired, D-19) |
 | Organisation | Same as above — `b51f0704-…` (Buffr Analytics). Do not provision against a separate kiosk-only org. |
 | Email verified | Required — seed `0011_kiosk_demo_email_verified.sql` (or `email_verified_at` set). Unverified login returns `emailVerificationRequired` and blocks experience sync, leaving a stale QR payload. |
 
@@ -6551,7 +6668,7 @@ Local backend alternative: `http://10.0.2.2:3001/` with NestJS on the host.
 After login, Welcome must show **Buffr Analytics** (not product-default
 "Buffr Checkpoint" chrome): magenta accent `#CF1161`, logo from
 `/org-assets/buffr-analytics/icon.png`, and the public check-in QR for
-site `74c72c99-…`. If branding is missing, use Welcome's retry control —
+site `74c72c99-…`. (The custom magenta branding of this demo tenant was retired with D-18; the tenant itself is a boundary note in the SOC 2 description.) If the experience does not load, use Welcome's retry control —
 sync failures no longer fail silently (v0.27).
 
 ### 11.7.8 DNS and public hostnames — `buffrcheckpoint.com`
@@ -6709,13 +6826,19 @@ VISITOR_CHECKIN_BASE_URL=https://buffrcheckpoint.com
 PUBLIC_ADMIN_BASE_URL=https://admin.buffrcheckpoint.com
 PUBLIC_OPS_BASE_URL=https://ops.buffrcheckpoint.com
 PUBLIC_WEBSITE_BASE_URL=https://buffrcheckpoint.com
-PUBLIC_BRAND_LOGO_URL=https://buffrcheckpoint.com/branding/logo-horizontal.png
 EMAIL_VERIFICATION_PEPPER=<random hex>
 MFA_CHALLENGE_PEPPER=<random hex>
 MFA_SECRET_ENCRYPTION_KEY=<at least 32 random chars>
-RESEND_API_KEY=<from resend.com>
-RESEND_MAIL_DOMAIN=mail.buffrcheckpoint.com
-RESEND_FROM_EMAIL=Buffr Checkpoint <onboarding@mail.buffrcheckpoint.com>
+SMTP_HOST=mail.privateemail.com            # default
+SMTP_PORT=465                              # default, TLS
+SMTP_USER=hello@buffr.ai                   # the Buffr mailbox
+SMTP_PASS=<mailbox password>
+EMAIL_FROM=Buffr Checkpoint <hello@buffr.ai>
+EMAIL_REPLY_TO=hello@buffr.ai
+PUBLIC_CONTACT_EMAIL=hello@buffr.ai
+PUBLIC_BRAND_LOGO_URL=https://buffrcheckpoint.com/branding/email-logo.png
+# Optional: EMAIL_MAX_PER_HOUR (60), EMAIL_MAX_PER_DAY (300), SMTP_TIMEOUT_MS (60000), EMAIL_TRANSPORT=smtp|resend|none
+# Fallback only: RESEND_API_KEY, RESEND_FROM_EMAIL
 # …hash peppers + QR_TOKEN_PEPPER from backend/.env.example…
 ```
 
@@ -7345,7 +7468,7 @@ full schema across three migrations (`0022_platform_ops_console.sql`,
 earlier in the same working session but never actually applied to this dev
 DB until this pass found the gap) — all applied to the real dev database
 and confirmed idempotent on a second run each. A seeded
-`platform_support` demo account (`db/seed/0017_platform_support_demo.sql`,
+`platform_support` demo account (`db/seed/demo/0017_platform_support_demo.sql`,
 home org Buffr Analytics `b51f0704-…` after `0018`,
 `platform-ops-demo@buffrcheckpoint.test`) plus a real customer
 `owner_operator` test account made the *entire* consent-gated flow
@@ -7845,6 +7968,8 @@ and correct, not yet in front of a real kiosk.
 
 ### 11.9.2 Site branding and customisation model
 
+> **Retired 2026-10-06 (D-18).** Custom branding was removed from the product. This section is kept as history and no longer describes the system.
+
 #### Branding hierarchy
 
 ```text
@@ -8077,7 +8202,7 @@ in the customer admin sidebar.
 
 | ID | Requirement | Status |
 |---|---|---|
-| FR-K01 | Show organisation/site logo, name, welcome text, language selector and help action. | FULL — experience sync + branding |
+| FR-K01 | Show the site name, welcome text, language selector and help action. | FULL — experience sync. The organisation logo and custom welcome text were retired with custom branding (D-18). |
 | FR-K02 | Present only channels enabled for the selected site and visitor category. | FULL — capability + channel gating |
 | FR-K03 | Support manual, assisted, QR, NFC, feature-phone instruction, and sign-out. | FULL — public `/check-out` + kiosk sign-out-by-phone; staff roster checkout |
 | FR-K04 | Support NFC badge/token check-in for live approved credential types. | FULL — v0.20 Phase 5 |
@@ -8098,7 +8223,7 @@ in the customer admin sidebar.
 | ID | Requirement | Status |
 |---|---|---|
 | FR-A01 | Create organisations, regions, sites and security zones. | FULL — org/site/region/zone CRUD (v0.20) |
-| FR-A02 | Configure organisation/site branding within accessibility guardrails. | FULL — Site Experience branding + kiosk experience |
+| FR-A02 | Configure organisation/site branding within accessibility guardrails. | RETIRED 2026-10-06 (D-18): custom branding no longer exists; accessibility settings stay in the kiosk experience. |
 | FR-A03–FR-A15 | Hosts, forms, channels, risk/identity, notices, retention, devices, credentials, roster/compliance views, evidence, RBAC, account security. | FULL — includes forgot/reset + login lockout (3 fails / 5 min → 5 min cooldown); see §11.9.0a |
 
 #### Integration requirements
@@ -8210,16 +8335,18 @@ Every site should have narrowly scoped QR types:
 | QR type | Owner | Purpose | Security control | Status |
 |---|---|---|---|---|
 | Public site check-in QR | Site | Opens mobile arrival form on visitor's phone | Site-bound `ref` + active rotation; no visitor identity in the QR | **Live (v0.18)** — website `/check-in` + public API |
-| Pre-registration QR | Invitation | Matches one scheduled visit | One-time, short-lived opaque token | Not built |
-| Sign-out QR | Active visit | Closes one visit | Personal reference; never a shared generic QR | Not built |
-| Emergency information QR | Site | Non-sensitive instructions | No visitor data | Not built |
-| Contractor induction QR | Contractor workflow | Opens approved induction | Expiry, scope, acknowledgement required | Not built |
-| Device support QR | Kiosk/device | Lets authorised technician identify device | Restricted/MDM-managed support flow | Not built |
+| Pre-registration QR | Invitation | Matches one scheduled visit | One-time, short-lived opaque token | Built: invitation link and QR (`POST /invitations`, redeemed at `/check-in?inv=`), emailed when the host gives an address |
+| Sign-out QR | Active visit | Closes one visit | Personal reference; never a shared generic QR | Built 2026-10-07: signed link in the receipt email (`/check-out?v=`, 24 hours, one visit) |
+| Emergency information QR | Site | Non-sensitive instructions | No visitor data | Built (not yet deployed): site reference of type `emergency_info`, opens `/emergency`, text from Site Notices |
+| Contractor induction QR | Contractor workflow | Opens approved induction | Expiry, scope, acknowledgement required | Built (not yet deployed): site reference of type `contractor_induction`, opens `/induction`; scope is the site and the contractor visitor type, expiry is the QR rotation, acknowledgement is recorded per visit and version. No expiry per contractor yet |
+| Device support QR | Kiosk/device | Lets authorised technician identify device | Restricted/MDM-managed support flow | Built (not yet deployed): `GET /devices/:id/support-qr` returns a link to `/dashboard/devices/:id`, which needs sign-in and `device.provision`; not a site reference |
 
 A static public QR photographed and reused may **begin** a controlled journey
 only — it must not prove identity, grant access, or reveal visitor data.
 
 #### 11.9.8.2 Branding-version control
+
+> **Retired 2026-10-06 (D-18).** Custom branding was removed from the product. This section is kept as history and no longer describes the system.
 
 Branding is a controlled configuration asset. **Schema landed in migration
 `0010_site_visitor_experience_schema.sql` (v0.11)** — Drizzle mirrors in
@@ -8536,7 +8663,7 @@ audit metadata.
 ### 11.9.15 Onboarding experience — launch readiness (v0.34)
 
 v0.33 (§11.4.4) fixed the machine: forward-only status transitions,
-`organisation.onboarding.manage`, verified email and MFA on step completion,
+`organisation.onboarding.manage` and verified email on step completion (MFA after go-live, D-20),
 a route-aware requirement matrix, evidence-gated completion, idempotent writes
 and optimistic concurrency. This section specifies the layer the customer
 actually sees. It is the expression of the QR-first Core posture in Sections
@@ -8707,6 +8834,8 @@ UI copy. Save always returns the user to the readiness home with their place
 preserved, so editing an earlier step never loses orientation.
 
 #### 11.9.15.5 Branding is optional for QR-first
+
+> **Retired 2026-10-06 (D-18).** Custom branding was removed from the product. This section is kept as history and no longer describes the system.
 
 Branding was the abandonment point because it was both early and unclear. The
 card states the requirement *before* the page opens.
@@ -9596,7 +9725,7 @@ touches the product.
 | A0-12 | i18n | `/check-in?lang=af` (and `pt`) | Labels resolve; submit still succeeds |
 | A0-13 | NFC (if Professional alpha) | Badge validate → check-in; revoked badge | Live badge OK; revoked rejected |
 | A0-14 | DSAR / audit | Export evidence pack for a visit window | Pack generates; sensitive reads audited |
-| A0-15 | §11.9.15 QR-first onboarding | Register org → verify email → MFA → readiness home → first site → QR-first route → notice + form → site QR → test arrival | Kiosk/CRAN items never presented as required; test visit visible in roster, excluded from analytics and billing; completes within 15 min |
+| A0-15 | §11.9.15 QR-first onboarding | Register org → verify email → readiness home → first site → QR-first route → notice + form → site QR → test arrival → go-live → MFA setup | Kiosk/CRAN items never presented as required; test visit visible in roster, excluded from analytics and billing; completes within 15 min |
 | A0-16 | §11.9.15 Waiting + multi-admin collision | Invite a staff user (waiting page only, never setup steps); second admin saves readiness while first has it open | Waiting copy names what happens next; conflicting save renders "changed by" copy with refreshed state, never a raw 409 |
 
 **Exit criteria (A0)**
