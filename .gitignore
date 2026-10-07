@@ -72,3 +72,6 @@ __pycache__/
 
 # Local artifact store output (ARTIFACT_STORE=local)
 backend/generated-packages/
+
+# SOC 2 evidence snapshots
+.evidence/

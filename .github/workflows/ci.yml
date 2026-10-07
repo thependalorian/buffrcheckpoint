@@ -1,6 +1,7 @@
 # Checks every push and pull request. Blocking: typecheck, tests, build and the
 # secrets scan. Lint and the dependency audit report without blocking until the
 # existing lint findings are cleared (buffrcheckpoint.md 11.1c, CI pipeline).
+# The dependency audit blocks at high severity since 2026-10-06 (all four packages audit clean).
 name: CI
 
 on:
@@ -58,8 +59,7 @@ jobs:
       - name: Lint (reporting)
         continue-on-error: true
         run: npx biome ci .
-      - name: Dependency audit (reporting)
-        continue-on-error: true
+      - name: Dependency audit (blocking at high; SECURITY.md sets the fix times)
         run: npm audit --omit=dev --audit-level=high
 
   migrations:

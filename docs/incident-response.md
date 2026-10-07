@@ -1,0 +1,39 @@
+# Incident response and recovery
+
+Status: proposed 2026-10-06 for owner approval. The recovery targets below are what the current setup can honestly meet; the owner confirms or changes them (BUFFR_SOC2_PROGRAMME.md, decisions D3 and D4).
+
+## What counts as an incident
+
+Any event that exposes or could expose visitor or customer data, stops visitors checking in, or lets someone act without the right access. Examples: a leaked secret, a customer user reaching another organisation's data, the API or database down, a failed or suspicious deploy, a lost kiosk device.
+
+## Severity
+
+| Level | Meaning | Respond within |
+|---|---|---|
+| Sev 1 | Data exposed, or visitor check-in down for all customers | 1 hour |
+| Sev 2 | One customer affected, or a control failed with no known exposure | 4 hours |
+| Sev 3 | Degraded or cosmetic, no data risk | Next business day |
+
+## First hour
+
+1. Confirm what happened and write it down with the time. Keep one running log (a private note is fine).
+2. Contain: revoke the credential or session, disable the account, turn off the feature flag, or roll back (Railway: previous deployment, Redeploy; Vercel: `vercel rollback`).
+3. Preserve evidence before changing anything else: audit events are append-only and hash-chained per organisation (`GET` the audit chain check in the admin or run `verifyChainIntegrity`), and Sentry holds the error trail.
+4. Tell the owner. For a Sev 1 involving personal data, the owner decides on notifying customers and the regulator; the Namibia DPA Bill text is in the repository root.
+5. After recovery, write a short review: cause, what worked, what to change. Add a decision-log entry if a standing decision changes.
+
+## Recovery targets (proposed)
+
+| Item | Target | Based on |
+|---|---|---|
+| RTO, API and web | 4 hours | Railway redeploy of the previous build plus a Vercel rollback each take minutes; the margin covers diagnosis |
+| RPO, database, within the last 6 hours | Under 5 minutes | Neon point-in-time restore. Project `falling-frog-15538162` keeps 6 hours of history (21,600 s) |
+| RPO, database, older than 6 hours | Up to 24 hours | Daily Neon snapshot branches (`scripts/neon-daily-snapshot.sh`), kept 14 days. Needs `NEON_API_KEY` in the repository secrets and the scheduled workflow |
+
+Restore a database: in Neon, restore the branch `main` to a point in time (or promote a snapshot branch), then confirm `GET /health` returns `"database":"ok"` and run the smoke script `scripts/smoke-production.sh`.
+
+Test the restore on a throwaway branch every quarter and keep the result as evidence (date, branch, what was checked).
+
+## Contacts
+
+Security reports: `security@buffrcheckpoint.com`. Platform status and uptime checks are listed in the Deploy, rollback and monitoring runbook in `buffrcheckpoint.md`.

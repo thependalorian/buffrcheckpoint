@@ -1,0 +1,10 @@
+# Changes here need a review from the owner before merge (SOC 2 CC6.1, CC8.1).
+# Replace the handle with a team once there is more than one maintainer.
+/backend/src/common/guards/     @thependalorian
+/backend/src/common/auth/       @thependalorian
+/backend/src/modules/auth/      @thependalorian
+/backend/src/modules/rbac/      @thependalorian
+/backend/db/migrations/         @thependalorian
+/backend/db/maintenance/        @thependalorian
+/.github/                       @thependalorian
+/SECURITY.md                    @thependalorian
