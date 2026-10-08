@@ -471,7 +471,7 @@ export function CheckInForm({ siteId, referenceId, initialLanguageCode = "en" }:
   if (!context) return null;
 
   return (
-    <CheckInShell privacyNoticeSummary={context.privacyNoticeSummary}>
+    <CheckInShell>
       <form onSubmit={handleSubmit} className="space-y-6">
         {selectedHost ? (
           <p className="rounded-md border border-border bg-card/70 px-3 py-2 text-sm text-muted-foreground">

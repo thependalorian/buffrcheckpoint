@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable, NotFoundException, StreamableFile } from "@nestjs/common";
+import { BadRequestException, Inject, Injectable, Logger, NotFoundException, StreamableFile } from "@nestjs/common";
 import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 
 import { createArtifactStore } from "../../common/artifacts/artifact-store";
@@ -16,6 +16,7 @@ import {
   visitorVisits,
 } from "../../db/schema";
 import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.service";
+import { TemplatedEmailService } from "../notifications/templated-email.service";
 import { canExtend, EXTENSION_PREFIX, requestClock } from "./dsar-clock";
 import { randomUUID } from "node:crypto";
 
@@ -36,6 +37,21 @@ export function erasedUserFields(now: Date) {
   };
 }
 
+/** The placeholder address an erased account carries. It can never receive mail (.invalid is reserved). */
+export function erasedEmail(userId: string): string {
+  return `erased-${userId}@erased.invalid`;
+}
+
+/** Plain account of the outcome: what was erased, and that some records are kept on purpose. Never claims everything is gone. */
+export const ACCOUNT_CLOSED_NOTICE = {
+  subject: "Your Buffr Checkpoint account has been closed",
+  body: [
+    "Your account has been closed and the personal details tied to it have been erased or anonymised.",
+    "We keep only the records we are required or justified to keep, such as billing records and audit events. Those records are restricted to the people who need them and are removed when their retention period ends.",
+    "If you did not ask for this, reply to this email straight away.",
+  ].join("\n\n"),
+};
+
 export interface CreateDsarInput {
   subjectReference: string;
   requestTypeCode: string;
@@ -49,7 +65,25 @@ export class DsarService {
     @Inject(DB) private readonly db: Database,
     private readonly typeDefs: TypeDefinitionLookupService,
     private readonly dataProtection: PersonalDataProtectionService,
+    private readonly templatedEmail: TemplatedEmailService,
   ) {}
+
+  private readonly logger = new Logger(DsarService.name);
+
+  /** Tells the person what was done and what was kept. A mail failure never undoes or blocks the erasure. */
+  private async sendClosureNotice(to: string, organisationId: string) {
+    try {
+      await this.templatedEmail.send({
+        templateCode: "account_deletion_completed",
+        organisationId,
+        to,
+        variables: {},
+        fallback: ACCOUNT_CLOSED_NOTICE,
+      });
+    } catch (error) {
+      this.logger.warn(`Account closure notice not queued: ${error instanceof Error ? error.message : "unknown error"}`);
+    }
+  }
 
   async create(input: CreateDsarInput, user: AuthenticatedUser) {
     const [requestTypeCode, pendingStatus] = await Promise.all([
@@ -174,7 +208,20 @@ export class DsarService {
 
     let exportFileReference: string | null = request.exportFileReference ?? null;
 
+    let subjectReference = request.subjectReference;
+    let closureNoticeTo: string | null = null;
     if (resolution === "completed" && request.requestTypeCode === accountDeletionType) {
+      const target = await this.db.query.applicationUsers.findFirst({
+        columns: { id: true },
+        where: and(
+          eq(applicationUsers.email, request.subjectReference),
+          eq(applicationUsers.organisationId, user.organisationId),
+          isNull(applicationUsers.deletedAt),
+        ),
+      });
+      // The request record keeps a reference to the erased account, never the address it was asked about.
+      if (target) subjectReference = erasedEmail(target.id);
+      closureNoticeTo = request.subjectReference;
       await this.db
         .update(applicationUsers)
         .set(erasedUserFields(new Date()))
@@ -197,7 +244,7 @@ export class DsarService {
 
     await this.db
       .update(privacyRequests)
-      .set({ statusCode: resolvedStatus, exportFileReference })
+      .set({ statusCode: resolvedStatus, exportFileReference, subjectReference })
       .where(eq(privacyRequests.id, requestId));
 
     await this.db.insert(privacyRequestStatusLog).values({
@@ -208,6 +255,8 @@ export class DsarService {
       actorId: user.userId,
       reason,
     });
+
+    if (closureNoticeTo) await this.sendClosureNotice(closureNoticeTo, user.organisationId);
 
     return { requestId, resolution, exportFileReference };
   }

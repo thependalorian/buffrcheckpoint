@@ -73,6 +73,14 @@ export const TEMPLATE_CATALOG: Readonly<Record<string, TemplateSpec>> = {
     wired: true,
     alwaysSend: true,
   },
+  account_deletion_completed: {
+    category: "account_security",
+    audience: "customer_user",
+    trigger: "An account-deletion request is completed",
+    preheader: "Your account has been closed and what we kept",
+    wired: true,
+    alwaysSend: true,
+  },
   password_reset: {
     category: "account_security",
     audience: "customer_user",

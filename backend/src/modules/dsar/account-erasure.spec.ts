@@ -28,3 +28,16 @@ describe("erasedUserFields", () => {
     expect(Object.keys(fields)).not.toContain("organisationId");
   });
 });
+
+describe("account closure wording", () => {
+  it("states what was kept and never claims that everything was deleted", () => {
+    const { ACCOUNT_CLOSED_NOTICE } = jest.requireActual("./dsar.service") as typeof import("./dsar.service");
+    expect(ACCOUNT_CLOSED_NOTICE.body).toContain("keep only the records we are required or justified to keep");
+    expect(ACCOUNT_CLOSED_NOTICE.body.toLowerCase()).not.toContain("everything");
+  });
+
+  it("names the placeholder an erased account carries", () => {
+    const { erasedEmail } = jest.requireActual("./dsar.service") as typeof import("./dsar.service");
+    expect(erasedEmail("11111111-1111-1111-1111-111111111111")).toBe("erased-11111111-1111-1111-1111-111111111111@erased.invalid");
+  });
+});

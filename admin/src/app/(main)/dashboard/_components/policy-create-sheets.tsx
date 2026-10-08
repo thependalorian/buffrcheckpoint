@@ -297,7 +297,7 @@ export function CreateDeviceSheet({ sites }: { sites: Array<{ id: string; name: 
       <SheetContent>
         <SheetHeader>
           <SheetTitle>Register kiosk device</SheetTitle>
-          <SheetDescription>Provisions a managed device row before CRAN activation.</SheetDescription>
+          <SheetDescription>Adds the device so it can be activated and sent to a site.</SheetDescription>
         </SheetHeader>
         <form
           className="mt-6 space-y-4"

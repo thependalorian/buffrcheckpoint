@@ -79,7 +79,7 @@ export default async function DevicesPage() {
                   colSpan={4}
                   title="No devices registered yet"
                   action={<EmptyActionLink href="/dashboard/site-experience/kiosk">Set up a kiosk</EmptyActionLink>}
-                  description="Register a device before CRAN activation and site deployment."
+                  description="Register a device before it is activated and sent to a site."
                 />
               ) : (
                 devices.map((device) => (

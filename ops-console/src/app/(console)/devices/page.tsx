@@ -62,9 +62,9 @@ export default async function DevicesPage({
 
       {backlog ? (
         <div className="mt-4 grid gap-3 sm:grid-cols-3">
-          <StatCard label="Registered devices" value={String(backlog.deviceCount)} />
-          <StatCard label="Latest status offline" value={String(backlog.offlineDeviceCount)} />
-          <StatCard label="Pending host notifications" value={String(backlog.pendingNotificationCount)} />
+          <StatCard label="Registered devices" value={String(backlog.deviceCount ?? 0)} />
+          <StatCard label="Latest status offline" value={String(backlog.offlineDeviceCount ?? 0)} />
+          <StatCard label="Pending host notifications" value={String(backlog.pendingNotificationCount ?? 0)} />
         </div>
       ) : null}
 
