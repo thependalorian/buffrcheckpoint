@@ -27,9 +27,6 @@ type CheckInContext = {
   privacyNoticeSummary: string;
 };
 
-/** Checkpoint's own accent. Organisations cannot change it. */
-const CHECK_IN_ACCENT = "#CF1161";
-
 type FormField = {
   fieldCode: string;
   fieldLabel: string;
@@ -197,18 +194,17 @@ export function CheckInForm({ siteId, referenceId, initialLanguageCode = "en" }:
           setEffectiveForm(data);
           if (data) {
             const purposeField = data.fields.find((f) => f.fieldCode === "purpose_category");
-            const rawOptions = (purposeField?.validationSchema as { options?: unknown } | undefined)
-              ?.options;
+            const rawOptions = (purposeField?.validationSchema as { options?: unknown } | undefined)?.options;
             const optionCodes = Array.isArray(rawOptions)
-              ? rawOptions.map((o) => (typeof o === "string" ? o : String((o as { code?: string })?.code ?? "")))
+              ? rawOptions
+                  .map((o) => (typeof o === "string" ? o : String((o as { code?: string })?.code ?? "")))
                   .filter(Boolean)
               : [];
             if (optionCodes.length > 0) {
               setFieldAnswers((prev) => {
                 const current = prev.purpose_category;
                 if (current && optionCodes.includes(current)) return prev;
-                const next =
-                  optionCodes.find((c) => c === "meeting") ?? optionCodes[0];
+                const next = optionCodes.find((c) => c === "meeting") ?? optionCodes[0];
                 setPurposeCategoryCode(next);
                 return { ...prev, purpose_category: next };
               });
@@ -231,7 +227,6 @@ export function CheckInForm({ siteId, referenceId, initialLanguageCode = "en" }:
     };
   }, [context, visitorTypeCode, siteId, referenceId, languageCode]);
 
-  const accent = CHECK_IN_ACCENT;
   const selectedHost = context?.hosts.find((host) => host.id === hostId);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -296,7 +291,7 @@ export function CheckInForm({ siteId, referenceId, initialLanguageCode = "en" }:
           visitorEmail: (answerMap.visitor_email || visitorEmail).trim() || undefined,
           vehicleRegistration: (answerMap.vehicle_registration || vehicleRegistration).trim() || undefined,
           idDocumentNumber: (answerMap.id_document_number || idDocumentNumber).trim() || undefined,
-          purposeCategoryCode: (answerMap.purpose_category || purposeCategoryCode) || undefined,
+          purposeCategoryCode: answerMap.purpose_category || purposeCategoryCode || undefined,
           visitorTypeCode,
           privacyAcknowledged: true,
           formAnswers,
@@ -388,9 +383,7 @@ export function CheckInForm({ siteId, referenceId, initialLanguageCode = "en" }:
       <CheckInShell>
         <div className="space-y-3">
           <h1 className="text-2xl font-semibold tracking-tight">Check-in unavailable</h1>
-          <p className="text-sm text-muted-foreground">
-            {loadError || "Unable to load check-in for this link."}
-          </p>
+          <p className="text-sm text-muted-foreground">{loadError || "Unable to load check-in for this link."}</p>
           <p className="text-sm text-muted-foreground">
             Ask reception for a fresh public site QR, or scan the printed check-in QR for this location.
           </p>
@@ -400,37 +393,29 @@ export function CheckInForm({ siteId, referenceId, initialLanguageCode = "en" }:
   }
 
   if (done) {
-    const doneAccent = accent;
     const steps = done.nextSteps;
-    const hostLine = done.hostDepartment
-      ? `${done.hostDisplayName} · ${done.hostDepartment}`
-      : done.hostDisplayName;
+    const hostLine = done.hostDepartment ? `${done.hostDisplayName} · ${done.hostDepartment}` : done.hostDisplayName;
     return (
       <CheckInShell>
         <div className="space-y-5">
-          <div className="h-1.5 w-16 rounded-full" style={{ backgroundColor: doneAccent }} aria-hidden />
+          <div className="h-1.5 w-16 rounded-full bg-primary" aria-hidden />
           <div className="space-y-2">
-            <p className="text-sm font-medium" style={{ color: doneAccent }}>
-              Checked in at {done.siteName}
-            </p>
-            <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl" style={{ color: "#3D1152" }}>
+            <p className="text-sm font-medium text-[var(--color-sodium-yellow-ink)]">Checked in at {done.siteName}</p>
+            <h2 className="text-2xl font-semibold tracking-tight sm:text-3xl text-foreground">
               {steps?.headline || `Wait for ${done.hostDisplayName}`}
             </h2>
-            <p className="text-base" style={{ color: "#3D1152" }}>
+            <p className="text-base text-foreground">
               Meeting: <span className="font-medium">{hostLine}</span>
             </p>
-            <p className="text-sm leading-relaxed" style={{ color: "#705C67" }}>
+            <p className="text-sm leading-relaxed text-muted-foreground">
               {steps?.instruction ||
                 `Please wait at reception. ${done.hostDisplayName} has been notified and will meet you here.`}
             </p>
           </div>
           {steps?.queueNumber != null ? (
-            <div
-              className="rounded-2xl border px-4 py-3 text-sm"
-              style={{ borderColor: "#EDE6E8", backgroundColor: "#fff", color: "#3D1152" }}
-            >
+            <div className="rounded-2xl border px-4 py-3 text-sm border-border bg-card text-foreground">
               <p className="font-medium">Queue ticket #{steps.queueNumber}</p>
-              <p className="mt-1" style={{ color: "#705C67" }}>
+              <p className="mt-1 text-muted-foreground">
                 {steps.peopleAhead == null
                   ? "Wait at reception until your host or the receptionist calls you."
                   : steps.peopleAhead === 0
@@ -442,28 +427,19 @@ export function CheckInForm({ siteId, referenceId, initialLanguageCode = "en" }:
           {done.visitorPass ? (
             <div
               id="visitor-pass-card"
-              className="rounded-2xl border px-4 py-4 text-sm print:border-black"
-              style={{ borderColor: doneAccent, backgroundColor: "#fff", color: "#3D1152" }}
+              className="rounded-2xl border px-4 py-4 text-sm print:border-black border-primary bg-card text-foreground"
             >
-              <p className="text-xs uppercase tracking-wide" style={{ color: doneAccent }}>
+              <p className="text-xs uppercase tracking-wide text-[var(--color-sodium-yellow-ink)]">
                 {done.visitorPass.title}
               </p>
               <p className="mt-2 text-2xl font-semibold tracking-widest">{done.visitorPass.confirmationCode}</p>
               <p className="mt-3 font-medium">{done.visitorPass.visitorName}</p>
-              <p className="mt-1" style={{ color: "#705C67" }}>
-                {done.visitorPass.hostLine}
-              </p>
-              <p className="mt-1" style={{ color: "#705C67" }}>
-                {done.visitorPass.siteName}
-              </p>
+              <p className="mt-1 text-muted-foreground">{done.visitorPass.hostLine}</p>
+              <p className="mt-1 text-muted-foreground">{done.visitorPass.siteName}</p>
               {done.visitorPass.badgeRequired && done.visitorPass.badgeInstruction ? (
-                <p className="mt-3" style={{ color: "#705C67" }}>
-                  {done.visitorPass.badgeInstruction}
-                </p>
+                <p className="mt-3 text-muted-foreground">{done.visitorPass.badgeInstruction}</p>
               ) : null}
-              <p className="mt-3 text-xs print:hidden" style={{ color: "#675C62" }}>
-                {done.visitorPass.printHint}
-              </p>
+              <p className="mt-3 text-xs print:hidden text-muted-foreground">{done.visitorPass.printHint}</p>
               <Button
                 type="button"
                 variant="outline"
@@ -477,13 +453,12 @@ export function CheckInForm({ siteId, referenceId, initialLanguageCode = "en" }:
               </Button>
             </div>
           ) : null}
-          <p className="text-xs print:hidden" style={{ color: "#675C62" }}>
+          <p className="text-xs print:hidden text-muted-foreground">
             Stay at {steps?.waitLocation || "reception"} until your host arrives. If you need help, ask the
             receptionist. When you leave, use Sign out with the same phone number.
           </p>
           <a
-            className="inline-block text-sm underline print:hidden"
-            style={{ color: doneAccent }}
+            className="inline-block text-sm text-[var(--color-sodium-yellow-ink)] underline print:hidden"
             href={`/check-out?site=${encodeURIComponent(siteId)}&ref=${encodeURIComponent(referenceId)}`}
           >
             Sign out when you leave
@@ -499,11 +474,9 @@ export function CheckInForm({ siteId, referenceId, initialLanguageCode = "en" }:
     <CheckInShell privacyNoticeSummary={context.privacyNoticeSummary}>
       <form onSubmit={handleSubmit} className="space-y-6">
         {selectedHost ? (
-          <p className="rounded-md border border-[#EDEBEC] bg-white/70 px-3 py-2 text-sm" style={{ color: "#705C67" }}>
+          <p className="rounded-md border border-border bg-card/70 px-3 py-2 text-sm text-muted-foreground">
             You will wait at reception for{" "}
-            <span className="font-medium" style={{ color: "#3D1152" }}>
-              {selectedHost.displayName}
-            </span>
+            <span className="font-medium text-foreground">{selectedHost.displayName}</span>
             {selectedHost.department ? ` (${selectedHost.department})` : ""}. Reception will notify them.
           </p>
         ) : null}
@@ -551,24 +524,17 @@ export function CheckInForm({ siteId, referenceId, initialLanguageCode = "en" }:
             .filter((field) => isFieldVisible(field.visibilityRule, fieldAnswers))
             .map((field) => {
               const required = isFieldRequired(field.required, field.validationSchema, fieldAnswers);
-              const options = Array.isArray(
-                (field.validationSchema as { options?: string[] } | undefined)?.options,
-              )
+              const options = Array.isArray((field.validationSchema as { options?: string[] } | undefined)?.options)
                 ? ((field.validationSchema as { options?: string[] }).options ?? [])
                 : [];
               const value = fieldAnswers[field.fieldCode] ?? "";
-              const setValue = (next: string) =>
-                setFieldAnswers((prev) => ({ ...prev, [field.fieldCode]: next }));
+              const setValue = (next: string) => setFieldAnswers((prev) => ({ ...prev, [field.fieldCode]: next }));
 
               if (field.fieldCode === "host") {
                 return (
                   <div key={field.fieldCode} className="space-y-2">
-                    <Label htmlFor="hostId">
-                      {fieldLabelWithOptional(field.fieldLabel, required)}
-                    </Label>
-                    {field.helpText ? (
-                      <p className="text-xs text-muted-foreground">{field.helpText}</p>
-                    ) : null}
+                    <Label htmlFor="hostId">{fieldLabelWithOptional(field.fieldLabel, required)}</Label>
+                    {field.helpText ? <p className="text-xs text-muted-foreground">{field.helpText}</p> : null}
                     {context.hosts.length === 0 ? (
                       <p className="text-sm text-muted-foreground">
                         No hosts are configured for this site yet. Please see reception.
@@ -604,9 +570,7 @@ export function CheckInForm({ siteId, referenceId, initialLanguageCode = "en" }:
               if (field.fieldCode === "purpose_category" && context.purposeCategories.length > 0) {
                 return (
                   <div key={field.fieldCode} className="space-y-2">
-                    <Label htmlFor="purposeCategoryCode">
-                      {fieldLabelWithOptional(field.fieldLabel, required)}
-                    </Label>
+                    <Label htmlFor="purposeCategoryCode">{fieldLabelWithOptional(field.fieldLabel, required)}</Label>
                     <select
                       id="purposeCategoryCode"
                       name="purposeCategoryCode"
@@ -621,8 +585,7 @@ export function CheckInForm({ siteId, referenceId, initialLanguageCode = "en" }:
                       {(options.length
                         ? options.map((code) => ({
                             code,
-                            label:
-                              context.purposeCategories.find((p) => p.code === code)?.label ?? code,
+                            label: context.purposeCategories.find((p) => p.code === code)?.label ?? code,
                           }))
                         : context.purposeCategories
                       ).map((purpose) => (
@@ -647,9 +610,7 @@ export function CheckInForm({ siteId, referenceId, initialLanguageCode = "en" }:
                     <legend className="text-sm font-medium leading-none">
                       {fieldLabelWithOptional(field.fieldLabel, required)}
                     </legend>
-                    {field.helpText ? (
-                      <p className="text-xs text-muted-foreground">{field.helpText}</p>
-                    ) : null}
+                    {field.helpText ? <p className="text-xs text-muted-foreground">{field.helpText}</p> : null}
                     <div className="space-y-2 rounded-md border border-input bg-white px-3 py-2">
                       {options.map((opt) => (
                         <label key={opt} className="flex items-center gap-2 text-sm">
@@ -677,9 +638,7 @@ export function CheckInForm({ siteId, referenceId, initialLanguageCode = "en" }:
                     <Label htmlFor={`field-${field.fieldCode}`}>
                       {fieldLabelWithOptional(field.fieldLabel, required)}
                     </Label>
-                    {field.helpText ? (
-                      <p className="text-xs text-muted-foreground">{field.helpText}</p>
-                    ) : null}
+                    {field.helpText ? <p className="text-xs text-muted-foreground">{field.helpText}</p> : null}
                     <select
                       id={`field-${field.fieldCode}`}
                       value={value}
@@ -726,9 +685,7 @@ export function CheckInForm({ siteId, referenceId, initialLanguageCode = "en" }:
                   <Label htmlFor={`field-${field.fieldCode}`}>
                     {fieldLabelWithOptional(field.fieldLabel, required)}
                   </Label>
-                  {field.helpText ? (
-                    <p className="text-xs text-muted-foreground">{field.helpText}</p>
-                  ) : null}
+                  {field.helpText ? <p className="text-xs text-muted-foreground">{field.helpText}</p> : null}
                   {field.fieldTypeCode === "textarea" ? (
                     <textarea
                       id={`field-${field.fieldCode}`}
@@ -878,7 +835,7 @@ export function CheckInForm({ siteId, referenceId, initialLanguageCode = "en" }:
           </>
         )}
 
-        <label className="flex items-start gap-3 rounded-md border border-[#EDEBEC] bg-white/70 p-3 text-sm">
+        <label className="flex items-start gap-3 rounded-md border border-border bg-card/70 p-3 text-sm">
           <input
             type="checkbox"
             className="mt-1"
@@ -886,13 +843,12 @@ export function CheckInForm({ siteId, referenceId, initialLanguageCode = "en" }:
             onChange={(e) => setPrivacyAcknowledged(e.target.checked)}
             required
           />
-          <span style={{ color: "#705C67" }}>{context.privacyNoticeSummary}</span>
+          <span className="text-muted-foreground">{context.privacyNoticeSummary}</span>
         </label>
 
         <Button
           type="submit"
-          className="w-full text-white hover:opacity-90"
-          style={{ backgroundColor: accent }}
+          className="w-full"
           disabled={submitting || Boolean(done) || context.hosts.length === 0 || !hostId || !privacyAcknowledged}
         >
           {submitting ? "Checking in…" : "Check in"}

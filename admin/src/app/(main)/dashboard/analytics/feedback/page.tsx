@@ -126,7 +126,7 @@ export default async function FeedbackPage({
                       role="img"
                       aria-label={`${copy.stars(score)}: ${count} of ${detail?.responses}`}
                     >
-                      <div className="h-full" style={{ width: `${share}%`, backgroundColor: "#E0B000" }} />
+                      <div className="h-full bg-primary" style={{ width: `${share}%` }} />
                     </div>
                     <span className="w-20 shrink-0 text-right tabular-nums">
                       {count} ({share}%)

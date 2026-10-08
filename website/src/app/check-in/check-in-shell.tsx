@@ -28,8 +28,8 @@ export function CheckInShell({ privacyNoticeSummary, label = "Visitor check-in",
         <div className="bc-surface p-5 sm:p-6">{children}</div>
       </main>
 
-      <footer className="mt-auto border-t border-[#EDEBEC] bg-white/80">
-        <div className="mx-auto max-w-lg space-y-2 px-4 py-6 text-center text-xs" style={{ color: "#675C62" }}>
+      <footer className="mt-auto border-t border-border bg-card/80">
+        <div className="mx-auto max-w-lg space-y-2 px-4 py-6 text-center text-xs text-muted-foreground">
           {privacyNoticeSummary ? <p className="text-[11px] leading-relaxed">{privacyNoticeSummary}</p> : null}
           <p>
             <a href="/" className="underline underline-offset-2">

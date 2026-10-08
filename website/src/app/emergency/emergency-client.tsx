@@ -48,12 +48,10 @@ export default function EmergencyClient() {
   return (
     <CheckInShell label={copy.shellLabel}>
       <div className="space-y-4">
-        <h1 className="font-semibold text-2xl tracking-tight" style={{ color: "#111111" }}>
-          {copy.title}
-        </h1>
+        <h1 className="font-semibold text-2xl tracking-tight text-foreground">{copy.title}</h1>
         {state.kind === "loading" ? <p className="text-sm text-muted-foreground">{copy.loading}</p> : null}
         {state.kind === "invalid" ? (
-          <p className="text-sm" role="alert" style={{ color: "#111111" }}>
+          <p className="text-sm text-foreground" role="alert">
             {copy.invalidLink}
           </p>
         ) : null}
@@ -62,7 +60,7 @@ export default function EmergencyClient() {
             <p className="text-sm text-muted-foreground">{copy.siteLine(state.info.siteName)}</p>
             {state.info.available && state.info.contentText ? (
               <>
-                <div className="whitespace-pre-line text-base leading-relaxed" style={{ color: "#111111" }}>
+                <div className="whitespace-pre-line text-base leading-relaxed text-foreground">
                   {state.info.contentText}
                 </div>
                 {state.info.versionNumber ? (
@@ -72,9 +70,7 @@ export default function EmergencyClient() {
                 ) : null}
               </>
             ) : (
-              <p className="text-sm" style={{ color: "#111111" }}>
-                {copy.notPublished}
-              </p>
+              <p className="text-sm text-foreground">{copy.notPublished}</p>
             )}
           </>
         ) : null}

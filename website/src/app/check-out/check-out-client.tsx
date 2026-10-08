@@ -94,7 +94,12 @@ export default function CheckOutClient() {
         body: JSON.stringify({ token: signOutToken }),
       });
       if (!res.ok) throw new Error(signOutLinkCopy.failed);
-      const data = (await res.json()) as { confirmationCode: string; siteName?: string; checkedOutAt: string; surveyToken?: string };
+      const data = (await res.json()) as {
+        confirmationCode: string;
+        siteName?: string;
+        checkedOutAt: string;
+        surveyToken?: string;
+      };
       setDone({
         confirmationCode: data.confirmationCode,
         siteName: data.siteName ?? "this site",
@@ -114,12 +119,8 @@ export default function CheckOutClient() {
     return (
       <CheckInShell>
         <div className="space-y-5">
-          <h1 className="text-2xl font-semibold tracking-tight" style={{ color: "#3D1152" }}>
-            {signOutLinkCopy.title}
-          </h1>
-          <p className="text-sm" style={{ color: "#705C67" }}>
-            {signOutLinkCopy.body}
-          </p>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">{signOutLinkCopy.title}</h1>
+          <p className="text-sm text-muted-foreground">{signOutLinkCopy.body}</p>
           <Button type="button" onClick={handleTokenSignOut} disabled={submitting} className="w-full">
             {submitting ? signOutLinkCopy.working : signOutLinkCopy.button}
           </Button>
@@ -145,15 +146,11 @@ export default function CheckOutClient() {
     return (
       <CheckInShell>
         <div className="space-y-4">
-          <h1 className="text-2xl font-semibold tracking-tight" style={{ color: "#3D1152" }}>
-            You are signed out
-          </h1>
-          <p className="text-sm" style={{ color: "#705C67" }}>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">You are signed out</h1>
+          <p className="text-sm text-muted-foreground">
             Confirmation {done.confirmationCode} · {new Date(done.checkedOutAt).toLocaleString()}
           </p>
-          <p className="text-sm" style={{ color: "#705C67" }}>
-            Return your visitor pass to reception if you were issued one.
-          </p>
+          <p className="text-sm text-muted-foreground">Return your visitor pass to reception if you were issued one.</p>
           {done.surveyToken ? <VisitSurvey token={done.surveyToken} /> : null}
         </div>
       </CheckInShell>
@@ -164,10 +161,8 @@ export default function CheckOutClient() {
     <CheckInShell>
       <form onSubmit={handleSubmit} className="space-y-5">
         <div className="space-y-2">
-          <h1 className="text-2xl font-semibold tracking-tight" style={{ color: "#3D1152" }}>
-            Sign out
-          </h1>
-          <p className="text-sm" style={{ color: "#705C67" }}>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground">Sign out</h1>
+          <p className="text-sm text-muted-foreground">
             Enter the mobile number you used at check-in. This does not show a visitor directory.
           </p>
         </div>

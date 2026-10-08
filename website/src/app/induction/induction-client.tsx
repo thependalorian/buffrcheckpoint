@@ -103,26 +103,18 @@ export default function InductionClient() {
   return (
     <CheckInShell label={copy.shellLabel}>
       <div className="space-y-4">
-        <h1 className="font-semibold text-2xl tracking-tight" style={{ color: "#111111" }}>
-          {copy.title}
-        </h1>
+        <h1 className="font-semibold text-2xl tracking-tight text-foreground">{copy.title}</h1>
         {state.kind === "loading" ? <p className="text-sm text-muted-foreground">{copy.loading}</p> : null}
         {state.kind === "invalid" ? (
-          <p className="text-sm" role="alert" style={{ color: "#111111" }}>
+          <p className="text-sm text-foreground" role="alert">
             {copy.invalidLink}
           </p>
         ) : null}
         {ready ? <p className="text-sm text-muted-foreground">{copy.siteLine(ready.siteName)}</p> : null}
-        {ready && !ready.available ? (
-          <p className="text-sm" style={{ color: "#111111" }}>
-            {copy.notPublished}
-          </p>
-        ) : null}
+        {ready && !ready.available ? <p className="text-sm text-foreground">{copy.notPublished}</p> : null}
         {ready?.available && ready.contentText ? (
           <>
-            <div className="whitespace-pre-line text-base leading-relaxed" style={{ color: "#111111" }}>
-              {ready.contentText}
-            </div>
+            <div className="whitespace-pre-line text-base leading-relaxed text-foreground">{ready.contentText}</div>
             {ready.versionNumber ? (
               <p className="text-muted-foreground text-xs">
                 {copy.updated(ready.versionNumber, formatNoticeDate(ready.updatedAt))}
@@ -146,7 +138,7 @@ export default function InductionClient() {
                 />
                 <p className="text-muted-foreground text-xs">{copy.phoneHelp}</p>
               </div>
-              <label className="flex items-start gap-3 text-sm" htmlFor="inductionConfirm" style={{ color: "#111111" }}>
+              <label className="flex items-start gap-3 text-sm text-foreground" htmlFor="inductionConfirm">
                 <input
                   id="inductionConfirm"
                   type="checkbox"
@@ -167,7 +159,7 @@ export default function InductionClient() {
           <p
             className="rounded-md border p-3 text-sm"
             role={message.tone === "error" ? "alert" : "status"}
-            style={{ color: "#111111", borderColor: message.tone === "error" ? "#111111" : "#E0B000" }}
+            style={{ borderColor: message.tone === "error" ? "var(--color-carbon)" : "var(--color-sodium-yellow)" }}
           >
             {message.text}
           </p>
