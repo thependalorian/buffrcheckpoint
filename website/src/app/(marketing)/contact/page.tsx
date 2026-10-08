@@ -4,7 +4,7 @@ import { ContactForm } from "@/components/contact-form";
 import { MarketingHero } from "@/components/marketing/marketing-hero";
 import { MarketingPageClose } from "@/components/marketing/marketing-page-close";
 import { PUBLIC_CONTACT_EMAIL } from "@/lib/copy/contact";
-import { marketingFeatureCard, marketingPageTitle, marketingWideSection } from "@/lib/marketing-layout";
+import { marketingPageTitle, marketingWideSection } from "@/lib/marketing-layout";
 import { MARKETING_HERO_IMAGES } from "@/lib/marketing-visuals";
 import { pageMetadata } from "@/lib/seo";
 

@@ -54,8 +54,8 @@ export function SiteFooter() {
               {BRAND.footerAttribution}
             </p>
             <p className="mt-4 max-w-md text-sm leading-relaxed text-muted-foreground">
-              Visitor check-in for banks, clinics, government offices, and any site still running a paper register.
-              Each visitor gets a private record. You get the audit trail.
+              Visitor check-in for banks, clinics, government offices, and any site still running a paper register. Each
+              visitor gets a private record. You get the audit trail.
             </p>
             <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center">
               <a
@@ -90,8 +90,8 @@ export function SiteFooter() {
             © {year} {BRAND.footerAttribution} · Windhoek, Namibia
           </p>
           <p className="max-w-4xl text-xs leading-relaxed text-muted-foreground/90">
-            {BRAND.productName} takes care of the data protection work for you: the privacy notice, retention and disposal, data requests and
-            their deadlines, and the evidence.
+            {BRAND.productName} takes care of the data protection work for you: the privacy notice, retention and
+            disposal, data requests and their deadlines, and the evidence.
           </p>
         </div>
       </div>

@@ -11,13 +11,10 @@ const CHANNELS = [
 /** Multi-channel strip converging on one record — channels first, hub below (PRD §11.6.5.3). */
 export function ChannelConvergenceVisual() {
   return (
-    <div className="bc-surface-muted mx-auto min-w-0 max-w-5xl p-6 sm:p-10">
+    <div className="mx-auto min-w-0 max-w-5xl border-y border-border py-8 sm:py-10">
       <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         {CHANNELS.map((channel) => (
-          <li
-            key={channel.label}
-            className="bc-surface flex min-w-0 flex-col items-center gap-2.5 p-3 text-center sm:p-4"
-          >
+          <li key={channel.label} className="flex min-w-0 flex-col items-center gap-2.5 p-3 text-center sm:p-4">
             <span className="flex size-11 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--color-sodium-yellow)_14%,var(--color-pure-white))] text-[var(--color-sodium-yellow-ink)]">
               <channel.icon aria-hidden className="size-5 sm:size-6" />
             </span>

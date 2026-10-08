@@ -3,6 +3,17 @@ export const passwordRule =
   "Use at least 12 characters. A phrase of several words works well. Spaces and any characters are allowed.";
 export const PASSWORD_MIN_LENGTH = 12;
 
+export const authPanelCopy = {
+  headline: "Visitor privacy, handled for you.",
+  capabilities: [
+    "Isolated, encrypted visitor records",
+    "Risk-based identity assurance matched to site and visit risk",
+    "Offline-first check-in for low-connectivity sites",
+    "Audit-ready evidence, retention, and role-based access",
+  ],
+  footnote: "Replacing shared paper registers with isolated, governed visitor records.",
+} as const;
+
 export const authCopy = {
   register: {
     title: "Create your organisation",

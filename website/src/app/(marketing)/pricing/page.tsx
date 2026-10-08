@@ -61,7 +61,7 @@ export default async function PricingPage() {
           <h2 className={marketingSectionTitle}>What each channel costs to run</h2>
           <p className="mt-4 max-w-3xl text-muted-foreground">{MARKETING_PAGES.pricing.costsLead}</p>
 
-          <div className="mt-10 -mx-4 min-w-0 overflow-x-auto rounded-none border-y border-border bg-background px-4 sm:mx-0 sm:rounded-2xl sm:border sm:px-0">
+          <div className="mt-10 -mx-4 min-w-0 overflow-x-auto border-y border-border bg-background px-4 sm:mx-0 sm:px-0">
             <table className="w-full min-w-[36rem] text-left text-sm">
               <thead className="border-b border-border">
                 <tr>

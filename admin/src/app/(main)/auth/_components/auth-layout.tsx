@@ -5,13 +5,7 @@ import Link from "next/link";
 
 import { CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { APP_CONFIG } from "@/config/app-config";
-
-const CAPABILITIES = [
-  "Isolated, encrypted visitor records",
-  "Risk-based identity assurance matched to site and visit risk",
-  "Offline-first check-in for low-connectivity sites",
-  "Audit-ready evidence, retention, and role-based access",
-];
+import { authPanelCopy } from "@/lib/copy/auth";
 
 // Website runs as a separate app/deploy from admin/ (Section 11.6.1) — the
 // footer's "back to site" link needs an absolute URL, not a relative one.
@@ -51,11 +45,9 @@ export function AuthLayout({ children }: { children: ReactNode }) {
             {APP_CONFIG.name}
           </span>
           <div className="space-y-6">
-            <h1 className="text-balance font-heading font-light text-3xl leading-tight">
-              Built for Africa&apos;s Compliance.
-            </h1>
+            <h1 className="text-balance font-heading font-light text-3xl leading-tight">{authPanelCopy.headline}</h1>
             <ul className="space-y-3 text-muted-foreground text-sm">
-              {CAPABILITIES.map((item) => (
+              {authPanelCopy.capabilities.map((item) => (
                 <li key={item} className="flex items-start gap-2">
                   <span className="mt-2 size-1.5 shrink-0 rounded-full bg-primary" />
                   <span>{item}</span>
@@ -63,13 +55,11 @@ export function AuthLayout({ children }: { children: ReactNode }) {
               ))}
             </ul>
           </div>
-          <p className="text-muted-foreground text-xs">
-            Replacing shared paper registers with isolated, governed visitor records.
-          </p>
+          <p className="text-muted-foreground text-xs">{authPanelCopy.footnote}</p>
         </div>
 
         <main className="flex min-w-0 flex-1 items-center justify-center p-4 sm:p-6">
-          <div className="bc-surface w-full max-w-md p-1">{children}</div>
+          <div className="flex w-full max-w-md justify-center">{children}</div>
         </main>
       </div>
 

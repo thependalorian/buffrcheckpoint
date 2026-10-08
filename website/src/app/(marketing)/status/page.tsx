@@ -50,7 +50,7 @@ export default async function StatusPage() {
       <section className="border-b border-border bg-card">
         <div className={`${marketingNarrowSection} space-y-4 py-12`}>
           <h2 className="font-heading text-xl font-medium text-foreground">Core services</h2>
-          <ul className="space-y-3">
+          <ul className="border-t border-border">
             {services.map((row) => (
               <li key={row.name} className={marketingListCard}>
                 <div className="flex flex-wrap items-center justify-between gap-3">
@@ -68,7 +68,7 @@ export default async function StatusPage() {
         <div className={`${marketingNarrowSection} space-y-4 pb-20 pt-12`}>
           <h2 className="font-heading text-xl font-medium text-foreground">Product capabilities</h2>
           <p className="text-sm text-muted-foreground">{MARKETING_PAGES.status.capsLead}</p>
-          <ul className="space-y-3">
+          <ul className="border-t border-border">
             {capabilityRows.map((row) => (
               <li key={row.code} className={`flex flex-wrap items-center justify-between gap-3 ${marketingListCard}`}>
                 <div>

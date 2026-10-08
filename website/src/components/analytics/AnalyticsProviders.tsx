@@ -3,15 +3,16 @@
 import { Suspense, useEffect, useState } from "react";
 
 import { usePathname, useSearchParams } from "next/navigation";
+
 import posthog from "posthog-js";
 import { PostHogProvider as PHProvider } from "posthog-js/react";
 
 import { Button } from "@/components/ui/button";
 import {
-  hasAcceptedAnalyticsConsent,
-  writeAnalyticsConsent,
   type AnalyticsConsent,
+  hasAcceptedAnalyticsConsent,
   readAnalyticsConsent,
+  writeAnalyticsConsent,
 } from "@/lib/observability/analytics-consent";
 import { AnalyticsEvents } from "@/lib/observability/track";
 
@@ -40,8 +41,8 @@ function CookieConsentBanner({ onChoice }: { onChoice: (value: AnalyticsConsent)
     <div className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-background/95 p-4 backdrop-blur">
       <div className="mx-auto flex max-w-4xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-muted-foreground">
-          We use privacy-preserving product analytics only after you accept. No visitor names or phone numbers are
-          sent. Essential cookies do not require consent.
+          We use privacy-preserving product analytics only after you accept. No visitor names or phone numbers are sent.
+          Essential cookies do not require consent.
         </p>
         <div className="flex gap-2">
           <Button type="button" variant="ghost" size="sm" onClick={() => onChoice("declined")}>
