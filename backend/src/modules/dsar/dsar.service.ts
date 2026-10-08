@@ -1,5 +1,5 @@
 import { BadRequestException, Inject, Injectable, NotFoundException, StreamableFile } from "@nestjs/common";
-import { and, eq, inArray, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 
 import { createArtifactStore } from "../../common/artifacts/artifact-store";
 import { sessionCache } from "../../common/auth/session-cache";
@@ -18,6 +18,23 @@ import {
 import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.service";
 import { canExtend, EXTENSION_PREFIX, requestClock } from "./dsar-clock";
 import { randomUUID } from "node:crypto";
+
+/**
+ * What completing an account-deletion request does to the user row: the person's identifiers and credential material are erased,
+ * not just flagged. The id stays (audit events and status logs join on it) and the row is soft-deleted. The placeholder email keeps
+ * the unique (organisation, email) index satisfied and can never receive mail (.invalid is reserved).
+ */
+export function erasedUserFields(now: Date) {
+  return {
+    email: sql<string>`'erased-' || ${applicationUsers.id}::text || '@erased.invalid'`,
+    passwordHash: null,
+    mfaEnabled: false,
+    mfaSecretReference: null,
+    buffrIdSubject: null,
+    lockedUntil: null,
+    deletedAt: now,
+  };
+}
 
 export interface CreateDsarInput {
   subjectReference: string;
@@ -160,7 +177,7 @@ export class DsarService {
     if (resolution === "completed" && request.requestTypeCode === accountDeletionType) {
       await this.db
         .update(applicationUsers)
-        .set({ deletedAt: new Date() })
+        .set(erasedUserFields(new Date()))
         .where(
           and(
             eq(applicationUsers.email, request.subjectReference),

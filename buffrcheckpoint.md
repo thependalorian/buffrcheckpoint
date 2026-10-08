@@ -623,6 +623,59 @@ Emergency information and contractor induction are stored as versioned, publishe
 
 A static public QR that is photographed and reused may begin a controlled journey only. It never proves identity, grants access or reveals visitor data. Rotation is append-only: a new row per rotation, never an update.
 
+### 8.7 Account deletion, erasure and recovery: design considerations
+
+Added 2026-10-08 from an engineering guide on deletion workflows. This is engineering guidance, not legal advice; counsel confirms the retention periods (§31). The principle: deletion is a controlled workflow that applies the right disposition to each category of data and proves it finished, never a single `DELETE` on the users table.
+
+**Terms used, kept distinct.** Account closure (access ends, data may stay for a defined period); deletion request (a verified request to erase eligible data); erasure (deletion or irreversible de-identification); anonymisation (a person can no longer reasonably be identified; replacing a name with a joinable id is not that); pseudonymisation (still personal data); soft deletion (a flag, not erasure); legal hold; backup expiry; cryptographic erasure (destroy the key so ciphertext is unreadable). The product never promises more than it does. The honest button label is **Close account and request deletion of eligible personal data**, and a completion message never says "everything has been deleted" while financial, legal, security or backup copies remain.
+
+**Where Checkpoint stands today, stated plainly.**
+
+| Guide requirement | Today | Gap |
+|---|---|---|
+| Disposal of visit data by policy, legal holds first | Built (§8.5): disposition worker, tombstone overwrite, key-based shredding of subjects with no live visits, holds fail closed | None for visits |
+| Outbox and personal-data redaction | Built: outbox redacted 30 days after delivery (D-36) | None |
+| Request clock and review | Built: data requests with a status log, one-month clock, extension once, audit events | None |
+| Account deletion as a workflow | **Partial.** Completing an account-deletion request now erases the application user's email (replaced by an `erased-<id>@erased.invalid` placeholder), password hash, MFA secret reference and Buffr ID subject, soft-deletes the row and flushes the session cache (`erasedUserFields`, tested). The request has a status log | No per-system tasks, no completion verification, no message to the requester, and the request record still holds the subject reference (the address) until a redaction rule is decided |
+| Step-up authentication to start deletion | Not built for this action | Add a recent-login or authenticator challenge |
+| Freeze access first | Partial (session cache flushed on completion) | Revoke tokens and sessions when the request is accepted, not when it completes |
+| Task per system with retries | Not built | New task table (below) |
+| Processor propagation with acknowledgements | Not built | Processor register and per-processor tasks |
+| Recovery-safe restore (replay deletions) | Not built | Tombstones and a restore runbook step |
+| Restore drill | Not run | Schedule it with the R2 backup work (§17.7) |
+
+**Data disposition matrix for Checkpoint.** Version-controlled here, owned by engineering, security and the Compliance Officer role.
+
+| Data | System | Disposition on account closure or deletion |
+|---|---|---|
+| Login credentials, sessions, API tokens | Auth tables, session cache | Revoke at acceptance; erase credential material at completion |
+| Application user profile (email) | `application_users` | Built: email replaced by a placeholder, credentials and external identity cleared, row soft-deleted; the id stays for audit joins |
+| Visitor records of the organisation | `visitor_personal_data`, `visitor_visits` | Governed by the retention policy (§8.5), not by the staff member's deletion; a data request about a visitor is separate |
+| Evidence artifacts (photos, KYB documents, exports) | Neon object storage | Delete originals and derivatives, revoke signed URLs; KYB documents follow the verification retention period |
+| Notification outbox | `notification_delivery_instructions` | Redacted 30 days after delivery (already built) |
+| Billing records and invoices | Billing tables | Retain the minimum legally required evidence, restricted to billing roles; never delete ledger rows |
+| Audit chain | `audit_events` | Retain (integrity chain); store references and codes, not payload snapshots |
+| Support tickets | Support tables | Redact personal content on closure unless a hold applies |
+| Analytics facts | Analytics warehouse tables | PII-free by design (survive disposal); product analytics is consent-gated and receives no visitor personal data |
+| Backups | Neon point-in-time history (6 hours), daily snapshot branches (14 days), planned encrypted R2 copy | Keep inaccessible until expiry; replay deletions after any restore |
+
+**Processors to cover with a deletion mechanism and an acknowledgement:** Neon (database), Railway (API), Vercel (web apps), Cloudflare (Turnstile; R2 once approved), the email provider (SMTP mailbox, Resend if used), the SMS provider, the analytics provider (consent-gated) and the error-monitoring provider. The register lives in the privacy notice and processor terms; the evidence pack lists each with where it runs.
+
+**Target design (schema reserved to the owner, §2 of the workspace rules).** Every table follows the Wiebe rules: UUIDs generated by the client, `type_code` columns resolved through `type_definition`, a status log created with each stateful table, no triggers, soft deletes only, tenancy column first in every index.
+- `account_deletion_requests` is the existing `privacy_requests` row of type account deletion plus its status log; extend the status set through `type_definition` (requested, verifying identity, on hold, scheduled, in progress, waiting for processors, partially completed, completed, rejected, cancelled, failed). Adding a status is an INSERT.
+- `data_disposition_tasks` (new): one row per system and data category with `action_code` (delete, anonymise, retain, restrict, notify processor), `task_status_code` and its status log, `retention_basis_code`, `retention_expires_at`, `external_reference`, attempt count and last error. Idempotency key per task; exponential backoff; a review queue for tasks that fail past the retry cap.
+- `retention_holds`: the existing legal-hold tables already cover scope and release; account deletion consults them first.
+- `deletion_recovery_tombstones` (new): a keyed HMAC of the internal subject id, the request id, deleted-at and a replay-until date. No plaintext identity. Removed when the backup horizon passes.
+- A data-disposition registry in code: each module registers what personal data it owns, the identifier it uses, the supported action and the evidence it returns. A new service is not production-ready until it is registered.
+
+**Workflow.** Verify the request with step-up authentication and a confirmation to the verified address, show the consequences and retention summary, accept the request, freeze access (revoke sessions and tokens, stop notifications, refuse new writes except deletion actions), check holds, run per-system tasks, send processor requests, reconcile, verify completion, record evidence, notify the requester. Support staff acting for a user need a reason code and an audit event; organisation closure, employee departure and administrator removal are different workflows from personal account deletion.
+
+**Backups and recovery.** Delete or anonymise in live systems; keep backups encrypted and unused for routine processing; let them expire on the documented schedule; after any restore, start in restricted recovery mode, replay the tombstones, run integrity and reconciliation checks, and only then open traffic. Encryption alone is not deletion; key destruction is, and only where the key is per subject. Personal-data envelopes already use a data key per subject (§14.3), so key destruction is available for subjects with no live visits.
+
+**Testing.** Unit tests for hold precedence, eligibility, anonymisation transforms and idempotency; integration tests per system including file and search removal; an end-to-end test that creates a user with sessions, uploads, preferences, a ticket and a retained financial record, requests deletion and asserts login fails, sessions are revoked, files are unavailable, the profile is anonymised, notifications stop, the retained record is restricted, an audit event exists and a tombstone exists; a restore drill that proves a deleted subject cannot authenticate or reappear.
+
+**Metrics for the Compliance dashboard:** requests received, median completion time, tasks completed automatically, tasks needing review, failed processor requests, requests blocked by a hold, restore replay success.
+
 ## 9. Notifications and messaging
 
 ### 9.1 Outbox and events
@@ -2010,6 +2063,7 @@ Items only the owner, counsel or a named third party can close.
 23. **Subprocessors for abuse defence and passwords.** Cloudflare is approved and listed for Turnstile (2026-10-08). Still to approve: Cloudflare R2 for encrypted off-platform backups (§17.7) and the Have I Been Pwned range lookup, each added to the Privacy Policy and the register when built. The 12 character minimum applies from the next time a password is chosen, so existing accounts are untouched until then; say if you would rather prompt everyone at their next sign-in (§17.6).
 24. **The legal entity and funding.** Finish renaming the close corporation to Buffr Analytics (§30.3 item 6) and confirm with BIPA the form, the fee, whether the registration number stays and whether a company would suit better than a close corporation; then name that entity in the Terms, the Privacy Policy, funding and banking papers and the Collexia and Paratus documents. Separately: whether to approach the Ministry of ICT as a pilot partner (and attend the National ICT Summit, 12 to 16 October 2026), and the size and period of the ask once the budget of §30.3 exists.
 25. **Debit-order collection.** Obtain a Collexia quote in the name of the entity that invoices customers, confirm the settlement days and the fee on a failed debit, and approve the schema for mandates and collections before any code (§11.5, §30.1).
+26. **Account deletion workflow.** Approve the schema in §8.7 (`data_disposition_tasks`, `deletion_recovery_tombstones`, extra request statuses) so the workflow can be built; confirm retention periods for billing records, audit events, KYB documents and support tickets with counsel; confirm the button label and completion wording; schedule the first restore drill with the R2 backup work.
 
 ---
 
@@ -2238,6 +2292,7 @@ A change to a decision is a new numbered entry, not an edit. Retired decisions a
 | D-36 | The notification outbox is redacted 30 days after delivery (`NOTIFICATION_REDACTION_DAYS`) | Recipient addresses, numbers and link tokens outlive their use otherwise |
 | D-37 | Registration documents are read on the platform by Tesseract and Poppler, with PaddleOCR as an optional second reading in a short-lived child process (PDFs only, `KYB_PADDLE_OCR=false` turns it off), with no third-party document or AI service, and the result is only ever a suggestion a person confirms | A founding statement names members and identity numbers; sending it to a subprocessor would add a disclosure and a transfer for a convenience |
 | D-38 | Business verification requires proof of BIPA registration (with the reviewer's register check), the owners with their share, phone and email, a bank confirmation letter, an identity document per owner and proof of address; good standing is not required | Owner decision 2026-10-08: the business must be a registered one and its owners known, and the bank and address are evidenced |
+| D-39 | Account deletion is a workflow, not a flag: soft-deleting the user row is not erasure. The workflow, task and tombstone model of §8.7 is the target; the schema is reserved to the owner | Engineering guidance adopted 2026-10-08; completion now erases the user row's identifiers and credentials (not only a flag); the remaining gaps are listed in §8.7 |
 ---
 
 # Annexes

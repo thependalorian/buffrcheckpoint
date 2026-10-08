@@ -58,7 +58,7 @@ export default function LoginPage() {
             </div>
           ) : null}
           {passwordOpen ? (
-          <CardForm action={formAction} className="space-y-4 p-0 ring-0">
+          <CardForm action={formAction} className="space-y-4 border-0 p-0">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input id="email" name="email" type="email" required autoComplete="username" />

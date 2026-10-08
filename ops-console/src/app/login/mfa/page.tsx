@@ -23,7 +23,7 @@ export default function MfaChallengePage() {
           <CardDescription>Finish signing in to the Platform Ops Console.</CardDescription>
         </CardHeader>
         <CardContent>
-          <CardForm action={formAction} className="space-y-4 p-0 ring-0">
+          <CardForm action={formAction} className="space-y-4 border-0 p-0">
             <div className="space-y-2">
               <Label htmlFor="code">6-digit code</Label>
               <Input id="code" name="code" inputMode="numeric" autoComplete="one-time-code" />
