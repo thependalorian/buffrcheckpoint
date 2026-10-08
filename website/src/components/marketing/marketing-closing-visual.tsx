@@ -28,7 +28,7 @@ export function MarketingClosingVisual({ backgroundSrc, backgroundAlt }: Marketi
         className="pointer-events-none absolute inset-0 opacity-[0.28] mix-blend-multiply [background-image:radial-gradient(circle_at_70%_30%,color-mix(in_srgb,var(--color-sodium-yellow)_22%,transparent)_0%,transparent_50%)]"
         aria-hidden
       />
-      <span className="sr-only">{backgroundAlt}</span>
+      {backgroundAlt ? <span className="sr-only">{backgroundAlt}</span> : null}
     </section>
   );
 }

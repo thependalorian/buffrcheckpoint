@@ -2,37 +2,41 @@ import Link from "next/link";
 
 import type { Metadata } from "next";
 
-import { pageMetadata } from "@/lib/seo";
-
 import {
   CapabilityStatusBadge,
   capabilityStatusLabel,
   fetchPublicCapabilityStatus,
 } from "@/components/capability-status-badge";
 import { MarketingHero } from "@/components/marketing/marketing-hero";
-import { marketingListCard, marketingNarrowSection, marketingPageTitle } from "@/lib/marketing-layout";
 import { MarketingPageClose } from "@/components/marketing/marketing-page-close";
+import { MARKETING_PAGES } from "@/lib/copy/marketing";
+import { marketingListCard, marketingNarrowSection, marketingPageTitle } from "@/lib/marketing-layout";
 import { MARKETING_HERO_IMAGES } from "@/lib/marketing-visuals";
+import { pageMetadata } from "@/lib/seo";
+import { fetchServiceHealth, type ServiceState, STATE_LABEL } from "@/lib/status";
 
 export const metadata: Metadata = pageMetadata("status");
 
-const INFRA_ROWS = [
-  { name: "Core API", status: "Operational", note: "Authenticated tenant APIs and public check-in endpoints." },
-  { name: "Customer admin", status: "Operational", note: "Dashboard, devices, and visitor operations." },
-  {
-    name: "Kiosk sync",
-    status: "Operational",
-    note: "Experience sync; offline capture on device when connectivity drops.",
-  },
-];
+const BADGE_BASE = "rounded-full border px-3 py-1 text-xs font-medium";
+
+/** Green only for a service that just answered; anything else is shown in the warning colour. */
+function serviceBadgeClass(state: ServiceState): string {
+  return state === "operational"
+    ? `${BADGE_BASE} border-[color-mix(in_srgb,var(--color-status-live)_35%,transparent)] bg-[color-mix(in_srgb,var(--color-status-live)_10%,transparent)] text-[var(--color-status-live)]`
+    : `${BADGE_BASE} border-destructive/40 bg-destructive/10 text-destructive`;
+}
 
 export default async function StatusPage() {
-  const caps = await fetchPublicCapabilityStatus();
+  const [caps, services] = await Promise.all([fetchPublicCapabilityStatus(), fetchServiceHealth()]);
 
   const capabilityRows = [
     { code: "nfc_badge_checkin" as const, label: "NFC badge check-in", status: caps.nfcBadgeCheckIn },
     { code: "qr_invitation_checkin" as const, label: "QR invitation check-in", status: caps.qrInvitationCheckIn },
-    { code: "sms_contact_confirmation" as const, label: "SMS contact confirmation", status: caps.smsContactConfirmation },
+    {
+      code: "sms_contact_confirmation" as const,
+      label: "SMS contact confirmation",
+      status: caps.smsContactConfirmation,
+    },
     { code: "cimso_innterchange" as const, label: "CiMSO INNterchange (PMS)", status: caps.cimsoInnterchange },
   ];
 
@@ -44,23 +48,18 @@ export default async function StatusPage() {
         layout="intro"
       >
         <h1 className={marketingPageTitle}>Platform status</h1>
-        <p className="mt-4 text-sm text-muted-foreground sm:text-base">
-          Current status of our services and check-in features. We send incidents and maintenance windows to your
-          admin contacts and support tickets, so you will not find a public incident board here.
-        </p>
+        <p className="mt-4 text-sm text-muted-foreground sm:text-base">{MARKETING_PAGES.status.lead}</p>
       </MarketingHero>
 
       <section className="border-b border-border bg-card">
         <div className={`${marketingNarrowSection} space-y-4 py-12`}>
           <h2 className="font-heading text-xl font-medium text-foreground">Core services</h2>
           <ul className="space-y-3">
-            {INFRA_ROWS.map((row) => (
+            {services.map((row) => (
               <li key={row.name} className={marketingListCard}>
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <p className="font-medium text-foreground">{row.name}</p>
-                  <span className="rounded-full border border-[color-mix(in_srgb,var(--color-status-live)_35%,transparent)] bg-[color-mix(in_srgb,var(--color-status-live)_10%,transparent)] px-3 py-1 text-xs font-medium text-[var(--color-status-live)]">
-                    {row.status}
-                  </span>
+                  <span className={serviceBadgeClass(row.state)}>{STATE_LABEL[row.state]}</span>
                 </div>
                 <p className="mt-2 text-sm text-muted-foreground">{row.note}</p>
               </li>
@@ -72,9 +71,7 @@ export default async function StatusPage() {
       <section className="bg-background">
         <div className={`${marketingNarrowSection} space-y-4 pb-20 pt-12`}>
           <h2 className="font-heading text-xl font-medium text-foreground">Product capabilities</h2>
-          <p className="text-sm text-muted-foreground">
-            Each label below reads from our live capability register when this page loads. We never hardcode them.
-          </p>
+          <p className="text-sm text-muted-foreground">{MARKETING_PAGES.status.capsLead}</p>
           <ul className="space-y-3">
             {capabilityRows.map((row) => (
               <li key={row.code} className={`flex flex-wrap items-center justify-between gap-3 ${marketingListCard}`}>

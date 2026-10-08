@@ -3,10 +3,7 @@
 import { useMemo, useState } from "react";
 
 import { MARKETING_PRIMARY_CTA } from "@/lib/copy/signup";
-import {
-  marketingPricingCard,
-  marketingPricingCardFeatured,
-} from "@/lib/marketing-layout";
+import { marketingPricingCard, marketingPricingCardFeatured } from "@/lib/marketing-layout";
 
 export type BillingPeriod = "monthly" | "annual";
 
@@ -146,10 +143,7 @@ export function PricingTiers({ catalog }: { catalog: PublicPricingPayload }) {
           const covers = coversSites(tier, sites);
           const price = formatPlanPrice(tier, period, covers ? sites : tier.includedSites);
           return (
-            <article
-              key={tier.code}
-              className={tier.isFeatured ? marketingPricingCardFeatured : marketingPricingCard}
-            >
+            <article key={tier.code} className={tier.isFeatured ? marketingPricingCardFeatured : marketingPricingCard}>
               <div className="flex min-h-7 items-center">
                 {tier.isFeatured ? <p className="bc-marketing-eyebrow">Recommended</p> : null}
               </div>

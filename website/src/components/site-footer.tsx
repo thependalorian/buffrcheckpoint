@@ -87,8 +87,7 @@ export function SiteFooter() {
 
         <div className="mt-8 space-y-2 border-t border-border pt-6">
           <p className="text-xs text-muted-foreground">
-            © {year} {BRAND.footerAttribution} · Windhoek, Namibia · Built for
-            Africa&apos;s Compliance.
+            © {year} {BRAND.footerAttribution} · Windhoek, Namibia
           </p>
           <p className="max-w-4xl text-xs leading-relaxed text-muted-foreground/90">
             {BRAND.productName} takes care of the data protection work for you: the privacy notice, retention and disposal, data requests and

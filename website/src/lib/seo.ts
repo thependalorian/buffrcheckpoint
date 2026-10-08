@@ -32,7 +32,7 @@ export const SEO_PAGES = {
     path: "/platform",
     title: "Platform",
     description:
-      "How Checkpoint works: six check-in channels, one encrypted visitor record, and role-based access checked on the server.",
+      "How Checkpoint works: check-in by phone, front desk, invitation, kiosk or NFC, all into one encrypted visitor record, with access checked on the server.",
     priority: 0.8,
     changeFrequency: "monthly",
   },

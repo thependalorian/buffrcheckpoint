@@ -359,6 +359,25 @@ Marketing pages: Home, Platform, Pricing, About, Contact, Developers, Status, Pr
 - Missing hosts: "No hosts are configured for this site yet. Please see reception."
 - Security headers on every route: frame denial, content-type sniffing off, strict referrer policy, camera/microphone/geolocation denied, and a baseline content security policy. A full script policy comes later in report-only mode first (D-12).
 
+**Website audit, 2026-10-08.** Every marketing page, component and copy module was read against the claim rules (§1.4), the product and the value proposition (§1.5). Found and fixed in the same pass:
+
+| Found | Fixed |
+|---|---|
+| The status page showed "Operational" for the API, admin and kiosk sync as typed words, whatever was running | Each row is a live check made when the page loads: the API and its database from `/health`, the admin by a request to it. A service that does not answer is "Unavailable" and one with a failing part is "Degraded", in the warning colour. The kiosk row is gone because nothing measures it (`lib/status.ts`, tested) |
+| "Six ways in" and "Six ways to check in" counted channels the product does not count: the six listed items were not all channels, and the real set differs by plan and capability status (§2.1) | No count anywhere. Home says "Built for every visitor and every door"; Platform says "However they arrive, one encrypted record"; the Platform channel list names the site QR on the visitor's phone, which was missing from it, and marks SMS as an add-on. A test fails on any "N ways" or "N channels" |
+| The value proposition (the privacy work is done for the customer) was on no public page | A "Privacy, handled" section on Home from `lib/copy/privacy-managed.ts`, six items each backed by something the product does (§1.5); About's "Privacy by design" became "Privacy done for you" |
+| The footer ended with a hand-back disclaimer and a vague tagline ("Built for Africa's Compliance") | Replaced with what Checkpoint does for the customer; the tagline is gone. The Terms keep the controller and processor roles stated once |
+| The sign-up steps, the pricing "How to start", the Contact steps and four page closes went straight from account to payment and omitted business verification, which gates going live (§7.5) | A "Verify your business" step before payment, naming the documents, in all of them; a test checks it comes before "Go live" |
+| The Developers page promised "full OpenAPI publication and sandbox keys during onboarding" and a close said "Need sandbox credentials?"; neither exists (the public API reference is on the roadmap) | Says there is no public API reference yet and that an integration is agreed with the customer by email |
+| The Terms listed "DigiNam verifier workflow" as an Assure feature, which §1.4 forbids until it is live | "DigiNam or e-ID verification where formally enabled for the organisation" |
+| Decorative hero and closing photographs carried screen-reader text such as "Warm skyline suggesting Namibia-built compliance software" | Empty alternative text: a screen reader skips them |
+| The contact address was typed into the Privacy Policy and Terms | Both read the same `PUBLIC_CONTACT_EMAIL` as the rest of the site |
+| About said "retention runs on a schedule" and Home "Retention: Site policy" | "A retention period applies from the first day" and "Set for you". The wording describes the setting in force, not an enforcement that waits for the live switch (§8.5) |
+| This section said the contact page posts to the API, but the page held only mail links, so no enquiry was ever recorded and nothing was acknowledged | A contact form posts to `POST /public/contact` (honeypot, throttle of five per five minutes, a durable record with its status log, an ops email and an acknowledgement to the sender). A throttled sender is told to wait, a failed send is told the address to write to. The topic list kept as a selector |
+| Page copy was written into the page files | Lists, headlines and lead paragraphs of Home, Platform, About, Developers, Contact, Pricing and Status are in `lib/copy/marketing.ts` and `lib/copy/privacy-managed.ts`. The Terms and the Privacy Policy keep their text with the page: a legal document is versioned as a document (`legal-documents.ts`) and is not edited as interface copy |
+
+`lib/copy/marketing.test.ts` now guards the public site: no "compliant", "certified" or "guarantee"; no hand-back wording; no channel counts; no sandbox, published API reference or tablet price; no emoji or em dash; verification before go-live in the sign-up steps. The Terms and Privacy Policy wording changed on 2026-10-08 (the roles stated once, Checkpoint's duties stated as duties) and the document versions were not bumped, so no customer was asked to re-accept; counsel reviews them (§31 item 6) and the version moves when they do.
+
 ### 6.3 Admin navigation
 
 | Group | Items |

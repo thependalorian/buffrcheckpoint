@@ -3,75 +3,21 @@ import Link from "next/link";
 
 import type { Metadata } from "next";
 
-import { pageMetadata } from "@/lib/seo";
-
 import { HomeJsonLd } from "@/components/json-ld";
-import { fetchPublicPricing } from "@/lib/pricing";
 import { ChannelConvergenceVisual } from "@/components/marketing/channel-convergence-visual";
 import { MarketingHero } from "@/components/marketing/marketing-hero";
 import { MarketingPageClose } from "@/components/marketing/marketing-page-close";
 import { MarketingProductScreenshot } from "@/components/marketing/marketing-product-screenshot";
 import { PhoneProductFrame } from "@/components/marketing/phone-product-frame";
+import { PrivacyManagedSection } from "@/components/marketing/privacy-managed-section";
+import { HOME_CAPABILITIES, HOME_STEPS, MARKETING_PAGES } from "@/lib/copy/marketing";
 import { MARKETING_SECONDARY_PRICING_CTA } from "@/lib/copy/signup";
 import { marketingCapabilityCard, marketingFeatureCard, marketingLead } from "@/lib/marketing-layout";
 import { MARKETING_HERO_IMAGES } from "@/lib/marketing-visuals";
+import { fetchPublicPricing } from "@/lib/pricing";
+import { pageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = pageMetadata("home");
-
-const CAPABILITIES = [
-  {
-    title: "QR-first phone check-in",
-    body: "Print your site QR code from admin. Visitors scan it and check in on their own phone browser.",
-  },
-  {
-    title: "Assisted front desk",
-    body: "Reception checks in visitors who have no phone, a basic phone, or trouble with the form. Their record gets the same encryption as a self check-in.",
-  },
-  {
-    title: "Keeps working offline",
-    body: "With a kiosk on site, check-in carries on through a network outage. Records stay encrypted on the device and sync once the connection returns, with no duplicates and a full audit trail.",
-  },
-  {
-    title: "Checks sized to the risk",
-    body: "A courier at a branch office and a contractor entering a server room need different identity checks. You set the level per site, visit, and zone.",
-  },
-  {
-    title: "Audit-ready evidence",
-    body: "Each time someone views, exports, corrects, or deletes a sensitive record, the system writes an audit event nobody edits afterwards.",
-  },
-  {
-    title: "Optional fast lanes",
-    body: "Add NFC badges, a dedicated kiosk, or SMS later. Each writes to the same record and switches on once our status page lists it as Live.",
-  },
-];
-
-const STEPS = [
-  {
-    n: "01",
-    title: "Arrival",
-    body: "The visitor uses their own phone, a badge, the kiosk, or the front desk.",
-  },
-  {
-    n: "02",
-    title: "Verification",
-    body: "The identity check matches the site. A bank vault asks for more than a clinic waiting room.",
-  },
-  {
-    n: "03",
-    title: "Record",
-    body: "The visit becomes one encrypted record. Other visitors never see it.",
-  },
-  {
-    n: "04",
-    title: "Notify",
-    body: "The host gets a notification. Sites with approval rules hold entry until the host says yes.",
-  },
-  {
-    n: "05",
-    title: "Access & sign-out",
-    body: "Reception logs entry, escort rules apply, and sign-out closes the record.",
-  },
-];
 
 export default async function HomePage() {
   const { catalog } = await fetchPublicPricing();
@@ -86,16 +32,12 @@ export default async function HomePage() {
       >
         <div className="flex min-w-0 flex-col justify-center">
           <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
-            Visitor and access management
+            {MARKETING_PAGES.home.eyebrow}
           </p>
           <h1 className="mt-4 font-heading text-4xl font-light leading-[1.08] tracking-tight text-foreground sm:text-5xl lg:text-6xl">
-            Your next visitor reads every name in your register.
+            {MARKETING_PAGES.home.h1}
           </h1>
-          <p className="mt-6 max-w-xl text-base text-muted-foreground sm:text-lg">
-            Name, phone number, ID number, who they came to see. Checkpoint gives each visitor a private, encrypted
-            record instead of a line on a shared page. It keeps working when the network drops, and people without a
-            smartphone still check in.
-          </p>
+          <p className="mt-6 max-w-xl text-base text-muted-foreground sm:text-lg">{MARKETING_PAGES.home.lead}</p>
 
           <div className="mt-8 flex flex-wrap gap-3">
             <a
@@ -132,13 +74,9 @@ export default async function HomePage() {
       <section className="border-b border-border bg-card">
         <div className="mx-auto min-w-0 max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-24">
           <h2 className="font-heading text-2xl font-light tracking-tight text-foreground sm:text-3xl lg:text-4xl">
-            Look at the last page of your visitor book.
+            {MARKETING_PAGES.home.paperTitle}
           </h2>
-          <p className={`mt-4 ${marketingLead}`}>
-            Every line holds a name and phone number, and often an ID or passport number, a car registration, an
-            employer, and the person the visitor came to see. The next visitor reads all of it while they sign. Nobody
-            logs who photographed the page. When an auditor asks who saw a record last March, the book has no answer.
-          </p>
+          <p className={`mt-4 ${marketingLead}`}>{MARKETING_PAGES.home.paperLead}</p>
 
           <div className="mt-12 grid min-w-0 gap-6 lg:grid-cols-2">
             <div className={`min-w-0 ${marketingFeatureCard}`}>
@@ -174,7 +112,7 @@ export default async function HomePage() {
                   {[
                     ["Access scope", "Reception, host"],
                     ["Encryption", "AES-256-GCM"],
-                    ["Retention", "Site policy"],
+                    ["Retention", "Set for you"],
                     ["Audit", "Hash-linked"],
                   ].map(([k, v]) => (
                     <div key={k} className="grid grid-cols-[minmax(0,auto)_minmax(0,1fr)] gap-x-3">
@@ -187,7 +125,7 @@ export default async function HomePage() {
               <ul className="mt-6 space-y-2 text-sm text-muted-foreground">
                 <li>One visitor record, visible only to authorised staff</li>
                 <li>Every read, export, and change is audited</li>
-                <li>Retention is enforced per site policy</li>
+                <li>A retention period is set for you from the first day</li>
                 <li>Compliance officers export evidence packs for auditors</li>
               </ul>
             </div>
@@ -195,14 +133,16 @@ export default async function HomePage() {
         </div>
       </section>
 
+      <PrivacyManagedSection />
+
       <section className="border-b border-border bg-background">
         <div className="mx-auto min-w-0 max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-24">
           <h2 className="font-heading text-2xl font-light tracking-tight text-foreground sm:text-3xl lg:text-4xl">
-            Six ways in. One private record per visitor.
+            {MARKETING_PAGES.home.doorTitle}
           </h2>
 
           <div className="mt-12 grid min-w-0 gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {CAPABILITIES.map((cap) => (
+            {HOME_CAPABILITIES.map((cap) => (
               <div key={cap.title} className={`min-w-0 ${marketingCapabilityCard}`}>
                 <h3 className="font-heading text-lg font-medium text-foreground">{cap.title}</h3>
                 <p className="mt-3 text-sm text-muted-foreground">{cap.body}</p>
@@ -215,11 +155,9 @@ export default async function HomePage() {
       <section className="border-b border-border bg-card">
         <div className="mx-auto min-w-0 max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-24">
           <h2 className="font-heading text-2xl font-light tracking-tight text-foreground sm:text-3xl lg:text-4xl">
-            Smartphone, basic phone, or no phone at all.
+            {MARKETING_PAGES.home.phoneTitle}
           </h2>
-          <p className="mt-4 max-w-3xl text-muted-foreground">
-            Pick the channel that suits each visitor. The data protection stays the same on every one.
-          </p>
+          <p className="mt-4 max-w-3xl text-muted-foreground">{MARKETING_PAGES.home.phoneLead}</p>
 
           <div className="mt-12">
             <ChannelConvergenceVisual />
@@ -234,7 +172,7 @@ export default async function HomePage() {
           </h2>
 
           <ol className="mt-12 grid min-w-0 gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-            {STEPS.map((step) => (
+            {HOME_STEPS.map((step) => (
               <li key={step.n}>
                 <p className="font-mono text-xs text-muted-foreground">{step.n}</p>
                 <h3 className="mt-2 font-heading text-lg font-medium text-foreground">{step.title}</h3>
@@ -248,7 +186,7 @@ export default async function HomePage() {
       <section className="border-b border-border bg-card">
         <div className="mx-auto min-w-0 max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-24">
           <h2 className="font-heading text-2xl font-light tracking-tight text-foreground sm:text-3xl lg:text-4xl">
-            What your front desk and compliance team see.
+            {MARKETING_PAGES.home.seeTitle}
           </h2>
 
           <div className="mt-12 grid min-w-0 gap-6 md:grid-cols-2 lg:grid-cols-3">

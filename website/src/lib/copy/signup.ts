@@ -22,11 +22,15 @@ export const SIGNUP_STEPS = [
     body: "Add your sites, hosts, and staff, then print your site QR code.",
   },
   {
+    title: "Verify your business",
+    body: "Upload your registration, a bank confirmation letter, an ID for each owner and proof of address. We read them and fill in the details for you to check.",
+  },
+  {
     title: "Pay by EFT",
     body: "Pick a plan under Billing, pay the invoice by EFT, and upload your proof of payment.",
   },
   {
     title: "Go live",
-    body: "We confirm the payment, your subscription turns active, and visitors start checking in.",
+    body: "We confirm your business and your payment, your subscription turns active, and visitors start checking in.",
   },
 ] as const;

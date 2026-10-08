@@ -5,5 +5,5 @@ export const size = ogSize;
 export const contentType = ogContentType;
 
 export default function Image() {
-  return renderOgImage("Platform", "Six check-in channels, one encrypted visitor record.");
+  return renderOgImage("Platform", "Every way in, one encrypted visitor record.");
 }

@@ -48,7 +48,7 @@ export function MarketingHero({ backgroundSrc, backgroundAlt, children, layout =
       >
         {children}
       </div>
-      <span className="sr-only">{backgroundAlt}</span>
+      {backgroundAlt ? <span className="sr-only">{backgroundAlt}</span> : null}
     </section>
   );
 }

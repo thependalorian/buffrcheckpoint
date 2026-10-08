@@ -35,3 +35,20 @@ export function contactMailto(subject: string, prompt?: string): string {
   if (prompt) params.push(`body=${encodeURIComponent(prompt)}`);
   return `mailto:${PUBLIC_CONTACT_EMAIL}?${params.join("&")}`;
 }
+
+/** The contact form on /contact. It posts to the API, which keeps a durable record and acknowledges by email. */
+export const CONTACT_FORM = {
+  heading: "Send us a message",
+  topicLabel: "What is it about?",
+  nameLabel: "Your name",
+  emailLabel: "Your email",
+  companyLabel: "Organisation (optional)",
+  messageLabel: "Message",
+  messageHelp: "Choosing a topic fills in a few prompts. Replace them with your own words.",
+  submit: "Send message",
+  sending: "Sending",
+  success: "Thank you. We have your message and have emailed you a confirmation. We reply within two business days.",
+  tooMany: "You have sent several messages in a short time. Please wait a few minutes and try again.",
+  invalid: "Please check your name, your email address and your message, then try again.",
+  failed: "The message could not be sent. Please try again, or write to us at",
+} as const;
