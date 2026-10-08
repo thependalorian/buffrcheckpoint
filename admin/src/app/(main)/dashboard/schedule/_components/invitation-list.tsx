@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 
+import { EmptyActionLink, TableEmptyRow } from "@/components/dashboard-state";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { TableEmptyRow } from "@/components/dashboard-state";
 
 import { revokeInvitationAction } from "../actions";
 
@@ -59,6 +59,7 @@ export function InvitationList({ invitations, siteNameById }: InvitationListProp
               <TableEmptyRow
                 colSpan={5}
                 title="No invitations yet"
+                action={<EmptyActionLink href="/dashboard/hosts">Add a host</EmptyActionLink>}
                 description="Create an invitation to pre-register an expected visitor."
               />
             ) : (

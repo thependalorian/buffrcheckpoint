@@ -56,7 +56,7 @@ export function AccountMenu({
         {!emailVerified ? (
           <>
             <DropdownMenuSeparator />
-            <div className="flex items-start gap-2 px-2 py-1.5 text-amber-600 text-xs dark:text-amber-400">
+            <div className="flex items-start gap-2 px-2 py-1.5 text-warning-ink text-xs">
               <ShieldAlert className="mt-0.5 size-3.5 shrink-0" />
               <span>Email not verified. Some actions are restricted until you verify.</span>
             </div>

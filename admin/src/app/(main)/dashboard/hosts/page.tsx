@@ -1,9 +1,10 @@
-import { CreateHostSheet } from "./_components/create-host-sheet";
-import { PersonalDataProtectionNote } from "./_components/protection-note";
 import { DashboardPageHeader } from "@/components/dashboard-page-header";
-import { DashboardErrorState, TableEmptyRow } from "@/components/dashboard-state";
+import { DashboardErrorState, EmptyActionLink, TableEmptyRow } from "@/components/dashboard-state";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { api } from "@/lib/api/client";
+
+import { CreateHostSheet } from "./_components/create-host-sheet";
+import { PersonalDataProtectionNote } from "./_components/protection-note";
 
 interface SiteRow {
   id: string;
@@ -69,6 +70,11 @@ export default async function HostsPage() {
                 <TableEmptyRow
                   colSpan={5}
                   title={sites.length === 0 ? "Create a site first" : "No hosts yet"}
+                  action={
+                    sites.length === 0 ? (
+                      <EmptyActionLink href="/dashboard/sites">Go to Sites</EmptyActionLink>
+                    ) : undefined
+                  }
                   description={
                     sites.length === 0
                       ? "Add a site under Sites & Zones, then return here to add hosts."

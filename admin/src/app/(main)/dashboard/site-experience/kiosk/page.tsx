@@ -1,5 +1,5 @@
 import { DashboardPageHeader } from "@/components/dashboard-page-header";
-import { DashboardErrorState, TableEmptyRow } from "@/components/dashboard-state";
+import { DashboardErrorState, EmptyActionLink, TableEmptyRow } from "@/components/dashboard-state";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { api } from "@/lib/api/client";
 import { listSiteOptions } from "@/lib/sites/site-options";
@@ -47,6 +47,7 @@ export default async function KioskExperiencePage() {
                 <TableEmptyRow
                   colSpan={3}
                   title="No kiosk configurations yet"
+                  action={<EmptyActionLink href="/dashboard/devices">Register a device</EmptyActionLink>}
                   description="Add a site-level default configuration, publish a version, and kiosks will sync on next login."
                 />
               ) : (

@@ -1,25 +1,29 @@
 import type { ReactNode } from "react";
 
-// Every dashboard list route repeats "title + one-line description,"
-// several with a right-aligned action (Generate Evidence Pack, etc.) — one
-// shared header instead of copy-pasting the same two <h1>/<p> tags and an
-// ad hoc flex wrapper across 15 routes.
+// One header for every dashboard route: title, one-line description, an
+// optional status chip beside the title and an optional action. It stacks on
+// narrow screens so the action never squeezes the title.
 export function DashboardPageHeader({
   title,
   description,
   action,
+  status,
 }: {
   title: string;
   description: string;
   action?: ReactNode;
+  status?: ReactNode;
 }) {
   return (
-    <div className="flex items-start justify-between gap-4">
-      <div>
-        <h1 className="font-semibold text-2xl tracking-tight">{title}</h1>
-        <p className="text-muted-foreground">{description}</p>
+    <header className="flex flex-col gap-3 border-b pb-4 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2">
+          <h1 className="bc-h-page tracking-tight">{title}</h1>
+          {status}
+        </div>
+        <p className="mt-1 max-w-prose text-muted-foreground text-sm">{description}</p>
       </div>
-      {action}
-    </div>
+      {action ? <div className="flex shrink-0 flex-wrap items-center gap-2">{action}</div> : null}
+    </header>
   );
 }

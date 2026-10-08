@@ -12,8 +12,8 @@ type ShellProps = {
 /** Page frame for visitor check-in and sign-out: Checkpoint's own header and footer. Organisations do not customise it. */
 export function CheckInShell({ privacyNoticeSummary, label = "Visitor check-in", children }: ShellProps) {
   return (
-    <div className="flex min-h-screen flex-col bg-white">
-      <header className="border-b border-border/40 bg-white">
+    <div className="flex min-h-dvh flex-col bg-background">
+      <header className="border-b border-border bg-card">
         <div className="mx-auto flex h-14 max-w-lg items-center justify-between px-4">
           <a href="/" className="flex items-center gap-2 text-sm text-muted-foreground">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -28,7 +28,7 @@ export function CheckInShell({ privacyNoticeSummary, label = "Visitor check-in",
         <div className="bc-surface p-5 sm:p-6">{children}</div>
       </main>
 
-      <footer className="mt-auto border-t border-border bg-card/80">
+      <footer className="mt-auto border-t border-border bg-card">
         <div className="mx-auto max-w-lg space-y-2 px-4 py-6 text-center text-xs text-muted-foreground">
           {privacyNoticeSummary ? <p className="text-[11px] leading-relaxed">{privacyNoticeSummary}</p> : null}
           <p>

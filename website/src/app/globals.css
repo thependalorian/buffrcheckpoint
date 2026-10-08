@@ -42,6 +42,20 @@
      brand color rather than the semantic primary/accent mapping. */
   --color-sodium-yellow: var(--color-sodium-yellow);
   --color-sodium-yellow-ink: var(--color-sodium-yellow-ink);
+  --color-success: var(--color-success);
+  --color-success-ink: var(--color-success-ink);
+  --color-success-soft: var(--color-success-soft);
+  --color-warning: var(--color-warning);
+  --color-warning-ink: var(--color-warning-ink);
+  --color-warning-soft: var(--color-warning-soft);
+  --color-danger: var(--color-danger);
+  --color-danger-ink: var(--color-danger-ink);
+  --color-danger-soft: var(--color-danger-soft);
+  --color-info: var(--color-info);
+  --color-info-ink: var(--color-info-ink);
+  --color-info-soft: var(--color-info-soft);
+  --color-focus: var(--color-focus);
+  --color-frost: var(--color-frost);
   --color-lime-pulse: var(--color-lime-pulse);
   --color-status-live: var(--color-status-live);
   --color-carbon: var(--color-carbon);
@@ -55,7 +69,7 @@
 :root {
   /* Darkened from the dark-theme's #22c55e (~2.3:1 on white) to clear
      4.5:1 on the light canvas. */
-  --color-status-live: #15803d;
+  --color-status-live: var(--color-success);
 }
 
 @layer base {

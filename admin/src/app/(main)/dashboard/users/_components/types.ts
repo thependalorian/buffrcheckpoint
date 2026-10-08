@@ -1,3 +1,5 @@
+import type { StatusTone } from "@/components/status-chip";
+
 export type UserStatus = "active" | "pending" | "deactivated" | "locked" | "suspended";
 
 export type UserRow = {
@@ -20,25 +22,10 @@ export const filters = {
   status: ["All", "active", "pending", "deactivated", "locked", "suspended"],
 };
 
-export const statusMeta: Record<UserStatus, { badgeClass: string; dotClass: string }> = {
-  active: {
-    badgeClass: "border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-    dotClass: "bg-emerald-500",
-  },
-  pending: {
-    badgeClass: "border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400",
-    dotClass: "bg-amber-500",
-  },
-  deactivated: {
-    badgeClass: "border-border bg-muted/50 text-muted-foreground",
-    dotClass: "bg-muted-foreground",
-  },
-  locked: {
-    badgeClass: "border-destructive/20 bg-destructive/10 text-destructive",
-    dotClass: "bg-destructive",
-  },
-  suspended: {
-    badgeClass: "border-orange-500/20 bg-orange-500/10 text-orange-600 dark:text-orange-400",
-    dotClass: "bg-orange-500",
-  },
+export const statusTone: Record<UserStatus, StatusTone> = {
+  active: "success",
+  pending: "warning",
+  deactivated: "info",
+  locked: "danger",
+  suspended: "warning",
 };

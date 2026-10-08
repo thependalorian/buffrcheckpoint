@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { CheckInForm } from "./check-in-form";
+import { CheckInShell } from "./check-in-shell";
 import { InvitationCheckInForm } from "./invitation-check-in-form";
 
 export const metadata: Metadata = {
@@ -26,25 +27,17 @@ export default async function CheckInPage({ searchParams }: { searchParams: Sear
   }
 
   if (hasSiteQrParams) {
-    return (
-      <CheckInForm
-        siteId={siteId}
-        referenceId={referenceId}
-        initialLanguageCode={initialLanguageCode}
-      />
-    );
+    return <CheckInForm siteId={siteId} referenceId={referenceId} initialLanguageCode={initialLanguageCode} />;
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-white">
-      <main className="mx-auto flex w-full max-w-lg flex-1 flex-col px-4 py-10">
-        <div className="space-y-3">
-          <h1 className="text-2xl font-semibold tracking-tight">Missing check-in link</h1>
-          <p className="text-sm text-muted-foreground">
-            Ask reception for a fresh check-in QR, or scan the printed public site QR for this location.
-          </p>
-        </div>
-      </main>
-    </div>
+    <CheckInShell>
+      <div className="space-y-3">
+        <h1 className="bc-h-page">Missing check-in link</h1>
+        <p className="text-sm text-muted-foreground">
+          Ask reception for a fresh check-in QR, or scan the printed public site QR for this location.
+        </p>
+      </div>
+    </CheckInShell>
   );
 }

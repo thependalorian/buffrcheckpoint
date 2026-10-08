@@ -1,5 +1,5 @@
 import { DashboardPageHeader } from "@/components/dashboard-page-header";
-import { DashboardErrorState, TableEmptyRow } from "@/components/dashboard-state";
+import { DashboardErrorState, EmptyActionLink, TableEmptyRow } from "@/components/dashboard-state";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { api } from "@/lib/api/client";
@@ -64,6 +64,7 @@ export default async function DeviceCompliancePage() {
                 <TableEmptyRow
                   colSpan={5}
                   title="Nothing to assess yet"
+                  action={<EmptyActionLink href="/dashboard/devices">Register a device</EmptyActionLink>}
                   description="Register a device first. Its CRAN compliance walk (unassessed → approved for deployment) tracks here."
                 />
               ) : (

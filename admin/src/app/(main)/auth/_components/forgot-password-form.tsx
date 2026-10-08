@@ -56,7 +56,7 @@ export function ForgotPasswordForm() {
       </div>
       <TurnstileWidget onToken={setTurnstileToken} resetSignal={turnstileReset} />
       {error ? <p className="text-destructive text-sm">{error}</p> : null}
-      {message ? <p className="text-sm text-green-700 dark:text-green-400">{message}</p> : null}
+      {message ? <p className="text-sm bc-text-success">{message}</p> : null}
       <Button type="submit" disabled={submitting || (turnstileEnabled && !turnstileToken)}>
         {submitting ? authCopy.forgotPassword.submitting : authCopy.forgotPassword.submit}
       </Button>

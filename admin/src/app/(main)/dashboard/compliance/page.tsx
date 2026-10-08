@@ -1,6 +1,10 @@
+import Link from "next/link";
+
+import { BcPanel, BcStatRow, BcStatTile } from "@/components/bc-panel";
 import { DashboardPageHeader } from "@/components/dashboard-page-header";
 import { DashboardErrorState } from "@/components/dashboard-state";
-import { BcStatRow, BcStatTile } from "@/components/bc-panel";
+import { StatusChip } from "@/components/status-chip";
+import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api/client";
 import { privacyRequestsCopy } from "@/lib/copy/privacy-requests";
 
@@ -23,73 +27,106 @@ export default async function CompliancePage() {
     error = err instanceof Error ? err.message : "Failed to load the compliance dashboard.";
   }
 
-  /** Refero clarity: top 4 KPIs; role-changes stays secondary copy below. */
+  const kpi = (label: string, value: number, href: string, hint: string) => ({
+    label,
+    value,
+    href,
+    hint,
+    flagged: value > 0,
+  });
   const primaryKpis = dashboard
     ? [
-        {
-          label: "Retention actions due",
-          value: dashboard.retentionActionsDue,
-          flagged: dashboard.retentionActionsDue > 0,
-        },
-        {
-          label: "Open deletion requests",
-          value: dashboard.openDeletionRequests,
-          flagged: dashboard.openDeletionRequests > 0,
-        },
-        {
-          label: "Privileged access events",
-          value: dashboard.privilegedAccessEvents,
-          flagged: dashboard.privilegedAccessEvents > 0,
-        },
-        {
-          label: "Offline sync exceptions",
-          value: dashboard.offlineSyncExceptions,
-          flagged: dashboard.offlineSyncExceptions > 0,
-        },
+        kpi(
+          "Retention actions due",
+          dashboard.retentionActionsDue,
+          "/dashboard/policies/retention",
+          "Records past their retention period",
+        ),
+        kpi(
+          "Open deletion requests",
+          dashboard.openDeletionRequests,
+          "/dashboard/compliance/privacy-requests",
+          "Account deletions awaiting action",
+        ),
+        kpi(
+          "Privileged access events",
+          dashboard.privilegedAccessEvents,
+          "/dashboard/audit",
+          "Support and admin access to review",
+        ),
+        kpi(
+          "Offline sync exceptions",
+          dashboard.offlineSyncExceptions,
+          "/dashboard/devices/compliance",
+          "Kiosk captures that did not sync",
+        ),
       ]
     : [];
+  const dsarOpen = dashboard ? dashboard.dataRequestsOverdue + dashboard.dataRequestsDueSoon : 0;
 
   return (
     <div className="min-w-0 space-y-6">
       <DashboardPageHeader
         title="Compliance Dashboard"
         description="Retention exceptions, DSARs, offline-sync exceptions, and privileged access."
+        status={
+          dashboard ? (
+            dashboard.dataRequestsOverdue > 0 ? (
+              <StatusChip tone="danger">{dashboard.dataRequestsOverdue} overdue</StatusChip>
+            ) : dsarOpen > 0 ? (
+              <StatusChip tone="warning">{dsarOpen} due soon</StatusChip>
+            ) : (
+              <StatusChip tone="success">On track</StatusChip>
+            )
+          ) : null
+        }
+        action={
+          <Button asChild variant="outline" size="sm">
+            <Link href="/dashboard/compliance/privacy-requests">Privacy requests</Link>
+          </Button>
+        }
       />
-      <p className="text-sm text-muted-foreground">
-        Manage the DSAR queue (including distinct account-deletion requests) under{" "}
-        <a href="/dashboard/compliance/privacy-requests" className="underline underline-offset-2">
-          Privacy Requests
-        </a>
-        .
-      </p>
       {error ? (
         <DashboardErrorState message={error} />
-      ) : (
+      ) : dashboard ? (
         <>
-          <BcStatRow>
-            {primaryKpis.map((kpi) => (
-              <BcStatTile key={kpi.label} label={kpi.label} value={kpi.value} flagged={kpi.flagged} />
-            ))}
-          </BcStatRow>
-          {dashboard ? (
-            <p
-              className={
-                dashboard.dataRequestsOverdue > 0 ? "text-sm font-medium text-destructive" : "text-sm text-muted-foreground"
-              }
-            >
-              {dashboard.dataRequestsOverdue + dashboard.dataRequestsDueSoon === 0
-                ? privacyRequestsCopy.dashboard.allClear
-                : `${privacyRequestsCopy.dashboard.overdue}: ${dashboard.dataRequestsOverdue}. ${privacyRequestsCopy.dashboard.dueSoon}: ${dashboard.dataRequestsDueSoon}.`}
-            </p>
-          ) : null}
-          {dashboard ? (
-            <p className="text-sm text-muted-foreground">
-              Role changes this month:{" "}
-              <span className="font-medium tabular-nums text-foreground">{dashboard.roleChangesThisMonth}</span>
-            </p>
-          ) : null}
+          <section aria-labelledby="needs-action" className="space-y-3">
+            <h2 id="needs-action" className="bc-h-section">
+              Needs action
+            </h2>
+            <BcStatRow>
+              {primaryKpis.map((item) => (
+                <BcStatTile key={item.label} {...item} />
+              ))}
+            </BcStatRow>
+          </section>
+          <BcPanel header={<span>Posture</span>}>
+            <dl className="grid gap-4 text-sm sm:grid-cols-2">
+              <div>
+                <dt className="text-muted-foreground">Data request clock</dt>
+                <dd className="mt-1">
+                  {dsarOpen === 0 ? (
+                    <StatusChip tone="success">{privacyRequestsCopy.dashboard.allClear}</StatusChip>
+                  ) : (
+                    <span className="flex flex-wrap gap-2">
+                      <StatusChip tone={dashboard.dataRequestsOverdue > 0 ? "danger" : "info"}>
+                        {privacyRequestsCopy.dashboard.overdue}: {dashboard.dataRequestsOverdue}
+                      </StatusChip>
+                      <StatusChip tone="warning">
+                        {privacyRequestsCopy.dashboard.dueSoon}: {dashboard.dataRequestsDueSoon}
+                      </StatusChip>
+                    </span>
+                  )}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-muted-foreground">Role changes this month</dt>
+                <dd className="mt-1 font-medium tabular-nums">{dashboard.roleChangesThisMonth}</dd>
+              </div>
+            </dl>
+          </BcPanel>
         </>
-      )}
+      ) : null}
     </div>
   );
 }

@@ -64,10 +64,11 @@ cmp website/src/styles/presets/buffr-checkpoint.css admin/src/styles/presets/buf
 cmp website/src/styles/presets/buffr-checkpoint.css ops-console/src/styles/presets/buffr-checkpoint.css
 grep -rnE "#[0-9a-fA-F]{6}\b" website/src admin/src ops-console/src --include='*.tsx'
 grep -rnE "\b(bg|text|border)-(blue|teal|indigo|sky|cyan|purple|violet|fuchsia|pink)-[0-9]{3}" website/src admin/src ops-console/src --include='*.tsx'
+grep -rnE "\b(bg|text|border)-(amber|green|emerald|rose|orange|red|yellow)-[0-9]{3}" admin/src website/src ops-console/src --include='*.tsx'
 grep -rnE "\bshadow-(sm|md|lg|xl|2xl)\b" website/src admin/src ops-console/src --include='*.tsx' | grep -v components/ui/
 ```
 
-Baseline on 2026-10-08: the three presets identical; zero colour-family classes; zero shadows outside the `ui/` primitives; hex literals only where a canvas or image generator cannot read a token (`website/src/lib/og-image.tsx` for share images, `ops-console/src/components/map/NamibiaMap.tsx` for the map, `admin/src/components/qr-code-image.tsx` for QR colours). Any new hex literal in a page is a defect: use a token (`bg-primary`, `text-foreground`, `text-muted-foreground`, `border-border`, `text-[var(--color-sodium-yellow-ink)]`).
+Baseline on 2026-10-08: the three presets identical; zero colour-family classes and zero palette status classes (status uses `bc-status-*` or `bg-{status}-soft text-{status}-ink`); zero shadows outside the `ui/` primitives; hex literals only where a canvas or image generator cannot read a token (`website/src/lib/og-image.tsx` for share images, `ops-console/src/components/map/NamibiaMap.tsx` for the map, `admin/src/components/qr-code-image.tsx` for QR colours). Any new hex literal in a page is a defect: use a token (`bg-primary`, `text-foreground`, `text-muted-foreground`, `border-border`, `text-[var(--color-sodium-yellow-ink)]`).
 
 ## This is a redo, not a token find-replace: verified structural deltas (2026-10-08)
 

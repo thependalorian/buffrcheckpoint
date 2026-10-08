@@ -66,9 +66,9 @@ export default async function AccountPage() {
           </div>
           <div className="flex items-center gap-2">
             {current.user.mfaEnabled ? (
-              <span className="text-green-600 text-sm dark:text-green-400">MFA enabled</span>
+              <span className="text-sm text-success-ink">MFA enabled</span>
             ) : (
-              <span className="text-amber-600 text-sm dark:text-amber-400">MFA not enabled</span>
+              <span className="text-sm text-warning-ink">MFA not enabled</span>
             )}
           </div>
         </div>

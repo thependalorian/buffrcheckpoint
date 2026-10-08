@@ -17,13 +17,9 @@ import { fetchServiceHealth, type ServiceState, STATE_LABEL } from "@/lib/status
 
 export const metadata: Metadata = pageMetadata("status");
 
-const BADGE_BASE = "rounded-full border px-3 py-1 text-xs font-medium";
-
-/** Green only for a service that just answered; anything else is shown in the warning colour. */
+/** Success only for a service that just answered; anything else is shown as a problem. Tones come from the status tokens. */
 function serviceBadgeClass(state: ServiceState): string {
-  return state === "operational"
-    ? `${BADGE_BASE} border-[color-mix(in_srgb,var(--color-status-live)_35%,transparent)] bg-[color-mix(in_srgb,var(--color-status-live)_10%,transparent)] text-[var(--color-status-live)]`
-    : `${BADGE_BASE} border-destructive/40 bg-destructive/10 text-destructive`;
+  return `bc-status ${state === "operational" ? "bc-status-success" : "bc-status-danger"}`;
 }
 
 export default async function StatusPage() {

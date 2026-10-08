@@ -1,6 +1,7 @@
 "use client";
-import type { ColumnDef } from "@tanstack/react-table";
 import Link from "next/link";
+
+import type { ColumnDef } from "@tanstack/react-table";
 import { MoreVertical } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -90,8 +91,8 @@ export const rolesColumns: ColumnDef<DataTableFeatures, BuffrRole>[] = [
     filterFn: "equalsString",
     cell: ({ row }) => {
       const reviewStatusClass: Record<typeof row.original.reviewStatus, string> = {
-        active: "border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
-        pending_review: "border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-400",
+        active: "border-success/25 bg-success-soft text-success-ink",
+        pending_review: "border-warning/40 bg-warning-soft text-warning-ink",
         expired: "border-destructive/20 bg-destructive/10 text-destructive",
       };
       return (

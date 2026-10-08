@@ -19,8 +19,58 @@ Companion to `SKILL.md`. Source: blueprint section 33 and `website/src/styles/pr
 | `--color-status-live` | `#15803D` | Verified, live and healthy |
 | `--destructive` | `#B91C1C` | Errors (5.88:1) |
 | `--color-lime-pulse` | `#00FF1A` | Editorial emphasis only; unused today |
+| `--color-success` / `-ink` / `-soft` | `#15803D` / `#166534` / `#E8F2EC` | Success and healthy states; ink on soft is 6.23:1. `--color-status-live` now resolves to `--color-success` |
+| `--color-warning` / `-ink` / `-soft` | `#E0B000` / `#7A5F00` / `#FBF4DB` | Attention and pending; the brand yellow family, ink on soft is 5.5:1 |
+| `--color-danger` / `-ink` / `-soft` | `#B91C1C` / `#B91C1C` / `#F8E8E8` | Errors and destructive actions (`--destructive` resolves to it); ink on soft is 5.45:1 |
+| `--color-info` / `-ink` / `-soft` | `#6B6B6B` / `#171717` / `#E9E7E0` | Neutral notices; deliberately not blue, so status never adds a second hue |
+| `--color-focus` | `#171717` | Focus ring (`--ring`); the brand yellow is 1.86:1 on cloud, below the 3:1 a focus indicator needs, carbon is 16.4:1 |
+| `--radius-control` / `-card` / `-panel` | `0.5rem` / `1rem` / `1.5rem` | Radius scale (8, 16, 24 px) as tokens; use these, not literals |
+
+Status chips use the classes `bc-status` with `bc-status-success|warning|danger|info`, or the utilities `bg-{status}-soft text-{status}-ink border-{status}/25`. Tailwind palette classes (amber, green, emerald, rose, orange) are not used; the admin count fell from 23 to 0 on 2026-10-08. The duplicated `.dark` block was merged into the root selector, and the hover and success literals are derived from tokens.
 
 Semantic names to use in components: `background`, `foreground`, `card`, `primary`, `primary-foreground`, `muted-foreground`, `border`, `destructive`. White on yellow is about 2.2:1 and near-black on yellow about 9.7:1, so primary text is always near-black.
+
+## Shared admin components (use these, do not hand-roll)
+
+| Component | File | Use |
+|---|---|---|
+| `DashboardPageHeader` | `admin/src/components/dashboard-page-header.tsx` | Every route: title (Archivo working scale `bc-h-page`), one-line description, optional `status` chip and `action`; stacks on narrow screens |
+| `StatusChip` | `admin/src/components/status-chip.tsx` | Every status label; `tone` is success, warning, danger or info; never a hand-built Badge className |
+| `TableEmptyRow` | `admin/src/components/dashboard-state.tsx` | Empty list: icon, title, description and optional `action` (name the next step) |
+| `BcStatTile` | `admin/src/components/bc-panel.tsx` | KPI tile with optional `hint` line and `href` so the number links to its screen |
+| `BcPanel`, `BcStatRow`, `BcSurface` | same | Hairline panel, KPI strip (four at most), flat surface |
+
+## Token architecture (Design System v2, blueprint 33.9)
+
+Three tiers: primitive `--bc-*`, semantic `--surface-*`, `--text-*`, `--border-*`, `--interactive-*`, `--status-*`, `--assurance-*`, `--dv-*`, component `--button-*`, `--input-*`, `--card-*`, `--table-*`. Use semantic or component tokens in components; never a primitive, never a literal. Motion uses `--duration-*` and `--ease-*`; depth is border, ring and scrim (no drop shadows); z-index uses `--z-*`. Text tertiary is neutral-600, input borders are neutral-600, `--dv-1`, `--dv-5` and `--assurance-v2` need a label or shape beside them. Button, Input and Table are on component tokens in all three apps (default control height 40 px; `bc-density-compact` gives 36 px table rows; `data-numeric` on a table cell right-aligns it in mono). Next in line: textarea, select, checkbox, radio, switch, card, tabs, dialogs. Verify with: `cmp` of the three presets, and a check that every `var(--x)` in the preset has a definition.
+
+## Frontend inventory (measured 2026-10-08)
+
+Regenerate the counts with `find`; do not type them.
+
+| Surface | Routes | Layouts | Shared components (non-ui) | ui primitives | Copy modules | CSS |
+|---|---|---|---|---|---|---|
+| Website | 14 | 2 | 19 | 10 | 15 | `app/globals.css`, preset |
+| Admin | 60 | 3 | 23 | 62 | 20 | `app/globals.css`, preset, `styles/flag-icons/flags.css` |
+| Ops console | 29 | 2 | 14 | 20 | n/a | `app/globals.css`, preset |
+| Kiosk | n/a | n/a | Compose screens | n/a | strings.xml | `ui/theme/Color.kt` |
+
+### Website routes
+`/`, `/about`, `/check-in`, `/check-out`, `/contact`, `/developers`, `/emergency`, `/induction`, `/platform`, `/pricing`, `/privacy`, `/rate`, `/status`, `/terms`
+
+### Admin routes
+`/`, `/auth/check-email`, `/auth/forgot-password`, `/auth/login`, `/auth/mfa/challenge`, `/auth/mfa/setup`, `/auth/register`, `/auth/reset-password`, `/auth/verify-email`, `/dashboard`, `/dashboard/[...not-found]`, `/dashboard/account`, `/dashboard/analytics`, `/dashboard/analytics/feedback`, `/dashboard/anomalies`, `/dashboard/audit`, `/dashboard/billing`, `/dashboard/billing/[id]`, `/dashboard/calendar`, `/dashboard/compliance`, `/dashboard/compliance/legal-holds`, `/dashboard/compliance/privacy-requests`, `/dashboard/credentials`, `/dashboard/devices`, `/dashboard/devices/[id]`, `/dashboard/devices/compliance`, `/dashboard/emergency`, `/dashboard/evidence`, `/dashboard/front-desk`, `/dashboard/hosts`, `/dashboard/kyb`, `/dashboard/organisation`, `/dashboard/organisation-directory`, `/dashboard/organisation/notifications`, `/dashboard/overview`, `/dashboard/policies/access`, `/dashboard/policies/forms`, `/dashboard/policies/forms/[definitionId]`, `/dashboard/policies/retention`, `/dashboard/reports`, `/dashboard/roles`, `/dashboard/schedule`, `/dashboard/site-experience/capabilities`, `/dashboard/site-experience/cimso`, `/dashboard/site-experience/escalation`, `/dashboard/site-experience/kiosk`, `/dashboard/site-experience/notices`, `/dashboard/site-experience/qr`, `/dashboard/sites`, `/dashboard/support`, `/dashboard/support-access`, `/dashboard/support/[id]`, `/dashboard/users`, `/dashboard/visitors`, `/onboarding`, `/onboarding/[step]`, `/onboarding/launch-route`, `/onboarding/waiting`, `/support-session`, `/unauthorized`
+
+### Ops console routes
+`/`, `/analytics`, `/audit`, `/audit/[id]`, `/billing`, `/billing/[id]`, `/capability-status`, `/configuration`, `/crm`, `/crm/[dealId]`, `/crm/contacts/[id]`, `/devices`, `/devices/[id]`, `/incidents`, `/incidents/[id]`, `/kyb`, `/kyb/[id]`, `/login`, `/login/mfa`, `/login/mfa-setup`, `/organisations`, `/organisations/[id]`, `/search`, `/sites`, `/sites/[id]`, `/staff`, `/support-access`, `/tickets`, `/tickets/[id]`
+
+### Shared components outside `ui/`
+- Website: `analytics/AnalyticsProviders.tsx`, `brand-logo.tsx`, `breadcrumb-auto.tsx`, `capability-status-badge.tsx`, `contact-form.tsx`, `json-ld.tsx`, `marketing/channel-convergence-visual.tsx`, `marketing/marketing-bottom-cta.tsx`, `marketing/marketing-closing-visual.tsx`, `marketing/marketing-cta.tsx`, `marketing/marketing-hero.tsx`, `marketing/marketing-page-close.tsx`, `marketing/marketing-product-screenshot.tsx`, `marketing/phone-product-frame.tsx`, `marketing/privacy-managed-section.tsx`, `marketing/reporting-figure.tsx`, `site-footer.tsx`, `site-header.tsx`, `turnstile-widget.tsx`
+- Admin: `analytics/AnalyticsProviders.tsx`, `bc-panel.tsx`, `calendar/event-calendar-views.tsx`, `charts/busy-hours-heatmap.tsx`, `charts/figure.tsx`, `charts/share-bars.tsx`, `charts/trend-with-forecast.tsx`, `dashboard-list-skeleton.tsx`, `dashboard-page-header.tsx`, `dashboard-state.tsx`, `date-range-picker.tsx`, `features/sites/site-select.tsx`, `features/visits/roster-live-refresh.tsx`, `features/visits/visit-roster-table/columns.tsx`, `features/visits/visit-roster-table/table.tsx`, `features/visits/visit-roster-table/visit-ops-actions.tsx`, `onboarding-config-banner.tsx`, `qr-code-image.tsx`, `simple-icon.tsx`, `status-chip.tsx`, `support-session-banner.tsx`, `support-session-countdown.tsx`, `turnstile-widget.tsx`
+- Ops console: `analytics/AnalyticsProviders.tsx`, `app-sidebar.tsx`, `bc-panel.tsx`, `bulk-queue-list.tsx`, `charts/ScoreScatter.tsx`, `charts/ShareBars.tsx`, `charts/TrendChart.tsx`, `dashboard-state.tsx`, `integration-health-panel.tsx`, `logout-button.tsx`, `map/NamibiaMap.tsx`, `org-filter.tsx`, `org-select.tsx`, `service-targets-panel.tsx`
+
+### Layout and token files
+`website/src/lib/marketing-layout.ts` (section shells and surface class names), `website/src/styles/presets/buffr-checkpoint.css` (canonical; copies in admin and ops console), each app's `app/globals.css` (`@theme inline` exposure of tokens), `kiosk/.../ui/theme/Color.kt`. Layout rules: marketing sections use `marketingWideSection` / `marketingNarrowSection`; every call to action is `MarketingCta`; dashboards use `DashboardPageHeader`, `BcStatRow`/`BcStatTile` (with `href` and `hint`), `BcPanel`, `StatusChip`, `TableEmptyRow` (with `EmptyActionLink` as the next step); visitor pages sit in `CheckInShell` (cloud canvas, card header and footer, 44 px inputs).
 
 ## Type and spacing
 

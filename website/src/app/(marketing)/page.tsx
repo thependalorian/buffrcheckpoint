@@ -5,6 +5,7 @@ import type { Metadata } from "next";
 
 import { HomeJsonLd } from "@/components/json-ld";
 import { ChannelConvergenceVisual } from "@/components/marketing/channel-convergence-visual";
+import { MarketingCta } from "@/components/marketing/marketing-cta";
 import { MarketingHero } from "@/components/marketing/marketing-hero";
 import { MarketingPageClose } from "@/components/marketing/marketing-page-close";
 import { MarketingProductScreenshot } from "@/components/marketing/marketing-product-screenshot";
@@ -12,7 +13,13 @@ import { PhoneProductFrame } from "@/components/marketing/phone-product-frame";
 import { PrivacyManagedSection } from "@/components/marketing/privacy-managed-section";
 import { HOME_CAPABILITIES, HOME_STEPS, MARKETING_PAGES } from "@/lib/copy/marketing";
 import { MARKETING_SECONDARY_PRICING_CTA } from "@/lib/copy/signup";
-import { marketingCapabilityCard, marketingFeatureCard, marketingLead } from "@/lib/marketing-layout";
+import {
+  marketingCapabilityCard,
+  marketingFeatureCard,
+  marketingLead,
+  marketingSectionTitle,
+  marketingWideSection,
+} from "@/lib/marketing-layout";
 import { MARKETING_HERO_IMAGES } from "@/lib/marketing-visuals";
 import { fetchPublicPricing } from "@/lib/pricing";
 import { pageMetadata } from "@/lib/seo";
@@ -40,18 +47,12 @@ export default async function HomePage() {
           <p className="mt-6 max-w-xl text-base text-muted-foreground sm:text-lg">{MARKETING_PAGES.home.lead}</p>
 
           <div className="mt-8 flex flex-wrap gap-3">
-            <a
-              href="https://admin.buffrcheckpoint.com/auth/register"
-              className="inline-flex items-center rounded-md bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
-            >
+            <MarketingCta href="https://admin.buffrcheckpoint.com/auth/register" external>
               Create account
-            </a>
-            <Link
-              href={MARKETING_SECONDARY_PRICING_CTA.href}
-              className="inline-flex items-center rounded-md border border-border px-6 py-3 text-sm font-medium text-foreground transition-colors hover:bg-muted"
-            >
+            </MarketingCta>
+            <MarketingCta href={MARKETING_SECONDARY_PRICING_CTA.href} variant="secondary">
               {MARKETING_SECONDARY_PRICING_CTA.label}
-            </Link>
+            </MarketingCta>
           </div>
         </div>
 
@@ -72,10 +73,8 @@ export default async function HomePage() {
       </MarketingHero>
 
       <section className="border-b border-border bg-card">
-        <div className="mx-auto min-w-0 max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-24">
-          <h2 className="font-heading text-2xl font-light tracking-tight text-foreground sm:text-3xl lg:text-4xl">
-            {MARKETING_PAGES.home.paperTitle}
-          </h2>
+        <div className={marketingWideSection}>
+          <h2 className={marketingSectionTitle}>{MARKETING_PAGES.home.paperTitle}</h2>
           <p className={`mt-4 ${marketingLead}`}>{MARKETING_PAGES.home.paperLead}</p>
 
           <div className="mt-12 grid min-w-0 gap-6 lg:grid-cols-2">
@@ -136,10 +135,8 @@ export default async function HomePage() {
       <PrivacyManagedSection />
 
       <section className="border-b border-border bg-background">
-        <div className="mx-auto min-w-0 max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-24">
-          <h2 className="font-heading text-2xl font-light tracking-tight text-foreground sm:text-3xl lg:text-4xl">
-            {MARKETING_PAGES.home.doorTitle}
-          </h2>
+        <div className={marketingWideSection}>
+          <h2 className={marketingSectionTitle}>{MARKETING_PAGES.home.doorTitle}</h2>
 
           <div className="mt-12 grid min-w-0 gap-6 md:grid-cols-2 lg:grid-cols-3">
             {HOME_CAPABILITIES.map((cap) => (
@@ -153,10 +150,8 @@ export default async function HomePage() {
       </section>
 
       <section className="border-b border-border bg-card">
-        <div className="mx-auto min-w-0 max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-24">
-          <h2 className="font-heading text-2xl font-light tracking-tight text-foreground sm:text-3xl lg:text-4xl">
-            {MARKETING_PAGES.home.phoneTitle}
-          </h2>
+        <div className={marketingWideSection}>
+          <h2 className={marketingSectionTitle}>{MARKETING_PAGES.home.phoneTitle}</h2>
           <p className="mt-4 max-w-3xl text-muted-foreground">{MARKETING_PAGES.home.phoneLead}</p>
 
           <div className="mt-12">
@@ -166,10 +161,8 @@ export default async function HomePage() {
       </section>
 
       <section className="border-b border-border bg-background">
-        <div className="mx-auto min-w-0 max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-24">
-          <h2 className="font-heading text-2xl font-light tracking-tight text-foreground sm:text-3xl lg:text-4xl">
-            How it works
-          </h2>
+        <div className={marketingWideSection}>
+          <h2 className={marketingSectionTitle}>How it works</h2>
 
           <ol className="mt-12 grid min-w-0 gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             {HOME_STEPS.map((step) => (
@@ -184,10 +177,8 @@ export default async function HomePage() {
       </section>
 
       <section className="border-b border-border bg-card">
-        <div className="mx-auto min-w-0 max-w-7xl px-4 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-24">
-          <h2 className="font-heading text-2xl font-light tracking-tight text-foreground sm:text-3xl lg:text-4xl">
-            {MARKETING_PAGES.home.seeTitle}
-          </h2>
+        <div className={marketingWideSection}>
+          <h2 className={marketingSectionTitle}>{MARKETING_PAGES.home.seeTitle}</h2>
 
           <div className="mt-12 grid min-w-0 gap-6 md:grid-cols-2 lg:grid-cols-3">
             <MarketingProductScreenshot

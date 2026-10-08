@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { TableEmptyRow } from "@/components/dashboard-state";
+import { EmptyActionLink, TableEmptyRow } from "@/components/dashboard-state";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
@@ -74,6 +74,7 @@ export function CimsoConnectionsTable({ connections }: CimsoConnectionsTableProp
               <TableEmptyRow
                 colSpan={6}
                 title="No site connections yet"
+                action={<EmptyActionLink href="/dashboard/sites">Choose a site</EmptyActionLink>}
                 description="Use Connect site to store TCP settings and a default host for synced invitations."
               />
             ) : (

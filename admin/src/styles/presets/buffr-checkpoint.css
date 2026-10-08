@@ -12,7 +12,8 @@
 
 /* Color tokens */
 :root,
-[data-theme-preset="buffr-checkpoint"] {
+[data-theme-preset="buffr-checkpoint"],
+.dark[data-theme-preset="buffr-checkpoint"] {
   --color-sodium-yellow: #E0B000;
   --color-lime-pulse: #00ff1a;
   --color-carbon: #171717;
@@ -28,6 +29,27 @@
      button fill under near-black text, fails WCAG AA as foreground text).
      8a6403 clears 4.88:1. Same fix pattern as --color-status-live below. */
   --color-sodium-yellow-ink: #8A6B00;
+
+  /* Status tokens. Ink is text on the canvas or on its own soft tint (both
+     AA: success 6.23, warning 5.5, danger 5.45, info 14.49 on the tint).
+     Warning reuses the brand yellow family and info is neutral, so status
+     never introduces a second saturated hue. Admin chips use these, never
+     Tailwind palette classes. */
+  --color-success: var(--bc-green-500);
+  --color-success-ink: var(--bc-green-700);
+  --color-success-soft: var(--bc-green-50);
+  --color-warning: #E0B000;
+  --color-warning-ink: var(--bc-amber-700);
+  --color-warning-soft: var(--bc-amber-50);
+  --color-danger: var(--bc-red-500);
+  --color-danger-ink: var(--bc-red-700);
+  --color-danger-soft: var(--bc-red-50);
+  --color-info: #6B6B6B;
+  --color-info-ink: #171717;
+  --color-info-soft: var(--bc-neutral-200);
+  /* Focus: the brand yellow is 1.86:1 on cloud, below the 3:1 a focus
+     indicator needs, so focus is carbon (16.4:1). */
+  --color-focus: #171717;
 
   /* Map to existing semantic tokens */
   --background: var(--color-cloud);
@@ -48,10 +70,10 @@
      text-destructive is the error-message color across both apps'
      forms; the original shade failed WCAG AA as text. Same fix pattern
      as --color-status-live below. */
-  --destructive: #b91c1c;
+  --destructive: var(--color-danger);
   --border: var(--color-frost);
   --input: var(--color-frost);
-  --ring: var(--color-sodium-yellow);
+  --ring: var(--color-focus);
   --sidebar: var(--color-pure-white);
   --sidebar-foreground: var(--color-carbon);
   --sidebar-primary: var(--color-sodium-yellow);
@@ -59,7 +81,7 @@
   --sidebar-accent: var(--color-graphite);
   --sidebar-accent-foreground: var(--color-carbon);
   --sidebar-border: var(--color-frost);
-  --sidebar-ring: var(--color-sodium-yellow);
+  --sidebar-ring: var(--color-focus);
 
   /* Typography */
   --font-heading: var(--font-archivo), var(--font-sans);
@@ -68,44 +90,15 @@
 
   /* Radius */
   --radius: 0.5rem;
+  --radius-control: 0.5rem;
+  --radius-card: 1rem;
+  --radius-panel: 1.5rem;
 }
 
-/* Light-only enforcement (was dark-only pre-v0.5; see theme.ts).
-   Re-pins every semantic token under .dark at higher specificity than
-   globals.css's plain `.dark { ... }` block (which sits later in source
-   order and would otherwise win the cascade tie and silently revert the
-   app to shadcn's stock dark oklch palette against an unstyled body —
-   the white-on-white bug fixed in v0.5.1). This is single-canvas brand
-   enforcement, not a second theme: the values are identical to the
-   :root block above. */
-.dark[data-theme-preset="buffr-checkpoint"] {
-  --background: var(--color-cloud);
-  --foreground: var(--color-carbon);
-  --card: var(--color-pure-white);
-  --card-foreground: var(--color-carbon);
-  --popover: var(--color-pure-white);
-  --popover-foreground: var(--color-carbon);
-  --primary: var(--color-sodium-yellow);
-  --primary-foreground: var(--color-carbon);
-  --secondary: var(--color-graphite);
-  --secondary-foreground: var(--color-carbon);
-  --muted: var(--color-graphite);
-  --muted-foreground: var(--color-slate);
-  --accent: var(--color-sodium-yellow);
-  --accent-foreground: var(--color-carbon);
-  --destructive: #b91c1c;
-  --border: var(--color-frost);
-  --input: var(--color-frost);
-  --ring: var(--color-sodium-yellow);
-  --sidebar: var(--color-pure-white);
-  --sidebar-foreground: var(--color-carbon);
-  --sidebar-primary: var(--color-sodium-yellow);
-  --sidebar-primary-foreground: var(--color-carbon);
-  --sidebar-accent: var(--color-graphite);
-  --sidebar-accent-foreground: var(--color-carbon);
-  --sidebar-border: var(--color-frost);
-  --sidebar-ring: var(--color-sodium-yellow);
-}
+/* Light-only enforcement: the root block above also targets
+   .dark[data-theme-preset], at a specificity that beats globals.css's plain
+   `.dark { ... }` block, so the stock shadcn dark palette can never win.
+   One canvas, one set of values. */
 
 [data-theme-preset="buffr-checkpoint"] {
   color-scheme: light;
@@ -194,7 +187,7 @@ html {
 [data-theme-preset="buffr-checkpoint"] [data-slot="card"] {
   background-color: var(--color-pure-white);
   border: 1px solid var(--color-frost);
-  border-radius: 1rem;
+  border-radius: var(--radius-card);
 }
 
 /* Primary buttons — sodium yellow fill, near-black text (matches the
@@ -204,26 +197,26 @@ html {
 [data-theme-preset="buffr-checkpoint"] [data-variant="default"] {
   background-color: var(--color-sodium-yellow);
   color: var(--color-carbon);
-  border-radius: 0.75rem;
+  border-radius: var(--radius-control);
   font-weight: 500;
 }
 
 [data-theme-preset="buffr-checkpoint"] .btn-primary:hover,
 [data-theme-preset="buffr-checkpoint"] [data-variant="default"]:hover {
-  background-color: oklch(0.78 0.15 85);
+  background-color: color-mix(in srgb, var(--color-sodium-yellow) 88%, var(--color-carbon));
 }
 
 /* Accent cards — yellow fill, rationed */
 [data-theme-preset="buffr-checkpoint"] .accent-card {
   background-color: var(--color-sodium-yellow);
   color: var(--color-carbon);
-  border-radius: 1rem;
+  border-radius: var(--radius-card);
 }
 
 /* Status live — dedicated green (not lime-pulse), darkened from the dark-
    theme's #22c55e (~2.3:1 on white) to clear 4.5:1 on a light ground. */
 [data-theme-preset="buffr-checkpoint"] .status-live {
-  color: #15803d;
+  color: var(--color-success);
 }
 
 [data-theme-preset="buffr-checkpoint"] .status-targeted {
@@ -256,7 +249,7 @@ html {
 [data-theme-preset="buffr-checkpoint"] input,
 [data-theme-preset="buffr-checkpoint"] select,
 [data-theme-preset="buffr-checkpoint"] [role="button"] {
-  border-radius: 0.5rem !important;
+  border-radius: var(--radius-control) !important;
 }
 
 /* Section spacing */
@@ -293,7 +286,7 @@ html {
 [data-theme-preset="buffr-checkpoint"] .bc-surface {
   background-color: var(--color-pure-white);
   border: 1px solid var(--color-frost);
-  border-radius: 1rem;
+  border-radius: var(--radius-card);
 }
 
 /* Featured plan card — wins over .bc-surface border (no drop shadow). */
@@ -305,13 +298,13 @@ html {
 [data-theme-preset="buffr-checkpoint"] .bc-surface-muted {
   background-color: color-mix(in srgb, var(--color-cloud) 55%, var(--color-pure-white));
   border: 1px solid var(--color-frost);
-  border-radius: 1rem;
+  border-radius: var(--radius-card);
 }
 
 [data-theme-preset="buffr-checkpoint"] .bc-surface-inset {
   background-color: color-mix(in srgb, var(--color-cloud) 40%, var(--color-pure-white));
   border: 1px solid var(--color-frost);
-  border-radius: 0.75rem;
+  border-radius: var(--radius-control);
 }
 
 [data-theme-preset="buffr-checkpoint"] .bc-active-soft {
@@ -372,14 +365,14 @@ html {
   padding: var(--bc-panel-pad);
   background-color: var(--color-pure-white);
   border: 1px solid var(--color-frost);
-  border-radius: 1rem;
+  border-radius: var(--radius-card);
 }
 
 [data-theme-preset="buffr-checkpoint"] .bc-panel {
   padding: var(--bc-panel-pad);
   background-color: var(--color-pure-white);
   border: 1px solid var(--color-frost);
-  border-radius: 1rem;
+  border-radius: var(--radius-card);
 }
 
 [data-theme-preset="buffr-checkpoint"] .bc-panel-header {
@@ -390,4 +383,478 @@ html {
   font-weight: 500;
   letter-spacing: -0.01em;
   color: var(--color-carbon);
+}
+
+/* Status chips: soft tint, ink text, hairline border. Replace Tailwind
+   palette classes (amber, green, rose, orange) in the admin. */
+.bc-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.125rem 0.5rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.25rem;
+}
+.bc-status-success { color: var(--color-success-ink); background-color: var(--color-success-soft); border-color: color-mix(in srgb, var(--color-success) 25%, transparent); }
+.bc-status-warning { color: var(--color-warning-ink); background-color: var(--color-warning-soft); border-color: color-mix(in srgb, var(--color-warning) 40%, transparent); }
+.bc-status-danger { color: var(--color-danger-ink); background-color: var(--color-danger-soft); border-color: color-mix(in srgb, var(--color-danger) 25%, transparent); }
+.bc-status-info { color: var(--color-info-ink); background-color: var(--color-info-soft); border-color: var(--color-frost); }
+.bc-text-success { color: var(--color-success-ink); }
+.bc-text-warning { color: var(--color-warning-ink); }
+.bc-text-danger { color: var(--color-danger-ink); }
+
+/* Small icon well used on KPI tiles and list rows. */
+.bc-icon-box {
+  display: flex;
+  width: 1.75rem;
+  height: 1.75rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-frost);
+  border-radius: var(--radius-control);
+  background-color: var(--color-cloud);
+  color: var(--color-slate);
+}
+
+
+/* ==========================================================================
+   Design System v2 (blueprint 33.9). Three tiers: primitive (--bc-*),
+   semantic (--surface-*, --text-*, --border-*, --status-* ...), component
+   (--button-*, --input-* ...). Components reference semantic or component
+   tokens only. Every token here is byte-identical in the three presets.
+   ========================================================================== */
+:root,
+[data-theme-preset="buffr-checkpoint"],
+.dark[data-theme-preset="buffr-checkpoint"] {
+  /* Tier 1: primitives */
+  --bc-white: #FFFFFF;
+  --bc-neutral-50: #FAFAF8;
+  --bc-neutral-100: #F5F5F5;
+  --bc-neutral-150: #EFEEE9;
+  --bc-neutral-200: #E9E7E0;
+  --bc-neutral-300: #D9D9D4;
+  --bc-neutral-400: #B8B8B2;
+  --bc-neutral-500: #9A9A94;
+  --bc-neutral-600: #6F6F6B;
+  --bc-neutral-700: #6B6B6B;
+  --bc-neutral-800: #4A4A48;
+  --bc-neutral-900: #2A2A28;
+  --bc-neutral-950: #171717;
+  --bc-neutral-1000: #111111;
+
+  --bc-yellow-50: #FDF8E7;
+  --bc-yellow-100: #FBF0C4;
+  --bc-yellow-200: #F5DE7A;
+  --bc-yellow-300: #EFC93D;
+  --bc-yellow-400: #E8BA14;
+  --bc-yellow-500: #E0B000;
+  --bc-yellow-600: #C29500;
+  --bc-yellow-700: #8A6B00;
+  --bc-yellow-800: #6B5200;
+  --bc-yellow-900: #4D3B00;
+  --bc-yellow-950: #2E2300;
+
+  --bc-green-50: #E8F2EC;
+  --bc-green-100: #D1E5DA;
+  --bc-green-200: #A3CBB5;
+  --bc-green-300: #6FAE8B;
+  --bc-green-400: #3F9267;
+  --bc-green-500: #15803D;
+  --bc-green-600: #136A33;
+  --bc-green-700: #166534;
+  --bc-green-800: #14532D;
+  --bc-green-900: #0F3D20;
+  --bc-green-950: #082814;
+
+  --bc-amber-50: #FBF4DB;
+  --bc-amber-100: #F7E9B0;
+  --bc-amber-200: #EFD270;
+  --bc-amber-300: #E8BC35;
+  --bc-amber-400: #E0B000;
+  --bc-amber-500: #C99A00;
+  --bc-amber-600: #A67C00;
+  --bc-amber-700: #7A5F00;
+  --bc-amber-800: #5C4700;
+  --bc-amber-900: #3E3000;
+  --bc-amber-950: #211A00;
+
+  --bc-red-50: #F8E8E8;
+  --bc-red-100: #F2D0D0;
+  --bc-red-200: #E5A3A3;
+  --bc-red-300: #D66B6B;
+  --bc-red-400: #C93A3A;
+  --bc-red-500: #B91C1C;
+  --bc-red-600: #9E1717;
+  --bc-red-700: #7F1414;
+  --bc-red-800: #5F0F0F;
+  --bc-red-900: #400A0A;
+  --bc-red-950: #240505;
+
+  --bc-lime-pulse: #00FF1A;
+
+  /* Tier 2: semantic. Surfaces */
+  --surface-page: var(--bc-neutral-100);
+  --surface-raised: var(--bc-white);
+  --surface-sunken: var(--bc-neutral-150);
+  --surface-overlay: var(--bc-white);
+  --surface-inverse: var(--bc-neutral-1000);
+  --surface-accent: var(--bc-yellow-500);
+  --surface-accent-soft: var(--bc-yellow-50);
+  --surface-accent-ink: var(--bc-yellow-700);
+  --surface-muted: var(--bc-neutral-200);
+  --surface-hover: var(--bc-neutral-50);
+  --surface-selected: var(--bc-yellow-50);
+  --surface-disabled: var(--bc-neutral-150);
+  --surface-scrim: rgb(17 17 17 / 0.48);
+  --surface-scrim-strong: rgb(17 17 17 / 0.64);
+
+  /* Text. Tertiary is neutral-600 (4.63:1 on the page canvas), not ash. */
+  --text-primary: var(--bc-neutral-950);
+  --text-secondary: var(--bc-neutral-700);
+  --text-tertiary: var(--bc-neutral-600);
+  --text-disabled: var(--bc-neutral-400);
+  --text-inverse: var(--bc-white);
+  --text-inverse-muted: var(--bc-neutral-300);
+  --text-accent: var(--bc-yellow-700);
+  --text-on-accent: var(--bc-neutral-1000);
+  --text-link: var(--bc-yellow-700);
+  --text-link-hover: var(--bc-yellow-800);
+  --text-danger: var(--bc-red-700);
+  --text-success: var(--bc-green-700);
+  --text-warning: var(--bc-amber-700);
+
+  /* Borders */
+  --border-subtle: var(--bc-neutral-200);
+  --border-default: var(--bc-neutral-300);
+  --border-strong: var(--bc-neutral-500);
+  --border-accent: var(--bc-yellow-500);
+  --border-danger: var(--bc-red-500);
+  --border-inverse: var(--bc-neutral-800);
+  --border-focus: var(--bc-neutral-950);
+
+  /* Interactive */
+  --interactive-primary: var(--bc-yellow-500);
+  --interactive-primary-hover: var(--bc-yellow-400);
+  --interactive-primary-active: var(--bc-yellow-600);
+  --interactive-secondary: var(--bc-neutral-950);
+  --interactive-secondary-hover: var(--bc-neutral-800);
+  --interactive-ghost-hover: var(--bc-neutral-150);
+  --interactive-ghost-active: var(--bc-neutral-200);
+  --interactive-danger: var(--bc-red-500);
+  --interactive-danger-hover: var(--bc-red-600);
+
+  /* Focus */
+  --focus-ring: var(--bc-neutral-950);
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+  --focus-ring-accent: var(--bc-yellow-500);
+
+  /* Status families: base, ink (text), soft (fill), line (border) */
+  --status-success: var(--bc-green-500);
+  --status-success-ink: var(--bc-green-700);
+  --status-success-soft: var(--bc-green-50);
+  --status-success-line: var(--bc-green-200);
+  --status-warning: var(--bc-amber-500);
+  --status-warning-ink: var(--bc-amber-700);
+  --status-warning-soft: var(--bc-amber-50);
+  --status-warning-line: var(--bc-amber-200);
+  --status-danger: var(--bc-red-500);
+  --status-danger-ink: var(--bc-red-700);
+  --status-danger-soft: var(--bc-red-50);
+  --status-danger-line: var(--bc-red-200);
+  --status-info: var(--bc-neutral-700);
+  --status-info-ink: var(--bc-neutral-950);
+  --status-info-soft: var(--bc-neutral-200);
+  --status-info-line: var(--bc-neutral-300);
+  --status-live: var(--bc-green-500);
+  --status-targeted: var(--bc-amber-500);
+  --status-not-available: var(--bc-neutral-500);
+
+  /* Assurance ladder V0 to V4: neutral, then amber, then green. Always shown with a label. */
+  --assurance-v0: var(--bc-neutral-500);
+  --assurance-v0-soft: var(--bc-neutral-200);
+  --assurance-v1: var(--bc-neutral-700);
+  --assurance-v1-soft: var(--bc-neutral-150);
+  --assurance-v2: var(--bc-amber-500);
+  --assurance-v2-ink: var(--bc-amber-700);
+  --assurance-v2-soft: var(--bc-amber-50);
+  --assurance-v3: var(--bc-green-500);
+  --assurance-v3-soft: var(--bc-green-50);
+  --assurance-v4: var(--bc-green-700);
+  --assurance-v4-soft: var(--bc-green-100);
+
+  /* Data visualisation. dv-1 and dv-5 are below 3:1 on white as graphics:
+     never rely on colour alone (label, shape or position as well). */
+  --dv-1: #E0B000;
+  --dv-2: #4A5D23;
+  --dv-3: #A0522D;
+  --dv-4: #6B7A3A;
+  --dv-5: #C4A77D;
+  --dv-6: #2D3A1A;
+  --dv-7: #B8860B;
+  --dv-8: #3A3A38;
+  --dv-9: #8B7355;
+  --dv-10: #5C4A2A;
+  --dv-positive: var(--bc-green-500);
+  --dv-negative: var(--bc-red-500);
+  --dv-neutral: var(--bc-neutral-500);
+  --dv-target: var(--bc-neutral-950);
+  --dv-band: var(--bc-yellow-100);
+  --dv-band-soft: var(--bc-yellow-50);
+  --dv-grid: var(--bc-neutral-200);
+  --dv-grid-major: var(--bc-neutral-300);
+  --dv-axis: var(--bc-neutral-400);
+  --dv-label: var(--bc-neutral-700);
+
+  /* Tier 3: component tokens, only where a component must deviate */
+  --button-radius: var(--radius-control);
+  --button-gap: 8px;
+  --button-font-weight: 500;
+  --button-height-sm: 32px;
+  --button-height-md: 40px;
+  --button-height-lg: 48px;
+  --button-padding-x-sm: 12px;
+  --button-padding-x-md: 16px;
+  --button-padding-x-lg: 24px;
+  --button-primary-bg: var(--interactive-primary);
+  --button-primary-bg-hover: var(--interactive-primary-hover);
+  --button-primary-bg-active: var(--interactive-primary-active);
+  --button-primary-fg: var(--text-on-accent);
+  --button-secondary-bg: var(--surface-raised);
+  --button-secondary-bg-hover: var(--surface-hover);
+  --button-secondary-fg: var(--text-primary);
+  --button-secondary-border: var(--border-default);
+  --button-ghost-bg-hover: var(--interactive-ghost-hover);
+  --button-ghost-fg: var(--text-primary);
+  --button-danger-bg: var(--interactive-danger);
+  --button-danger-bg-hover: var(--interactive-danger-hover);
+  --button-danger-fg: var(--text-inverse);
+  --button-disabled-bg: var(--surface-disabled);
+  --button-disabled-fg: var(--text-disabled);
+
+  /* Input border is neutral-600 (4.02:1 on white) so the control boundary clears 3:1. */
+  --input-radius: var(--radius-control);
+  --input-height-sm: 32px;
+  --input-height-md: 40px;
+  --input-height-lg: 48px;
+  --input-padding-x: 12px;
+  --input-bg: var(--surface-raised);
+  --input-bg-disabled: var(--surface-disabled);
+  --input-border: var(--bc-neutral-600);
+  --input-border-hover: var(--bc-neutral-800);
+  --input-border-focus: var(--focus-ring);
+  --input-border-error: var(--status-danger);
+  --input-placeholder: var(--text-tertiary);
+  --input-text: var(--text-primary);
+  --input-help: var(--text-secondary);
+  --input-error: var(--text-danger);
+
+  --card-radius: var(--radius-card);
+  --card-padding-sm: 16px;
+  --card-padding-md: 24px;
+  --card-padding-lg: 32px;
+  --card-bg: var(--surface-raised);
+  --card-border: var(--border-subtle);
+  --panel-radius: var(--radius-panel);
+  --panel-padding: 32px;
+
+  --table-row-comfortable: 48px;
+  --table-row-compact: 36px;
+  --table-header-bg: var(--surface-muted);
+  --table-header-fg: var(--text-secondary);
+  --table-row-border: var(--border-subtle);
+  --table-row-hover: var(--surface-hover);
+  --table-row-selected: var(--surface-selected);
+
+  --popover-radius: var(--radius-card);
+  --popover-padding: 12px;
+  --modal-radius: var(--radius-panel);
+  --modal-padding: 32px;
+  --modal-max-width: 560px;
+  --drawer-width: 400px;
+  --toast-radius: var(--radius-card);
+  --toast-padding: 16px;
+
+  /* Space (4 px base), radius, border width, icons, containers, breakpoints */
+  --space-0: 0;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+
+  --radius-none: 0;
+  --radius-tag: 4px;
+  --radius-nav: 8px;
+  --radius-pill: 999px;
+  --border-width-hairline: 1px;
+  --border-width-thick: 2px;
+
+  --icon-xs: 12px;
+  --icon-sm: 16px;
+  --icon-md: 20px;
+  --icon-lg: 24px;
+  --icon-xl: 32px;
+
+  --container-narrow: 720px;
+  --container-default: 1024px;
+  --container-wide: 1280px;
+  --container-full: 100%;
+  --breakpoint-sm: 640px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1280px;
+  --breakpoint-2xl: 1536px;
+
+  /* Motion */
+  --duration-instant: 50ms;
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 320ms;
+  --duration-slower: 480ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-decelerate: cubic-bezier(0, 0, 0, 1);
+  --ease-accelerate: cubic-bezier(0.3, 0, 1, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --transition-color: color var(--duration-fast) var(--ease-standard),
+    background-color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard);
+  --transition-opacity: opacity var(--duration-base) var(--ease-standard);
+  --transition-transform: transform var(--duration-base) var(--ease-standard);
+
+  /* Depth: border, ring and scrim, never a drop shadow */
+  --elevation-0-border: var(--border-subtle);
+  --elevation-0-bg: var(--surface-page);
+  --elevation-1-border: var(--border-subtle);
+  --elevation-1-bg: var(--surface-raised);
+  --elevation-2-border: var(--border-default);
+  --elevation-2-ring: 0 0 0 1px var(--bc-neutral-150);
+  --elevation-3-border: var(--border-strong);
+  --elevation-3-ring: 0 0 0 1px var(--bc-neutral-200);
+  --elevation-3-scrim: var(--surface-scrim);
+  --elevation-4-border: var(--border-strong);
+  --elevation-4-ring: 0 0 0 2px var(--bc-neutral-200);
+  --elevation-4-scrim: var(--surface-scrim-strong);
+
+  /* Z-index */
+  --z-base: 0;
+  --z-raised: 10;
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-banner: 300;
+  --z-overlay: 400;
+  --z-modal: 500;
+  --z-popover: 600;
+  --z-tooltip: 700;
+  --z-toast: 800;
+  --z-command: 900;
+
+  /* Type: families alias the next/font variables already wired in the layouts */
+  --font-display: var(--font-heading);
+  --font-ui: var(--font-sans);
+  --text-caption: 14px;
+  --text-body: 16px;
+  --text-subheading: 20px;
+  --text-heading-sm: 24px;
+  --text-heading: 32px;
+  --text-heading-lg: 56px;
+  --text-display: 64px;
+  --leading-tight: 1.1;
+  --leading-snug: 1.25;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.65;
+  --tracking-tight: -0.02em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.04em;
+  --tracking-wider: 0.08em;
+  --weight-thin: 100;
+  --weight-light: 300;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --measure-narrow: 45ch;
+  --measure-default: 65ch;
+  --measure-wide: 80ch;
+}
+
+/* Focus: carbon ring; on a yellow fill the ring moves outside the fill. */
+:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring);
+  outline-offset: var(--focus-ring-offset);
+}
+
+/* Reduced motion collapses every duration and removes transforms. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: var(--duration-instant);
+    --duration-base: var(--duration-instant);
+    --duration-slow: var(--duration-instant);
+    --duration-slower: var(--duration-instant);
+  }
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: var(--duration-instant) !important;
+    transition-duration: var(--duration-instant) !important;
+  }
+}
+
+/* Higher contrast on request: stronger hairlines. */
+@media (prefers-contrast: more) {
+  :root {
+    --border-subtle: var(--bc-neutral-500);
+    --border-default: var(--bc-neutral-600);
+  }
+}
+
+/* Assurance chips: always the level and a dot, never colour alone. */
+.bc-assurance {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.125rem 0.5rem;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-control);
+  font-size: var(--text-caption);
+  font-weight: var(--weight-medium);
+  line-height: 1.25rem;
+  color: var(--text-primary);
+}
+.bc-assurance::before {
+  content: "";
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: var(--radius-pill);
+  background-color: currentColor;
+}
+.bc-assurance-v0 { background-color: var(--assurance-v0-soft); color: var(--text-secondary); }
+.bc-assurance-v1 { background-color: var(--assurance-v1-soft); color: var(--text-primary); }
+.bc-assurance-v2 { background-color: var(--assurance-v2-soft); color: var(--assurance-v2-ink); }
+.bc-assurance-v3 { background-color: var(--assurance-v3-soft); color: var(--status-success-ink); }
+.bc-assurance-v4 { background-color: var(--assurance-v4-soft); color: var(--status-success-ink); }
+
+/* Skeleton at the size of the loaded content. */
+.bc-skeleton {
+  border-radius: var(--radius-control);
+  background-color: var(--surface-muted);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .bc-skeleton { animation: bc-pulse 1.4s var(--ease-standard) infinite; }
+}
+@keyframes bc-pulse { 50% { opacity: 0.55; } }
+
+/* Table density: add the class to a wrapper (or body) to compact every table inside it. */
+.bc-density-compact {
+  --table-row-height: var(--table-row-compact);
 }

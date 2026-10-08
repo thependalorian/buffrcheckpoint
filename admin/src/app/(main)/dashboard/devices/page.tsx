@@ -6,7 +6,7 @@ import {
   RetireDeviceButton,
 } from "@/app/(main)/dashboard/_components/policy-create-sheets";
 import { DashboardPageHeader } from "@/components/dashboard-page-header";
-import { DashboardErrorState, TableEmptyRow } from "@/components/dashboard-state";
+import { DashboardErrorState, EmptyActionLink, TableEmptyRow } from "@/components/dashboard-state";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -78,6 +78,7 @@ export default async function DevicesPage() {
                 <TableEmptyRow
                   colSpan={4}
                   title="No devices registered yet"
+                  action={<EmptyActionLink href="/dashboard/site-experience/kiosk">Set up a kiosk</EmptyActionLink>}
                   description="Register a device before CRAN activation and site deployment."
                 />
               ) : (

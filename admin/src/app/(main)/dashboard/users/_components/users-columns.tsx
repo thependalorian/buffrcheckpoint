@@ -4,13 +4,14 @@ import { Subscribe } from "@tanstack/react-table";
 import { Check, Clock, X } from "lucide-react";
 
 import { ChangeUserRoleSheet } from "@/app/(main)/dashboard/_components/policy-create-sheets";
+import { StatusChip } from "@/components/status-chip";
 import { Avatar, AvatarBadge, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { DataTableFeatures } from "@/lib/data-table-features";
 import { cn, getInitials } from "@/lib/utils";
 
-import { statusMeta, type UserRow } from "./types";
+import { statusTone, type UserRow } from "./types";
 
 function RoleCell({ role, label }: { role: string; label: string }) {
   return (
@@ -22,32 +23,25 @@ function RoleCell({ role, label }: { role: string; label: string }) {
 }
 
 function StatusBadge({ status }: { status: UserRow["status"] }) {
-  const meta = statusMeta[status];
-
-  return (
-    <Badge className={cn("gap-1.5 border px-2 py-1 font-medium", meta.badgeClass)} variant="outline">
-      <span className={cn("size-1.5 rounded-full", meta.dotClass)} />
-      {status}
-    </Badge>
-  );
+  return <StatusChip tone={statusTone[status]}>{status}</StatusChip>;
 }
 
 function getAvatarTone(name: string) {
   const tones = [
-    "[&_[data-slot=avatar-fallback]]:bg-amber-100 [&_[data-slot=avatar-fallback]]:text-amber-700 after:border-amber-200 dark:[&_[data-slot=avatar-fallback]]:bg-amber-500/15 dark:[&_[data-slot=avatar-fallback]]:text-amber-300 dark:after:border-amber-500/20",
-    "[&_[data-slot=avatar-fallback]]:bg-orange-100 [&_[data-slot=avatar-fallback]]:text-orange-700 after:border-orange-200 dark:[&_[data-slot=avatar-fallback]]:bg-orange-500/15 dark:[&_[data-slot=avatar-fallback]]:text-orange-300 dark:after:border-orange-500/20",
-    "[&_[data-slot=avatar-fallback]]:bg-rose-100 [&_[data-slot=avatar-fallback]]:text-rose-700 after:border-rose-200 dark:[&_[data-slot=avatar-fallback]]:bg-rose-500/15 dark:[&_[data-slot=avatar-fallback]]:text-rose-300 dark:after:border-rose-500/20",
-    "[&_[data-slot=avatar-fallback]]:bg-emerald-100 [&_[data-slot=avatar-fallback]]:text-emerald-700 after:border-emerald-200 dark:[&_[data-slot=avatar-fallback]]:bg-emerald-500/15 dark:[&_[data-slot=avatar-fallback]]:text-emerald-300 dark:after:border-emerald-500/20",
+    "[&_[data-slot=avatar-fallback]]:bg-warning-soft [&_[data-slot=avatar-fallback]]:text-warning-ink after:border-frost",
+    "[&_[data-slot=avatar-fallback]]:bg-success-soft [&_[data-slot=avatar-fallback]]:text-success-ink after:border-frost",
+    "[&_[data-slot=avatar-fallback]]:bg-danger-soft [&_[data-slot=avatar-fallback]]:text-danger-ink after:border-frost",
+    "[&_[data-slot=avatar-fallback]]:bg-info-soft [&_[data-slot=avatar-fallback]]:text-info-ink after:border-frost",
   ];
   return tones[name.length % tones.length];
 }
 
 function getLastActiveBadge(lastActive: number) {
   if (lastActive < 1) {
-    return { className: "bg-green-600 text-green-950 [&>svg]:text-white", icon: Check };
+    return { className: "bg-success text-white [&>svg]:text-white", icon: Check };
   }
   if (lastActive < 4 * 60) {
-    return { className: "bg-amber-500 text-amber-950", icon: Clock };
+    return { className: "bg-warning text-foreground", icon: Clock };
   }
   if (lastActive < 7 * 24 * 60) {
     return { className: "bg-destructive", icon: null };

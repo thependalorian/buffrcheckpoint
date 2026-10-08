@@ -54,7 +54,7 @@ export function EmergencyTriggerPanel({ sites }: { sites: Array<{ id: string; na
         {pending ? "Triggering…" : "Trigger emergency"}
       </Button>
       {error ? <p className="text-destructive text-sm">{error}</p> : null}
-      {ok ? <p className="text-sm text-green-700 dark:text-green-400">{ok}</p> : null}
+      {ok ? <p className="text-sm bc-text-success">{ok}</p> : null}
     </div>
   );
 }

@@ -4,13 +4,14 @@ import { useState, useTransition } from "react";
 
 import { useRouter } from "next/navigation";
 
-import { createDsarAction, extendDsarAction, resolveDsarAction } from "../actions";
-import { privacyRequestsCopy } from "@/lib/copy/privacy-requests";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { privacyRequestsCopy } from "@/lib/copy/privacy-requests";
+
+import { createDsarAction, extendDsarAction, resolveDsarAction } from "../actions";
 
 const REQUEST_TYPES = [
   { value: "data_export", label: "Data export" },
@@ -240,7 +241,11 @@ export function ExtendDsarControl({ id, canExtend, extended }: { id: string; can
 
 export function RequestTypeBadge({ code, isAccountDeletion }: { code: string; isAccountDeletion: boolean }) {
   if (isAccountDeletion) {
-    return <Badge className="bg-amber-600 text-white hover:bg-amber-600">Account deletion</Badge>;
+    return (
+      <Badge className="border-warning/40 bg-warning-soft text-warning-ink hover:bg-warning-soft">
+        Account deletion
+      </Badge>
+    );
   }
   return <Badge variant="outline">{code.replaceAll("_", " ")}</Badge>;
 }

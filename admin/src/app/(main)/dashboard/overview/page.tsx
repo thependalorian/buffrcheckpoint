@@ -1,11 +1,13 @@
 import { DashboardPageHeader } from "@/components/dashboard-page-header";
 import { DashboardErrorState } from "@/components/dashboard-state";
 import type { VisitRosterRow } from "@/components/features/visits/visit-roster-table/schema";
+import { StatusChip } from "@/components/status-chip";
 import { api } from "@/lib/api/client";
 
+import { type AttentionItem, AttentionPanel } from "./_components/attention-panel";
+import { OnSiteRosterPanel } from "./_components/on-site-roster-panel";
 import type { DashboardMetrics } from "./_components/operational-metric-cards";
 import { OperationalMetricCards } from "./_components/operational-metric-cards";
-import { OnSiteRosterPanel } from "./_components/on-site-roster-panel";
 import { VisitActivityOverview, type VisitActivityPoint } from "./_components/visit-activity-overview";
 
 interface ScheduleEvent {
@@ -16,6 +18,7 @@ interface ScheduleEvent {
 interface ComplianceDashboard {
   retentionActionsDue: number;
   openDeletionRequests: number;
+  dataRequestsOverdue?: number;
   privilegedAccessEvents: number;
   offlineSyncExceptions: number;
   roleChangesThisMonth: number;
@@ -71,16 +74,58 @@ export default async function Page() {
       : 0,
   };
 
+  const attention: AttentionItem[] = compliance
+    ? [
+        { label: "Pending approvals", count: metrics.pendingApprovals, href: "/dashboard/front-desk", tone: "warning" },
+        {
+          label: "Overdue data requests",
+          count: compliance.dataRequestsOverdue ?? 0,
+          href: "/dashboard/compliance/privacy-requests",
+          tone: "danger",
+        },
+        {
+          label: "Open deletion requests",
+          count: compliance.openDeletionRequests,
+          href: "/dashboard/compliance/privacy-requests",
+          tone: "warning",
+        },
+        {
+          label: "Retention actions due",
+          count: compliance.retentionActionsDue,
+          href: "/dashboard/policies/retention",
+          tone: "warning",
+        },
+        {
+          label: "Offline sync exceptions",
+          count: compliance.offlineSyncExceptions,
+          href: "/dashboard/devices/compliance",
+          tone: "warning",
+        },
+      ]
+    : [{ label: "Pending approvals", count: metrics.pendingApprovals, href: "/dashboard/front-desk", tone: "warning" }];
+
   return (
     <div className="@container/main flex flex-col gap-4 md:gap-6">
       <DashboardPageHeader
         title="Overview"
         description="On-site counts, visit activity, and compliance alerts for this organisation."
+        status={
+          metrics.complianceAlerts > 0 ? (
+            <StatusChip tone="warning">{metrics.complianceAlerts} to review</StatusChip>
+          ) : (
+            <StatusChip tone="success">All clear</StatusChip>
+          )
+        }
       />
       {coreError ? <DashboardErrorState message={coreError} /> : null}
       {complianceResult.error ? <DashboardErrorState message={complianceResult.error} /> : null}
       <OperationalMetricCards metrics={metrics} />
-      <VisitActivityOverview data={activity} />
+      <div className="grid gap-4 md:gap-6 xl:grid-cols-3">
+        <div className="min-w-0 xl:col-span-2">
+          <VisitActivityOverview data={activity} />
+        </div>
+        <AttentionPanel items={attention} />
+      </div>
       <OnSiteRosterPanel visits={roster} />
     </div>
   );

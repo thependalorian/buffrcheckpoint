@@ -2088,6 +2088,14 @@ The canonical file is `website/src/styles/presets/buffr-checkpoint.css`; copy it
 | `--color-status-live` | `#15803D` | Verified, live and healthy states (clears 4.5:1) |
 | `--destructive` | `#B91C1C` | Errors (5.88:1) |
 | `--color-lime-pulse` | `#00FF1A` | Editorial emphasis only; never status, never a second call to action; unused today |
+| `--color-success` / `-ink` / `-soft` | `#15803D` / `#166534` / `#E8F2EC` | Success and healthy states; ink on soft is 6.23:1. `--color-status-live` now resolves to `--color-success` |
+| `--color-warning` / `-ink` / `-soft` | `#E0B000` / `#7A5F00` / `#FBF4DB` | Attention and pending; the brand yellow family, ink on soft is 5.5:1 |
+| `--color-danger` / `-ink` / `-soft` | `#B91C1C` / `#B91C1C` / `#F8E8E8` | Errors and destructive actions (`--destructive` resolves to it); ink on soft is 5.45:1 |
+| `--color-info` / `-ink` / `-soft` | `#6B6B6B` / `#171717` / `#E9E7E0` | Neutral notices; deliberately not blue, so status never adds a second hue |
+| `--color-focus` | `#171717` | Focus ring (`--ring`); the brand yellow is 1.86:1 on cloud, below the 3:1 a focus indicator needs, carbon is 16.4:1 |
+| `--radius-control` / `-card` / `-panel` | `0.5rem` / `1rem` / `1.5rem` | Radius scale (8, 16, 24 px) as tokens; use these, not literals |
+
+Status chips use the classes `bc-status` with `bc-status-success|warning|danger|info`, or the utilities `bg-{status}-soft text-{status}-ink border-{status}/25`. Tailwind palette classes (amber, green, emerald, rose, orange) are not used; the admin count fell from 23 to 0 on 2026-10-08. The duplicated `.dark` block was merged into the root selector, and the hover and success literals are derived from tokens.
 
 Rules: text on a Sodium Yellow fill is near-black, never white (white on yellow is about 2.2:1; near-black about 9.7:1). Raw yellow and ash fail as foreground text, so use the ink variant or slate. No second saturated accent for any button. No more than about 20% of a viewport in yellow. No navy, teal or blue brand colours. No custom per-organisation colour.
 
@@ -2150,7 +2158,23 @@ Governance: product screenshots use a synthetic demo tenant with non-identifiabl
 
 ### 33.8 Project skills
 
+The measured frontend inventory (every route, layout, shared component and CSS file, with counts) lives in `.claude/skills/buffrcheckpoint-design/reference.md` under "Frontend inventory". The shared page pieces are `DashboardPageHeader`, `StatusChip`, `BcStatTile` with `href`, `TableEmptyRow` with `EmptyActionLink`, and `MarketingCta`; the preset also carries a spacing scale (`--space-1` to `--space-8`) and `--bc-container`.
+
 Two Claude Code skills live in `.claude/skills/` and carry this section and section 34 into day-to-day work: `buffrcheckpoint` (how to work on the product: map, canon, standing rules, workflows, success check) and `buffrcheckpoint-design` (the design system: tokens, patterns, verify commands, success check). Their baseline checks (identical presets, no colour-family classes, no shadows, hex literals only where a canvas or image generator cannot read a token) were measured on 2026-10-08. The visitor check-in, check-out, emergency and induction pages were found using a magenta button and purple and mauve text from another palette; they now use the theme tokens, and the share-image generator uses the brand palette instead of navy.
+
+### 33.9 Design System v2 (token architecture)
+
+Merged 2026-10-08 into `website/src/styles/presets/buffr-checkpoint.css` (and the two byte-identical copies) as an additive layer; nothing in 33.1 changed meaning. The brand position is unchanged: one saturated action colour, light canvas, no shadows, no blue or teal.
+
+**Three tiers.** Primitive (`--bc-<hue>-<step>`: neutral, yellow, green, amber, red ramps), semantic (`--surface-*`, `--text-*`, `--border-*`, `--interactive-*`, `--status-*`, `--assurance-*`, `--dv-*`), component (`--button-*`, `--input-*`, `--card-*`, `--table-*`, overlay sizes). Components reference semantic or component tokens, never primitives. The v1 names (`--color-success`, `--color-danger`, `--radius-control` and so on) stay and now resolve to the primitives, so no screen changed.
+
+**Also added:** 4 px space scale (`--space-0` to `--space-24`), containers and breakpoints, motion durations and easings (collapsed by `prefers-reduced-motion`), elevation 0 to 4 as border, ring and scrim, a z-index scale, a type scale, line height, tracking, weight and measure tokens, a carbon `:focus-visible` outline, `prefers-contrast: more` hairlines, `.bc-assurance` chips (V0 to V4, dot plus label) and `.bc-skeleton`. The font families alias the existing `next/font` variables (`--font-display` is `--font-heading`, `--font-ui` is `--font-sans`).
+
+**Corrections made while merging the specification** (it was checked, not pasted): typos fixed (`--interacve-primary`, `--bc-r-100`, a missing `--` on `elevation-3-border`, `--assance-v4-soft`, `--surface-accink`, the undefined `--assurance-v2-ink`); the specification's literal font stacks were not adopted because they would override the `next/font` variables; `--text-tertiary` uses neutral-600 `#6F6F6B` (4.63:1 on the page canvas) because the specified ash is 2.59:1 and fails as text; the input border uses neutral-600 (4.02:1 on white) because the specified frost is 1.42:1 and a control boundary needs 3:1; `--color-danger-ink` is now red-700 (8.79:1 on its soft fill).
+
+**Component refactor (done for Button, Input, Table in all three apps):** sizes come from `--button-height-*` and `--input-height-*` (default 40 px, sm 32, lg 48), colours and states from `--button-*`, `--input-*` and `--table-*`, transitions from `--duration-fast` and `--ease-standard`, focus from the global carbon `:focus-visible` outline (the old 3 px ring is removed), the destructive button is a solid danger fill, and table rows are 48 px (`bc-density-compact` on a wrapper gives 36 px) with a 2 px accent bar on the selected row and `data-numeric` cells right-aligned in mono. Remaining components (select, checkbox, radio, switch, textarea, card, tabs, dialogs, toasts) still use the v1 mapping.
+
+**Known limits, stated rather than hidden:** `--dv-1` (2.02:1) and `--dv-5` (2.29:1) are below 3:1 as graphics on white, and `--assurance-v2` (2.59:1) likewise, so a chart or chip must carry a label, shape or position as well (rule 9 of the chart rules). Not yet done: wrapping the tokens in `@layer`, which would change cascade priority against `globals.css` and needs its own pass; the CI checks (token-name parity with Kotlin, hard-coded value scan, motion audit, axe). The existing grep checks in the design skill cover the palette-class and shadow rules today.
 
 ## 34. Engineering rules
 

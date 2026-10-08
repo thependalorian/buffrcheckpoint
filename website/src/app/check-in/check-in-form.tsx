@@ -488,7 +488,7 @@ export function CheckInForm({ siteId, referenceId, initialLanguageCode = "en" }:
             name="languageCode"
             value={languageCode}
             onChange={(e) => setLanguageCode(e.target.value)}
-            className="flex h-10 w-full rounded-md border border-input bg-white px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className="flex h-11 w-full rounded-md border border-input bg-card px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           >
             {CHECK_IN_LANGUAGES.map((lang) => (
               <option key={lang.code} value={lang.code}>
@@ -505,7 +505,7 @@ export function CheckInForm({ siteId, referenceId, initialLanguageCode = "en" }:
             name="visitorTypeCode"
             value={visitorTypeCode}
             onChange={(e) => setVisitorTypeCode(e.target.value)}
-            className="flex h-10 w-full rounded-md border border-input bg-white px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className="flex h-11 w-full rounded-md border border-input bg-card px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             required
           >
             {(context.visitorTypes.length > 0
@@ -549,7 +549,7 @@ export function CheckInForm({ siteId, referenceId, initialLanguageCode = "en" }:
                           const host = context.hosts.find((h) => h.id === e.target.value);
                           setValue(host?.displayName ?? e.target.value);
                         }}
-                        className="flex h-10 w-full rounded-md border border-input bg-white px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        className="flex h-11 w-full rounded-md border border-input bg-card px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                         required={required}
                       >
                         <option value="" disabled>
@@ -579,7 +579,7 @@ export function CheckInForm({ siteId, referenceId, initialLanguageCode = "en" }:
                         setPurposeCategoryCode(e.target.value);
                         setValue(e.target.value);
                       }}
-                      className="flex h-10 w-full rounded-md border border-input bg-white px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                      className="flex h-11 w-full rounded-md border border-input bg-card px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                       required={required}
                     >
                       {(options.length
@@ -611,7 +611,7 @@ export function CheckInForm({ siteId, referenceId, initialLanguageCode = "en" }:
                       {fieldLabelWithOptional(field.fieldLabel, required)}
                     </legend>
                     {field.helpText ? <p className="text-xs text-muted-foreground">{field.helpText}</p> : null}
-                    <div className="space-y-2 rounded-md border border-input bg-white px-3 py-2">
+                    <div className="space-y-2 rounded-md border border-input bg-card px-3 py-2">
                       {options.map((opt) => (
                         <label key={opt} className="flex items-center gap-2 text-sm">
                           <input
@@ -643,7 +643,7 @@ export function CheckInForm({ siteId, referenceId, initialLanguageCode = "en" }:
                       id={`field-${field.fieldCode}`}
                       value={value}
                       onChange={(e) => setValue(e.target.value)}
-                      className="flex h-10 w-full rounded-md border border-input bg-white px-3 py-2 text-sm"
+                      className="flex h-11 w-full rounded-md border border-input bg-card px-3 py-2 text-sm"
                       required={required}
                     >
                       <option value="">Select…</option>
@@ -689,7 +689,7 @@ export function CheckInForm({ siteId, referenceId, initialLanguageCode = "en" }:
                   {field.fieldTypeCode === "textarea" ? (
                     <textarea
                       id={`field-${field.fieldCode}`}
-                      className="min-h-20 w-full rounded-md border border-input bg-white px-3 py-2 text-sm"
+                      className="min-h-24 w-full rounded-md border border-input bg-card px-3 py-2 text-sm"
                       value={value}
                       onChange={(e) => setValue(e.target.value)}
                       required={required}
@@ -798,7 +798,7 @@ export function CheckInForm({ siteId, referenceId, initialLanguageCode = "en" }:
                   name="hostId"
                   value={hostId}
                   onChange={(e) => setHostId(e.target.value)}
-                  className="flex h-10 w-full rounded-md border border-input bg-white px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  className="flex h-11 w-full rounded-md border border-input bg-card px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                   required
                 >
                   <option value="" disabled>
@@ -821,7 +821,7 @@ export function CheckInForm({ siteId, referenceId, initialLanguageCode = "en" }:
                   name="purposeCategoryCode"
                   value={purposeCategoryCode}
                   onChange={(e) => setPurposeCategoryCode(e.target.value)}
-                  className="flex h-10 w-full rounded-md border border-input bg-white px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  className="flex h-11 w-full rounded-md border border-input bg-card px-3 py-2 text-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                   required
                 >
                   {context.purposeCategories.map((purpose) => (

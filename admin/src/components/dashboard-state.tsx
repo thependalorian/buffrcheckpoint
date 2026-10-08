@@ -1,6 +1,11 @@
-import { Ban, ServerCrash, ShieldAlert } from "lucide-react";
+import type { ReactNode } from "react";
+
+import Link from "next/link";
+
+import { Ban, Inbox, ServerCrash, ShieldAlert } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { TableCell, TableRow } from "@/components/ui/table";
 
 function parseErrorStatus(message: string): number | null {
@@ -71,17 +76,39 @@ export function TableEmptyRow({
   colSpan,
   title,
   description,
+  icon,
+  action,
 }: {
   colSpan: number;
   title: string;
   description: string;
+  icon?: ReactNode;
+  action?: ReactNode;
 }) {
   return (
-    <TableRow>
-      <TableCell colSpan={colSpan} className="p-8 text-center">
-        <p className="font-medium">{title}</p>
-        <p className="mt-1 text-muted-foreground text-sm">{description}</p>
+    <TableRow className="hover:bg-transparent">
+      <TableCell colSpan={colSpan} className="p-10">
+        <div className="mx-auto flex max-w-sm flex-col items-center gap-2 text-center">
+          <span
+            aria-hidden
+            className="flex size-9 items-center justify-center rounded-lg bg-muted text-muted-foreground"
+          >
+            {icon ?? <Inbox className="size-4" />}
+          </span>
+          <p className="font-medium">{title}</p>
+          {description ? <p className="text-muted-foreground text-sm">{description}</p> : null}
+          {action ? <div className="mt-2">{action}</div> : null}
+        </div>
       </TableCell>
     </TableRow>
+  );
+}
+
+/** The next step out of an empty list: a quiet outline button that links to the screen that fills it. */
+export function EmptyActionLink({ href, children }: { href: string; children: ReactNode }) {
+  return (
+    <Button asChild size="sm" variant="outline">
+      <Link href={href}>{children}</Link>
+    </Button>
   );
 }

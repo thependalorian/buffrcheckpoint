@@ -221,7 +221,7 @@ export default async function AnalyticsPage({
       </form>
 
       <BcStatRow>
-        <BcStatTile label={copy.kpis.checkIns} value={summary.checkIns.value ?? 0} />
+        <BcStatTile label={copy.kpis.checkIns} value={summary.checkIns.value ?? 0} href="/dashboard/visitors" />
         <BcStatTile
           label={copy.kpis.avgMinutes}
           value={
@@ -232,7 +232,11 @@ export default async function AnalyticsPage({
           label={copy.kpis.ownPhone}
           value={summary.ownPhoneShare.value === null ? copy.kpis.none : copy.kpis.percent(summary.ownPhoneShare.value)}
         />
-        <BcStatTile label={copy.kpis.offline} value={summary.offlineCaptures.value ?? 0} />
+        <BcStatTile
+          label={copy.kpis.offline}
+          value={summary.offlineCaptures.value ?? 0}
+          href="/dashboard/devices/compliance"
+        />
       </BcStatRow>
       <p className="-mt-2 text-muted-foreground text-xs">
         {copy.kpis.checkIns}: {changeLine(summary.checkIns)}

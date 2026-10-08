@@ -158,7 +158,7 @@ export const visitRosterColumns: ColumnDef<DataTableFeatures, VisitRosterRow>[] 
         className={cn(
           "px-1.5",
           row.original.requiresAction
-            ? "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300"
+            ? "border-warning/40 bg-warning-soft text-warning-ink"
             : "text-muted-foreground",
         )}
       >

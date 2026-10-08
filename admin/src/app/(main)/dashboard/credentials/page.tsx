@@ -4,7 +4,7 @@ import {
   ValidateCredentialSheet,
 } from "@/app/(main)/dashboard/_components/policy-create-sheets";
 import { DashboardPageHeader } from "@/components/dashboard-page-header";
-import { DashboardErrorState, TableEmptyRow } from "@/components/dashboard-state";
+import { DashboardErrorState, EmptyActionLink, TableEmptyRow } from "@/components/dashboard-state";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { api } from "@/lib/api/client";
@@ -60,6 +60,7 @@ export default async function CredentialsPage() {
                 <TableEmptyRow
                   colSpan={6}
                   title="No credentials issued yet"
+                  action={<EmptyActionLink href="/dashboard/front-desk">Open the front desk</EmptyActionLink>}
                   description="Section 12.2: a credential is a random server-issued reference, never a static NFC UID. Issue the first badge to a contractor or repeat visitor to get started."
                 />
               ) : (

@@ -1,5 +1,5 @@
 import { DashboardPageHeader } from "@/components/dashboard-page-header";
-import { DashboardErrorState, TableEmptyRow } from "@/components/dashboard-state";
+import { DashboardErrorState, EmptyActionLink, TableEmptyRow } from "@/components/dashboard-state";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { api } from "@/lib/api/client";
 import { listSiteOptions } from "@/lib/sites/site-options";
@@ -66,6 +66,7 @@ export default async function SiteQrPage() {
                   <TableEmptyRow
                     colSpan={4}
                     title="No site QR references yet"
+                    action={<EmptyActionLink href="/dashboard/sites">Choose a site</EmptyActionLink>}
                     description="Add a QR code, then print it or copy its link. Publish the text for emergency and induction codes under Site Notices."
                   />
                 ) : (

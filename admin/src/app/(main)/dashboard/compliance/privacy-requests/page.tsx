@@ -1,3 +1,9 @@
+import { DashboardPageHeader } from "@/components/dashboard-page-header";
+import { DashboardErrorState, EmptyActionLink, TableEmptyRow } from "@/components/dashboard-state";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { api } from "@/lib/api/client";
+import { type DeadlineState, deadlineClass, deadlineLabel, privacyRequestsCopy } from "@/lib/copy/privacy-requests";
+
 import {
   CreateDsarSheet,
   DsarTypeFilter,
@@ -5,11 +11,6 @@ import {
   RequestTypeBadge,
   ResolveDsarButtons,
 } from "./_components/dsar-controls";
-import { DashboardPageHeader } from "@/components/dashboard-page-header";
-import { DashboardErrorState, TableEmptyRow } from "@/components/dashboard-state";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { api } from "@/lib/api/client";
-import { type DeadlineState, deadlineClass, deadlineLabel, privacyRequestsCopy } from "@/lib/copy/privacy-requests";
 
 interface DsarRow {
   id: string;
@@ -52,7 +53,7 @@ export default async function PrivacyRequestsPage({ searchParams }: { searchPara
       <DsarTypeFilter active={typeFilter ?? ""} />
 
       {typeFilter === "account_deletion" || deletionCount > 0 ? (
-        <p className="text-sm text-amber-700 dark:text-amber-400">
+        <p className="text-sm text-warning-ink">
           {deletionCount} pending account-deletion request{deletionCount === 1 ? "" : "s"} in this view.
         </p>
       ) : null}
@@ -76,11 +77,16 @@ export default async function PrivacyRequestsPage({ searchParams }: { searchPara
                 <TableEmptyRow
                   colSpan={5}
                   title="No privacy requests yet"
+                  action={
+                    <EmptyActionLink href="/dashboard/site-experience/notices">
+                      Review the privacy notice
+                    </EmptyActionLink>
+                  }
                   description="Create a DSAR above. Filter to Account deletion when auditing erasure obligations."
                 />
               ) : (
                 rows.map((row) => (
-                  <TableRow key={row.id} className={row.isAccountDeletion ? "bg-amber-500/5" : undefined}>
+                  <TableRow key={row.id} className={row.isAccountDeletion ? "bg-warning-soft/50" : undefined}>
                     <TableCell className="p-3">
                       <RequestTypeBadge code={row.requestTypeCode} isAccountDeletion={row.isAccountDeletion} />
                     </TableCell>

@@ -1,9 +1,16 @@
 "use client";
 
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
+
+import { useRouter } from "next/navigation";
+
 import { DragDropProvider } from "@dnd-kit/react";
 import { useSortable } from "@dnd-kit/react/sortable";
-import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 
 import {
   addFormFieldAction,
@@ -18,10 +25,6 @@ import {
   updateFormFieldAction,
   upsertFieldTranslationAction,
 } from "../_actions";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 
 type Library = {
   fieldCodes: Array<{ code: string; label: string }>;
@@ -380,7 +383,7 @@ export function FormBuilder({
               Suggest fields
             </Button>
             {aiWarnings.length > 0 ? (
-              <ul className="list-disc space-y-1 pl-4 text-amber-700 text-xs dark:text-amber-300">
+              <ul className="list-disc space-y-1 pl-4 text-warning-ink text-xs">
                 {aiWarnings.map((w) => (
                   <li key={w}>{w}</li>
                 ))}
@@ -536,7 +539,7 @@ export function FormBuilder({
               </select>
               {selectedField.dataClassificationCode === "high_risk" ||
               selectedField.dataClassificationCode === "verification_evidence" ? (
-                <p className="text-xs text-amber-700">
+                <p className="text-xs text-warning-ink">
                   High-risk field: publish will require a documented justification.
                 </p>
               ) : null}

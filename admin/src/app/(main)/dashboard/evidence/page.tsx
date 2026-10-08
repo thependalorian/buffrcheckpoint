@@ -1,5 +1,5 @@
 import { DashboardPageHeader } from "@/components/dashboard-page-header";
-import { DashboardErrorState, TableEmptyRow } from "@/components/dashboard-state";
+import { DashboardErrorState, EmptyActionLink, TableEmptyRow } from "@/components/dashboard-state";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { api } from "@/lib/api/client";
@@ -48,6 +48,7 @@ export default async function EvidencePacksPage() {
                 <TableEmptyRow
                   colSpan={4}
                   title="No evidence packs generated yet"
+                  action={<EmptyActionLink href="/dashboard/reports">Open reports</EmptyActionLink>}
                   description="A generated pack bundles the current RBAC matrix, retention-policy report, and audit-log extract (Section 20.2) into one exportable record. Add a date range to also include a visitor-access extract for that period. Use the button above to generate the first one."
                 />
               ) : (
