@@ -17,7 +17,6 @@ import { MARKETING_SECONDARY_PRICING_CTA } from "@/lib/copy/signup";
 import {
   marketingCapabilityCard,
   marketingFeatureCard,
-  marketingFeatureCardAccent,
   marketingLead,
   marketingSectionTitle,
   marketingWideSection,
@@ -99,7 +98,7 @@ export default async function HomePage() {
               </ul>
             </div>
 
-            <div className={`min-w-0 ${marketingFeatureCardAccent}`}>
+            <div className={`min-w-0 ${marketingFeatureCard}`}>
               <p className="bc-marketing-eyebrow text-[var(--color-sodium-yellow-ink)]">Checkpoint</p>
               <div className="bc-surface-inset mt-6 p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">

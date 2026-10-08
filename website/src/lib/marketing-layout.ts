@@ -12,13 +12,9 @@ export const marketingSurfaceMuted = "bc-surface-muted";
 export const marketingSurfaceInset = "bc-surface-inset";
 export const marketingEyebrow = "bc-marketing-eyebrow";
 export const marketingLead = "bc-marketing-lead";
-export const marketingFeatureCard = "border-t border-border pt-6 sm:pt-8";
-export const marketingCapabilityCard =
-  "border-t border-border pt-6 pb-2 transition-colors duration-[var(--duration-fast)] hover:border-foreground";
-export const marketingListCard = "border-b border-border py-4";
+export const marketingFeatureCard = "bc-card p-6 sm:p-8";
+export const marketingCapabilityCard = "bc-card flex h-full flex-col p-6 sm:p-7";
+export const marketingListCard = "bc-surface p-4";
 /** Subscription / plan cards — taller padding, equal-height flex column. */
-export const marketingPricingCard = "flex min-w-0 flex-col border-t border-border pt-6 sm:pt-7 md:pr-6";
-export const marketingPricingCardFeatured =
-  "flex min-w-0 flex-col border-t-2 border-[var(--color-sodium-yellow)] pt-6 sm:pt-7 md:pr-6";
-/** The accented counterpart of marketingFeatureCard: same layout, yellow top rule. */
-export const marketingFeatureCardAccent = "border-t-2 border-[var(--color-sodium-yellow)] pt-6 sm:pt-8";
+export const marketingPricingCard = "bc-card flex min-w-0 flex-col p-6 sm:p-7";
+export const marketingPricingCardFeatured = `${marketingPricingCard} bc-card-featured`;

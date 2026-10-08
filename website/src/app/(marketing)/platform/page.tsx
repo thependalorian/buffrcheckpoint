@@ -111,7 +111,7 @@ export default function PlatformPage() {
           <p className="mt-4 max-w-3xl text-muted-foreground">{MARKETING_PAGES.platform.rbacLead1}</p>
           <p className="mt-4 max-w-3xl text-muted-foreground">{MARKETING_PAGES.platform.rbacLead2}</p>
 
-          <div className="mt-10 -mx-4 overflow-x-auto border-y border-border bg-card px-4 sm:mx-0 sm:px-0">
+          <div className="mt-10 -mx-4 overflow-x-auto rounded-none border-y border-border bg-card px-4 sm:mx-0 sm:rounded-2xl sm:border sm:px-0">
             <table className="w-full min-w-[36rem] text-left text-sm">
               <thead className="border-b border-border">
                 <tr>
@@ -140,9 +140,9 @@ export default function PlatformPage() {
         <div className={marketingNarrowSection}>
           <h2 className={marketingSectionTitle}>Frequently asked</h2>
 
-          <div className="mt-10 divide-y divide-border border-y border-border">
+          <div className="mt-10 divide-y divide-border bc-surface">
             {PLATFORM_FAQS.map((item) => (
-              <details key={item.q} className="group py-4">
+              <details key={item.q} className="group px-6 py-4">
                 <summary className="flex cursor-pointer list-none items-start justify-between gap-4">
                   <span className="min-w-0 flex-1 font-medium text-foreground">{item.q}</span>
                   <span aria-hidden className="text-muted-foreground transition-transform group-open:rotate-45">
