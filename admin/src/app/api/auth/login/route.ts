@@ -16,7 +16,12 @@ export async function POST(request: Request) {
 
   const backendResponse = await fetch(backendUrl("/auth/login"), {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(request.headers.get("x-turnstile-token")
+        ? { "x-turnstile-token": request.headers.get("x-turnstile-token") as string }
+        : {}),
+    },
     body: JSON.stringify({ email: body.email, password: body.password }),
   });
 

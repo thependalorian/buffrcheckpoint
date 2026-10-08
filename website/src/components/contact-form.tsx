@@ -2,6 +2,7 @@
 
 import { type FormEvent, useState } from "react";
 
+import { TurnstileWidget, turnstileEnabled } from "@/components/turnstile-widget";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,6 +17,8 @@ export function ContactForm() {
   const [topic, setTopic] = useState<string>(CONTACT_EMAIL_TOPICS[1].subject);
   const [message, setMessage] = useState<string>(CONTACT_EMAIL_TOPICS[1].prompt);
   const [state, setState] = useState<State>({ kind: "idle" });
+  const [token, setToken] = useState<string | null>(null);
+  const [resetSignal, setResetSignal] = useState(0);
 
   function chooseTopic(subject: string) {
     const previous = CONTACT_EMAIL_TOPICS.find((t) => t.subject === topic);
@@ -29,10 +32,11 @@ export function ContactForm() {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     setState({ kind: "sending" });
+    setResetSignal((n) => n + 1);
     try {
       const response = await fetch(`${apiBaseUrl()}/public/contact`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...(token ? { "x-turnstile-token": token } : {}) },
         body: JSON.stringify({
           name: String(form.get("name") ?? ""),
           email: String(form.get("email") ?? ""),
@@ -107,7 +111,8 @@ export function ContactForm() {
         <label htmlFor="website">Website</label>
         <input id="website" name="website" tabIndex={-1} autoComplete="off" />
       </div>
-      <Button type="submit" disabled={state.kind === "sending"}>
+      <TurnstileWidget onToken={setToken} resetSignal={resetSignal} />
+      <Button type="submit" disabled={state.kind === "sending" || (turnstileEnabled && !token)}>
         {state.kind === "sending" ? CONTACT_FORM.sending : CONTACT_FORM.submit}
       </Button>
       {state.kind === "error" ? (

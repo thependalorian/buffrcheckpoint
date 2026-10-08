@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import Link from "next/link";
 
+import { TurnstileWidget, turnstileEnabled } from "@/components/turnstile-widget";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,6 +16,8 @@ export function ForgotPasswordForm() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [turnstileReset, setTurnstileReset] = useState(0);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -24,7 +27,10 @@ export function ForgotPasswordForm() {
     try {
       const response = await fetch("/api/auth/password-reset/request", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(turnstileToken ? { "x-turnstile-token": turnstileToken } : {}),
+        },
         body: JSON.stringify({ email }),
       });
       const result = await response.json();
@@ -37,6 +43,7 @@ export function ForgotPasswordForm() {
       setMessage(authCopy.forgotPassword.sent);
     } finally {
       setSubmitting(false);
+      setTurnstileReset((n) => n + 1);
     }
   }
 
@@ -47,9 +54,10 @@ export function ForgotPasswordForm() {
         <Label htmlFor="email">Email</Label>
         <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
       </div>
+      <TurnstileWidget onToken={setTurnstileToken} resetSignal={turnstileReset} />
       {error ? <p className="text-destructive text-sm">{error}</p> : null}
       {message ? <p className="text-sm text-green-700 dark:text-green-400">{message}</p> : null}
-      <Button type="submit" disabled={submitting}>
+      <Button type="submit" disabled={submitting || (turnstileEnabled && !turnstileToken)}>
         {submitting ? authCopy.forgotPassword.submitting : authCopy.forgotPassword.submit}
       </Button>
       <Link

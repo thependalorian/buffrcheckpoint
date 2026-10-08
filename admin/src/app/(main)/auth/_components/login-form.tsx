@@ -7,13 +7,14 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 import { Lock, Mail } from "lucide-react";
 
+import { TurnstileWidget, turnstileEnabled } from "@/components/turnstile-widget";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { authCopy } from "@/lib/copy/auth";
-import { AnalyticsEvents, track } from "@/lib/observability/track";
 import { safeNextPath } from "@/lib/auth/safe-next-path";
 import { useBuffrIdConfig } from "@/lib/auth/use-buffr-id-config";
+import { authCopy } from "@/lib/copy/auth";
+import { AnalyticsEvents, track } from "@/lib/observability/track";
 
 export function LoginForm() {
   const router = useRouter();
@@ -22,6 +23,8 @@ export function LoginForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [turnstileReset, setTurnstileReset] = useState(0);
   const buffrId = useBuffrIdConfig();
   const next = searchParams.get("next");
   const startHref = `/api/auth/buffr-id/start?intent=signin${next ? `&next=${encodeURIComponent(next)}` : ""}`;
@@ -36,7 +39,10 @@ export function LoginForm() {
     try {
       const response = await fetch("/api/auth/login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(turnstileToken ? { "x-turnstile-token": turnstileToken } : {}),
+        },
         body: JSON.stringify({ email, password }),
       });
       const result = await response.json();
@@ -70,12 +76,15 @@ export function LoginForm() {
       router.refresh();
     } finally {
       setSubmitting(false);
+      setTurnstileReset((n) => n + 1);
     }
   }
 
   const buffrIdButton = buffrId.enabled ? (
     <div className="flex flex-col gap-3">
-      {urlError && authCopy.buffrId.errors[urlError] ? <p className="text-destructive text-sm">{authCopy.buffrId.errors[urlError]}</p> : null}
+      {urlError && authCopy.buffrId.errors[urlError] ? (
+        <p className="text-destructive text-sm">{authCopy.buffrId.errors[urlError]}</p>
+      ) : null}
       <Button asChild className="w-full">
         <a href={startHref}>{authCopy.buffrId.continue}</a>
       </Button>
@@ -132,8 +141,9 @@ export function LoginForm() {
           />
         </div>
       </div>
+      <TurnstileWidget onToken={setTurnstileToken} resetSignal={turnstileReset} />
       {error ? <p className="text-destructive text-sm">{error}</p> : null}
-      <Button type="submit" disabled={submitting} className="w-full">
+      <Button type="submit" disabled={submitting || (turnstileEnabled && !turnstileToken)} className="w-full">
         {submitting ? authCopy.login.submitting : authCopy.login.submit}
       </Button>
       <p className="text-center text-sm">

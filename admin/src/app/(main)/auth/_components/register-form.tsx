@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 
 import { Building2, Lock, Mail } from "lucide-react";
 
+import { TurnstileWidget, turnstileEnabled } from "@/components/turnstile-widget";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -35,6 +36,8 @@ export function RegisterForm() {
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [turnstileReset, setTurnstileReset] = useState(0);
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -53,7 +56,10 @@ export function RegisterForm() {
     try {
       const response = await fetch("/api/auth/register", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(turnstileToken ? { "x-turnstile-token": turnstileToken } : {}),
+        },
         body: JSON.stringify({ organisationName, sectorCode, email, password, website, acceptTerms }),
       });
       const result = await response.json();
@@ -68,6 +74,7 @@ export function RegisterForm() {
       router.refresh();
     } finally {
       setSubmitting(false);
+      setTurnstileReset((n) => n + 1);
     }
   }
 
@@ -183,8 +190,9 @@ export function RegisterForm() {
       {urlError && authCopy.buffrId.errors[urlError] ? (
         <p className="text-destructive text-sm">{authCopy.buffrId.errors[urlError]}</p>
       ) : null}
+      <TurnstileWidget onToken={setTurnstileToken} resetSignal={turnstileReset} />
       {error ? <p className="text-destructive text-sm">{error}</p> : null}
-      <Button type="submit" disabled={submitting} className="w-full">
+      <Button type="submit" disabled={submitting || (turnstileEnabled && !turnstileToken)} className="w-full">
         {buffrId.enabled
           ? authCopy.buffrId.registerContinue
           : submitting

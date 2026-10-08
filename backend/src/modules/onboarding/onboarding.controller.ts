@@ -6,6 +6,7 @@ import { AuditLog } from "../../common/decorators/audit-log.decorator";
 import { AuthenticatedOnly } from "../../common/decorators/authenticated-only.decorator";
 import { type AuthenticatedUser, CurrentUser } from "../../common/decorators/current-user.decorator";
 import { Public } from "../../common/decorators/public.decorator";
+import { RequireTurnstile } from "../../common/turnstile/turnstile.guard";
 import { RequirePermission } from "../../common/decorators/require-permission.decorator";
 import { RequireVerifiedEmail } from "../../common/decorators/require-verified-email.decorator";
 import { PERMISSIONS } from "../../common/rbac/permissions";
@@ -40,6 +41,7 @@ export class OnboardingController {
   // organisation + admin account) per call, so it's rate-limited harder
   // than login/password-reset (5 per 15 minutes per IP).
   @Public()
+  @RequireTurnstile()
   @Throttle({ default: { ttl: 900_000, limit: 5 } })
   @HttpCode(HttpStatus.CREATED)
   @Post("organisation-admin")

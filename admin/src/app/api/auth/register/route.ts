@@ -22,7 +22,12 @@ export async function POST(request: Request) {
 
   const response = await fetch(backendUrl("/onboarding/organisation-admin"), {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...(request.headers.get("x-turnstile-token")
+        ? { "x-turnstile-token": request.headers.get("x-turnstile-token") as string }
+        : {}),
+    },
     body: JSON.stringify({
       organisationName: body.organisationName,
       sectorCode: body.sectorCode,

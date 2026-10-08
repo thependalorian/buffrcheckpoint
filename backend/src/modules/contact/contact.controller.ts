@@ -3,6 +3,7 @@ import { Throttle } from "@nestjs/throttler";
 import { IsEmail, IsOptional, IsString, MaxLength, MinLength } from "class-validator";
 
 import { Public } from "../../common/decorators/public.decorator";
+import { RequireTurnstile } from "../../common/turnstile/turnstile.guard";
 import { ContactService } from "./contact.service";
 
 class PublicContactDto {
@@ -35,6 +36,7 @@ export class ContactController {
   constructor(private readonly contactService: ContactService) {}
 
   @Public()
+  @RequireTurnstile()
   @Throttle({ default: { ttl: 300_000, limit: 5 } })
   @HttpCode(HttpStatus.OK)
   @Post()

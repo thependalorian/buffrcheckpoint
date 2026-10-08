@@ -16,6 +16,7 @@ export const POLICY_SUBPROCESSORS: readonly PolicySubprocessor[] = [
   { name: "BulkSMS Namibia", purpose: "Text messages, only for organisations that switch them on", region: "Not confirmed", visitorPersonalData: true },
   { name: "Adumo Online", purpose: "Card payment page for subscription invoices; no visitor data", region: "Not confirmed", visitorPersonalData: false },
   { name: "Sentry", purpose: "Error reports, scrubbed of personal data", region: "Not confirmed", visitorPersonalData: false },
+  { name: "Cloudflare", purpose: "Bot check (Turnstile) on sign-up, sign-in, password reset and the contact form; no visitor data", region: "Global edge network", visitorPersonalData: false },
   { name: "PostHog", purpose: "Product analytics after consent; codes and counts only", region: "United States", visitorPersonalData: false },
 ];
 

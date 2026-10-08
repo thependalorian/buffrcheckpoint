@@ -6,6 +6,7 @@ import { AuthenticatedOnly } from "../../common/decorators/authenticated-only.de
 import { type AuthenticatedUser, CurrentUser } from "../../common/decorators/current-user.decorator";
 import { NormaliseEmail } from "../../common/decorators/normalise-email.decorator";
 import { Public } from "../../common/decorators/public.decorator";
+import { RequireTurnstile } from "../../common/turnstile/turnstile.guard";
 import { RequirePermission } from "../../common/decorators/require-permission.decorator";
 import { RequireVerifiedEmail } from "../../common/decorators/require-verified-email.decorator";
 import { PERMISSIONS } from "../../common/rbac/permissions";
@@ -100,6 +101,7 @@ export class AuthController {
   }
 
   @Public()
+  @RequireTurnstile()
   @Throttle(AUTH_THROTTLE)
   @HttpCode(HttpStatus.OK)
   @Post("login")
@@ -163,6 +165,7 @@ export class AuthController {
   }
 
   @Public()
+  @RequireTurnstile()
   @Throttle(AUTH_THROTTLE)
   @HttpCode(HttpStatus.OK)
   @Post("password-reset/request")

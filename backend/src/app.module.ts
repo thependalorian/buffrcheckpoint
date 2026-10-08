@@ -2,6 +2,8 @@ import { Module } from "@nestjs/common";
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
 import { EventEmitterModule } from "@nestjs/event-emitter";
 import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
+
+import { TurnstileModule } from "./common/turnstile/turnstile.module";
 import { SentryGlobalFilter, SentryModule } from "@sentry/nestjs/setup";
 
 import { AppController } from "./app.controller";
@@ -83,6 +85,7 @@ import { VisitsModule } from "./modules/visits/visits.module";
     // never a different error shape for "this email doesn't exist" vs
     // "this email exists," which is what would leak enumeration.
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }]),
+    TurnstileModule,
     // In-process domain events (e.g. visit.checked_in) so modules react to
     // each other without directly importing/calling one another's services.
     EventEmitterModule.forRoot(),
