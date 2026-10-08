@@ -2,6 +2,7 @@ import { Type } from "class-transformer";
 import {
   ArrayMaxSize,
   IsArray,
+  IsBoolean,
   IsIn,
   IsNumber,
   IsObject,
@@ -20,6 +21,20 @@ export class KybMemberDto {
   @IsString()
   @MaxLength(200)
   fullName!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  role?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isJuristic?: boolean;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  registrationNumber?: string;
 
   @IsOptional()
   @IsString()
@@ -63,6 +78,31 @@ export class SubmitKybDto {
   @IsString()
   @MaxLength(100)
   financialYearEnd?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(400)
+  postalAddress?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  contactEmail?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  contactPhone?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(30)
+  tin?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(10)
+  incorporatedOn?: string;
 
   @IsOptional()
   @IsArray()

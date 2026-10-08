@@ -28,11 +28,17 @@ describe("registration numbers", () => {
     expect(inferEntityType("hello")).toBeNull();
   });
 
-  it("rejects an unknown format, a future year and a type mismatch", () => {
-    expect(validateRegistrationNumber("banana", "close_corporation", NOW)[0]?.code).toBe("registrationFormat");
-    expect(validateRegistrationNumber("CC/2031/00001", "close_corporation", NOW)[0]?.code).toBe("registrationYear");
-    expect(validateRegistrationNumber("2013/0456", "close_corporation", NOW)[0]?.code).toBe("registrationEntityMismatch");
+  it("warns, never refuses, an unusual but plausible number: no specification is published, so a strict pattern would turn real businesses away", () => {
+    expect(validateRegistrationNumber("CC/2006/0278", "close_corporation", NOW)).toEqual([]);
+    expect(validateRegistrationNumber("CC/94/1234", "close_corporation", NOW)[0]).toMatchObject({ code: "registrationFormat", severity: "warning" });
+    expect(validateRegistrationNumber("CC/2031/00001", "close_corporation", NOW)[0]).toMatchObject({ code: "registrationYear", severity: "warning" });
+    expect(validateRegistrationNumber("2013/0456", "close_corporation", NOW)[0]).toMatchObject({ code: "registrationEntityMismatch", severity: "warning" });
     expect(validateRegistrationNumber("CC/2024/09322", "close_corporation", NOW)).toEqual([]);
+  });
+
+  it("refuses only what cannot be a registration number at all", () => {
+    expect(validateRegistrationNumber("", "close_corporation", NOW)[0]).toMatchObject({ code: "registrationRequired", severity: "error" });
+    expect(validateRegistrationNumber("<script>alert(1)</script>", "close_corporation", NOW)[0]).toMatchObject({ code: "registrationFormat", severity: "error" });
   });
 
   it("accepts a plausible token for bodies that register differently", () => {
@@ -58,17 +64,39 @@ describe("addresses and names", () => {
       },
       NOW,
     );
-    expect(issues).toEqual([expect.objectContaining({ field: "registeredBusinessName", severity: "warning" })]);
+    expect(issues.filter((i) => i.field === "registeredBusinessName")).toEqual([expect.objectContaining({ severity: "warning" })]);
   });
 });
 
 describe("identity numbers", () => {
-  it("accepts 11 digits with a real date and derives the date of birth", () => {
-    expect(validateNamibianId("91012400457", "id", NOW)).toEqual({ issues: [], dateOfBirth: "1991-01-24" });
+  it("checks length and digits only, and never derives a date of birth (the structure is not published)", () => {
+    expect(validateNamibianId("91012400457", "id")).toEqual({ issues: [] });
+    expect(validateNamibianId("91 0124 00457", "id")).toEqual({ issues: [] });
+    expect(validateNamibianId("91023100457", "id")).toEqual({ issues: [] });
+    expect(validateNamibianId("1234", "id").issues[0]?.code).toBe("idLength");
+    expect(validateNamibianId("9101240045A", "id").issues[0]?.code).toBe("idLength");
   });
-  it("rejects wrong length and impossible dates", () => {
-    expect(validateNamibianId("1234", "id", NOW).issues[0]?.code).toBe("idLength");
-    expect(validateNamibianId("91023100457", "id", NOW).issues[0]?.code).toBe("idDate");
+});
+
+describe("people behind the business", () => {
+  it("needs a registration number for a juristic member and a known role", () => {
+    const issues = validateMembers([{ fullName: "Sample Holdings CC", isJuristic: true, percentage: 100, role: "member" }, { fullName: "Anna Example", role: "wizard" }], "close_corporation");
+    expect(issues.map((i) => i.code).sort()).toEqual(["juristicNeedsRegistration", "roleUnknown"]);
+  });
+  it("asks for the people when a registered entity gives none, but not for a sole proprietor", () => {
+    expect(validateMembers([], "close_corporation")[0]).toMatchObject({ code: "peopleMissing", severity: "warning" });
+    expect(validateMembers([], "sole_proprietor")).toEqual([]);
+  });
+  it("totals shares over members and shareholders only, not directors", () => {
+    const issues = validateMembers([{ fullName: "Anna Example", role: "member", percentage: 100 }, { fullName: "Ben Example", role: "director" }], "close_corporation");
+    expect(issues).toEqual([]);
+  });
+});
+
+describe("contact, tax number and date", () => {
+  it("accepts blanks and sensible values, refuses the rest", () => {
+    expect(validateKybFields({ entityType: "other", businessRegistrationNumber: "NPO-77", registeredBusinessName: "Sample Trust", registeredAddress: "Sample Street 12, Example Park, Windhoek", authorizedSignatoryName: "Anna Example", contactEmail: "bad", contactPhone: "12", tin: "!!", incorporatedOn: "2031-01-01" }, NOW).map((i) => i.field).sort()).toEqual(["contactEmail", "contactPhone", "incorporatedOn", "tin"]);
+    expect(validateKybFields({ entityType: "other", businessRegistrationNumber: "NPO-77", registeredBusinessName: "Sample Trust", registeredAddress: "Sample Street 12, Example Park, Windhoek", authorizedSignatoryName: "Anna Example", contactEmail: "a@b.example", contactPhone: "+264 61 123 4567", tin: "1234567", incorporatedOn: "2020-05-17" }, NOW)).toEqual([]);
   });
 });
 

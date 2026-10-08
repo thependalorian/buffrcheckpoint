@@ -129,3 +129,29 @@ Percentage of interest 100%
     expect(parseRegistrationText(noisy).members[0]?.fullName).toBe("ANNA MARIA EXAMPLE");
   });
 });
+
+describe("parseRegistrationText with two readings", () => {
+  const first = `CLOSE CORPORATIONS ACT, 1988
+Amended Founding Statement
+REGISTRATION NUMBER OF CORPORATION
+CC/2006/0278
+Full name of corporation SAMPLE HOLDINGS TWO CC
+REGISTRATION NUMBER CC/2006/0278
+`;
+  it("never lets the digit repair override an explicit four-digit number, even when the second reading drops the slashes", () => {
+    const out = parseRegistrationText(first, "REGISTRATIONNUMBER 20060278\nCC/2006/0278\nREGISTRATIONNUMBER CC20060278");
+    expect(out.registrationNumber?.value).toBe("CC/2006/0278");
+  });
+  it("repairs from the second reading when the first has nothing usable", () => {
+    const out = parseRegistrationText("Founding Statement\nCLOSE CORPORATIONS ACT, 1988\nREGISTRATION NUMBER OF CORPORATION\n\n2409322", "REGISTRATIONNUMBER 202409322");
+    expect(out.registrationNumber?.value).toBe("CC/2024/09322");
+  });
+  it("takes the email and an 11-digit identity number from the second reading, and ignores a number with a digit missing", () => {
+    const text = `Full names and surname ANNA MARIA EXAMPLE\nPercentage of interest 100%\nEmail address: OWNER@SAMPLE.EXAMPLE`;
+    const good = parseRegistrationText(text, "Identitynumberordateofbirth 9 1 0 1 2 4 0 0 4 5 7\nEmail address: owner@sample.example");
+    expect(good.members[0]?.identityNumber).toBe("91012400457");
+    expect(good.contactEmail).toEqual({ value: "owner@sample.example", confidence: "medium" });
+    const short = parseRegistrationText(text, "Identitynumberordateofbirth 9 1 0 2 4 0 0 4 5 7");
+    expect(short.members[0]?.identityNumber).toBeUndefined();
+  });
+});

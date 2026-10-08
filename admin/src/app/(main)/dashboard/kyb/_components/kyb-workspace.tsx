@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { checkUpload, fieldLabels, kybCopy, sourceBadge, statusText } from "@/lib/copy/kyb";
 
 import {
+  type KybChecklistItem,
   type KybDocumentView,
   type KybIssue,
   type KybMemberValue,
@@ -26,6 +27,11 @@ import {
 } from "../actions";
 
 export interface KybSubmissionView {
+  postalAddress?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  tin?: string;
+  incorporatedOn?: string;
   id: string;
   status: string;
   statusLabel: string;
@@ -64,11 +70,23 @@ const EMPTY: KybValues = {
   authorizedSignatoryName: "",
   principalBusiness: "",
   financialYearEnd: "",
+  postalAddress: "",
+  contactEmail: "",
+  contactPhone: "",
+  tin: "",
+  incorporatedOn: "",
   members: [],
 };
 
 const POLL_MS = 3000;
 const POLL_LIMIT = 50;
+
+/** Which uploaded document types satisfy a checklist item (the server decides what is required; this only ticks it off). */
+function itemMatches(code: string, documentType: string): boolean {
+  if (code === "registration_proof")
+    return ["founding_statement", "registration_certificate", "amended_founding_statement"].includes(documentType);
+  return code === documentType;
+}
 
 function initialValues(submission: KybSubmissionView | null): KybValues {
   if (!submission) return EMPTY;
@@ -80,6 +98,11 @@ function initialValues(submission: KybSubmissionView | null): KybValues {
     authorizedSignatoryName: submission.authorizedSignatoryName,
     principalBusiness: submission.principalBusiness ?? "",
     financialYearEnd: submission.financialYearEnd ?? "",
+    postalAddress: submission.postalAddress ?? "",
+    contactEmail: submission.contactEmail ?? "",
+    contactPhone: submission.contactPhone ?? "",
+    tin: submission.tin ?? "",
+    incorporatedOn: submission.incorporatedOn ?? "",
     members: submission.members ?? [],
   };
 }
@@ -126,14 +149,18 @@ export function KybWorkspace({
   submission,
   initialDocuments,
   request,
+  checklist,
   entityTypes,
   documentTypes,
+  partyRoles,
 }: {
   submission: KybSubmissionView | null;
   initialDocuments: KybDocumentView[];
   request: KybRequestView | null;
+  checklist: KybChecklistItem[];
   entityTypes: Option[];
   documentTypes: Option[];
+  partyRoles: Option[];
 }) {
   const router = useRouter();
   const verified = submission?.status === "verified";
@@ -181,8 +208,15 @@ export function KybWorkspace({
       if (overwrite || empty("principalBusiness")) take("principalBusiness", s.principalBusiness);
       if (overwrite || empty("financialYearEnd")) take("financialYearEnd", s.financialYearEnd);
       if (overwrite || empty("entityType")) take("entityType", s.entityType);
+      if (overwrite || empty("postalAddress")) take("postalAddress", s.postalAddress);
+      if (overwrite || empty("contactEmail")) take("contactEmail", s.contactEmail);
       if ((overwrite || empty("members")) && doc.members.length > 0) {
-        next.members = doc.members.map((m) => ({ fullName: m.fullName, percentage: m.percentage ?? undefined }));
+        next.members = doc.members.map((m) => ({
+          fullName: m.fullName,
+          role: "member",
+          percentage: m.percentage ?? undefined,
+          identityNumber: m.identityNumber,
+        }));
         nextSources.members = "document";
       }
       if ((overwrite || empty("authorizedSignatoryName")) && doc.members[0]) {
@@ -403,6 +437,30 @@ export function KybWorkspace({
         {uploadError ? <p className="text-destructive text-sm">{uploadError}</p> : null}
       </section>
 
+      {checklist.length > 0 ? (
+        <section className="space-y-2">
+          <h2 className="font-semibold text-base">{kybCopy.checklist.heading}</h2>
+          <p className="text-muted-foreground text-sm">{kybCopy.checklist.help}</p>
+          <ul className="space-y-1.5">
+            {checklist.map((item) => {
+              const have = documents.some((d) => itemMatches(item.code, d.documentType) && d.status !== "rejected");
+              return (
+                <li key={item.code} className="flex flex-wrap items-center gap-2 text-sm">
+                  <Badge variant={have ? "default" : item.blocking ? "destructive" : "secondary"}>
+                    {have
+                      ? kybCopy.checklist.done
+                      : item.blocking
+                        ? kybCopy.checklist.required
+                        : kybCopy.checklist.asked}
+                  </Badge>
+                  <span>{item.label}</span>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      ) : null}
+
       {editing ? (
         <>
           <section className="max-w-2xl space-y-4">
@@ -465,47 +523,130 @@ export function KybWorkspace({
                 onChange={(e) => setField("financialYearEnd", e.target.value)}
               />
             </Field>
+            <Field {...meta("postalAddress", kybCopy.details.postalAddress)}>
+              <Input
+                id="postalAddress"
+                value={values.postalAddress ?? ""}
+                onChange={(e) => setField("postalAddress", e.target.value)}
+              />
+            </Field>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field {...meta("contactEmail", kybCopy.details.contactEmail)}>
+                <Input
+                  id="contactEmail"
+                  type="email"
+                  value={values.contactEmail ?? ""}
+                  onChange={(e) => setField("contactEmail", e.target.value)}
+                />
+              </Field>
+              <Field {...meta("contactPhone", kybCopy.details.contactPhone)}>
+                <Input
+                  id="contactPhone"
+                  inputMode="tel"
+                  value={values.contactPhone ?? ""}
+                  onChange={(e) => setField("contactPhone", e.target.value)}
+                />
+              </Field>
+              <Field {...meta("tin", kybCopy.details.tin)}>
+                <Input id="tin" value={values.tin ?? ""} onChange={(e) => setField("tin", e.target.value)} />
+              </Field>
+              <Field {...meta("incorporatedOn", kybCopy.details.incorporatedOn, kybCopy.details.incorporatedOnHelp)}>
+                <Input
+                  id="incorporatedOn"
+                  placeholder="2024-10-28"
+                  value={values.incorporatedOn ?? ""}
+                  onChange={(e) => setField("incorporatedOn", e.target.value)}
+                />
+              </Field>
+            </div>
             <Field {...meta("members", kybCopy.details.members, kybCopy.details.membersHelp)}>
               <div className="space-y-2">
                 {members.map((m, i) => (
                   // biome-ignore lint/suspicious/noArrayIndexKey: members have no id until submitted
-                  <div key={i} className="grid gap-2 sm:grid-cols-[2fr_1fr_1.4fr_auto]">
-                    <Input
-                      aria-label={kybCopy.details.memberName}
-                      placeholder={kybCopy.details.memberName}
-                      value={m.fullName}
-                      onChange={(e) => updateMember(i, { fullName: e.target.value })}
-                    />
-                    <Input
-                      aria-label={kybCopy.details.memberPercentage}
-                      placeholder={kybCopy.details.memberPercentage}
-                      inputMode="decimal"
-                      value={m.percentage ?? ""}
-                      onChange={(e) =>
-                        updateMember(i, { percentage: e.target.value === "" ? undefined : Number(e.target.value) })
-                      }
-                    />
-                    <Input
-                      aria-label={kybCopy.details.memberId}
-                      placeholder={kybCopy.details.memberId}
-                      value={m.identityNumber ?? ""}
-                      onChange={(e) => updateMember(i, { identityNumber: e.target.value })}
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setValues((v) => ({ ...v, members: (v.members ?? []).filter((_, k) => k !== i) }))}
-                    >
-                      {kybCopy.details.removeMember}
-                    </Button>
+                  <div key={i} className="space-y-2 rounded-md border border-border p-2">
+                    <div className="grid gap-2 sm:grid-cols-[2fr_1.2fr_0.8fr_auto]">
+                      <Input
+                        aria-label={kybCopy.details.memberName}
+                        placeholder={kybCopy.details.memberName}
+                        value={m.fullName}
+                        onChange={(e) => updateMember(i, { fullName: e.target.value })}
+                      />
+                      <NativeSelect
+                        aria-label={kybCopy.details.memberRole}
+                        className="w-full"
+                        value={m.role ?? "member"}
+                        onChange={(e) => updateMember(i, { role: e.target.value })}
+                      >
+                        {partyRoles.map((r) => (
+                          <option key={r.code} value={r.code}>
+                            {r.label}
+                          </option>
+                        ))}
+                      </NativeSelect>
+                      <Input
+                        aria-label={kybCopy.details.memberPercentage}
+                        placeholder={kybCopy.details.memberPercentage}
+                        inputMode="decimal"
+                        value={m.percentage ?? ""}
+                        onChange={(e) =>
+                          updateMember(i, { percentage: e.target.value === "" ? undefined : Number(e.target.value) })
+                        }
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() =>
+                          setValues((v) => ({ ...v, members: (v.members ?? []).filter((_, k) => k !== i) }))
+                        }
+                      >
+                        {kybCopy.details.removeMember}
+                      </Button>
+                    </div>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {m.isJuristic ? (
+                        <Input
+                          aria-label={kybCopy.details.memberRegistration}
+                          placeholder={kybCopy.details.memberRegistration}
+                          value={m.registrationNumber ?? ""}
+                          onChange={(e) => updateMember(i, { registrationNumber: e.target.value })}
+                        />
+                      ) : (
+                        <Input
+                          aria-label={kybCopy.details.memberId}
+                          placeholder={kybCopy.details.memberId}
+                          value={m.identityNumber ?? ""}
+                          onChange={(e) => updateMember(i, { identityNumber: e.target.value })}
+                        />
+                      )}
+                      <label className="flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={Boolean(m.isJuristic)}
+                          onChange={(e) => updateMember(i, { isJuristic: e.target.checked })}
+                        />
+                        {kybCopy.details.memberJuristic}
+                      </label>
+                    </div>
+                    {issueFor(`members.${i}`).map((issue) => (
+                      <p
+                        key={`${issue.code}-${issue.field}`}
+                        className={
+                          issue.severity === "error" ? "text-destructive text-xs" : "text-sodium-yellow-ink text-xs"
+                        }
+                      >
+                        {issue.message}
+                      </p>
+                    ))}
                   </div>
                 ))}
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => setValues((v) => ({ ...v, members: [...(v.members ?? []), { fullName: "" }] }))}
+                  onClick={() =>
+                    setValues((v) => ({ ...v, members: [...(v.members ?? []), { fullName: "", role: "member" }] }))
+                  }
                 >
                   {kybCopy.details.addMember}
                 </Button>

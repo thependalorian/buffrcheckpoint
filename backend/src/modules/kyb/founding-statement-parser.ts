@@ -13,12 +13,15 @@ export interface ExtractedValue {
 export interface ExtractedMember {
   fullName: string;
   percentage: number | null;
+  /** Read from a second engine that is better at digits; low confidence, a person confirms it. */
+  identityNumber?: string;
 }
 
 export interface ExtractedRegistration {
   registrationNumber?: ExtractedValue;
   businessName?: ExtractedValue;
   registeredAddress?: ExtractedValue;
+  postalAddress?: ExtractedValue;
   principalBusiness?: ExtractedValue;
   financialYearEnd?: ExtractedValue;
   contactEmail?: ExtractedValue;
@@ -77,9 +80,9 @@ function registrationCandidates(text: string): string[] {
 function nearbyRegistrationNumbers(all: string[], now = new Date()): string[] {
   const found: string[] = [];
   for (let i = 0; i < all.length; i++) {
-    if (!/REGISTRATION\s+NUMBER/i.test(all[i])) continue;
+    if (!/REGISTRATION\s*NUMBER/i.test(all[i])) continue;
     for (let j = i; j <= Math.min(i + 3, all.length - 1); j++) {
-      const digits = all[j].replace(/REGISTRATION\s+NUMBER(\s+OF\s+CORPORATION)?/gi, "").replace(/[^0-9]/g, "");
+      const digits = all[j].replace(/REGISTRATION\s*NUMBER(\s*OF\s*CORPORATION)?/gi, "").replace(/[^0-9]/g, "");
       if (digits.length < 7 || digits.length > 10) continue;
       const sequence = digits.slice(-5);
       const head = digits.slice(0, -5);
@@ -92,18 +95,55 @@ function nearbyRegistrationNumbers(all: string[], now = new Date()): string[] {
   return found;
 }
 
-export function parseRegistrationText(text: string): ExtractedRegistration {
+/** Identity numbers written in the boxes of a members page: a line with the label and then exactly 11 digits. */
+function identityNumbersFrom(all: string[]): string[] {
+  const found: string[] = [];
+  for (const line of all) {
+    if (!/Identity\s*number/i.test(line)) continue;
+    const rest = line.replace(/Identity\s*number\s*or\s*date\s*of\s*birth\s*(?:\(i\))?/i, "").trim();
+    if (/^[\d\s]+$/.test(rest) && rest.replace(/\s/g, "").length === 11) found.push(rest.replace(/\s/g, ""));
+  }
+  return found;
+}
+
+/** A postal address is often printed above or below its label; find the "PO BOX" line next to it when the label has no text. */
+function postalAddressFrom(all: string[]): string | null {
+  for (let i = 0; i < all.length; i++) {
+    const m = all[i].match(/Postal\s+address\s*\*?/i);
+    if (!m) continue;
+    const same = all[i].slice((m.index ?? 0) + m[0].length).replace(LABEL_NOISE, "").trim();
+    if (same) return collapse(same);
+    for (let k = Math.max(0, i - 3); k <= Math.min(all.length - 1, i + 3); k++) {
+      if (/^\s*(P\.?\s?O\.?\s*BOX|PRIVATE\s+BAG)\b/i.test(all[k])) return collapse(all[k]);
+    }
+  }
+  return null;
+}
+
+/**
+ * `text` is the main reading (good word spacing). `precise`, when given, is a second reading that is better at digits and addresses
+ * written by hand but loses spaces between words: it is used only for the registration number, identity numbers and email.
+ */
+export function parseRegistrationText(text: string, precise?: string): ExtractedRegistration {
   const all = lines(text);
+  const preciseLines = precise ? lines(precise) : [];
   const upper = text.toUpperCase();
   const looksLikeFoundingStatement = /FOUNDING\s+STATEMENT/.test(upper) || /CLOSE\s+CORPORATIONS?\s+ACT/.test(upper);
   const result: ExtractedRegistration = { members: [], looksLikeFoundingStatement };
 
   // Registration number: the value that appears most often wins; a number seen on several pages is more likely right.
   const tally = new Map<string, number>();
+  // An explicit CC/yyyy/nnnn in either reading is trusted over any digit repair. Repair only runs when neither reading has one,
+  // because it assumes a five-digit sequence and would turn a four-digit one into a different, wrong number.
   const explicit = registrationCandidates(text);
-  for (const c of explicit.length > 0 ? explicit : nearbyRegistrationNumbers(all)) {
-    const n = normaliseRegistrationNumber(c);
-    tally.set(n, (tally.get(n) ?? 0) + 1);
+  const explicitPrecise = precise ? registrationCandidates(precise) : [];
+  if (explicit.length > 0 || explicitPrecise.length > 0) {
+    for (const c of explicit) tally.set(normaliseRegistrationNumber(c), (tally.get(normaliseRegistrationNumber(c)) ?? 0) + 1);
+    for (const c of explicitPrecise) tally.set(normaliseRegistrationNumber(c), (tally.get(normaliseRegistrationNumber(c)) ?? 0) + 2);
+  } else {
+    for (const c of nearbyRegistrationNumbers(all)) tally.set(normaliseRegistrationNumber(c), (tally.get(normaliseRegistrationNumber(c)) ?? 0) + 1);
+    // The second reading reads handwritten digits better, so its vote counts double.
+    for (const c of nearbyRegistrationNumbers(preciseLines)) tally.set(normaliseRegistrationNumber(c), (tally.get(normaliseRegistrationNumber(c)) ?? 0) + 2);
   }
   const best = [...tally.entries()].sort((a, b) => b[1] - a[1])[0];
   if (best) result.registrationNumber = { value: best[0], confidence: best[1] >= 2 ? "medium" : "low" };
@@ -127,8 +167,12 @@ export function parseRegistrationText(text: string): ExtractedRegistration {
   const yearEnd = valueAfter(all, /Date\s+of\s+end\s+of\s+financial\s+year/i);
   if (yearEnd) result.financialYearEnd = { value: yearEnd.toUpperCase(), confidence: "high" };
 
-  const email = text.match(/Email\s+address\s*:?\s*([^\s@]+@[^\s@]+\.[A-Za-z]{2,})/i);
-  if (email) result.contactEmail = { value: email[1].toLowerCase(), confidence: "low" };
+  const emailPattern = /Email\s*address\s*:?\s*([^\s@]+@[^\s@]+\.[A-Za-z]{2,})/i;
+  const email = (precise ? precise.match(emailPattern) : null) ?? text.match(emailPattern);
+  if (email) result.contactEmail = { value: email[1].toLowerCase(), confidence: precise && precise.match(emailPattern) ? "medium" : "low" };
+
+  const postal = postalAddressFrom(all);
+  if (postal) result.postalAddress = { value: postal.toUpperCase(), confidence: "medium" };
 
   // Members: the name after "Full names and surname" in the members part, with the percentage on the lines that follow it.
   const seen = new Set<string>();
@@ -150,6 +194,10 @@ export function parseRegistrationText(text: string): ExtractedRegistration {
     seen.add(memberName);
     result.members.push({ fullName: memberName, percentage });
   }
+  const ids = identityNumbersFrom(preciseLines);
+  result.members.forEach((member, index) => {
+    if (ids[index]) member.identityNumber = ids[index];
+  });
 
   return result;
 }
@@ -162,6 +210,8 @@ export function toSuggestions(extracted: ExtractedRegistration): Record<string, 
   if (extracted.registeredAddress) out.registeredAddress = extracted.registeredAddress;
   if (extracted.principalBusiness) out.principalBusiness = extracted.principalBusiness;
   if (extracted.financialYearEnd) out.financialYearEnd = extracted.financialYearEnd;
+  if (extracted.postalAddress) out.postalAddress = extracted.postalAddress;
+  if (extracted.contactEmail) out.contactEmail = extracted.contactEmail;
   if (extracted.entityType) out.entityType = extracted.entityType;
   return out;
 }

@@ -25,13 +25,24 @@ export interface KybDocumentView {
   uploadedAt: string;
   reading: "not_applicable" | "reading" | "read" | "not_read";
   suggestions: Record<string, { value: string; confidence: string }>;
-  members: Array<{ fullName: string; percentage: number | null }>;
+  members: Array<{ fullName: string; percentage: number | null; identityNumber?: string }>;
 }
 
 export interface KybMemberValue {
   fullName: string;
+  role?: string;
+  isJuristic?: boolean;
+  registrationNumber?: string;
   identityNumber?: string;
   percentage?: number;
+}
+
+export interface KybChecklistItem {
+  code: string;
+  label: string;
+  blocking: boolean;
+  satisfied: boolean;
+  reason: string;
 }
 
 export interface KybValues {
@@ -42,6 +53,11 @@ export interface KybValues {
   authorizedSignatoryName: string;
   principalBusiness?: string;
   financialYearEnd?: string;
+  postalAddress?: string;
+  contactEmail?: string;
+  contactPhone?: string;
+  tin?: string;
+  incorporatedOn?: string;
   members?: KybMemberValue[];
   fieldSources?: Record<string, string>;
 }

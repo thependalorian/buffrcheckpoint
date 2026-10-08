@@ -31,9 +31,9 @@ export const MIN_DOCUMENT_BYTES = 1024;
 const MESSAGES = {
   registrationRequired: "Enter the registration number.",
   registrationFormat:
-    "This does not look like a Namibian registration number. A close corporation looks like CC/2024/09322 and a company like 2013/0456.",
-  registrationYear: "The year in the registration number is not possible.",
-  registrationEntityMismatch: "The registration number format does not match the type of business you chose.",
+    "This is not a format we recognise. A close corporation is usually written CC/2024/09322 and a company 2013/0456. Check it against your registration document.",
+  registrationYear: "The year in the registration number looks wrong. Check it against your registration document.",
+  registrationEntityMismatch: "The registration number format does not usually match the type of business you chose. Check both.",
   nameRequired: "Enter the registered business name exactly as it appears on the registration document.",
   nameLength: "The business name must be between 2 and 200 characters.",
   nameSuffixCc: "A close corporation name normally ends with CC.",
@@ -45,7 +45,13 @@ const MESSAGES = {
   signatoryShape: "Enter the first name and surname, using letters only.",
   emailFormat: "This email address does not look right.",
   idLength: "A Namibian identity number has 11 digits.",
-  idDate: "The first six digits of the identity number are not a real date of birth.",
+  juristicNeedsRegistration: "A member that is a company or corporation needs its registration number.",
+  roleUnknown: "Choose the role this person has in the business.",
+  phoneShape: "This phone number does not look right. Use digits, with the country code if it is not a Namibian number.",
+  tinShape: "A tax number uses letters and digits only, between 5 and 20 characters.",
+  dateShape: "Enter the date as year-month-day, and not in the future.",
+  peopleMissing: "Add the people behind the business: the members of a close corporation, or the directors of a company.",
+  postalShort: "The postal address looks too short.",
   percentageRange: "A percentage must be between 0 and 100.",
   percentageTotal: "The members' percentages should add up to 100.",
   memberName: "Enter the member's full name.",
@@ -80,23 +86,26 @@ export function inferEntityType(registrationNumber: string): EntityType | null {
   return null;
 }
 
+/**
+ * No published specification of Namibian registration numbers was found (BIPA field dictionary), so a format that is unusual is a
+ * warning for a person to check, never a refusal: a strict pattern would turn away real businesses.
+ */
 export function validateRegistrationNumber(raw: string, entityType?: string | null, now = new Date()): FieldIssue[] {
   const value = collapse(raw ?? "");
   if (!value) return [err("businessRegistrationNumber", "registrationRequired")];
   const normalised = normaliseRegistrationNumber(value);
+  if (!/^[A-Z0-9/.-]{4,30}$/.test(normalised)) return [err("businessRegistrationNumber", "registrationFormat")];
   const inferred = inferEntityType(normalised);
   if (!inferred) {
-    // Government bodies, non-profits and sole proprietors register differently; accept a plausible token but ask for a look.
-    if (entityType && ["government_body", "non_profit", "sole_proprietor", "other"].includes(entityType) && /^[A-Z0-9/.-]{4,30}$/.test(normalised)) {
-      return [];
-    }
-    return [err("businessRegistrationNumber", "registrationFormat")];
+    // Government bodies, non-profits and sole proprietors register differently: a plausible token is fine.
+    const other = entityType && ["government_body", "non_profit", "sole_proprietor", "other"].includes(entityType);
+    return other ? [] : [warn("businessRegistrationNumber", "registrationFormat")];
   }
   const year = Number(normalised.match(/(\d{4})/)?.[1]);
-  if (year < 1900 || year > now.getUTCFullYear()) return [err("businessRegistrationNumber", "registrationYear")];
-  if (entityType === "close_corporation" && inferred !== "close_corporation") return [err("businessRegistrationNumber", "registrationEntityMismatch")];
+  if (year < 1900 || year > now.getUTCFullYear()) return [warn("businessRegistrationNumber", "registrationYear")];
+  if (entityType === "close_corporation" && inferred !== "close_corporation") return [warn("businessRegistrationNumber", "registrationEntityMismatch")];
   if ((entityType === "private_company" || entityType === "public_company") && inferred !== "private_company") {
-    return [err("businessRegistrationNumber", "registrationEntityMismatch")];
+    return [warn("businessRegistrationNumber", "registrationEntityMismatch")];
   }
   return [];
 }
@@ -135,40 +144,74 @@ export function validateEmail(raw: string, field: string): FieldIssue[] {
   return /^[^\s@]+@[^\s@]+\.[^\s@.]{2,}$/.test(value) ? [] : [err(field, "emailFormat")];
 }
 
-/** Namibian identity number: YYMMDD plus five digits. Returns the issues and the date of birth when it can be worked out. */
-export function validateNamibianId(raw: string, field = "identityNumber", now = new Date()): { issues: FieldIssue[]; dateOfBirth?: string } {
+/**
+ * Namibian identity number: 11 digits. Its internal structure is not published, so only the length and digits are checked and a birth
+ * date is never derived from it (BIPA field dictionary).
+ */
+export function validateNamibianId(raw: string, field = "identityNumber"): { issues: FieldIssue[] } {
   const digits = (raw ?? "").replace(/\s+/g, "");
-  if (!/^\d{11}$/.test(digits)) return { issues: [err(field, "idLength")] };
-  const yy = Number(digits.slice(0, 2));
-  const mm = Number(digits.slice(2, 4));
-  const dd = Number(digits.slice(4, 6));
-  const currentYy = now.getUTCFullYear() % 100;
-  const century = yy > currentYy ? 1900 : 2000;
-  const date = new Date(Date.UTC(century + yy, mm - 1, dd));
-  const valid = date.getUTCFullYear() === century + yy && date.getUTCMonth() === mm - 1 && date.getUTCDate() === dd && date <= now;
-  if (!valid) return { issues: [err(field, "idDate")] };
-  return { issues: [], dateOfBirth: date.toISOString().slice(0, 10) };
+  return /^\d{11}$/.test(digits) ? { issues: [] } : { issues: [err(field, "idLength")] };
 }
+
+export const PARTY_ROLES = ["member", "director", "shareholder", "secretary", "accounting_officer", "other"] as const;
 
 export interface MemberInput {
   fullName: string;
+  role?: string;
+  isJuristic?: boolean;
+  registrationNumber?: string;
   identityNumber?: string;
   percentage?: number | null;
 }
 
+/** Roles that hold an interest in the business. */
+const OWNERSHIP_ROLES = ["member", "shareholder"];
+
 export function validateMembers(members: MemberInput[] | undefined, entityType?: string | null): FieldIssue[] {
-  if (!members || members.length === 0) return [];
+  if (!members || members.length === 0) {
+    return entityType === "close_corporation" || entityType === "private_company" || entityType === "public_company"
+      ? [warn("members", "peopleMissing")]
+      : [];
+  }
   const issues: FieldIssue[] = [];
   members.forEach((m, i) => {
-    issues.push(...validatePersonName(m.fullName, `members.${i}.fullName`));
-    if (m.identityNumber) issues.push(...validateNamibianId(m.identityNumber, `members.${i}.identityNumber`).issues);
+    if (m.role && !(PARTY_ROLES as readonly string[]).includes(m.role)) issues.push(err(`members.${i}.role`, "roleUnknown"));
+    if (m.isJuristic) {
+      if (!collapse(m.fullName ?? "")) issues.push(err(`members.${i}.fullName`, "memberName"));
+      if (!collapse(m.registrationNumber ?? "")) issues.push(err(`members.${i}.registrationNumber`, "juristicNeedsRegistration"));
+    } else {
+      issues.push(...validatePersonName(m.fullName, `members.${i}.fullName`));
+      if (m.identityNumber) issues.push(...validateNamibianId(m.identityNumber, `members.${i}.identityNumber`).issues);
+    }
     if (m.percentage != null && (m.percentage < 0 || m.percentage > 100)) issues.push(err(`members.${i}.percentage`, "percentageRange"));
   });
-  if (entityType === "close_corporation" && members.every((m) => m.percentage != null)) {
-    const total = members.reduce((sum, m) => sum + (m.percentage ?? 0), 0);
+  const owners = members.filter((m) => !m.role || OWNERSHIP_ROLES.includes(m.role));
+  if (entityType === "close_corporation" && owners.length > 0 && owners.every((m) => m.percentage != null)) {
+    const total = owners.reduce((sum, m) => sum + (m.percentage ?? 0), 0);
     if (Math.abs(total - 100) > 0.01) issues.push(warn("members", "percentageTotal"));
   }
   return issues;
+}
+
+export function validatePhone(raw: string | null | undefined, field = "contactPhone"): FieldIssue[] {
+  const value = (raw ?? "").trim();
+  if (!value) return [];
+  const digits = value.replace(/[\s().-]/g, "").replace(/^\+/, "");
+  return /^\d{7,15}$/.test(digits) ? [] : [err(field, "phoneShape")];
+}
+
+export function validateTin(raw: string | null | undefined): FieldIssue[] {
+  const value = (raw ?? "").trim();
+  if (!value) return [];
+  return /^[A-Za-z0-9]{5,20}$/.test(value) ? [] : [err("tin", "tinShape")];
+}
+
+export function validateIncorporationDate(raw: string | null | undefined, now = new Date()): FieldIssue[] {
+  const value = (raw ?? "").trim();
+  if (!value) return [];
+  const date = new Date(`${value}T00:00:00Z`);
+  const ok = /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value && date <= now && date.getUTCFullYear() >= 1900;
+  return ok ? [] : [err("incorporatedOn", "dateShape")];
 }
 
 export interface KybFieldsInput {
@@ -178,6 +221,11 @@ export interface KybFieldsInput {
   registeredAddress: string;
   authorizedSignatoryName: string;
   financialYearEnd?: string | null;
+  postalAddress?: string | null;
+  contactEmail?: string | null;
+  contactPhone?: string | null;
+  tin?: string | null;
+  incorporatedOn?: string | null;
   members?: MemberInput[];
 }
 
@@ -189,6 +237,11 @@ export function validateKybFields(input: KybFieldsInput, now = new Date()): Fiel
   issues.push(...validateAddress(input.registeredAddress));
   issues.push(...validatePersonName(input.authorizedSignatoryName));
   if (input.financialYearEnd && collapse(input.financialYearEnd).length < 3) issues.push(warn("financialYearEnd", "yearEndShape"));
+  if (input.postalAddress && collapse(input.postalAddress).length < 6) issues.push(warn("postalAddress", "postalShort"));
+  issues.push(...validateEmail(input.contactEmail ?? "", "contactEmail"));
+  issues.push(...validatePhone(input.contactPhone));
+  issues.push(...validateTin(input.tin));
+  issues.push(...validateIncorporationDate(input.incorporatedOn, now));
   issues.push(...validateMembers(input.members, input.entityType));
   return issues;
 }

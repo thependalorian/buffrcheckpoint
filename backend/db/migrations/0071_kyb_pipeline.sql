@@ -2,6 +2,7 @@
 -- pre-filled from the founding statement where it can be read, and a "needs information" outcome that names the fields to correct.
 -- Additive and idempotent. The new tables follow the schema rules: type_definition for every list, a status log created with the
 -- stateful table, tenant column first in every index, soft delete, no triggers and no cascades.
+-- Columns follow the BIPA field dictionary (buffr-kyc/docs/BIPA_KYB_FIELD_DICTIONARY.md): postal address, contact, TIN, date incorporated.
 -- NOTE FOR THE OWNER: two new tables are proposals under buffrcheckpoint.md 14.1 rule 9 until signed off.
 
 BEGIN;
@@ -26,6 +27,15 @@ FROM (VALUES
   ('kyb_document_type', 'signatory_id', 'Authorised signatory identity document', 6),
   ('kyb_document_type', 'authority_letter', 'Letter or resolution of authority', 7),
   ('kyb_document_type', 'other', 'Other supporting document', 8),
+  ('kyb_document_type', 'beneficial_ownership_declaration', 'Beneficial ownership declaration (BO1)', 9),
+  ('kyb_document_type', 'directors_register', 'Register of directors (CM29)', 10),
+  ('kyb_document_type', 'certified_id_copy', 'Certified identity copy of an owner', 11),
+  ('kyb_party_role', 'member', 'Member', 1),
+  ('kyb_party_role', 'director', 'Director', 2),
+  ('kyb_party_role', 'shareholder', 'Shareholder', 3),
+  ('kyb_party_role', 'secretary', 'Secretary', 4),
+  ('kyb_party_role', 'accounting_officer', 'Accounting officer', 5),
+  ('kyb_party_role', 'other', 'Other', 6),
   ('kyb_document_status', 'received', 'Received', 1),
   ('kyb_document_status', 'accepted', 'Accepted', 2),
   ('kyb_document_status', 'rejected', 'Rejected', 3),
@@ -38,6 +48,11 @@ ALTER TABLE organisation_kyb_verification ADD COLUMN IF NOT EXISTS principal_bus
 ALTER TABLE organisation_kyb_verification ADD COLUMN IF NOT EXISTS financial_year_end TEXT;
 ALTER TABLE organisation_kyb_verification ADD COLUMN IF NOT EXISTS members_protected JSONB;
 ALTER TABLE organisation_kyb_verification ADD COLUMN IF NOT EXISTS field_sources JSONB;
+ALTER TABLE organisation_kyb_verification ADD COLUMN IF NOT EXISTS postal_address_protected JSONB;
+ALTER TABLE organisation_kyb_verification ADD COLUMN IF NOT EXISTS contact_email TEXT;
+ALTER TABLE organisation_kyb_verification ADD COLUMN IF NOT EXISTS contact_phone TEXT;
+ALTER TABLE organisation_kyb_verification ADD COLUMN IF NOT EXISTS tin_protected JSONB;
+ALTER TABLE organisation_kyb_verification ADD COLUMN IF NOT EXISTS incorporated_on DATE;
 ALTER TABLE organisation_kyb_status_events ADD COLUMN IF NOT EXISTS flagged_fields JSONB;
 
 CREATE TABLE IF NOT EXISTS organisation_kyb_document (

@@ -51,7 +51,26 @@ export interface KybReview {
   authorizedSignatoryName: string;
   principalBusiness: string | null;
   financialYearEnd: string | null;
-  members: Array<{ fullName: string; identityNumber?: string; percentage?: number | null }>;
+  postalAddress: string;
+  contactEmail: string | null;
+  contactPhone: string | null;
+  tin: string;
+  incorporatedOn: string | null;
+  members: Array<{
+    fullName: string;
+    role?: string;
+    isJuristic?: boolean;
+    registrationNumber?: string;
+    identityNumber?: string;
+    percentage?: number | null;
+  }>;
+  ownership: {
+    owners: Array<{ fullName: string; percentage: number; juristic: boolean; atBipa: boolean; atFia: boolean }>;
+    traceThrough: string[];
+    totalPercentage: number | null;
+  };
+  checklist: Array<{ code: string; label: string; blocking: boolean; satisfied: boolean; reason: string }>;
+  rules: { boThresholdBipaPercent: number; boThresholdFiaPercent: number; certifiedCopyMaxAgeMonths: number };
   fieldSources: Record<string, string>;
   legacyDocument: boolean;
   issues: Issue[];
@@ -69,6 +88,11 @@ const FIELDS: Array<{ key: string; label: string }> = [
   { key: "authorizedSignatoryName", label: "Authorised signatory" },
   { key: "principalBusiness", label: "Principal business" },
   { key: "financialYearEnd", label: "Financial year end" },
+  { key: "incorporatedOn", label: "Date registered" },
+  { key: "postalAddress", label: "Postal address" },
+  { key: "contactEmail", label: "Business email" },
+  { key: "contactPhone", label: "Business phone" },
+  { key: "tin", label: "Tax number" },
   { key: "members", label: "Members" },
   { key: "documents", label: "Documents" },
 ];
@@ -130,10 +154,16 @@ export function ReviewPanel({ review }: { review: KybReview }) {
   const value = (key: string): string => {
     if (key === "documents")
       return `${review.documents.length} uploaded, ${review.documents.filter((d) => d.status === "accepted").length} accepted`;
-    if (key === "members")
+    if (key === "members") {
       return review.members.length
-        ? review.members.map((m) => `${m.fullName}${m.percentage != null ? ` (${m.percentage}%)` : ""}`).join(", ")
+        ? review.members
+            .map(
+              (m) =>
+                `${m.fullName}${m.role ? `, ${m.role.replace("_", " ")}` : ""}${m.isJuristic ? ` (company ${m.registrationNumber ?? ""})` : ""}${m.percentage != null ? `, ${m.percentage}%` : ""}${m.identityNumber ? `, ID ${m.identityNumber}` : ""}`,
+            )
+            .join("; ")
         : "None given";
+    }
     return String((review as unknown as Record<string, unknown>)[key] ?? "") || "Not given";
   };
 
@@ -175,6 +205,47 @@ export function ReviewPanel({ review }: { review: KybReview }) {
             );
           })}
         </div>
+      </section>
+
+      <section className="space-y-2">
+        <h2 className="font-semibold text-base">Ownership</h2>
+        <div className="space-y-1 rounded-md border border-border p-3 text-sm">
+          <p className="text-muted-foreground text-xs">
+            Thresholds: BIPA {review.rules.boThresholdBipaPercent} percent or greater, FIA{" "}
+            {review.rules.boThresholdFiaPercent} percent or greater. Only a person can be a beneficial owner.
+          </p>
+          {review.ownership.owners.length === 0 ? (
+            <p>No holder reaches either threshold from the shares given.</p>
+          ) : null}
+          {review.ownership.owners.map((o) => (
+            <p key={o.fullName}>
+              {o.fullName}: {o.percentage}% {o.juristic ? "(a company: trace to its owners) " : ""}
+              {o.atBipa ? "· BIPA " : ""}
+              {o.atFia ? "· FIA" : ""}
+            </p>
+          ))}
+          {review.ownership.totalPercentage !== null ? (
+            <p className="text-muted-foreground text-xs">Shares given total {review.ownership.totalPercentage}%.</p>
+          ) : null}
+        </div>
+      </section>
+
+      <section className="space-y-2">
+        <h2 className="font-semibold text-base">What should be on file</h2>
+        <ul className="space-y-1.5 text-sm">
+          {review.checklist.map((item) => (
+            <li key={item.code} className="flex flex-wrap items-center gap-2">
+              <Badge variant={item.satisfied ? "default" : item.blocking ? "destructive" : "secondary"}>
+                {item.satisfied ? "On file" : item.blocking ? "Required" : "Requested"}
+              </Badge>
+              <span>{item.label}</span>
+              <span className="text-muted-foreground text-xs">{item.reason}</span>
+            </li>
+          ))}
+        </ul>
+        <p className="text-muted-foreground text-xs">
+          Only the first item holds up approval. Ask for the others in your message if you want them before you approve.
+        </p>
       </section>
 
       <section className="space-y-2">

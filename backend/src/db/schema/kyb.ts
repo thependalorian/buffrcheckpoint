@@ -1,4 +1,4 @@
-import { index, integer, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { date, index, integer, jsonb, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 import { organisations } from "./organisations";
 import { typeDefinition } from "./type-definitions";
@@ -25,6 +25,11 @@ export const organisationKybVerification = pgTable(
     financialYearEnd: text("financial_year_end"),
     membersProtected: jsonb("members_protected"),
     fieldSources: jsonb("field_sources"),
+    postalAddressProtected: jsonb("postal_address_protected"),
+    contactEmail: text("contact_email"),
+    contactPhone: text("contact_phone"),
+    tinProtected: jsonb("tin_protected"),
+    incorporatedOn: date("incorporated_on"),
     statusCode: uuid("status_code")
       .notNull()
       .references(() => typeDefinition.id),

@@ -1,5 +1,5 @@
 import { BadRequestException, ForbiddenException, Inject, Injectable, Logger, NotFoundException } from "@nestjs/common";
-import { and, asc, desc, eq, inArray, isNull } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 
 import { createArtifactStore } from "../../common/artifacts/artifact-store";
 import { PersonalDataProtectionService } from "../../common/data-protection/personal-data-protection.service";
@@ -22,6 +22,7 @@ import { TemplatedEmailService } from "../notifications/templated-email.service"
 import type { SubmitKybDto } from "./dto/kyb.dto";
 import { type ExtractedRegistration, parseRegistrationText, toSuggestions } from "./founding-statement-parser";
 import { KybDocumentReaderService } from "./kyb-document-reader.service";
+import { analyseOwnership, documentChecklist, type KybRules, parseKybRules } from "./kyb-rules";
 import {
   CONTENT_TYPES,
   type CrossCheck,
@@ -47,6 +48,9 @@ const artifactStore = createArtifactStore();
 
 export interface StoredMember {
   fullName: string;
+  role?: string;
+  isJuristic?: boolean;
+  registrationNumber?: string;
   identityNumber?: string;
   percentage?: number | null;
 }
@@ -121,7 +125,7 @@ export class KybService {
   private async readInBackground(documentId: string, organisationId: string, buffer: Buffer, type: "pdf" | "png" | "jpeg") {
     try {
       const result = await this.reader.read(buffer, type);
-      const parsed = result.text ? parseRegistrationText(result.text) : null;
+      const parsed = result.text ? parseRegistrationText(result.text, result.precise) : null;
       await this.db
         .update(organisationKybDocument)
         .set({
@@ -237,8 +241,21 @@ export class KybService {
       registeredAddress: dto.registeredAddress,
       authorizedSignatoryName: dto.authorizedSignatoryName,
       financialYearEnd: dto.financialYearEnd,
+      postalAddress: dto.postalAddress,
+      contactEmail: dto.contactEmail,
+      contactPhone: dto.contactPhone,
+      tin: dto.tin,
+      incorporatedOn: dto.incorporatedOn,
       members: dto.members,
     };
+  }
+
+  /** The thresholds and limits in the platform setting `kyb_rules`, else the owner's defaults (25 BIPA, 20 FIA). */
+  private async rules(): Promise<KybRules> {
+    const result = await this.db.execute(sql`
+      SELECT setting_value FROM platform_configuration_setting
+      WHERE setting_key = 'kyb_rules' AND deleted_at IS NULL LIMIT 1`);
+    return parseKybRules((result.rows[0] as { setting_value?: unknown } | undefined)?.setting_value);
   }
 
   async submit(dto: SubmitKybDto, user: AuthenticatedUser) {
@@ -274,6 +291,11 @@ export class KybService {
         entityTypeCode,
         principalBusiness: dto.principalBusiness?.trim() || null,
         financialYearEnd: dto.financialYearEnd?.trim() || null,
+        postalAddressProtected: dto.postalAddress?.trim() ? this.dataProtection.encrypt(dto.postalAddress.replace(/\s+/g, " ").trim()) : null,
+        contactEmail: dto.contactEmail?.trim().toLowerCase() || null,
+        contactPhone: dto.contactPhone?.trim() || null,
+        tinProtected: dto.tin?.trim() ? this.dataProtection.encrypt(dto.tin.trim()) : null,
+        incorporatedOn: dto.incorporatedOn?.trim() || null,
         membersProtected: dto.members?.length ? this.dataProtection.encrypt(JSON.stringify(dto.members)) : null,
         fieldSources: dto.fieldSources ?? null,
         statusCode: pendingCode,
@@ -314,13 +336,17 @@ export class KybService {
   private async openSubmissions(organisationId: string) {
     const codes = await Promise.all(OPEN_STATUSES.map((c) => this.typeDefs.id("kyb_status", c)));
     return this.db.query.organisationKybVerification.findMany({
-      where: and(eq(organisationKybVerification.organisationId, organisationId), inArray(organisationKybVerification.statusCode, codes)),
+      where: and(
+        eq(organisationKybVerification.organisationId, organisationId),
+        inArray(organisationKybVerification.statusCode, codes),
+        isNull(organisationKybVerification.deletedAt),
+      ),
     });
   }
 
   async getLatestForOrganisation(organisationId: string) {
     const row = await this.db.query.organisationKybVerification.findFirst({
-      where: eq(organisationKybVerification.organisationId, organisationId),
+      where: and(eq(organisationKybVerification.organisationId, organisationId), isNull(organisationKybVerification.deletedAt)),
       orderBy: desc(organisationKybVerification.submittedAt),
     });
     return row ?? null;
@@ -330,7 +356,10 @@ export class KybService {
   async mine(organisationId: string) {
     const latest = await this.getLatestForOrganisation(organisationId);
     const documents = await this.listDocuments(organisationId);
-    if (!latest) return { submission: null, documents, request: null };
+    const rules = await this.rules();
+    if (!latest) {
+      return { submission: null, documents, request: null, checklist: documentChecklist(null, analyseOwnership([], rules), documents, rules) };
+    }
     const [statusRow, entityRow, lastAsk] = await Promise.all([
       this.db.query.typeDefinition.findFirst({ where: eq(typeDefinition.id, latest.statusCode) }),
       latest.entityTypeCode ? this.db.query.typeDefinition.findFirst({ where: eq(typeDefinition.id, latest.entityTypeCode) }) : null,
@@ -350,10 +379,16 @@ export class KybService {
         authorizedSignatoryName: this.decodeText(latest.authorizedSignatoryNameProtected),
         principalBusiness: latest.principalBusiness,
         financialYearEnd: latest.financialYearEnd,
+        postalAddress: latest.postalAddressProtected ? this.decodeText(latest.postalAddressProtected) : "",
+        contactEmail: latest.contactEmail ?? "",
+        contactPhone: latest.contactPhone ?? "",
+        tin: latest.tinProtected ? this.decodeText(latest.tinProtected) : "",
+        incorporatedOn: latest.incorporatedOn ?? "",
         members: this.decodeMembers(latest.membersProtected),
       },
       documents,
       request: lastAsk,
+      checklist: documentChecklist(entityRow?.code ?? null, analyseOwnership(this.decodeMembers(latest.membersProtected), rules), documents, rules),
     };
   }
 
@@ -399,7 +434,7 @@ export class KybService {
   async listPending() {
     const statusCode = await this.typeDefs.id("kyb_status", "pending");
     return this.db.query.organisationKybVerification.findMany({
-      where: eq(organisationKybVerification.statusCode, statusCode),
+      where: and(eq(organisationKybVerification.statusCode, statusCode), isNull(organisationKybVerification.deletedAt)),
       orderBy: asc(organisationKybVerification.submittedAt),
     });
   }
@@ -407,7 +442,7 @@ export class KybService {
   async listAwaitingOrganisation() {
     const statusCode = await this.typeDefs.id("kyb_status", "needs_info");
     return this.db.query.organisationKybVerification.findMany({
-      where: eq(organisationKybVerification.statusCode, statusCode),
+      where: and(eq(organisationKybVerification.statusCode, statusCode), isNull(organisationKybVerification.deletedAt)),
       orderBy: asc(organisationKybVerification.submittedAt),
     });
   }
@@ -426,6 +461,8 @@ export class KybService {
     const registeredAddress = this.decodeText(row.registeredAddressProtected);
     const authorizedSignatoryName = this.decodeText(row.authorizedSignatoryNameProtected);
     const members = this.decodeMembers(row.membersProtected);
+    const postalAddress = row.postalAddressProtected ? this.decodeText(row.postalAddressProtected) : "";
+    const tin = row.tinProtected ? this.decodeText(row.tinProtected) : "";
     const issues = validateKybFields({
       entityType: entityRow?.code ?? null,
       businessRegistrationNumber: row.businessRegistrationNumber,
@@ -433,8 +470,16 @@ export class KybService {
       registeredAddress,
       authorizedSignatoryName,
       financialYearEnd: row.financialYearEnd,
+      postalAddress,
+      contactEmail: row.contactEmail,
+      contactPhone: row.contactPhone,
+      tin,
+      incorporatedOn: row.incorporatedOn,
       members,
     });
+    const rules = await this.rules();
+    const ownership = analyseOwnership(members, rules);
+    const checklist = documentChecklist(entityRow?.code ?? null, ownership, documents, rules);
     // The newest document that could be read is the best evidence of what the organisation filed.
     const read = [...documents].reverse().find((d) => d.reading === "read" && (d.suggestions.businessRegistrationNumber || d.suggestions.registeredBusinessName));
     const comparison: CrossCheck[] = crossCheck(
@@ -463,7 +508,15 @@ export class KybService {
       authorizedSignatoryName,
       principalBusiness: row.principalBusiness,
       financialYearEnd: row.financialYearEnd,
+      postalAddress,
+      contactEmail: row.contactEmail,
+      contactPhone: row.contactPhone,
+      tin,
+      incorporatedOn: row.incorporatedOn,
       members,
+      ownership,
+      checklist,
+      rules,
       fieldSources: (row.fieldSources as Record<string, string> | null) ?? {},
       legacyDocument: Boolean(row.registrationDocumentReference),
       issues,
