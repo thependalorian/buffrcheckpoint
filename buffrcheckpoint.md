@@ -801,6 +801,34 @@ The merchant posts a signed form to Adumo's hosted page; the cardholder enters c
 
 Go-live and operational use need an `active` subscription (`trial` is an ops-set status for design partners, not offered publicly) and, for a paid plan, verified KYB (§7.5). Money is `NUMERIC(15,2)` with `currency_code`; rates are `NUMERIC(15,4)`. Every money movement leaves a reconciliation artefact (§14.1).
 
+### 11.5 Debit-order collection of subscriptions (Collexia EnDO)
+
+EFT with proof of payment (§11.2) and card (§11.3) are built. A third way, collecting the subscription by debit order, would remove the monthly chase for an invoice. The provider quoted is **Collexia Payments (Pty) Ltd, Windhoek**, product **EnDO (debit orders)**. The quote on file (dated 2 October 2026, all amounts NAD excluding VAT) is **not signed**, and it was issued to *Buffr Financial Servicess CC*, industry *Micro-Lending*, pricing code FNBC07, not to the entity that sells Checkpoint. It is used here only to size the cost. Checkpoint needs its own quote, in the name of the entity that invoices its customers (**Owner decision**, §31 item 25).
+
+| Fee | Amount |
+|---|---|
+| Monthly merchant subscription | 430.00 |
+| Monthly user fee, per user | 73.00 |
+| Training | none |
+| Per transaction submitted | 4.99 |
+| Tracking, per day, charged from day 1 | 2.30 |
+| Per successful dispute | 150.00 |
+| Per transaction recalled | 200.00 |
+| Ad valorem on a successful collection, 0 to 999 transactions a month | 1.50 percent (falls in bands to 1.43, 1.39, 1.35, 1.31, 1.28, 1.24, 1.22 and 1.20 percent at 70,000 or more) |
+| SMS notification (optional, opt in) | 0.95 each |
+
+What one collection costs at the 1.50 percent band, with three days of tracking (the days depend on how long a debit takes to settle, so this is an assumption to replace with the real figure):
+
+| Plan | Collected | Submitted | Tracking, 3 days | 1.50 percent | Total | Share of the amount |
+|---|---|---|---|---|---|---|
+| Site | 1,500.00 | 4.99 | 6.90 | 22.50 | **34.39** | 2.29 percent |
+| Network | 4,500.00 | 4.99 | 6.90 | 67.50 | **79.39** | 1.76 percent |
+| Assure | 9,500.00 | 4.99 | 6.90 | 142.50 | **154.39** | 1.63 percent |
+
+A debit that fails still costs the submission and tracking fees (about N$11.89 at three days) and earns nothing; a dispute adds 150.00 and a recall 200.00. The fixed N$503 a month (the subscription and one user) is N$100.60 per subscriber at 5 subscribers, N$50.30 at 10, N$25.15 at 20 and N$8.38 at 60. The fee grows with the plan's price, so it is cheapest relative to the large plans and heaviest on the Site plan.
+
+Recommendations. (1) Keep EFT the default and offer debit order as an option once there are about 20 paying sites, when the fixed fee falls below 2 percent of a Site subscription. (2) Do not add a surcharge at first; the Site plan's cost of about 2.3 percent is smaller than the labour of chasing an unpaid invoice, and a surcharge would make the cheapest plan look dearer. Revisit if volumes stay low. (3) Build it as a third payment method on the existing payment table (`method` `debit_order`) with the same rules as every money path (§14.1): the customer's signed mandate is stored as evidence, each collection is its own transaction with a reconciliation row, a failed or recalled debit never silently leaves an invoice marked paid, and a dispute or recall is a new row, not an edit. Mandates and the new states need a schema sign-off before any code (§30.1). (4) Ask Collexia in the Checkpoint quote how long a debit takes to settle (the tracking days), whether a mandate can be captured online, and what happens to the fees on an unsuccessful debit. (5) The fee is a cost of collecting revenue and belongs in the contribution calculation of §28.1.
+
 ## 12. Integrations
 
 ### 12.1 Existing-system adapters
@@ -1776,6 +1804,20 @@ Contribution per site = subscription revenue minus hosting, support, messaging, 
 | NFC badge | about USD 0.20 to 0.40 per badge landed | Optional hardware |
 | National e-ID | Near zero at launch; cost is integration and testing | Gated |
 
+### 28.3 Costs that decide how many sites are needed
+
+Figures here come from vendor documents on file and are quoted without VAT. The current monthly invoices for Neon, Railway, Vercel, the mailbox, the text-message provider and Cloudflare are not written in this document: they belong in the workspace operations records, and the owner should add the real totals here before any funding request.
+
+| Cost | Per month (NAD) | Source | Equals this many Site subscriptions (N$1,500) |
+|---|---|---|---|
+| Debit-order service, fixed part (subscription and one user) | 503 | Collexia quote, 2026-10-02 | 0.3 |
+| Debit-order service, variable | about 34 per Site collection (2.3 percent) | same | not fixed |
+| Rack space at Armada (Paratus), uncaged half cabinet, 0.5 kVA | 8,060 | Paratus price list | 5.4 |
+| Rack space, uncaged cabinet, 1 kVA | 12,680 | same | 8.5 |
+| Rack space, caged cabinet | 13,280 | same | 8.9 |
+
+Rack space is rent only. Servers, switches, internet transit, a second site and the people to run them are extra (§16.2), so colocation is not a cost the product should carry before a customer needs Namibian residency in writing. The debit-order fixed fee is small enough to take on at about 20 paying sites (§11.5).
+
 ## 29. Go-to-market and acceptance
 
 ### 29.1 Entry offer
@@ -1863,6 +1905,7 @@ Everything here is gated or unscheduled. Nothing is marketed as available.
 | Next | Key management service for personal data (§14.3) and per-subject data keys | Owner decision on the service |
 | Next | SMS switched on for a first organisation | Four gates of §9.3 |
 | Next | Breached-password lookup on sign-up and reset (§17.6) | Owner approves the Have I Been Pwned lookup |
+| Later | Debit-order collection of subscriptions through Collexia EnDO (§11.5) | A Collexia quote for the selling entity; schema sign-off for mandates and collections |
 | Next | Google Search Console and a Google Business Profile | A public Windhoek address |
 | Next | Card payments enabled | Adumo merchant credentials |
 | Later | Delivery receipts and webhook status for SMS | Provider documents them |
@@ -1914,6 +1957,30 @@ Principle: no module exists unless it performs the control it claims (§34).
 | Onboarding abandonment at unclear or out-of-order steps | Activation and revenue stall | Launch-readiness design, three required steps, test arrival as activation (§7) |
 | Notification outbox keeps recipients and message text with no purge | Personal data held beyond need | Owner chooses a retention period, then redaction in the disposition worker |
 
+### 30.3 Funding to reach break-even
+
+The owner expects to need outside money, possibly a grant from the Ministry of Information and Communication Technology or other funders, to keep the company going for two to three years. What was found on 2026-10-08, from public pages, is below; none of it has been confirmed with the funder, and a funder's own rules always win over this summary.
+
+| Source | What it is | Fit and status |
+|---|---|---|
+| **Ministry of ICT (MICT)** | 2026/27 budget N$682 million; N$78 million for radio access network sites, N$17.4 million for ICT development programmes including cybersecurity, N$31.4 million for government information services (New Era, 2 April 2026). The National ICT Policy and Digital Strategy 2025 to 2029 is its plan | **No grant programme for software companies was found.** The ministry is better approached as a customer and partner: government offices replacing paper visitor books is a use of the Digital Strategy, and the draft Data Protection Bill gives it a reason. A grant, if it comes, would most likely arrive as funded pilots or a programme line, not an application form |
+| **9th National ICT Summit** | 12 to 16 October 2026, Ongwediva Trade Centre, Oshana; Hackathon Day on 16 October; exhibitor packages from N$30,000 to N$110,000; registration at passcard.com.na; sponsorship contacts are listed on ictsummit.gov.na | The one place this week where the ministry's people are in one room. Attend; an exhibitor stand is probably not worth N$30,000 yet |
+| **NIPDB, National Planning Commission and GIZ SME Fund** | Grants of N$50,000 to N$100,000 for registered Namibian micro, small and medium enterprises with a turnover of 0 to N$10 million and at least 51 percent Namibian ownership; ICT is a priority sector; the call ran 10 June to 24 July 2026 and **has closed** (New Era, 17 June 2026) | Eligible on the stated tests. Small against a two to three year gap. Watch for the next call |
+| **ScaleUp Namibia (NCRST and NIPDB)** | Launched 27 February 2025; mentorship, investment facilitation, acceleration, a free co-working office at the FNCC building in Windhoek with several hubs under one roof; funding is one of its five focus areas | Join for access to funders and investors, not as a funder |
+| **CRAN Tech Challenge** | Youth innovation challenge for citizens and permanent residents aged 18 to 35 with an operational or prototype solution | Check the age rule against who would enter; CRAN is also the regulator for the tablets (§23.1) |
+| **Development Bank of Namibia, Namibia Business Innovation Centre, angel networks, South African venture funds** | Grants for youth and women entrepreneurs (DBN), subsidised space (NBIC), early-stage angels concentrated in Windhoek; one secondary source | Not verified here; ask each directly |
+| **GSMA Innovation Fund** | Grants of about GBP 100,000 to 200,000 for African startups, currently themed on climate and on artificial intelligence | Fit only with a real angle in those themes; Checkpoint's is not one today |
+
+Recommendations, in order:
+
+1. **Lead with customers and let grants pay for pilots.** A grant is easiest to win, and easiest to account for, when it funds something with a named customer and a measurable result: three pilot sites (§29.2), one of them a public office. The credible request to the ministry is a pilot, with a letter of intent from an office that wants to retire its paper register, not general support for a company.
+2. **Build the 24 to 36 month budget before naming a sum.** Lines: people, hosting (the usage-based stack, not colocation), tablets and readers, CRAN approval and import, the SOC 2 and ISO 27001 audits when a customer requires them, counsel for the Terms and the Privacy Policy, marketing and travel. A funder asks "what does this buy and what will you show me in a year"; the budget answers it, and §28.3 supplies the first lines.
+3. **Stack small, non-dilutive money first** (the SME Fund when it reopens, ScaleUp Namibia introductions, a DBN programme if eligible), then an angel round once there are paying sites; avoid giving equity before the pilots give evidence. Several N$50,000 to N$100,000 grants will not cover two to three years alone, so plan for revenue and one larger source.
+4. **Keep fixed costs low until funded.** Stay on usage-based services, defer colocation (§16.2), take on debit orders at about 20 paying sites (§11.5), and defer certification audits until a customer asks (§19, §21).
+5. **Be grant-ready.** Funders ask for the company's own papers: registration documents and the member list (the founding statement shows Namibian ownership), a tax good-standing certificate and BIPA annual returns up to date, bank statements, management accounts, a business plan and pitch, and evidence the product is live. Funders often ask for a tax good-standing certificate, even though Checkpoint does not ask it of its own customers (§7.5).
+6. **Settle which legal entity owns Checkpoint.** The names in the papers differ: Buffr AI Technologies CC on the founding statement, Buffr Financial Servicess CC on the Collexia quote, and the Buffr Analytics name on the mailbox. A funder, a bank, Collexia and a customer's contract must all name the same entity (**Owner decision**, §31 item 24).
+7. **Read the conditions.** Reporting duties, who owns the code and data, restrictions on other funding, and what happens when milestones slip. Never let a grant widen the scope beyond the privacy promise of §1.5.
+
 ## 31. Decisions required
 
 Items only the owner, counsel or a named third party can close.
@@ -1941,6 +2008,8 @@ Items only the owner, counsel or a named third party can close.
 21. **Registry check and larger uploads.** Whether to seek a data arrangement with BIPA so a registration can be checked automatically; and whether to add direct browser-to-API uploads (a short-lived upload token) so files above the 4.4 MB the admin proxy allows can be sent.
 22. **Scope of business verification.** Confirm that onboarding verification stays at the owner's required set of §7.5 (BIPA registration, owners with contact details, bank letter, owner identity documents, proof of address; 74.5 percent of the BIPA dictionary), and that the BO1-level personal particulars and AML screening of §7.5 stay out. If a customer segment needs them (a regulated customer asking Checkpoint to evidence its own KYB), they belong in a separate product with its own schema and consent, not as extra fields here.
 23. **Subprocessors for abuse defence and passwords.** Cloudflare is approved and listed for Turnstile (2026-10-08). Still to approve: Cloudflare R2 for encrypted off-platform backups (§17.7) and the Have I Been Pwned range lookup, each added to the Privacy Policy and the register when built. The 12 character minimum applies from the next time a password is chosen, so existing accounts are untouched until then; say if you would rather prompt everyone at their next sign-in (§17.6).
+24. **Funding and the legal entity.** Which entity owns Checkpoint and signs funding, banking and Collexia documents; whether to approach the Ministry of ICT as a pilot partner (and attend the National ICT Summit, 12 to 16 October 2026); the size and period of the ask once the budget of §30.3 exists.
+25. **Debit-order collection.** Obtain a Collexia quote in the name of the entity that invoices customers, confirm the settlement days and the fee on a failed debit, and approve the schema for mandates and collections before any code (§11.5, §30.1).
 
 ---
 
