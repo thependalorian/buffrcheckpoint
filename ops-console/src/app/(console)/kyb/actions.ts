@@ -4,9 +4,49 @@ import { revalidatePath } from "next/cache";
 
 import { api } from "@/lib/api";
 
-export async function decideKybAction(kybVerificationId: string, decision: "verified" | "rejected") {
-  await api.patch(`/platform/kyb/submissions/${kybVerificationId}/decision`, { decision });
+function message(err: unknown): string {
+  const text = err instanceof Error ? err.message : "Request failed";
+  const start = text.indexOf("{");
+  if (start >= 0) {
+    try {
+      const body = JSON.parse(text.slice(start)) as { message?: string | string[] };
+      return Array.isArray(body.message) ? body.message.join(" ") : (body.message ?? text);
+    } catch {
+      /* plain text */
+    }
+  }
+  return text.replace(/^API error \d+:\s*/, "");
+}
+
+export async function decideKybAction(
+  kybVerificationId: string,
+  decision: "verified" | "rejected" | "needs_info",
+  note?: string,
+  flaggedFields?: string[],
+): Promise<{ error?: string }> {
+  try {
+    await api.patch(`/platform/kyb/submissions/${kybVerificationId}/decision`, { decision, note, flaggedFields });
+  } catch (err) {
+    return { error: message(err) };
+  }
   revalidatePath("/kyb");
+  revalidatePath(`/kyb/${kybVerificationId}`);
+  return {};
+}
+
+export async function decideKybDocumentAction(
+  kybVerificationId: string,
+  documentId: string,
+  decision: "accepted" | "rejected",
+  note?: string,
+): Promise<{ error?: string }> {
+  try {
+    await api.patch(`/platform/kyb/documents/${documentId}/decision`, { decision, note });
+  } catch (err) {
+    return { error: message(err) };
+  }
+  revalidatePath(`/kyb/${kybVerificationId}`);
+  return {};
 }
 
 export async function bulkDecideKybAction(
@@ -18,10 +58,14 @@ export async function bulkDecideKybAction(
       requested: number;
       updated: number;
       failed: Array<{ id: string; reason: string }>;
-    }>("/platform/kyb/submissions/bulk-decision", { kybVerificationIds, decision });
+    }>("/platform/kyb/submissions/bulk-decision", {
+      kybVerificationIds,
+      decision,
+      note: decision === "rejected" ? "Please correct the details and resubmit." : undefined,
+    });
     revalidatePath("/kyb");
     return result;
   } catch (err) {
-    return { error: err instanceof Error ? err.message : "Bulk KYB decision failed" };
+    return { error: message(err) };
   }
 }

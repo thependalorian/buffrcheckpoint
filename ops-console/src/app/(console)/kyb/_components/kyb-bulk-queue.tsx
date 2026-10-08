@@ -1,14 +1,14 @@
 "use client";
 
-import Link from "next/link";
 import { useState, useTransition } from "react";
+
+import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import { List, ListRow } from "@/components/ui/list";
 import { NativeSelect } from "@/components/ui/native-select";
 
 import { bulkDecideKybAction } from "../actions";
-import { DecisionButtons } from "./decision-buttons";
 
 export interface KybQueueRow {
   id: string;
@@ -46,7 +46,7 @@ export function KybBulkQueue({ rows }: { rows: KybQueueRow[] }) {
       setFeedback(
         result.failed.length === 0
           ? `${result.updated} marked ${decision}.`
-          : `${result.updated} of ${result.requested} updated. ${result.failed.length} failed.`,
+          : `${result.updated} of ${result.requested} updated. ${result.failed.length} not changed: ${result.failed[0]?.reason ?? ""}`,
       );
       setSelected(new Set());
       setDecision("");
@@ -100,12 +100,14 @@ export function KybBulkQueue({ rows }: { rows: KybQueueRow[] }) {
                 {row.subtitle ? <p className="text-muted-foreground text-xs">{row.subtitle}</p> : null}
                 {row.documentHref ? (
                   <a href={row.documentHref} className="text-sodium-yellow-ink text-xs hover:underline">
-                    Download document
+                    Open document
                   </a>
                 ) : null}
               </div>
             </div>
-            <DecisionButtons kybVerificationId={row.id} />
+            <Link href={row.href} className="text-sodium-yellow-ink text-xs hover:underline">
+              Review
+            </Link>
           </ListRow>
         ))}
       </List>

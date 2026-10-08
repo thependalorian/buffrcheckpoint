@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { TrendChart } from "@/components/charts/TrendChart";
 import { DashboardErrorState, EmptyState } from "@/components/dashboard-state";
 import { apiFetch, loadOrError } from "@/lib/api";
@@ -21,12 +23,13 @@ interface ThroughputPoint {
 
 export default async function KybPage() {
   const result = await loadOrError(async () => {
-    const [pending, orgLabel, throughput] = await Promise.all([
+    const [pending, waiting, orgLabel, throughput] = await Promise.all([
       apiFetch<KybSubmission[]>("/platform/kyb/pending"),
+      apiFetch<KybSubmission[]>("/platform/kyb/awaiting-organisation"),
       loadOrgLabelMap(),
       apiFetch<ThroughputPoint[]>("/platform/dashboard/kyb-throughput-trend"),
     ]);
-    return { pending, orgLabel, throughput };
+    return { pending, waiting, orgLabel, throughput };
   });
 
   if (result.error || !result.data) {
@@ -38,13 +41,14 @@ export default async function KybPage() {
     );
   }
 
-  const { pending, orgLabel, throughput } = result.data;
+  const { pending, waiting, orgLabel, throughput } = result.data;
 
   return (
     <div>
       <h1 className="font-heading font-light text-2xl text-foreground">KYB Review</h1>
       <p className="mt-1 text-muted-foreground text-sm">
-        Business-identity verification at onboarding only — not ongoing sanctions/AML monitoring.
+        Business-identity verification at onboarding only. Open a submission to read the documents beside the details,
+        accept each document, and approve, ask for information or reject.
       </p>
 
       {throughput.length > 1 ? (
@@ -70,13 +74,35 @@ export default async function KybPage() {
             rows={pending.map((k) => ({
               id: k.id,
               title: k.registeredBusinessName,
-              href: `/organisations/${k.organisationId}?tab=kyb`,
+              href: `/kyb/${k.id}`,
               subtitle: `Reg #${k.businessRegistrationNumber} · ${orgLabel[k.organisationId] ?? k.organisationId} · submitted ${new Date(k.submittedAt).toLocaleDateString()}`,
               documentHref: k.registrationDocumentReference ? `/api/kyb-documents/${k.id}` : null,
             }))}
           />
         )}
       </div>
+
+      {waiting.length > 0 ? (
+        <div className="mt-8">
+          <h2 className="font-semibold text-base">Waiting on the organisation</h2>
+          <p className="text-muted-foreground text-xs">
+            You asked for more information. These return to the queue when the organisation sends corrected details.
+          </p>
+          <ul className="mt-2 space-y-1 text-sm">
+            {waiting.map((k) => (
+              <li key={k.id}>
+                <Link href={`/kyb/${k.id}`} className="hover:underline">
+                  {k.registeredBusinessName}
+                </Link>{" "}
+                <span className="text-muted-foreground text-xs">
+                  {orgLabel[k.organisationId] ?? k.organisationId} · submitted{" "}
+                  {new Date(k.submittedAt).toLocaleDateString()}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
     </div>
   );
 }

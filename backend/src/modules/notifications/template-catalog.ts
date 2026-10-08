@@ -212,6 +212,14 @@ export const TEMPLATE_CATALOG: Readonly<Record<string, TemplateSpec>> = {
     wired: true,
     alwaysSend: true,
   },
+  kyb_needs_info: {
+    category: "verification",
+    audience: "customer_admins",
+    trigger: "Ops asks for corrections or more documents during business verification",
+    actionLabel: "Open Business Verification",
+    wired: true,
+    alwaysSend: true,
+  },
   kyb_verified: {
     category: "verification",
     audience: "customer_admins",

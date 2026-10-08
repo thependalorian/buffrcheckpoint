@@ -18,7 +18,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ kyb
     return NextResponse.json({ message: "Not authenticated" }, { status: 401 });
   }
 
-  const upstream = await fetch(`${BACKEND_API_URL}/platform/kyb/submissions/${kybVerificationId}/document`, {
+  const upstream = await fetch(`${BACKEND_API_URL}/platform/kyb/documents/${kybVerificationId}/file`, {
     headers: { Authorization: `Bearer ${token}` },
     cache: "no-store",
   });

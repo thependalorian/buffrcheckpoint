@@ -3,6 +3,8 @@ import { withSentryConfig } from "@sentry/nextjs/config";
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactCompiler: true,
+  // Business-verification documents travel through a server action. Vercel caps a request body at 4.5 MB, so the limit is set just under it.
+  experimental: { serverActions: { bodySizeLimit: "4.4mb" } },
   compiler: {
     removeConsole: process.env.NODE_ENV === "production",
   },

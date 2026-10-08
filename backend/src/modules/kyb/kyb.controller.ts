@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, Res, StreamableFile } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Res, StreamableFile, UploadedFile, UseInterceptors } from "@nestjs/common";
+import { FileInterceptor } from "@nestjs/platform-express";
 import type { Response } from "express";
 
 import { AuditLog } from "../../common/decorators/audit-log.decorator";
@@ -6,7 +7,16 @@ import { type AuthenticatedUser, CurrentUser } from "../../common/decorators/cur
 import { PlatformScoped } from "../../common/decorators/platform-scoped.decorator";
 import { RequirePermission } from "../../common/decorators/require-permission.decorator";
 import { PERMISSIONS } from "../../common/rbac/permissions";
-import { KybService, type SubmitKybInput } from "./kyb.service";
+import {
+  DecideKybBulkDto,
+  DecideKybDocumentDto,
+  DecideKybDto,
+  SubmitKybDto,
+  UploadKybDocumentDto,
+  ValidateKybDto,
+} from "./dto/kyb.dto";
+import { KybService } from "./kyb.service";
+import { MAX_DOCUMENT_BYTES } from "./kyb-validation";
 
 @Controller("platform/kyb")
 export class KybController {
@@ -18,14 +28,88 @@ export class KybController {
   // read-only reporting role held that permission.
   @Post("submissions")
   @RequirePermission(PERMISSIONS.ORGANISATION_KYB_SUBMIT)
-  submit(@Body() dto: SubmitKybInput, @CurrentUser() user: AuthenticatedUser) {
+  @AuditLog({ action: "organisation_kyb_verification.submit", resourceType: "organisation_kyb_verification" })
+  submit(@Body() dto: SubmitKybDto, @CurrentUser() user: AuthenticatedUser) {
     return this.service.submit(dto, user);
+  }
+
+  // Checks the details the way a submission would, saving nothing. The admin form calls it as the person types.
+  @Post("validate")
+  @RequirePermission(PERMISSIONS.ORGANISATION_KYB_SUBMIT)
+  validate(@Body() dto: ValidateKybDto) {
+    return this.service.validate(dto);
+  }
+
+  // One supporting document at a time. The organisation is always the caller's own. The file is stored, then read in the background.
+  @Post("documents")
+  @RequirePermission(PERMISSIONS.ORGANISATION_KYB_SUBMIT)
+  @AuditLog({ action: "organisation_kyb_document.upload", resourceType: "organisation_kyb_document" })
+  @UseInterceptors(FileInterceptor("file", { limits: { fileSize: MAX_DOCUMENT_BYTES, files: 1 } }))
+  uploadDocument(
+    @UploadedFile() file: { buffer: Buffer; originalname: string } | undefined,
+    @Body() dto: UploadKybDocumentDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.service.uploadDocument(user.organisationId, user, file, dto.documentType);
+  }
+
+  @Get("documents/mine")
+  @RequirePermission(PERMISSIONS.ORGANISATION_KYB_SUBMIT)
+  listOwnDocuments(@CurrentUser() user: AuthenticatedUser) {
+    return this.service.listDocuments(user.organisationId);
+  }
+
+  @Delete("documents/:documentId")
+  @RequirePermission(PERMISSIONS.ORGANISATION_KYB_SUBMIT)
+  @AuditLog({ action: "organisation_kyb_document.remove", resourceType: "organisation_kyb_document" })
+  removeDocument(@Param("documentId") documentId: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.service.deleteDocument(documentId, user.organisationId);
+  }
+
+  // The organisation's own latest submission with its details in clear, its documents and what the reviewer asked for.
+  @Get("organisation/mine/details")
+  @RequirePermission(PERMISSIONS.ORGANISATION_KYB_SUBMIT)
+  getOwnDetails(@CurrentUser() user: AuthenticatedUser) {
+    return this.service.mine(user.organisationId);
   }
 
   @Get("pending")
   @RequirePermission(PERMISSIONS.PLATFORM_KYB_REVIEW)
   listPending() {
     return this.service.listPending();
+  }
+
+  @Get("awaiting-organisation")
+  @RequirePermission(PERMISSIONS.PLATFORM_KYB_REVIEW)
+  listAwaitingOrganisation() {
+    return this.service.listAwaitingOrganisation();
+  }
+
+  @Get("submissions/:kybVerificationId/review")
+  @RequirePermission(PERMISSIONS.PLATFORM_KYB_REVIEW)
+  @PlatformScoped()
+  review(@Param("kybVerificationId") kybVerificationId: string) {
+    return this.service.review(kybVerificationId);
+  }
+
+  // Opens in the browser (inline) so a reviewer can read it beside the details.
+  @Get("documents/:documentId/file")
+  @RequirePermission(PERMISSIONS.PLATFORM_KYB_REVIEW)
+  @PlatformScoped()
+  async getDocumentFile(@Param("documentId") documentId: string) {
+    const { name, contentType, content } = await this.service.getDocumentFile(documentId);
+    return new StreamableFile(content, { type: contentType, disposition: `inline; filename="${name.replace(/"/g, "")}"` });
+  }
+
+  @Patch("documents/:documentId/decision")
+  @RequirePermission(PERMISSIONS.PLATFORM_KYB_REVIEW)
+  @AuditLog({ action: "organisation_kyb_document.decide", resourceType: "organisation_kyb_document" })
+  decideDocument(
+    @Param("documentId") documentId: string,
+    @Body() body: DecideKybDocumentDto,
+    @CurrentUser() user: AuthenticatedUser,
+  ) {
+    return this.service.decideDocument(documentId, body.decision, user, body.note);
   }
 
   // @Res() WITHOUT passthrough — hands us full manual control of the
@@ -84,10 +168,10 @@ export class KybController {
   @RequirePermission(PERMISSIONS.PLATFORM_KYB_REVIEW)
   @AuditLog({ action: "organisation_kyb_verification.decide_bulk", resourceType: "organisation_kyb_verification" })
   decideBulk(
-    @Body() body: { kybVerificationIds: string[]; decision: "verified" | "rejected"; note?: string },
+    @Body() body: DecideKybBulkDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.service.decideBulk(body.kybVerificationIds ?? [], body.decision, user, body.note);
+    return this.service.decideBulk(body.kybVerificationIds, body.decision, user, body.note);
   }
 
   @Patch("submissions/:kybVerificationId/decision")
@@ -95,9 +179,9 @@ export class KybController {
   @AuditLog({ action: "organisation_kyb_verification.decide", resourceType: "organisation_kyb_verification" })
   decide(
     @Param("kybVerificationId") kybVerificationId: string,
-    @Body() body: { decision: "verified" | "rejected"; note?: string },
+    @Body() body: DecideKybDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.service.decide(kybVerificationId, body.decision, user, body.note);
+    return this.service.decide(kybVerificationId, body.decision, user, body.note, body.flaggedFields);
   }
 }

@@ -452,6 +452,21 @@ The owner accepts the Terms and Privacy Policy at sign-up (a required checkbox; 
 
 Business verification (KYB) is business-identity verification at onboarding only: registration number, registered name, address and authorised signatory, optionally the registration document. Buffr staff review it by hand in the ops console (verify or reject with a note, single or bulk, with an email to the organisation). It is required only to activate a paid subscription; a design-partner trial does not need it. Proof of payment is the second human review. Both are visible from the first screen under "Before you go live", prefilled where possible, instead of surfacing as a refusal at the end.
 
+**The pipeline (migration 0071).**
+
+1. **Upload first.** The organisation uploads its founding statement (CC1), amended founding statement (CC2) or registration certificate, and any supporting documents: tax good standing, proof of address, signatory identity, a letter or resolution of authority, other. The file type is decided from the first bytes (PDF, PNG or JPEG), never the name; 1 KB to 10 MB at the API, 4.4 MB through the admin because Vercel caps a request body at 4.5 MB.
+2. **Read on the platform.** The text layer of a digital PDF is used when there is one; a scan is rendered (bounded to 3,200 pixels on the long side, because a 4 MB scan can hold A0-sized pages) and read by Tesseract. Poppler and Tesseract run on the API through fixed argument lists, one document at a time, so nothing leaves the platform (D-37). If the tools are missing the document is simply not read and the person types the details.
+3. **Suggest, never decide.** Registration number, business name, registered office, principal business, financial year end, type of business and the members with their shares are suggested with a confidence level. A handwritten number that OCR garbles is rebuilt from the digits near its label and marked as hard to read. Identity numbers are not read from scans; the person may type one.
+4. **Fill and edit.** The admin form fills only the empty fields, labels each as "from your document, please check", "hard to read, please check carefully" or "edited by you", re-fills on request, and checks every field against the server as the person types. A submission is refused with field messages unless the details are valid and a registration document is on file.
+5. **Validate.** Namibian registration formats (`CC/2024/09322`, `CC/2006/0278`, `2013/0456`; the year must be possible and match the chosen business type), a registered office that is a street address and not a post office box, a first name and surname, 11-digit identity numbers with a real date of birth, member shares between 0 and 100 and totalling 100 for a close corporation. Format surprises are warnings for a person to look at, never silent passes. The organisation is always the caller's own, never taken from the request.
+6. **Review.** Ops open one screen per submission: the details with their issues and how each was entered, a comparison of what was typed against what the document says (match, differs, not read), every document with open, accept and reject (a reason is required to reject), and the history. Approval needs correct details and at least one accepted registration document; a submission already decided or replaced cannot be decided again.
+7. **Ask or decide.** Ops can approve, reject, or **ask for information** naming the fields to correct, with a note. The organisation sees the request on its page, the named fields are marked, and it corrects them and resubmits. A resubmission replaces the open one (status `superseded`), so the ops queue holds one entry per organisation; a "waiting on the organisation" list shows requests that are out.
+8. **Tell them.** Submitted, needs information, approved and rejected each send a branded email (`kyb_submitted_ack`, `kyb_needs_info`, `kyb_verified`, `kyb_rejected`). A failed send is logged with its reason rather than swallowed.
+
+**Reading engine, and the upgrade path.** Today: Poppler plus the Tesseract command line, chosen because it is self-hosted, has no per-page cost and reads printed forms well. It struggles with handwriting and a poor photo, which is why every suggestion is confirmed and the reviewer sees the document beside the details. Options found by public search on 2026-10-08, not benchmarked here: PaddleOCR through ONNX runtimes for Node (`paddleocr.js`, `@gutenye/ocr-node`) for better handwriting and layout, still self-hosted; Docling as a self-hosted converter for complex layouts; `unpdf` (PDF.js for any runtime) if text extraction moves in-process; and hosted services (Mistral OCR, Azure Document Intelligence, Amazon Textract), which are rejected for now under D-37. The reader sits behind one service, so a better engine replaces it without touching the pipeline, the schema or the screens; compare candidates on a set of real, redacted filings before changing.
+
+Stored: each document in the artifact store (Neon Object Storage in production) with its SHA-256; the address, signatory, members and the text read from a document as protected envelopes (§14.3); one status log per submission and one per document. Verification of a registration against the BIPA register is not automated: there is no public API, so a reviewer checks it by hand (**Owner decision**: a BIPA data arrangement, §31).
+
 ### 7.6 Launch route
 
 The route is a real decision, asked after the first site exists and before channel configuration, shown as a comparison with consequences.
@@ -904,7 +919,7 @@ About 130 live tables, grouped by what they do. Each stateful family has its sta
 | Audit | `audit_events`, `platform_support_audit_events`, `platform_support_session` |
 | Analytics, alerts, reports | `visit_daily_fact`, `visit_hourly_fact`, `visit_survey_responses` (+ status events), `visit_survey_daily_fact`, `analytics_etl_run` (+ status log), `anomaly_alert_events` (+ status events), `site_anomaly_rule_configurations`, `scheduled_report_configurations`, `scheduled_report_run` (+ status log), `organisation_health_snapshot` |
 | Billing | `subscription_catalog_item`, `organisation_subscription` (+ status events, site-quantity log), `organisation_subscription_addon` (+ status log), `invoice`, `invoice_line_item`, `invoice_credit_note`, `payment_transaction`, `payment_reconciliation_log` |
-| Platform operations | `platform_incident` (+ affected organisations, status events), `support_ticket` (+ comments, status events), `crm_contact`, `crm_deal` (+ status events), `crm_activity_log`, `organisation_kyb_verification` (+ status events), `contact_enquiries` (+ status log), `organisation_capability_enablement`, `platform_capability_approvals` |
+| Platform operations | `platform_incident` (+ affected organisations, status events), `support_ticket` (+ comments, status events), `crm_contact`, `crm_deal` (+ status events), `crm_activity_log`, `organisation_kyb_verification` (+ status events), `organisation_kyb_document` (+ status events), `contact_enquiries` (+ status log), `organisation_capability_enablement`, `platform_capability_approvals` |
 | Existing-system integration | `pms_integration_connections` (+ status log), `pms_external_entity_links`, `pms_room_zone_mappings`, `pms_sync_run_log` |
 
 Selected shapes:
@@ -1850,6 +1865,8 @@ Items only the owner, counsel or a named third party can close.
 17. **Smoke fixture.** A non-production test organisation, site and public QR for the production smoke check, and a test account with its authenticator secret for the journey smoke.
 18. **Where a staff display name lives** (for support reply signatures), for example the Buffr ID name claim.
 19. **Schema decisions** in §30.1 marked core schema.
+20. **Business verification schema sign-off.** Migration 0071 adds `organisation_kyb_document` and `organisation_kyb_document_status_events` and six columns on the verification tables. They follow the schema rules (type_definition for every list, a status log created with the table, tenant column first in every index, no trigger or cascade) but are proposals under §14.1 rule 9 until signed off.
+21. **Registry check and larger uploads.** Whether to seek a data arrangement with BIPA so a registration can be checked automatically; and whether to add direct browser-to-API uploads (a short-lived upload token) so files above the 4.4 MB the admin proxy allows can be sent.
 
 ---
 
@@ -2048,6 +2065,7 @@ A change to a decision is a new numbered entry, not an edit. Retired decisions a
 | D-34 | The contact domain is the company's trading name (`team@buffranalytics.com`) until a `buffrcheckpoint.com` mailbox exists (§1.3) | The product domain has no mail; one mailbox is the only deliverable address |
 | D-35 | Privacy is automatic by default: disposal on at the platform default retention, outbox redaction, data-request clock and posture evidence need no customer action. Supersedes the opt-in in D-10 | Privacy management is the value proposition; customers should not have to think about it |
 | D-36 | The notification outbox is redacted 30 days after delivery (`NOTIFICATION_REDACTION_DAYS`) | Recipient addresses, numbers and link tokens outlive their use otherwise |
+| D-37 | Registration documents are read on the platform by Tesseract and Poppler, with no third-party document or AI service, and the result is only ever a suggestion a person confirms | A founding statement names members and identity numbers; sending it to a subprocessor would add a disclosure and a transfer for a convenience |
 
 ---
 
