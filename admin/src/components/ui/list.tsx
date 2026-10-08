@@ -13,7 +13,7 @@ function List({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="list"
-      className={cn("overflow-hidden rounded-xl bg-card ring-1 ring-foreground/10", className)}
+      className={cn("overflow-hidden rounded-xl bg-card border border-[var(--elevation-2-border)]", className)}
       {...props}
     />
   );
