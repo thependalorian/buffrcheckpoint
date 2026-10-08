@@ -56,13 +56,16 @@ export class KybDocumentReaderService implements OnModuleInit {
     let paddle = false;
     if (process.env.KYB_PADDLE_OCR !== "false") {
       try {
+        // Loading the native bindings (not the models) proves the binaries were installed for this platform, which resolving the package does not.
         require.resolve("@gutenye/ocr-node");
+        require("onnxruntime-node");
+        require("sharp");
         paddle = true;
-      } catch {
-        paddle = false;
+      } catch (error) {
+        this.logger.warn(`PaddleOCR runtime cannot load: ${error instanceof Error ? error.message.split("\n")[0] : "unknown error"}`);
       }
     }
-    this.logger.log(`Document reader: tesseract and poppler ${tools ? "available" : "MISSING"}, paddleocr second reading ${paddle ? "installed" : "not installed"}`);
+    this.logger.log(`Document reader: tesseract and poppler ${tools ? "available" : "MISSING"}, paddleocr second reading ${paddle ? "ready" : "unavailable"}`);
   }
 
   read(buffer: Buffer, type: DetectedFileType): Promise<DocumentReadResult> {

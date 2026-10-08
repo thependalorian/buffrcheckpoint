@@ -1,4 +1,0 @@
-# Business verification reads uploaded registration documents on this server (OCR), so nothing leaves the platform.
-# tesseract reads the scan; poppler (pdftoppm, pdftotext) renders PDF pages. "..." keeps Nixpacks' default packages.
-[phases.setup]
-nixPkgs = ["...", "tesseract", "poppler_utils"]

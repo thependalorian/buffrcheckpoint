@@ -1,8 +1,10 @@
 # Buffr Checkpoint API — Railway deploy (buffrcheckpoint.md §32)
+# Railway builds this service with Railpack (the build log says so). OS packages for the runtime image, tesseract-ocr and poppler-utils
+# for reading uploaded registration documents, are listed in railpack.json.
 # https://docs.railway.app/guides/config-as-code
 
 [build]
-builder = "NIXPACKS"
+builder = "RAILPACK"
 buildCommand = "npm ci && npm run build"
 
 [deploy]
