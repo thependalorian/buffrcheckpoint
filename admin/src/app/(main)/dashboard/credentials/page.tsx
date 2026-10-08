@@ -61,7 +61,7 @@ export default async function CredentialsPage() {
                   colSpan={6}
                   title="No credentials issued yet"
                   action={<EmptyActionLink href="/dashboard/front-desk">Open the front desk</EmptyActionLink>}
-                  description="Section 12.2: a credential is a random server-issued reference, never a static NFC UID. Issue the first badge to a contractor or repeat visitor to get started."
+                  description="A credential is a random reference issued by the server, never a static NFC ID. Issue the first badge to a contractor or repeat visitor to get started."
                 />
               ) : (
                 credentials.map((credential) => (

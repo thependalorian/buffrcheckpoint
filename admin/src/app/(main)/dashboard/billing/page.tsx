@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { DashboardPageHeader } from "@/components/dashboard-page-header";
-import { DashboardErrorState } from "@/components/dashboard-state";
+import { DashboardErrorState, EmptyPanel } from "@/components/dashboard-state";
 import { api } from "@/lib/api/client";
 import { getCurrentUser } from "@/lib/auth/me";
 import { billingCopy, type CardPaymentResult } from "@/lib/copy/billing";
@@ -61,11 +61,11 @@ export default async function BillingPage({ searchParams }: { searchParams: Prom
       {error ? (
         <DashboardErrorState message={error} />
       ) : invoices.length === 0 ? (
-        <p className="text-muted-foreground text-sm">No invoices yet.</p>
+        <EmptyPanel title="No invoices yet" description="Your first invoice appears here once your plan is set up." />
       ) : (
         <div className="space-y-4">
           {invoices.map((invoice) => (
-            <div key={invoice.id} className="rounded-xl border border-border p-4">
+            <div key={invoice.id} className="bc-panel">
               <div className="flex items-center justify-between">
                 <div>
                   <Link href={`/dashboard/billing/${invoice.id}`} className="font-medium hover:underline">

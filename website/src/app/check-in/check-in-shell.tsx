@@ -12,7 +12,7 @@ type ShellProps = {
 /** Page frame for visitor check-in and sign-out: Checkpoint's own header and footer. Organisations do not customise it. */
 export function CheckInShell({ privacyNoticeSummary, label = "Visitor check-in", children }: ShellProps) {
   return (
-    <div className="flex min-h-dvh flex-col bg-background">
+    <div className="bc-visitor-shell flex min-h-dvh flex-col bg-background">
       <header className="border-b border-border bg-card">
         <div className="mx-auto flex h-14 max-w-lg items-center justify-between px-4">
           <a href="/" className="flex items-center gap-2 text-sm text-muted-foreground">

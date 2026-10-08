@@ -127,7 +127,9 @@ export default async function CustomerInvoiceDetailPage({ params }: { params: Pr
       <section>
         <h2 className="font-medium text-sm">Reconciliation</h2>
         {invoice.reconciliationLog.length === 0 ? (
-          <p className="mt-2 text-muted-foreground text-sm">Awaiting Buffr review of any POP you upload.</p>
+          <p className="mt-2 text-muted-foreground text-sm">
+            Awaiting Buffr review of any proof of payment you upload.
+          </p>
         ) : (
           <ul className="mt-2 space-y-1 text-sm">
             {invoice.reconciliationLog.map((r) => (

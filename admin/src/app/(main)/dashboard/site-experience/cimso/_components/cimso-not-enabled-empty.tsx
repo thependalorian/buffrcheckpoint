@@ -14,7 +14,7 @@ export function CimsoNotEnabledEmpty({
   capabilitiesHref = "/dashboard/site-experience/capabilities",
 }: CimsoNotEnabledEmptyProps) {
   return (
-    <div className="rounded-lg border bg-card p-8 text-center space-y-3">
+    <div className="space-y-3 rounded-lg border bg-card p-8 text-center">
       <p className="font-medium text-sm">CiMSO is not enabled for this organisation</p>
       <p className="text-muted-foreground text-sm">
         Platform status is <span className="capitalize">{platformStatus.replaceAll("_", " ")}</span>. Enable CiMSO

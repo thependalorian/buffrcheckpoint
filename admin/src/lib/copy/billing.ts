@@ -4,7 +4,7 @@ const CONTACT_EMAIL = process.env.NEXT_PUBLIC_CONTACT_EMAIL?.trim() || "team@buf
 
 export const billingCopy = {
   descriptionBankOnly:
-    "Invoices are settled by bank transfer to Buffr Financial Services CC — upload your proof of payment against the invoice below once paid. Go-live and operational dashboard use require an active or trial subscription after Buffr ops reviews your POP (and KYB).",
+    "Invoices are settled by bank transfer to Buffr Financial Services CC — upload your proof of payment against the invoice below once paid. Go-live and operational dashboard use require an active or trial subscription after Buffr reviews your proof of payment and business verification.",
   descriptionWithCard:
     "Pay each invoice by card on Adumo Online's secure page, or by bank transfer to Buffr Financial Services CC with your proof of payment uploaded below. Go-live and operational dashboard use require an active or trial subscription after Buffr ops confirms payment (and KYB).",
   bankTransfer: {

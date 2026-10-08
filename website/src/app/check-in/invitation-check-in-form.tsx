@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { apiBaseUrl, newClientId } from "@/lib/api";
+import { apiBaseUrl, friendlyError, newClientId } from "@/lib/api";
 
 type InvitationContext = {
   invitationId: string;
@@ -45,7 +45,7 @@ export function InvitationCheckInForm({ invitationToken }: Props) {
         if (!cancelled) setContext(data);
       } catch (error) {
         if (!cancelled) {
-          setLoadError(error instanceof Error ? error.message : "Could not load invitation.");
+          setLoadError(friendlyError(error, "Could not load invitation."));
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -78,7 +78,7 @@ export function InvitationCheckInForm({ invitationToken }: Props) {
       setDone(true);
       toast.success("Check-in recorded.");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Check-in failed.");
+      toast.error(friendlyError(error, "Check-in failed."));
     } finally {
       setSubmitting(false);
     }

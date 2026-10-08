@@ -17,15 +17,15 @@ function assuranceIcon(level: string) {
   if (!isIdentityAssuranceLevelCode(level)) return null;
   switch (level) {
     case "V0":
-      return <CircleCheckIcon className="fill-muted stroke-primary-foreground dark:fill-muted" />;
+      return <CircleCheckIcon className="fill-[var(--assurance-v0)] stroke-primary-foreground" />;
     case "V1":
-      return <CircleCheckIcon className="fill-blue-500 stroke-primary-foreground dark:fill-blue-600" />;
+      return <CircleCheckIcon className="fill-[var(--assurance-v1)] stroke-primary-foreground" />;
     case "V2":
-      return <CircleCheckIcon className="fill-green-500 stroke-primary-foreground dark:fill-green-600" />;
+      return <CircleCheckIcon className="fill-[var(--assurance-v2)] stroke-primary-foreground" />;
     case "V3":
-      return <CircleCheckIcon className="fill-purple-500 stroke-primary-foreground dark:fill-purple-600" />;
+      return <CircleCheckIcon className="fill-[var(--assurance-v3)] stroke-primary-foreground" />;
     case "V4":
-      return <CircleCheckIcon className="fill-amber-500 stroke-primary-foreground dark:fill-amber-600" />;
+      return <CircleCheckIcon className="fill-[var(--assurance-v4)] stroke-primary-foreground" />;
     default:
       return null;
   }
@@ -72,8 +72,8 @@ export const visitRosterColumns: ColumnDef<DataTableFeatures, VisitRosterRow>[] 
     accessorKey: "visitorDisplayName",
     header: "Visitor",
     cell: ({ row }) => (
-      <div className="flex items-center gap-2">
-        <span className="flex size-8 items-center justify-center rounded-md border bg-muted">
+      <div className="flex min-w-44 items-center gap-2">
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-md border bg-muted">
           <UserRound className="size-4 text-muted-foreground" />
         </span>
         <div className="min-w-0 flex-1">
@@ -116,7 +116,10 @@ export const visitRosterColumns: ColumnDef<DataTableFeatures, VisitRosterRow>[] 
     header: "Assurance",
     filterFn: "equalsString",
     cell: ({ row }) => (
-      <Badge variant="outline" className="px-1.5 text-muted-foreground">
+      <Badge
+        variant="outline"
+        className="h-auto max-w-56 gap-1.5 whitespace-normal px-1.5 py-0.5 text-left text-muted-foreground leading-tight"
+      >
         {assuranceIcon(row.original.assuranceLevelCode)}
         {identityAssuranceLevelLabel(row.original.assuranceLevelCode)}
       </Badge>
@@ -157,9 +160,7 @@ export const visitRosterColumns: ColumnDef<DataTableFeatures, VisitRosterRow>[] 
         variant="outline"
         className={cn(
           "px-1.5",
-          row.original.requiresAction
-            ? "border-warning/40 bg-warning-soft text-warning-ink"
-            : "text-muted-foreground",
+          row.original.requiresAction ? "border-warning/40 bg-warning-soft text-warning-ink" : "text-muted-foreground",
         )}
       >
         {row.original.requiresAction ? "Required" : "None"}

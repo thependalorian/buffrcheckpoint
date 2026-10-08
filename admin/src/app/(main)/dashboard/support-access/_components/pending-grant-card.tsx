@@ -39,7 +39,7 @@ export function PendingGrantCard({ grant }: { grant: PendingGrant }) {
       <div className="flex items-start justify-between gap-4">
         <div>
           <Badge variant="secondary">{REASON_LABELS[grant.reasonLabel] ?? grant.reasonLabel}</Badge>
-          <p className="mt-2 text-sm text-muted-foreground">
+          <p className="mt-2 text-muted-foreground text-sm">
             Buffr Checkpoint&apos;s internal support team is requesting time-boxed access to your organisation&apos;s
             account for support purposes — up to {hours} hours from approval, fully audited, never a standing
             credential.
@@ -47,7 +47,7 @@ export function PendingGrantCard({ grant }: { grant: PendingGrant }) {
         </div>
       </div>
 
-      {approveError ? <p className="mt-2 text-xs text-destructive">{approveError}</p> : null}
+      {approveError ? <p className="mt-2 text-destructive text-xs">{approveError}</p> : null}
 
       <div className="mt-4 flex gap-2">
         <Button
@@ -75,7 +75,7 @@ export function PendingGrantCard({ grant }: { grant: PendingGrant }) {
           <form action={denyAction} className="space-y-3">
             <input type="hidden" name="grantId" value={grant.id} />
             <Textarea name="reason" placeholder="Reason (optional, shared with Buffr Checkpoint support)" rows={3} />
-            {denyState?.error ? <p className="text-xs text-destructive">{denyState.error}</p> : null}
+            {denyState?.error ? <p className="text-destructive text-xs">{denyState.error}</p> : null}
             <DialogFooter>
               <Button type="submit" variant="destructive" disabled={denying} onClick={() => setDenyOpen(false)}>
                 {denying ? "Denying…" : "Deny request"}

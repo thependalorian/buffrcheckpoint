@@ -87,7 +87,7 @@ export function TableEmptyRow({
 }) {
   return (
     <TableRow className="hover:bg-transparent">
-      <TableCell colSpan={colSpan} className="p-10">
+      <TableCell colSpan={colSpan} className="whitespace-normal p-10">
         <div className="mx-auto flex max-w-sm flex-col items-center gap-2 text-center">
           <span
             aria-hidden
@@ -110,5 +110,29 @@ export function EmptyActionLink({ href, children }: { href: string; children: Re
     <Button asChild size="sm" variant="outline">
       <Link href={href}>{children}</Link>
     </Button>
+  );
+}
+
+/** The empty state for a page or section that is not a table: a quiet panel with an icon, one sentence and an optional next step. */
+export function EmptyPanel({
+  title,
+  description,
+  icon,
+  action,
+}: {
+  title: string;
+  description?: string;
+  icon?: ReactNode;
+  action?: ReactNode;
+}) {
+  return (
+    <div className="bc-panel flex flex-col items-center gap-2 py-10 text-center">
+      <span aria-hidden className="bc-icon-box size-9">
+        {icon ?? <Inbox className="size-4" />}
+      </span>
+      <p className="font-medium">{title}</p>
+      {description ? <p className="max-w-sm text-muted-foreground text-sm">{description}</p> : null}
+      {action ? <div className="mt-2">{action}</div> : null}
+    </div>
   );
 }

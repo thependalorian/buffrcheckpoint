@@ -30,7 +30,7 @@ export function PrintableQrPanel({
     <div className="flex flex-col gap-2 rounded-md border p-3 print:border-0">
       <p className="font-medium text-sm">{label}</p>
       {typeLabel ? <p className="text-muted-foreground text-xs">{typeLabel}</p> : null}
-      <p className="break-all font-mono text-xs text-muted-foreground">{url}</p>
+      <p className="break-all font-mono text-muted-foreground text-xs">{url}</p>
       {dataUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={dataUrl} alt={`QR for ${label}`} className="size-40" />

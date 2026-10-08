@@ -98,7 +98,7 @@ export function AuditLogTable({
               <TableEmptyRow
                 colSpan={4}
                 title="Nothing recorded yet"
-                description="This is the hash-linked, append-only chain (Section 11.2). It fills the moment anyone performs a sensitive read, export, correction, or role change."
+                description="This log is hash-linked and append-only. It fills as soon as anyone performs a sensitive read, export, correction or role change."
               />
             ) : (
               events.map((event) => (

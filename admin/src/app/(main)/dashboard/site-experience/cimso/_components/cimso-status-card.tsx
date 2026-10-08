@@ -7,7 +7,7 @@ interface CimsoStatusCardProps {
 
 export function CimsoStatusCard({ statusCode, transportConfigured, afterNdaRequired, notes }: CimsoStatusCardProps) {
   return (
-    <div className="rounded-lg border bg-card p-4 space-y-3">
+    <div className="space-y-3 rounded-lg border bg-card p-4">
       <div className="grid gap-2 sm:grid-cols-3">
         <div>
           <p className="text-muted-foreground text-xs">Connection status</p>

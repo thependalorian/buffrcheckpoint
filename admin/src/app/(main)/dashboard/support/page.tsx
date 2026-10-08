@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { DashboardPageHeader } from "@/components/dashboard-page-header";
-import { DashboardErrorState } from "@/components/dashboard-state";
+import { DashboardErrorState, EmptyPanel } from "@/components/dashboard-state";
 import { Badge } from "@/components/ui/badge";
 import { List, ListRow } from "@/components/ui/list";
 import { api } from "@/lib/api/client";
@@ -73,13 +73,13 @@ export default async function SupportPage() {
               ))}
             </List>
           ) : (
-            <p className="text-muted-foreground text-sm">No tickets yet.</p>
+            <EmptyPanel title="No tickets yet" description="Open a ticket below and Buffr support will reply here." />
           )}
 
-          <div>
-            <h2 className="mb-2 font-medium text-sm">Open a new ticket</h2>
+          <section className="bc-panel space-y-4">
+            <h2>Open a new ticket</h2>
             <CreateTicketForm />
-          </div>
+          </section>
         </>
       )}
     </div>

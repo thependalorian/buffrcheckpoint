@@ -60,11 +60,9 @@ export function NoticeEditor({ kind, sites, initial }: Props) {
   }
 
   return (
-    <section className="space-y-4 rounded-lg border border-border p-4" aria-labelledby={`${fieldId}-heading`}>
+    <section className="bc-panel space-y-4" aria-labelledby={`${fieldId}-heading`}>
       <div>
-        <h2 id={`${fieldId}-heading`} className="font-medium text-lg">
-          {section.heading}
-        </h2>
+        <h2 id={`${fieldId}-heading`}>{section.heading}</h2>
         <p className="text-muted-foreground text-sm">{section.help}</p>
       </div>
       <div className="space-y-1">

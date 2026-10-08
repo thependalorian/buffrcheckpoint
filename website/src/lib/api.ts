@@ -43,3 +43,14 @@ export function newClientId(): string {
     return v.toString(16);
   });
 }
+
+const NETWORK_FAILURE = /failed to fetch|networkerror|load failed|network request failed|fetch failed/i;
+
+/** A message safe to show a visitor: network failures never expose browser or host details. */
+export function friendlyError(error: unknown, fallback: string): string {
+  if (!(error instanceof Error)) return fallback;
+  if (error instanceof TypeError || NETWORK_FAILURE.test(error.message)) {
+    return "We could not reach Checkpoint. Check your connection and try again.";
+  }
+  return error.message || fallback;
+}

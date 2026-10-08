@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { apiBaseUrl, newClientId } from "@/lib/api";
+import { apiBaseUrl, friendlyError, newClientId } from "@/lib/api";
 import { isFieldRequired, isFieldVisible } from "@/lib/form-rules";
 import { AnalyticsEvents, track } from "@/lib/observability/track";
 
@@ -115,7 +115,7 @@ export function CheckInForm({ siteId, referenceId, initialLanguageCode = "en" }:
   const [purposeCategoryCode, setPurposeCategoryCode] = useState("");
   const [privacyAcknowledged, setPrivacyAcknowledged] = useState(false);
   const [effectiveForm, setEffectiveForm] = useState<EffectiveForm | null>(null);
-  const [extraAnswers, setExtraAnswers] = useState<Record<string, string>>({});
+  const [extraAnswers, _setExtraAnswers] = useState<Record<string, string>>({});
   const [fieldAnswers, setFieldAnswers] = useState<Record<string, string>>({});
   const [languageCode, setLanguageCode] = useState(() => {
     const code = initialLanguageCode.trim().toLowerCase();
@@ -158,7 +158,7 @@ export function CheckInForm({ siteId, referenceId, initialLanguageCode = "en" }:
         }
       } catch (error) {
         if (!cancelled) {
-          setLoadError(error instanceof Error ? error.message : "Unable to load check-in.");
+          setLoadError(friendlyError(error, "Unable to load check-in."));
           track(AnalyticsEvents.checkInContextFailed);
         }
       } finally {
@@ -363,7 +363,7 @@ export function CheckInForm({ siteId, referenceId, initialLanguageCode = "en" }:
       toast.success(`Checked in. Wait for ${hostName} at reception.`);
     } catch (error) {
       track(AnalyticsEvents.checkInFailed, { visitor_type_code: visitorTypeCode });
-      toast.error(error instanceof Error ? error.message : "Check-in failed.");
+      toast.error(friendlyError(error, "Check-in failed."));
       submitLockRef.current = false;
     } finally {
       setSubmitting(false);

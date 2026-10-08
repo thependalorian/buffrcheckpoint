@@ -81,7 +81,7 @@ export function CimsoConnectionsTable({ connections }: CimsoConnectionsTableProp
               connections.map((row) => (
                 <TableRow key={row.id}>
                   <TableCell className="p-3 font-medium">{row.siteName ?? row.siteId}</TableCell>
-                  <TableCell className="p-3 capitalize text-sm">
+                  <TableCell className="p-3 text-sm capitalize">
                     {row.statusCode.replaceAll("_", " ")}
                     {row.credentialsConfigured ? null : (
                       <span className="block text-muted-foreground text-xs">Secret not in env</span>

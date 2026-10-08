@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import Link from "next/link";
 
+import { StatusChip, type StatusTone } from "@/components/status-chip";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
@@ -19,6 +20,12 @@ interface CapabilityRow {
 
 interface CapabilityEnablementPanelProps {
   capabilities: CapabilityRow[];
+}
+
+function platformTone(status: string): StatusTone {
+  if (status === "live") return "success";
+  if (status === "targeted") return "warning";
+  return "info";
 }
 
 function canOrgEnable(code: string, platformStatus: string): boolean {
@@ -48,7 +55,7 @@ export function CapabilityEnablementPanel({ capabilities }: CapabilityEnablement
 
   return (
     <div className="space-y-3">
-      {error ? <p className="text-sm text-destructive">{error}</p> : null}
+      {error ? <p className="text-destructive text-sm">{error}</p> : null}
       <div className="overflow-hidden rounded-lg border bg-card">
         <Table>
           <TableHeader className="bg-muted/15">
@@ -62,7 +69,11 @@ export function CapabilityEnablementPanel({ capabilities }: CapabilityEnablement
             {capabilities.map((capability) => (
               <TableRow key={capability.code}>
                 <TableCell className="p-3 font-medium">{capability.label}</TableCell>
-                <TableCell className="p-3 capitalize">{capability.platformStatus.replaceAll("_", " ")}</TableCell>
+                <TableCell className="p-3">
+                  <StatusChip tone={platformTone(capability.platformStatus)}>
+                    {capability.platformStatus.replaceAll("_", " ")}
+                  </StatusChip>
+                </TableCell>
                 <TableCell className="p-3">
                   {canOrgEnable(capability.code, capability.platformStatus) ? (
                     <div className="flex flex-wrap items-center gap-2">
@@ -86,7 +97,7 @@ export function CapabilityEnablementPanel({ capabilities }: CapabilityEnablement
                       ) : null}
                     </div>
                   ) : (
-                    <span className="text-sm text-muted-foreground">Not available at platform level</span>
+                    <span className="text-muted-foreground text-sm">Not available at platform level</span>
                   )}
                 </TableCell>
               </TableRow>

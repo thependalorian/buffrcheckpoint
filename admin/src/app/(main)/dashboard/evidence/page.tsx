@@ -49,7 +49,7 @@ export default async function EvidencePacksPage() {
                   colSpan={4}
                   title="No evidence packs generated yet"
                   action={<EmptyActionLink href="/dashboard/reports">Open reports</EmptyActionLink>}
-                  description="A generated pack bundles the current RBAC matrix, retention-policy report, and audit-log extract (Section 20.2) into one exportable record. Add a date range to also include a visitor-access extract for that period. Use the button above to generate the first one."
+                  description="A pack bundles the current access matrix, retention policy report and audit log extract into one exportable record. Add a date range to include the visitor access extract for that period, then generate the first one."
                 />
               ) : (
                 packs.map((pack) => (

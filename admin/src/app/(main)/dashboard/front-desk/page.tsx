@@ -58,9 +58,7 @@ export default async function FrontDeskPage() {
               </ul>
             </div>
           ) : null}
-          <div className="bc-panel p-0! overflow-hidden">
-            <VisitRosterTable data={rows} />
-          </div>
+          <VisitRosterTable data={rows} />
         </>
       )}
     </div>

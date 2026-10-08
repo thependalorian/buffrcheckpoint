@@ -87,7 +87,7 @@ export function SiteExperienceFormSheet({
               <FieldControl field={field} />
             </div>
           ))}
-          {error ? <p className="text-sm text-destructive">{error}</p> : null}
+          {error ? <p className="text-destructive text-sm">{error}</p> : null}
           <Button type="submit" disabled={isPending || missingRequiredSite} className="w-full">
             {isPending ? "Saving…" : "Save and publish"}
           </Button>

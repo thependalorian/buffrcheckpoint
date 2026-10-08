@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { apiBaseUrl } from "@/lib/api";
+import { apiBaseUrl, friendlyError } from "@/lib/api";
 import { signOutLinkCopy } from "@/lib/copy/check-out";
 import { AnalyticsEvents, track } from "@/lib/observability/track";
 
@@ -78,7 +78,7 @@ export default function CheckOutClient() {
       toast.success(data.message ?? "Signed out.");
     } catch (error) {
       track(AnalyticsEvents.checkOutFailed);
-      toast.error(error instanceof Error ? error.message : "Sign-out failed.");
+      toast.error(friendlyError(error, "Sign-out failed."));
     } finally {
       setSubmitting(false);
     }

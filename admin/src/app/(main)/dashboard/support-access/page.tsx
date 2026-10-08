@@ -1,5 +1,5 @@
 import { DashboardPageHeader } from "@/components/dashboard-page-header";
-import { DashboardErrorState } from "@/components/dashboard-state";
+import { DashboardErrorState, EmptyPanel } from "@/components/dashboard-state";
 import { api } from "@/lib/api/client";
 import { getCurrentUser } from "@/lib/auth/me";
 
@@ -43,7 +43,10 @@ export default async function SupportAccessPage() {
       {error ? (
         <DashboardErrorState message={error} />
       ) : grants.length === 0 ? (
-        <p className="text-muted-foreground text-sm">No pending requests.</p>
+        <EmptyPanel
+          title="No pending requests"
+          description="Support access requests from Buffr appear here for your approval."
+        />
       ) : (
         <div className="space-y-4">
           {grants.map((grant) => (
@@ -53,9 +56,9 @@ export default async function SupportAccessPage() {
       )}
 
       <div className="space-y-3">
-        <h2 className="font-medium text-lg">Past approvals and sessions</h2>
+        <h2>Past approvals and sessions</h2>
         {history.length === 0 ? (
-          <p className="text-muted-foreground text-sm">No decided support-access requests yet.</p>
+          <EmptyPanel title="No past requests" description="Approved and declined requests are kept here." />
         ) : (
           <GrantHistory rows={history} />
         )}
