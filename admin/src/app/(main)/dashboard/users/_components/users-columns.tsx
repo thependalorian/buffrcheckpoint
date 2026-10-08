@@ -6,7 +6,6 @@ import { Check, Clock, X } from "lucide-react";
 import { ChangeUserRoleSheet } from "@/app/(main)/dashboard/_components/policy-create-sheets";
 import { StatusChip } from "@/components/status-chip";
 import { Avatar, AvatarBadge, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { DataTableFeatures } from "@/lib/data-table-features";
 import { cn, getInitials } from "@/lib/utils";

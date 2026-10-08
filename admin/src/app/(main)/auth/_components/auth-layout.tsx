@@ -45,7 +45,7 @@ export function AuthLayout({ children }: { children: ReactNode }) {
             {APP_CONFIG.name}
           </span>
           <div className="space-y-6">
-            <h1 className="text-balance font-heading font-light text-3xl leading-tight">{authPanelCopy.headline}</h1>
+            <h1 className="bc-display text-balance font-heading">{authPanelCopy.headline}</h1>
             <ul className="space-y-3 text-muted-foreground text-sm">
               {authPanelCopy.capabilities.map((item) => (
                 <li key={item} className="flex items-start gap-2">

@@ -1,4 +1,5 @@
 import { InviteUserSheet } from "@/app/(main)/dashboard/_components/policy-create-sheets";
+import { DashboardPageHeader } from "@/components/dashboard-page-header";
 import { DashboardErrorState } from "@/components/dashboard-state";
 import { api } from "@/lib/api/client";
 
@@ -55,14 +56,12 @@ export default async function Page() {
 
   if (error) return <DashboardErrorState message={error} />;
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3 px-4 pt-4">
-        <p className="max-w-xl text-muted-foreground text-sm">
-          Invite teammates into roles from your organisation catalogue. Owner-Operator covers front desk and site admin
-          on small teams. Split roles when your team grows.
-        </p>
-        <InviteUserSheet roles={roles} sites={sites} />
-      </div>
+    <div className="space-y-6">
+      <DashboardPageHeader
+        title="Users"
+        description="Invite teammates into roles from your organisation catalogue. Owner-Operator covers front desk and site admin on small teams. Split roles when your team grows."
+        action={<InviteUserSheet roles={roles} sites={sites} />}
+      />
       <Users users={users} roles={roles} sites={sites} />
     </div>
   );

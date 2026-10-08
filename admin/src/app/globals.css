@@ -138,3 +138,31 @@ body {
 .disable-transitions * {
   transition: none !important;
 }
+
+/* Product screens use the working type scale and no marketing section padding. The preset's display scale and 6rem section
+   padding belong to the public site; here headings lead without shouting and sections sit tight. */
+[data-theme-preset="buffr-checkpoint"] section {
+  padding-top: 0;
+  padding-bottom: 0;
+}
+[data-theme-preset="buffr-checkpoint"] h1 {
+  font-size: clamp(1.5rem, 2.4vw, 2rem);
+  line-height: 1.2;
+  font-weight: 400;
+}
+[data-theme-preset="buffr-checkpoint"] h2 {
+  font-size: 1.125rem;
+  line-height: 1.35;
+  font-weight: 500;
+}
+[data-theme-preset="buffr-checkpoint"] h3 {
+  font-size: 1rem;
+  line-height: 1.4;
+  font-weight: 500;
+}
+/* Opt-in display size for the sign-in panel headline. */
+[data-theme-preset="buffr-checkpoint"] h1.bc-display {
+  font-size: clamp(2.25rem, 3.2vw, 3rem);
+  line-height: 1.1;
+  font-weight: 300;
+}
