@@ -1140,6 +1140,25 @@ Researched 2026-10-08 by reading this codebase and public sources. The code fact
 
 What is left is not code: register the domain in Search Console and submit the sitemap, create a Google Business Profile once there is a public Windhoek address, and measure Core Web Vitals from the Search Console report once it has field data. What actually moves ranking for a new B2B product in Namibia is, in this order: pages that answer what buyers ask (data protection for visitor records, the draft Bill, how to run a visitor log), links from Namibian business and technology publications and directories, a complete local profile, and a fast site. Meta tags alone move nothing, and no ranking can be promised.
 
+### 17.7 Cloudflare: what it is for here
+
+Read from Cloudflare's own documentation index on 2026-10-08 (developers.cloudflare.com). Cloudflare is a network and edge platform, not a database, so it complements Neon and the API hosts and does not replace them.
+
+| Cloudflare product | Use here | Why |
+|---|---|---|
+| **Turnstile** | **Yes, now** | Free challenge that can be embedded without sending traffic through Cloudflare, WCAG 2.2 AA, processes only what the challenge needs. It is the bot defence of §17.6 and makes Cloudflare a named provider |
+| **R2 object storage** | **Yes, as the off-platform backup**, not as the store | S3 compatible, no egress fee. Neon stays the system of record; a nightly dump is encrypted on our side before upload, so R2 holds ciphertext only, and kept for 30 days, in an EU jurisdiction bucket. It puts a copy of the data with a second company, which the 14-day Neon snapshots (§16.3) do not |
+| Access (Cloudflare One) | Option for the ops console | A second login layer in front of staff pages only; needs that one hostname proxied through Cloudflare, which carries staff traffic and no visitor data |
+| DNS, CDN, WAF, DDoS | Not now | Vercel and Railway already terminate TLS and absorb basic attacks. Proxying the product hostnames would put all traffic, including visitor data in transit, through a second provider, and the Data Localization Suite that lets a customer choose where Cloudflare inspects it is Enterprise-only |
+| Web Analytics | Option | Free and cookieless; could stand in for part of what PostHog is used for |
+| Secrets Store | No | Open beta and works only with Workers and AI Gateway, so Railway and Vercel apps cannot read it |
+| Key wrapping or a key service | Not offered | Cloudflare has no service that wraps data keys, so §14.3 key management is still an open owner decision |
+| D1, Durable Objects, KV, Queues, Workers, Pages, Containers | No | Rebuilding on a different platform and a different database (D1 is SQLite) for no gain: the schema, migrations, hash-chained audit and Drizzle code are Postgres |
+| Hyperdrive | No | Speeds up queries to an existing Postgres (Neon is supported) but only from Workers; the API is not a Worker |
+| Email Service, Images, Stream, Vectorize, AI, AI Gateway, Agents, Browser Run, Zaraz | No | Not needed; each would add a provider that handles data |
+
+"Neon as a replica" of Cloudflare data does not apply, because Cloudflare has no Postgres to replicate from. The useful direction is the reverse: Neon is primary and Cloudflare holds an encrypted copy. Decisions: add Cloudflare (Turnstile, and R2 for backups) to the provider list before use (§31 item 23); the backup key is generated and held by the owner, offline, and never in a repository.
+
 ## 18. Namibia Data Protection Bill
 
 ### 18.1 Status and how to cite it
@@ -1920,7 +1939,7 @@ Items only the owner, counsel or a named third party can close.
 20. **Business verification schema sign-off.** Migration 0071 adds `organisation_kyb_document` and `organisation_kyb_document_status_events` and six columns on the verification tables. They follow the schema rules (type_definition for every list, a status log created with the table, tenant column first in every index, no trigger or cascade) but are proposals under §14.1 rule 9 until signed off.
 21. **Registry check and larger uploads.** Whether to seek a data arrangement with BIPA so a registration can be checked automatically; and whether to add direct browser-to-API uploads (a short-lived upload token) so files above the 4.4 MB the admin proxy allows can be sent.
 22. **Scope of business verification.** Confirm that onboarding verification stays at the owner's required set of §7.5 (BIPA registration, owners with contact details, bank letter, owner identity documents, proof of address; 74.5 percent of the BIPA dictionary), and that the BO1-level personal particulars and AML screening of §7.5 stay out. If a customer segment needs them (a regulated customer asking Checkpoint to evidence its own KYB), they belong in a separate product with its own schema and consent, not as extra fields here.
-23. **Subprocessors for abuse defence and passwords.** Approve Cloudflare (Turnstile) and the Have I Been Pwned range lookup as named subprocessors, add them to the Privacy Policy and the register, The 12 character minimum applies from the next time a password is chosen, so existing accounts are untouched until then; say if you would rather prompt everyone at their next sign-in (§17.6).
+23. **Subprocessors for abuse defence and passwords.** Approve Cloudflare (Turnstile, and R2 for encrypted backups, §17.7) and the Have I Been Pwned range lookup as named subprocessors, add them to the Privacy Policy and the register, The 12 character minimum applies from the next time a password is chosen, so existing accounts are untouched until then; say if you would rather prompt everyone at their next sign-in (§17.6).
 
 ---
 
