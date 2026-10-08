@@ -54,9 +54,12 @@ export const kybCopy = {
     incorporatedOn: "Date registered (optional)",
     incorporatedOnHelp: "Year-month-day, for example 2024-10-28.",
     members: "Members and ownership",
-    membersHelp: "Each member's name and share. Add the identity number only if you want it on file.",
+    membersHelp:
+      "Every owner: their name, share, phone number and email. Add the identity number if you have it. A company also lists its directors.",
     memberName: "Full name",
     memberRole: "Role",
+    memberPhone: "Phone number",
+    memberEmail: "Email address",
     memberJuristic: "This is a company or corporation",
     memberRegistration: "Its registration number",
     memberPercentage: "Share (%)",
@@ -75,7 +78,7 @@ export const kybCopy = {
     resend: "Send the corrected details",
     sending: "Sending",
     fixFirst: "Fix the highlighted details first.",
-    needDocument: "Upload your founding statement or registration certificate first.",
+    needDocument: "Upload every required document in the list above first.",
   },
   status: {
     none: "Not started",
@@ -91,7 +94,7 @@ export const kybCopy = {
   },
   checklist: {
     heading: "What we will need",
-    help: "The first item is required. The others are asked for when your ownership calls for them, so you can send them now and avoid a second round.",
+    help: "Everything marked required must be uploaded before you can send for review. The others are asked for when your ownership calls for them, so you can send them now and avoid a second round.",
     required: "Required",
     asked: "Requested",
     done: "On file",

@@ -25,7 +25,7 @@ export interface KybDocumentView {
   uploadedAt: string;
   reading: "not_applicable" | "reading" | "read" | "not_read";
   suggestions: Record<string, { value: string; confidence: string }>;
-  members: Array<{ fullName: string; percentage: number | null; identityNumber?: string }>;
+  members: Array<{ fullName: string; percentage: number | null; identityNumber?: string; email?: string }>;
 }
 
 export interface KybMemberValue {
@@ -35,6 +35,8 @@ export interface KybMemberValue {
   registrationNumber?: string;
   identityNumber?: string;
   percentage?: number;
+  phone?: string;
+  email?: string;
 }
 
 export interface KybChecklistItem {
@@ -43,6 +45,8 @@ export interface KybChecklistItem {
   blocking: boolean;
   satisfied: boolean;
   reason: string;
+  needed?: number;
+  have?: number;
 }
 
 export interface KybValues {

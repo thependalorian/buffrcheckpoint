@@ -63,6 +63,8 @@ export interface KybReview {
     registrationNumber?: string;
     identityNumber?: string;
     percentage?: number | null;
+    phone?: string;
+    email?: string;
   }>;
   ownership: {
     owners: Array<{ fullName: string; percentage: number; juristic: boolean; atBipa: boolean; atFia: boolean }>;
@@ -78,6 +80,7 @@ export interface KybReview {
   documents: ReviewDocument[];
   proofAccepted: boolean;
   canVerify: boolean;
+  approvalBlockers: string[];
   history: Array<{ at: string; status: string; note: string; flaggedFields: string[] }>;
 }
 
@@ -110,6 +113,7 @@ export function ReviewPanel({ review }: { review: KybReview }) {
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState("");
   const [flagged, setFlagged] = useState<Set<string>>(new Set());
+  const [registryChecked, setRegistryChecked] = useState(false);
   const [rejecting, setRejecting] = useState<string | null>(null);
   const [rejectNote, setRejectNote] = useState("");
 
@@ -125,6 +129,7 @@ export function ReviewPanel({ review }: { review: KybReview }) {
         decision,
         note || undefined,
         decision === "needs_info" ? [...flagged] : undefined,
+        decision === "verified" ? registryChecked : undefined,
       );
       if (result.error) return setError(result.error);
       router.refresh();
@@ -159,7 +164,7 @@ export function ReviewPanel({ review }: { review: KybReview }) {
         ? review.members
             .map(
               (m) =>
-                `${m.fullName}${m.role ? `, ${m.role.replace("_", " ")}` : ""}${m.isJuristic ? ` (company ${m.registrationNumber ?? ""})` : ""}${m.percentage != null ? `, ${m.percentage}%` : ""}${m.identityNumber ? `, ID ${m.identityNumber}` : ""}`,
+                `${m.fullName}${m.role ? `, ${m.role.replace("_", " ")}` : ""}${m.isJuristic ? ` (company ${m.registrationNumber ?? ""})` : ""}${m.percentage != null ? `, ${m.percentage}%` : ""}${m.identityNumber ? `, ID ${m.identityNumber}` : ""}${m.phone ? `, ${m.phone}` : ""}${m.email ? `, ${m.email}` : ""}`,
             )
             .join("; ")
         : "None given";
@@ -365,8 +370,20 @@ export function ReviewPanel({ review }: { review: KybReview }) {
             onChange={(e) => setNote(e.target.value)}
             placeholder="A message to the organisation: what to correct or add. Required to ask for information or to reject."
           />
+          <label className="flex items-start gap-2 text-sm">
+            <input
+              type="checkbox"
+              className="mt-1"
+              checked={registryChecked}
+              onChange={(e) => setRegistryChecked(e.target.checked)}
+            />
+            <span>
+              I checked the registration number <strong>{review.businessRegistrationNumber}</strong> on the BIPA
+              register and it is the business named above. Approval needs this: there is no automatic check.
+            </span>
+          </label>
           <div className="flex flex-wrap gap-2">
-            <Button disabled={pending || !review.canVerify} onClick={() => decide("verified")}>
+            <Button disabled={pending || !review.canVerify || !registryChecked} onClick={() => decide("verified")}>
               Approve
             </Button>
             <Button
@@ -388,7 +405,7 @@ export function ReviewPanel({ review }: { review: KybReview }) {
             <p className="text-muted-foreground text-xs">
               {review.issues.some((i) => i.severity === "error")
                 ? "Approval is held until the highlighted errors are corrected."
-                : "Accept at least one registration document (founding statement or certificate) to enable approval."}
+                : `Accept these documents to enable approval: ${review.approvalBlockers.join("; ")}.`}
             </p>
           ) : null}
           {error ? <p className="text-destructive text-sm">{error}</p> : null}

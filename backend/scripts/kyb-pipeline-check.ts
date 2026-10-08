@@ -83,7 +83,7 @@ async function main() {
     authorizedSignatoryName: view.members[0]?.fullName ?? process.env.SIGNATORY ?? "Test Signatory",
     principalBusiness: view.suggestions.principalBusiness?.value,
     financialYearEnd: view.suggestions.financialYearEnd?.value,
-    members: view.members.map((m) => ({ fullName: m.fullName, percentage: m.percentage ?? undefined })),
+    members: view.members.map((m) => ({ fullName: m.fullName, role: "member", percentage: m.percentage ?? undefined, phone: "+264 81 123 4567", email: m.email ?? "owner@example.example" })),
     fieldSources: { registeredBusinessName: "document" },
   };
   await service
@@ -91,14 +91,24 @@ async function main() {
     .then(() => check("refuses a post office box as registered office", false))
     .catch((e) => check("refuses a post office box as registered office", /post office box/i.test(JSON.stringify(e.getResponse?.() ?? e.message))));
 
+  // The pack is incomplete until every required document is uploaded.
+  await service
+    .submit(good, customer)
+    .then(() => check("refuses a submission missing the bank letter, owner identity and proof of address", false))
+    .catch((e) => check("refuses a submission missing the bank letter, owner identity and proof of address", /Still needed: Bank confirmation letter/.test(JSON.stringify(e.getResponse?.() ?? e.message))));
+  const filler = Buffer.concat([Buffer.from("%PDF-1.4\n"), Buffer.alloc(2048, 32)]);
+  const extra: Record<string, string> = {};
+  for (const type of ["bank_confirmation_letter", "certified_id_copy", "proof_of_address"]) {
+    extra[type] = (await service.uploadDocument(ORG_ID as string, customer, { buffer: filler, originalname: `${type}.pdf` }, type)).id;
+  }
   const first = await service.submit(good, customer);
   check("accepts a valid submission", Boolean(first.id));
 
   // 4. Cannot approve before a document is accepted.
   await service
-    .decide(first.id, "verified", ops)
-    .then(() => check("blocks approval before a document is accepted", false))
-    .catch((e) => check("blocks approval before a document is accepted", /Accept at least one registration document/.test(e.message)));
+    .decide(first.id, "verified", ops, undefined, undefined, true)
+    .then(() => check("blocks approval before any document is accepted", false))
+    .catch((e) => check("blocks approval before any document is accepted", /Cannot approve yet\. Accept: Proof of registration/.test(e.message)));
 
   // 5. Send it back naming a field, then the organisation resubmits and the old one is replaced.
   await service.decide(first.id, "needs_info", ops, "Please confirm the registration number against the stamp.", ["businessRegistrationNumber"]);
@@ -117,7 +127,16 @@ async function main() {
   console.log("  comparison:", JSON.stringify(review2.comparison.map((c) => `${c.field}:${c.result}`)));
   check("review shows how the details compare with the document", review2.comparison.length === 3);
   await service.decideDocument(uploaded.id, "accepted", ops);
-  const verified = await service.decide(second.id, "verified", ops);
+  await service
+    .decide(second.id, "verified", ops, undefined, undefined, true)
+    .then(() => check("blocks approval until every required document is accepted", false))
+    .catch((e) => check("blocks approval until every required document is accepted", /Accept: .*Bank confirmation letter/.test(e.message), e.message.slice(0, 120)));
+  for (const id of Object.values(extra)) await service.decideDocument(id, "accepted", ops);
+  await service
+    .decide(second.id, "verified", ops)
+    .then(() => check("requires the registry check to be confirmed", false))
+    .catch((e) => check("requires the registry check to be confirmed", /BIPA register/.test(e.message)));
+  const verified = await service.decide(second.id, "verified", ops, undefined, undefined, true);
   check("approves once a document is accepted", Boolean(verified?.verifiedAt));
   check("organisation counts as verified", await service.isVerified(ORG_ID as string));
   // Decision emails go to the organisation's owners; a test organisation may have none, so only the acknowledgement is certain.

@@ -50,7 +50,11 @@ const MESSAGES = {
   phoneShape: "This phone number does not look right. Use digits, with the country code if it is not a Namibian number.",
   tinShape: "A tax number uses letters and digits only, between 5 and 20 characters.",
   dateShape: "Enter the date as year-month-day, and not in the future.",
-  peopleMissing: "Add the people behind the business: the members of a close corporation, or the directors of a company.",
+  peopleMissing: "Add the people behind the business: the owners, and for a company its directors.",
+  ownersMissing: "Add at least one owner: a member of a close corporation, a shareholder of a company, or the proprietor.",
+  percentageRequired: "Give each owner's share, so we can tell who counts as an owner.",
+  ownerPhoneRequired: "Give each owner's phone number.",
+  ownerEmailRequired: "Give each owner's email address.",
   postalShort: "The postal address looks too short.",
   percentageRange: "A percentage must be between 0 and 100.",
   percentageTotal: "The members' percentages should add up to 100.",
@@ -162,18 +166,22 @@ export interface MemberInput {
   registrationNumber?: string;
   identityNumber?: string;
   percentage?: number | null;
+  phone?: string;
+  email?: string;
 }
 
 /** Roles that hold an interest in the business. */
 const OWNERSHIP_ROLES = ["member", "shareholder"];
 
+/**
+ * Who is behind the business (owner decision 2026-10-08): every business names its owners, with each owner's share, phone number and
+ * email. A company also names its directors. Owners are members and shareholders (or a person with no role given).
+ */
 export function validateMembers(members: MemberInput[] | undefined, entityType?: string | null): FieldIssue[] {
-  if (!members || members.length === 0) {
-    return entityType === "close_corporation" || entityType === "private_company" || entityType === "public_company"
-      ? [warn("members", "peopleMissing")]
-      : [];
-  }
+  void entityType;
+  if (!members || members.length === 0) return [err("members", "peopleMissing")];
   const issues: FieldIssue[] = [];
+  const isOwner = (m: MemberInput) => !m.role || OWNERSHIP_ROLES.includes(m.role);
   members.forEach((m, i) => {
     if (m.role && !(PARTY_ROLES as readonly string[]).includes(m.role)) issues.push(err(`members.${i}.role`, "roleUnknown"));
     if (m.isJuristic) {
@@ -184,8 +192,16 @@ export function validateMembers(members: MemberInput[] | undefined, entityType?:
       if (m.identityNumber) issues.push(...validateNamibianId(m.identityNumber, `members.${i}.identityNumber`).issues);
     }
     if (m.percentage != null && (m.percentage < 0 || m.percentage > 100)) issues.push(err(`members.${i}.percentage`, "percentageRange"));
+    if (isOwner(m)) {
+      if (m.percentage == null) issues.push(err(`members.${i}.percentage`, "percentageRequired"));
+      if (!(m.phone ?? "").trim()) issues.push(err(`members.${i}.phone`, "ownerPhoneRequired"));
+      if (!(m.email ?? "").trim()) issues.push(err(`members.${i}.email`, "ownerEmailRequired"));
+    }
+    issues.push(...validatePhone(m.phone, `members.${i}.phone`));
+    issues.push(...validateEmail(m.email ?? "", `members.${i}.email`));
   });
-  const owners = members.filter((m) => !m.role || OWNERSHIP_ROLES.includes(m.role));
+  const owners = members.filter(isOwner);
+  if (owners.length === 0) issues.push(err("members", "ownersMissing"));
   if (entityType === "close_corporation" && owners.length > 0 && owners.every((m) => m.percentage != null)) {
     const total = owners.reduce((sum, m) => sum + (m.percentage ?? 0), 0);
     if (Math.abs(total - 100) > 0.01) issues.push(warn("members", "percentageTotal"));

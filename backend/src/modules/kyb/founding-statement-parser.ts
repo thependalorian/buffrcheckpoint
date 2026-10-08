@@ -15,6 +15,8 @@ export interface ExtractedMember {
   percentage: number | null;
   /** Read from a second engine that is better at digits; low confidence, a person confirms it. */
   identityNumber?: string;
+  /** The email written in the member's block. */
+  email?: string;
 }
 
 export interface ExtractedRegistration {
@@ -93,6 +95,27 @@ function nearbyRegistrationNumbers(all: string[], now = new Date()): string[] {
     }
   }
   return found;
+}
+
+function editDistance(a: string, b: string): number {
+  const row = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    let prev = row[0];
+    row[0] = i;
+    for (let j = 1; j <= b.length; j++) {
+      const tmp = row[j];
+      row[j] = Math.min(row[j] + 1, row[j - 1] + 1, prev + (a[i - 1] === b[j - 1] ? 0 : 1));
+      prev = tmp;
+    }
+  }
+  return row[b.length];
+}
+
+/** The second reading is better at emails: when it has one within two characters of the first reading's, take it. */
+function betterEmail(first: string, precise: string): string {
+  const candidates = [...precise.matchAll(/[^\s@:]+@[^\s@]+\.[A-Za-z]{2,}/g)].map((m) => m[0].toLowerCase());
+  const close = candidates.find((c) => editDistance(c, first) <= 2);
+  return close ?? first;
 }
 
 /** Identity numbers written in the boxes of a members page: a line with the label and then exactly 11 digits. */
@@ -192,7 +215,16 @@ export function parseRegistrationText(text: string, precise?: string): Extracted
       }
     }
     seen.add(memberName);
-    result.members.push({ fullName: memberName, percentage });
+    const member: ExtractedMember = { fullName: memberName, percentage };
+    for (let j = i + 1; j < Math.min(i + 24, all.length); j++) {
+      if (/Full\s+names?\s+and\s+sur\w{2,6}/i.test(all[j])) break;
+      const e = all[j].match(/Email\s*address\s*:?\s*([^\s@]+@[^\s@]+\.[A-Za-z]{2,})/i);
+      if (e) {
+        member.email = precise ? betterEmail(e[1].toLowerCase(), precise) : e[1].toLowerCase();
+        break;
+      }
+    }
+    result.members.push(member);
   }
   const ids = identityNumbersFrom(preciseLines);
   result.members.forEach((member, index) => {

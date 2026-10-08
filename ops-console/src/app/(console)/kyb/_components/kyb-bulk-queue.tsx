@@ -20,7 +20,7 @@ export interface KybQueueRow {
 
 export function KybBulkQueue({ rows }: { rows: KybQueueRow[] }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [decision, setDecision] = useState<"" | "verified" | "rejected">("");
+  const [decision, setDecision] = useState<"" | "rejected">("");
   const [feedback, setFeedback] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const allSelected = rows.length > 0 && selected.size === rows.length;
@@ -69,11 +69,10 @@ export function KybBulkQueue({ rows }: { rows: KybQueueRow[] }) {
           size="sm"
           value={decision}
           disabled={selected.size === 0 || pending}
-          onChange={(event) => setDecision(event.target.value as "" | "verified" | "rejected")}
+          onChange={(event) => setDecision(event.target.value as "" | "rejected")}
           aria-label="Bulk decision"
         >
-          <option value="">Move selected to…</option>
-          <option value="verified">verified</option>
+          <option value="">Send selected back as…</option>
           <option value="rejected">rejected</option>
         </NativeSelect>
         <Button size="sm" variant="outline" disabled={selected.size === 0 || !decision || pending} onClick={apply}>

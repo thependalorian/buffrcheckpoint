@@ -22,7 +22,7 @@ import { TemplatedEmailService } from "../notifications/templated-email.service"
 import type { SubmitKybDto } from "./dto/kyb.dto";
 import { type ExtractedRegistration, parseRegistrationText, toSuggestions } from "./founding-statement-parser";
 import { KybDocumentReaderService } from "./kyb-document-reader.service";
-import { analyseOwnership, documentChecklist, type KybRules, parseKybRules } from "./kyb-rules";
+import { analyseOwnership, blockingMissing, documentChecklist, type KybRules, parseKybRules } from "./kyb-rules";
 import {
   CONTENT_TYPES,
   type CrossCheck,
@@ -53,6 +53,8 @@ export interface StoredMember {
   registrationNumber?: string;
   identityNumber?: string;
   percentage?: number | null;
+  phone?: string;
+  email?: string;
 }
 
 @Injectable()
@@ -262,14 +264,11 @@ export class KybService {
     const organisationId = user.organisationId;
     const issues = validateKybFields(this.fieldsOf(dto));
     const documents = await this.listDocuments(organisationId);
-    const hasProof = documents.some((d) => (REGISTRATION_PROOF_TYPES as readonly string[]).includes(d.documentType) && d.status !== "rejected");
-    if (!hasProof) {
-      issues.push({
-        field: "documents",
-        code: "proofRequired",
-        severity: "error",
-        message: "Upload your founding statement or registration certificate before you submit.",
-      });
+    // Everything the verification requires must be uploaded before it is sent: a submission is never half a pack.
+    const rules = await this.rules();
+    const missing = blockingMissing(documentChecklist(dto.entityType, analyseOwnership(dto.members ?? [], rules), documents, rules));
+    for (const label of missing) {
+      issues.push({ field: "documents", code: "documentRequired", severity: "error", message: `Still needed: ${label}.` });
     }
     if (hasErrors(issues)) {
       throw new BadRequestException({ message: issues.find((i) => i.severity === "error")?.message ?? "Some details need correcting.", issues });
@@ -492,7 +491,11 @@ export class KybService {
           }
         : null,
     );
-    const proofAccepted = documents.some((d) => (REGISTRATION_PROOF_TYPES as readonly string[]).includes(d.documentType) && d.status === "accepted");
+    // Approval counts only documents a person has accepted. A single file sent before documents were listed counts as registration proof.
+    const acceptedDocs = documents.filter((d) => d.status === "accepted");
+    if (row.registrationDocumentReference) acceptedDocs.push({ documentType: "founding_statement", status: "accepted" } as (typeof documents)[number]);
+    const approvalBlockers = blockingMissing(documentChecklist(entityRow?.code ?? null, ownership, acceptedDocs, rules));
+    const proofAccepted = !approvalBlockers.some((b) => b.startsWith("Proof of registration"));
     return {
       id: row.id,
       organisationId: row.organisationId,
@@ -523,7 +526,8 @@ export class KybService {
       comparison,
       documents,
       proofAccepted,
-      canVerify: !hasErrors(issues) && (proofAccepted || Boolean(row.registrationDocumentReference)),
+      approvalBlockers,
+      canVerify: !hasErrors(issues) && approvalBlockers.length === 0,
       history,
     };
   }
@@ -549,7 +553,14 @@ export class KybService {
     return this.documentView(documentId, row.organisationId);
   }
 
-  async decide(kybVerificationId: string, decision: KybDecision, user: AuthenticatedUser, note?: string, flaggedFields?: string[]) {
+  async decide(
+    kybVerificationId: string,
+    decision: KybDecision,
+    user: AuthenticatedUser,
+    note?: string,
+    flaggedFields?: string[],
+    registryChecked?: boolean,
+  ) {
     const row = await this.db.query.organisationKybVerification.findFirst({
       where: eq(organisationKybVerification.id, kybVerificationId),
     });
@@ -565,7 +576,12 @@ export class KybService {
     if (decision === "needs_info" && !(flaggedFields?.length || note?.trim())) {
       throw new BadRequestException("Name the fields or documents that need attention.");
     }
-    if (decision === "verified") await this.assertCanVerify(row);
+    if (decision === "verified") {
+      if (!registryChecked) {
+        throw new BadRequestException("Confirm you checked the registration number on the BIPA register before approving.");
+      }
+      await this.assertCanVerify(row);
+    }
 
     const toStatusCode = await this.typeDefs.id("kyb_status", decision);
     await this.db
@@ -583,7 +599,7 @@ export class KybService {
       fromStatusCode: row.statusCode,
       toStatusCode,
       actorId: user.userId,
-      note: note?.trim() || null,
+      note: [decision === "verified" ? "Registration checked on the BIPA register by the reviewer." : "", note?.trim() ?? ""].filter(Boolean).join(" ") || null,
       flaggedFields: decision === "needs_info" ? (flaggedFields ?? []) : null,
     });
 
@@ -595,13 +611,13 @@ export class KybService {
     return updated ?? null;
   }
 
-  /** Approval needs correct details and at least one registration document that a person has accepted. */
+  /** Approval needs correct details and every required document accepted by a person. */
   private async assertCanVerify(row: typeof organisationKybVerification.$inferSelect) {
     const review = await this.review(row.id);
     const blocking = review.issues.find((i) => i.severity === "error");
     if (blocking) throw new BadRequestException(`Cannot approve yet: ${blocking.message}`);
-    if (!review.canVerify) {
-      throw new BadRequestException("Accept at least one registration document (founding statement or certificate) before approving.");
+    if (review.approvalBlockers.length > 0) {
+      throw new BadRequestException(`Cannot approve yet. Accept: ${review.approvalBlockers.join("; ")}.`);
     }
   }
 

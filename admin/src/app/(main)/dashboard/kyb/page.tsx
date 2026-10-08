@@ -53,7 +53,9 @@ export default async function KybPage() {
           request={details.request}
           checklist={details.checklist}
           entityTypes={entityTypes.map((t) => ({ code: t.code, label: t.label }))}
-          documentTypes={documentTypes.map((t) => ({ code: t.code, label: t.label }))}
+          documentTypes={documentTypes
+            .filter((t) => t.code !== "tax_good_standing")
+            .map((t) => ({ code: t.code, label: t.label }))}
           partyRoles={partyRoles.map((t) => ({ code: t.code, label: t.label }))}
         />
       ) : null}

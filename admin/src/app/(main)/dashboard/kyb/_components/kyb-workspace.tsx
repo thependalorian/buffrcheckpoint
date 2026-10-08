@@ -216,6 +216,7 @@ export function KybWorkspace({
           role: "member",
           percentage: m.percentage ?? undefined,
           identityNumber: m.identityNumber,
+          email: m.email,
         }));
         nextSources.members = "document";
       }
@@ -301,11 +302,11 @@ export function KybWorkspace({
 
   const issueFor = (field: string) => issues.filter((i) => i.field === field || i.field.startsWith(`${field}.`));
   const hasError = issues.some((i) => i.severity === "error");
-  const hasProof = documents.some(
-    (d) =>
-      ["founding_statement", "registration_certificate", "amended_founding_statement"].includes(d.documentType) &&
-      d.status !== "rejected",
-  );
+  const countFor = (code: string) =>
+    documents.filter((d) => itemMatches(code, d.documentType) && d.status !== "rejected").length;
+  const requiredReady = checklist
+    .filter((item) => item.blocking)
+    .every((item) => countFor(item.code) >= (item.needed ?? 1));
 
   /** Everything a field needs to show where its value came from, what the reviewer asked and what is wrong with it. */
   const meta = (field: keyof KybValues, label: string, help?: string) => ({
@@ -443,7 +444,7 @@ export function KybWorkspace({
           <p className="text-muted-foreground text-sm">{kybCopy.checklist.help}</p>
           <ul className="space-y-1.5">
             {checklist.map((item) => {
-              const have = documents.some((d) => itemMatches(item.code, d.documentType) && d.status !== "rejected");
+              const have = countFor(item.code) >= (item.needed ?? 1);
               return (
                 <li key={item.code} className="flex flex-wrap items-center gap-2 text-sm">
                   <Badge variant={have ? "default" : item.blocking ? "destructive" : "secondary"}>
@@ -628,6 +629,22 @@ export function KybWorkspace({
                         {kybCopy.details.memberJuristic}
                       </label>
                     </div>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <Input
+                        aria-label={kybCopy.details.memberPhone}
+                        placeholder={kybCopy.details.memberPhone}
+                        inputMode="tel"
+                        value={m.phone ?? ""}
+                        onChange={(e) => updateMember(i, { phone: e.target.value })}
+                      />
+                      <Input
+                        aria-label={kybCopy.details.memberEmail}
+                        placeholder={kybCopy.details.memberEmail}
+                        type="email"
+                        value={m.email ?? ""}
+                        onChange={(e) => updateMember(i, { email: e.target.value })}
+                      />
+                    </div>
                     {issueFor(`members.${i}`).map((issue) => (
                       <p
                         key={`${issue.code}-${issue.field}`}
@@ -671,9 +688,9 @@ export function KybWorkspace({
 
           <section className="max-w-2xl space-y-2">
             <h2 className="font-semibold text-base">{kybCopy.steps.submit}</h2>
-            {!hasProof ? <p className="text-sm text-sodium-yellow-ink">{kybCopy.submit.needDocument}</p> : null}
+            {!requiredReady ? <p className="text-sm text-sodium-yellow-ink">{kybCopy.submit.needDocument}</p> : null}
             {hasError ? <p className="text-destructive text-sm">{kybCopy.submit.fixFirst}</p> : null}
-            <Button type="button" onClick={send} disabled={submitting || hasError || !hasProof}>
+            <Button type="button" onClick={send} disabled={submitting || hasError || !requiredReady}>
               {submitting ? kybCopy.submit.sending : submission ? kybCopy.submit.resend : kybCopy.submit.send}
             </Button>
             {submitError ? <p className="text-destructive text-sm">{submitError}</p> : null}

@@ -6,7 +6,9 @@ import { KYB_RULES_DEFAULT } from "./kyb-rules";
 import * as validation from "./kyb-validation";
 
 const dtoSource = readFileSync(join(__dirname, "dto", "kyb.dto.ts"), "utf8");
-const migration = readFileSync(join(__dirname, "..", "..", "..", "db", "migrations", "0071_kyb_pipeline.sql"), "utf8");
+const migration = ["0071_kyb_pipeline.sql", "0072_kyb_required_documents.sql"]
+  .map((file) => readFileSync(join(__dirname, "..", "..", "..", "db", "migrations", file), "utf8"))
+  .join("\n");
 const schema = readFileSync(join(__dirname, "..", "..", "db", "schema", "kyb.ts"), "utf8");
 
 describe("KYB requirements register", () => {

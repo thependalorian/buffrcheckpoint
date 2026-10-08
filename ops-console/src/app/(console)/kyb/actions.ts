@@ -23,9 +23,15 @@ export async function decideKybAction(
   decision: "verified" | "rejected" | "needs_info",
   note?: string,
   flaggedFields?: string[],
+  registryChecked?: boolean,
 ): Promise<{ error?: string }> {
   try {
-    await api.patch(`/platform/kyb/submissions/${kybVerificationId}/decision`, { decision, note, flaggedFields });
+    await api.patch(`/platform/kyb/submissions/${kybVerificationId}/decision`, {
+      decision,
+      note,
+      flaggedFields,
+      registryChecked,
+    });
   } catch (err) {
     return { error: message(err) };
   }
@@ -51,7 +57,7 @@ export async function decideKybDocumentAction(
 
 export async function bulkDecideKybAction(
   kybVerificationIds: string[],
-  decision: "verified" | "rejected",
+  decision: "rejected",
 ): Promise<{ requested: number; updated: number; failed: Array<{ id: string; reason: string }> } | { error: string }> {
   try {
     const result = await api.patch<{
@@ -61,7 +67,7 @@ export async function bulkDecideKybAction(
     }>("/platform/kyb/submissions/bulk-decision", {
       kybVerificationIds,
       decision,
-      note: decision === "rejected" ? "Please correct the details and resubmit." : undefined,
+      note: "Please correct the details and resubmit.",
     });
     revalidatePath("/kyb");
     return result;

@@ -69,15 +69,20 @@ export function analyseOwnership(people: MemberInput[], rules: KybRules): Owners
 export interface ChecklistItem {
   code: string;
   label: string;
-  /** Approval is held until a blocking item is satisfied. The rest are requested, not required. */
+  /** Approval is held until every blocking item is satisfied. The rest are requested, not required. */
   blocking: boolean;
   satisfied: boolean;
   reason: string;
+  /** For items that need several documents (one per owner): how many are needed and how many are on file. */
+  needed?: number;
+  have?: number;
 }
 
 /**
- * What should be on file for this business. Proof of registration blocks approval. The others are requested when the facts call for
- * them (an owner at a threshold, a company's directors) and shown to ops, who decide whether to wait for them.
+ * What must be on file (owner decision 2026-10-08): proof of registration with BIPA, a bank confirmation letter, a passport or identity
+ * document for each owner, and proof of address (a lease agreement or utility bill). Good standing is not asked for. The BO1 declaration,
+ * a company's register of directors and tracing a company holder to people are requested when the facts call for them but do not block.
+ * Pass only accepted documents to learn whether approval may go ahead.
  */
 export function documentChecklist(
   entityType: string | null,
@@ -87,13 +92,38 @@ export function documentChecklist(
 ): ChecklistItem[] {
   const live = documents.filter((d) => d.status !== "rejected");
   const have = (code: string) => live.filter((d) => d.documentType === code).length;
+  const naturalOwners = analysis.owners.filter((o) => o.atFia && !o.juristic);
+  const identitiesNeeded = Math.max(1, naturalOwners.length);
   const items: ChecklistItem[] = [
     {
       code: "registration_proof",
-      label: "Proof of registration (founding statement, amended founding statement or certificate)",
+      label: "Proof of registration with BIPA (founding statement, amended founding statement or certificate)",
       blocking: true,
       satisfied: live.some((d) => (REGISTRATION_PROOF_TYPES as readonly string[]).includes(d.documentType)),
-      reason: "Shows the business exists and who registered it.",
+      reason: "Shows the business is registered and who registered it.",
+    },
+    {
+      code: "bank_confirmation_letter",
+      label: "Bank confirmation letter",
+      blocking: true,
+      satisfied: have("bank_confirmation_letter") > 0,
+      reason: "Confirms the business holds the bank account it will pay from.",
+    },
+    {
+      code: "certified_id_copy",
+      label: `Passport or identity document of each owner (${identitiesNeeded})`,
+      blocking: true,
+      satisfied: have("certified_id_copy") >= identitiesNeeded,
+      reason: "Identifies the people who own the business. A certified copy is best, certified within the last " + `${rules.certifiedCopyMaxAgeMonths} months.`,
+      needed: identitiesNeeded,
+      have: have("certified_id_copy"),
+    },
+    {
+      code: "proof_of_address",
+      label: "Proof of address (lease agreement or utility bill)",
+      blocking: true,
+      satisfied: have("proof_of_address") > 0,
+      reason: "Shows where the business operates.",
     },
   ];
   if (analysis.owners.some((o) => o.atBipa)) {
@@ -103,16 +133,6 @@ export function documentChecklist(
       blocking: false,
       satisfied: have("beneficial_ownership_declaration") > 0,
       reason: "An owner holds at or above the BIPA threshold.",
-    });
-  }
-  const naturalOwners = analysis.owners.filter((o) => o.atFia && !o.juristic);
-  if (naturalOwners.length > 0) {
-    items.push({
-      code: "certified_id_copy",
-      label: `Certified identity copy, certified within the last ${rules.certifiedCopyMaxAgeMonths} months, for each owner at or above the FIA threshold (${naturalOwners.length})`,
-      blocking: false,
-      satisfied: have("certified_id_copy") >= naturalOwners.length,
-      reason: "Identifies the people who own the business.",
     });
   }
   if (analysis.traceThrough.length > 0) {
@@ -134,4 +154,9 @@ export function documentChecklist(
     });
   }
   return items;
+}
+
+/** The blocking items still missing, by label. Empty means the documents allow approval. */
+export function blockingMissing(items: ChecklistItem[]): string[] {
+  return items.filter((i) => i.blocking && !i.satisfied).map((i) => i.label);
 }

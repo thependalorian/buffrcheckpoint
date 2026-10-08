@@ -182,6 +182,6 @@ export class KybController {
     @Body() body: DecideKybDto,
     @CurrentUser() user: AuthenticatedUser,
   ) {
-    return this.service.decide(kybVerificationId, body.decision, user, body.note, body.flaggedFields);
+    return this.service.decide(kybVerificationId, body.decision, user, body.note, body.flaggedFields, body.registryChecked);
   }
 }

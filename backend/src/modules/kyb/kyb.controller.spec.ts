@@ -36,7 +36,7 @@ describe("KybController over HTTP", () => {
     registeredBusinessName: "SAMPLE TRADING CC",
     registeredAddress: "Sample Street 12, Example Park, Windhoek",
     authorizedSignatoryName: "Anna Example",
-    members: [{ fullName: "Anna Example", percentage: 100 }],
+    members: [{ fullName: "Anna Example", percentage: 100, phone: "+264811234567", email: "anna@example.example" }],
   };
 
   it("passes an uploaded file and its type to the service for the caller's own organisation", async () => {
@@ -75,10 +75,13 @@ describe("KybController over HTTP", () => {
 
   it("only knows the three decisions, and a flagged field list is optional", async () => {
     await request(app.getHttpServer()).patch("/platform/kyb/submissions/kyb-1/decision").send({ decision: "maybe" }).expect(400);
+    await request(app.getHttpServer()).patch("/platform/kyb/submissions/bulk-decision").send({ kybVerificationIds: ["kyb-1"], decision: "verified" }).expect(400);
     await request(app.getHttpServer())
       .patch("/platform/kyb/submissions/kyb-1/decision")
       .send({ decision: "needs_info", note: "Check the number", flaggedFields: ["businessRegistrationNumber"] })
       .expect(200);
-    expect(service.decide).toHaveBeenCalledWith("kyb-1", "needs_info", expect.anything(), "Check the number", ["businessRegistrationNumber"]);
+    expect(service.decide).toHaveBeenCalledWith("kyb-1", "needs_info", expect.anything(), "Check the number", ["businessRegistrationNumber"], undefined);
+    await request(app.getHttpServer()).patch("/platform/kyb/submissions/kyb-1/decision").send({ decision: "verified", registryChecked: true }).expect(200);
+    expect(service.decide).toHaveBeenLastCalledWith("kyb-1", "verified", expect.anything(), undefined, undefined, true);
   });
 });

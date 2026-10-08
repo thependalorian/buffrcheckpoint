@@ -38,6 +38,16 @@ export class KybMemberDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(40)
+  phone?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  email?: string;
+
+  @IsOptional()
+  @IsString()
   @MaxLength(20)
   identityNumber?: string;
 
@@ -139,6 +149,11 @@ export class DecideKybDto {
   @ArrayMaxSize(30)
   @IsString({ each: true })
   flaggedFields?: string[];
+
+  /** Approval needs the reviewer to confirm the registration number was checked on the BIPA register (there is no API to check it). */
+  @IsOptional()
+  @IsBoolean()
+  registryChecked?: boolean;
 }
 
 export class DecideKybDocumentDto {
@@ -152,14 +167,15 @@ export class DecideKybDocumentDto {
   note?: string;
 }
 
+/** Bulk is for sending back or rejecting. Approval is one submission at a time, after the documents are read. */
 export class DecideKybBulkDto {
   @IsArray()
   @ArrayMaxSize(100)
   @IsString({ each: true })
   kybVerificationIds!: string[];
 
-  @IsIn(["verified", "rejected"])
-  decision!: "verified" | "rejected";
+  @IsIn(["rejected"])
+  decision!: "rejected";
 
   @IsOptional()
   @IsString()

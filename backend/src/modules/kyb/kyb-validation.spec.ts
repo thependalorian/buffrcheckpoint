@@ -61,6 +61,7 @@ describe("addresses and names", () => {
         registeredBusinessName: "Sample Trading",
         registeredAddress: "Sample Street 12, Example Park, Windhoek",
         authorizedSignatoryName: "Anna Example",
+        members: [owner],
       },
       NOW,
     );
@@ -78,38 +79,38 @@ describe("identity numbers", () => {
   });
 });
 
+const owner = { fullName: "Anna Example", role: "member", percentage: 100, phone: "+264 81 123 4567", email: "anna@example.example" };
+
 describe("people behind the business", () => {
   it("needs a registration number for a juristic member and a known role", () => {
-    const issues = validateMembers([{ fullName: "Sample Holdings CC", isJuristic: true, percentage: 100, role: "member" }, { fullName: "Anna Example", role: "wizard" }], "close_corporation");
-    expect(issues.map((i) => i.code).sort()).toEqual(["juristicNeedsRegistration", "roleUnknown"]);
+    const issues = validateMembers([{ ...owner, fullName: "Sample Holdings CC", isJuristic: true }, { fullName: "Ben Example", role: "wizard" }], "close_corporation");
+    expect(issues.map((i) => i.code)).toEqual(expect.arrayContaining(["juristicNeedsRegistration", "roleUnknown"]));
   });
-  it("asks for the people when a registered entity gives none, but not for a sole proprietor", () => {
-    expect(validateMembers([], "close_corporation")[0]).toMatchObject({ code: "peopleMissing", severity: "warning" });
-    expect(validateMembers([], "sole_proprietor")).toEqual([]);
+
+  it("requires the owners for every kind of business, including a sole proprietor", () => {
+    expect(validateMembers([], "close_corporation")[0]).toMatchObject({ code: "peopleMissing", severity: "error" });
+    expect(validateMembers([], "sole_proprietor")[0]).toMatchObject({ code: "peopleMissing", severity: "error" });
+    expect(validateMembers([{ fullName: "Dina Director", role: "director" }], "private_company").map((i) => i.code)).toContain("ownersMissing");
   });
-  it("totals shares over members and shareholders only, not directors", () => {
-    const issues = validateMembers([{ fullName: "Anna Example", role: "member", percentage: 100 }, { fullName: "Ben Example", role: "director" }], "close_corporation");
-    expect(issues).toEqual([]);
+
+  it("requires each owner's share, phone and email, and checks their shape", () => {
+    expect(validateMembers([{ fullName: "Anna Example", role: "member" }], "close_corporation").map((i) => i.code).sort()).toEqual(["ownerEmailRequired", "ownerPhoneRequired", "percentageRequired"]);
+    expect(validateMembers([{ ...owner, phone: "12", email: "nope" }], "close_corporation").map((i) => i.code).sort()).toEqual(["emailFormat", "phoneShape"]);
+    expect(validateMembers([owner], "close_corporation")).toEqual([]);
+  });
+
+  it("does not ask a director who owns nothing for a share, and totals shares over owners only", () => {
+    expect(validateMembers([owner, { fullName: "Ben Example", role: "director" }], "close_corporation")).toEqual([]);
+    const issues = validateMembers([{ ...owner, percentage: 60 }, { ...owner, fullName: "Ben Example", percentage: 30 }], "close_corporation");
+    expect(issues).toEqual([expect.objectContaining({ field: "members", code: "percentageTotal", severity: "warning" })]);
   });
 });
 
 describe("contact, tax number and date", () => {
+  const base = { entityType: "other", businessRegistrationNumber: "NPO-77", registeredBusinessName: "Sample Trust", registeredAddress: "Sample Street 12, Example Park, Windhoek", authorizedSignatoryName: "Anna Example", members: [owner] };
   it("accepts blanks and sensible values, refuses the rest", () => {
-    expect(validateKybFields({ entityType: "other", businessRegistrationNumber: "NPO-77", registeredBusinessName: "Sample Trust", registeredAddress: "Sample Street 12, Example Park, Windhoek", authorizedSignatoryName: "Anna Example", contactEmail: "bad", contactPhone: "12", tin: "!!", incorporatedOn: "2031-01-01" }, NOW).map((i) => i.field).sort()).toEqual(["contactEmail", "contactPhone", "incorporatedOn", "tin"]);
-    expect(validateKybFields({ entityType: "other", businessRegistrationNumber: "NPO-77", registeredBusinessName: "Sample Trust", registeredAddress: "Sample Street 12, Example Park, Windhoek", authorizedSignatoryName: "Anna Example", contactEmail: "a@b.example", contactPhone: "+264 61 123 4567", tin: "1234567", incorporatedOn: "2020-05-17" }, NOW)).toEqual([]);
-  });
-});
-
-describe("members", () => {
-  it("warns when a close corporation's shares do not total 100", () => {
-    const issues = validateMembers(
-      [
-        { fullName: "Anna Example", percentage: 60 },
-        { fullName: "Ben Example", percentage: 30 },
-      ],
-      "close_corporation",
-    );
-    expect(issues).toEqual([expect.objectContaining({ field: "members", code: "percentageTotal", severity: "warning" })]);
+    expect(validateKybFields({ ...base, contactEmail: "bad", contactPhone: "12", tin: "!!", incorporatedOn: "2031-01-01" }, NOW).map((i) => i.field).sort()).toEqual(["contactEmail", "contactPhone", "incorporatedOn", "tin"]);
+    expect(validateKybFields({ ...base, contactEmail: "a@b.example", contactPhone: "+264 61 123 4567", tin: "1234567", incorporatedOn: "2020-05-17" }, NOW)).toEqual([]);
   });
 });
 

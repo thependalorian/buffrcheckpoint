@@ -45,7 +45,9 @@ export const KYB_REQUIREMENTS: Requirement[] = [
   { id: "Person: previous name", source: "BO1 B.1.III, CM29 item 3", coverage: "out_of_scope", reason: SCOPE_BO1 },
   { id: "Person: date and place of birth, nationality", source: "BO1 B.1.IV-VI, CM29 item 11", coverage: "out_of_scope", reason: SCOPE_BO1 },
   { id: "Person: residential, business and postal address", source: "BO1 B.1.VII-VIII, CM29 items 6-8", coverage: "out_of_scope", reason: SCOPE_BO1 },
-  { id: "Person: tax number, phone, email, workplace and position, residency", source: "BO1 B.1.X-XII, XVI, CM29 items 9-13", coverage: "out_of_scope", reason: SCOPE_BO1 },
+  { id: "Person: phone", source: "BO1 B.1.XI, CM29 item 9; owner requirement 2026-10-08", coverage: "field", where: "phone" },
+  { id: "Person: email", source: "BO1 B.1.XII, CM29 item 10; owner requirement 2026-10-08", coverage: "field", where: "email" },
+  { id: "Person: tax number, workplace and position, residency", source: "BO1 B.1.X, XVI, CM29 items 12-13", coverage: "out_of_scope", reason: SCOPE_BO1 },
   // Roles and ownership
   { id: "Role in the entity (member, director, shareholder, secretary, accounting officer)", source: "CC1, CM29 A, CM31, CM2", coverage: "field", where: "role" },
   { id: "Appointed and ceased dates, fair value of interest", source: "CM29 item 5, CC1", coverage: "out_of_scope", reason: "History of appointments belongs to the register of directors, which is requested as a document (CM29); the current roles are captured." },
@@ -63,8 +65,11 @@ export const KYB_REQUIREMENTS: Requirement[] = [
   { id: "Registration certificate", source: "CM1", coverage: "document", where: "registration_certificate" },
   { id: "Beneficial ownership declaration", source: "BO1", coverage: "document", where: "beneficial_ownership_declaration" },
   { id: "Register of directors", source: "CM29", coverage: "document", where: "directors_register" },
-  { id: "Certified identity copy of each beneficial owner", source: "BO1 Part C 1(f)", coverage: "document", where: "certified_id_copy" },
+  { id: "Passport or identity document of each owner", source: "BO1 Part C 1(f); owner requirement 2026-10-08", coverage: "document", where: "certified_id_copy" },
   { id: "Certified copy not older than 6 months", source: "BO1 Part C 1(f)", coverage: "config", where: "certifiedCopyMaxAgeMonths" },
+  { id: "Bank confirmation letter", source: "owner requirement 2026-10-08", coverage: "document", where: "bank_confirmation_letter" },
+  { id: "Proof of address (lease agreement or utility bill)", source: "owner requirement 2026-10-08", coverage: "document", where: "proof_of_address" },
+  { id: "Registration confirmed on the BIPA register by a reviewer", source: "owner requirement 2026-10-08", coverage: "field", where: "registryChecked" },
   { id: "Registration with the Financial Intelligence Centre", source: "BO1 Part C 1(g)", coverage: "out_of_scope", reason: "Only accountable institutions register with the FIC; a visitor-management customer usually is not one. It can be uploaded as a supporting document if it applies." },
   // Checks the dictionary adds
   { id: "Sanctions screening of the entity and every party", source: "dictionary, UN Security Council list", coverage: "out_of_scope", reason: SCOPE_AML },
