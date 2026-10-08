@@ -160,7 +160,7 @@ function resendAdapter(env: NodeJS.ProcessEnv): NotificationChannelAdapter | nul
   if (!apiKey) return null;
   return new ResendEmailAdapter(
     apiKey,
-    env.RESEND_FROM_EMAIL?.trim() ?? "Buffr Checkpoint <onboarding@buffrcheckpoint.com>",
+    env.RESEND_FROM_EMAIL?.trim() ?? "Buffr Checkpoint <team@buffranalytics.com>",
   );
 }
 
