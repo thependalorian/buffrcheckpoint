@@ -20,12 +20,8 @@ export const PRIVACY_MANAGED = {
       body: "When a visitor asks for a copy, a correction or a deletion, the request gets its one-month deadline automatically. Your compliance officer sees what is due and what is late.",
     },
     {
-      title: "Stricter wording where it matters",
-      body: "Clinics, faith-based bodies and non-profits start with extra care for sensitive information, without anyone having to ask.",
-    },
-    {
-      title: "Proof on demand",
-      body: "The evidence pack shows what is in force: retention, legal holds, data requests, and every provider that touches the data, with where it runs.",
+      title: "An answer for your auditor",
+      body: "When an auditor asks who saw a record, how long it is kept, or which providers hold the data, you export one evidence pack: the retention in force, legal holds, data requests with their dates, and every provider with where it runs.",
     },
     {
       title: "If something goes wrong",
