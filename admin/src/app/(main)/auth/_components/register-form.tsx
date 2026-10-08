@@ -166,25 +166,27 @@ export function RegisterForm() {
           className="mt-0.5"
         />
         <Label id="acceptTermsText" htmlFor="acceptTerms" className="font-normal text-sm leading-snug">
-          {authCopy.register.terms.agree}{" "}
-          <a
-            href={LEGAL_LINKS.terms}
-            target="_blank"
-            rel="noreferrer"
-            className="text-sodium-yellow-ink underline underline-offset-4"
-          >
-            {authCopy.register.terms.termsLink}
-          </a>{" "}
-          {authCopy.register.terms.and}{" "}
-          <a
-            href={LEGAL_LINKS.privacy}
-            target="_blank"
-            rel="noreferrer"
-            className="text-sodium-yellow-ink underline underline-offset-4"
-          >
-            {authCopy.register.terms.privacyLink}
-          </a>
-          .
+          <span>
+            {authCopy.register.terms.agree}{" "}
+            <a
+              href={LEGAL_LINKS.terms}
+              target="_blank"
+              rel="noreferrer"
+              className="text-sodium-yellow-ink underline underline-offset-4"
+            >
+              {authCopy.register.terms.termsLink}
+            </a>{" "}
+            {authCopy.register.terms.and}{" "}
+            <a
+              href={LEGAL_LINKS.privacy}
+              target="_blank"
+              rel="noreferrer"
+              className="text-sodium-yellow-ink underline underline-offset-4"
+            >
+              {authCopy.register.terms.privacyLink}
+            </a>
+            .
+          </span>
         </Label>
       </div>
       {urlError && authCopy.buffrId.errors[urlError] ? (

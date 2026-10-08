@@ -8,9 +8,9 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { safeNextPath } from "@/lib/auth/safe-next-path";
 import { authCopy } from "@/lib/copy/auth";
 import { AnalyticsEvents, track } from "@/lib/observability/track";
-import { safeNextPath } from "@/lib/auth/safe-next-path";
 
 export function MfaChallengeForm() {
   const router = useRouter();
@@ -39,7 +39,7 @@ export function MfaChallengeForm() {
         body: JSON.stringify(
           useRecovery
             ? { challengeToken, recoveryCode: recoveryCode.trim() }
-            : { challengeToken, code: code.replace(/[\s\-]/g, "") },
+            : { challengeToken, code: code.replace(/[\s-]/g, "") },
         ),
       });
       const result = await response.json();
@@ -64,7 +64,6 @@ export function MfaChallengeForm() {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <p className="text-muted-foreground text-sm">{authCopy.mfaChallenge.description}</p>
       <p className="text-muted-foreground text-xs">{authCopy.mfaChallenge.ttlHint}</p>
       {useRecovery ? (
         <div className="flex flex-col gap-1.5">

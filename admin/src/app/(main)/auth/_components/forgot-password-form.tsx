@@ -49,20 +49,19 @@ export function ForgotPasswordForm() {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <p className="text-muted-foreground text-sm">{authCopy.forgotPassword.description}</p>
       <div className="flex flex-col gap-1.5">
         <Label htmlFor="email">Email</Label>
         <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
       </div>
       <TurnstileWidget onToken={setTurnstileToken} resetSignal={turnstileReset} />
       {error ? <p className="text-destructive text-sm">{error}</p> : null}
-      {message ? <p className="text-sm bc-text-success">{message}</p> : null}
+      {message ? <p className="bc-text-success text-sm">{message}</p> : null}
       <Button type="submit" disabled={submitting || (turnstileEnabled && !turnstileToken)}>
         {submitting ? authCopy.forgotPassword.submitting : authCopy.forgotPassword.submit}
       </Button>
       <Link
         href="/auth/login"
-        className="text-center text-sodium-yellow-ink text-sm underline-offset-4 hover:underline"
+        className="text-center text-sm text-sodium-yellow-ink underline-offset-4 hover:underline"
       >
         {authCopy.forgotPassword.backToSignIn}
       </Link>

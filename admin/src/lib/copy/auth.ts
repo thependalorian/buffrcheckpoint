@@ -106,7 +106,7 @@ export const authCopy = {
     submitting: "Verifying...",
     useRecovery: "Use a recovery code instead",
     useTotp: "Use authenticator code instead",
-    missingToken: "Authenticator challenge continues via a secure cookie if this tab lost its sessionStorage copy.",
+    missingToken: "If this check expired in your browser, sign in again to start a new one.",
     backToSignIn: "Back to sign in",
   },
   forgotPassword: {

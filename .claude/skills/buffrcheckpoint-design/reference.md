@@ -117,6 +117,12 @@ Plain, direct, active, human. No emoji, no em dash, plain words over corporate o
 
 ## Known pitfalls from past passes
 
+- **The preset's element rules are unlayered, so they beat Tailwind utilities.** `h1`, `h2`, `h3` in `buffr-checkpoint.css` set the public site's display scale (h1 up to 72 px, h2 up to 48 px) and `section` gets 6rem padding. A utility such as `text-2xl` on an `h1` loses. Product screens fix it in the app stylesheet (`admin` and `ops-console` `globals.css`: working scale and zero section padding); visitor pages use `.bc-visitor-shell` in the website `globals.css`. Opt-in sizes use a class with higher specificity (`h1.bc-display`).
+- **Font variables belong on `<html>`.** `--font-sans` is declared on `:root`, so the `next/font` variables must be on `<html>` too; on `<body>` the stack is invalid and the browser falls back to a serif. Check a screenshot, not the code.
+- **Replacing a ring with a border breaks `ring-0` overrides.** Card forms that used `ring-0` to drop the outline now need `border-0`.
+- **Do not remove assets to fix a layout.** Hero photographs stay; fix contrast and structure around them. Cards get better, not removed.
+- **Review with screenshots.** Playwright is installed in `website/node_modules`; a local stub API on a free port (3001 may be the owner's dev backend) with fake data shows every admin, ops and visitor screen, mobile included. Strings reaching users must never carry browser errors, blueprint section numbers or internal terms.
+
 - A status page that printed "Operational" as typed text; status is read from a live check.
 - A heading that counted channels ("six ways in"); no counts that the product does not keep.
 - The visitor form carrying a magenta button and purple headings from another palette; tokens only.
