@@ -132,15 +132,15 @@ else
   fail "POST /public/check-out empty body → $CODE (expected 400); body=$(snippet "$BODY")"
 fi
 
-# 6) Auth login soft check — 401 invalid creds, or 429 lockout, both prove route health
+# 6) Auth login soft check — 400 from the bot check (no token sent), 401 invalid creds, or 429 lockout all prove route health
 BODY="$TMPDIR_SMOKE/login.json"
 CODE=$(curl_http "$BODY" -X POST "$API_BASE/auth/login" \
   -H "content-type: application/json" \
   -d '{"email":"smoke-nonexistent@example.com","password":"DefinitelyWrongPass1!"}' || true)
-if [[ "$CODE" == "401" || "$CODE" == "429" ]]; then
+if [[ "$CODE" == "401" || "$CODE" == "429" ]] || { [[ "$CODE" == "400" ]] && grep -q "Complete the check" "$BODY"; }; then
   pass "POST /auth/login bad password → $CODE"
 else
-  fail "POST /auth/login bad password → $CODE (expected 401 or 429); body=$(snippet "$BODY")"
+  fail "POST /auth/login bad password → $CODE (expected 401, 429, or 400 from the bot check); body=$(snippet "$BODY")"
 fi
 
 # 7) Sector list for sign-up is public and flat: at least one value, no duplicate codes
