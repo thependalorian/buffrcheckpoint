@@ -384,12 +384,12 @@ Marketing pages: Home, Platform, Pricing, About, Contact, Developers, Status, Pr
 |---|---|
 | Operations | Overview, Analytics, Visit Feedback, Front Desk, Visitors, Schedule, Calendar, Emergency Roster, Anomaly Alerts |
 | Account | Billing, Business Verification, Support, Support Access |
-| Sites and experience | Sites and Zones, Hosts and Departments, Organisation Directory, Kiosk Experience, Capability Enablement, existing-system integration (CiMSO INNterchange), Site QR Codes, Host Escalation, Site Notices, Visitor Types and Forms |
-| Devices and credentials | Devices, Device Compliance Register, Credentials |
-| Governance | Compliance Dashboard, Privacy Requests, Legal Holds, Access Policies, Retention Policies, Audit Log, Evidence Packs, Scheduled Reports |
-| Administration | Organisation Settings, Notifications, Users, Roles and Access, My Account |
+| Site Experience | Sites and Zones, Hosts and Departments, Organisation Directory, Kiosk Experience, Capability Enablement, existing-system integration (CiMSO INNterchange), Site QR Codes, Host Escalation, Site Notices, Visitor Types and Forms |
+| Devices and Credentials | Devices, Device Compliance Register, Credentials |
+| Governance and Compliance | Compliance Dashboard, Privacy Requests, Legal Holds, Access Policies, Retention Policies, Audit Log, Evidence Packs, Scheduled Reports |
+| Access Administration | Organisation Settings, Notifications, Users, Roles and Access, My Account |
 
-Rules: every page shows its real table or panel with an inline "nothing here yet" row when empty (never a page swapped for a placeholder); a genuine 401, 403 or network failure replaces the page with an error state that says which; no demo data, no fake users, no static roles. Platform capability status and platform support never appear in the customer sidebar.
+Rules: every page shows its real table or panel with an inline "nothing here yet" row when empty (never a page swapped for a placeholder); a genuine 401, 403 or network failure replaces the page with an error state that says which; no demo data, no fake users, no static roles. Platform capability status and platform support never appear in the customer sidebar. The code was found on 2026-10-08 with five groups (the four Account items sat inside Operations, which held thirteen); Account is now its own group, so code and blueprint both have six, with the labels above.
 
 ### 6.4 Ops console
 

@@ -128,6 +128,12 @@ export const sidebarItems: NavGroup[] = [
         url: "/dashboard/anomalies",
         icon: Siren,
       },
+    ],
+  },
+  {
+    id: 2,
+    label: "Account",
+    items: [
       {
         id: "billing",
         title: "Billing",
@@ -155,7 +161,7 @@ export const sidebarItems: NavGroup[] = [
     ],
   },
   {
-    id: 2,
+    id: 3,
     label: "Site Experience",
     items: [
       {
@@ -229,7 +235,7 @@ export const sidebarItems: NavGroup[] = [
     ],
   },
   {
-    id: 3,
+    id: 4,
     label: "Devices and Credentials",
     items: [
       {
@@ -253,7 +259,7 @@ export const sidebarItems: NavGroup[] = [
     ],
   },
   {
-    id: 4,
+    id: 5,
     label: "Governance and Compliance",
     items: [
       {
@@ -307,7 +313,7 @@ export const sidebarItems: NavGroup[] = [
     ],
   },
   {
-    id: 5,
+    id: 6,
     label: "Access Administration",
     items: [
       {

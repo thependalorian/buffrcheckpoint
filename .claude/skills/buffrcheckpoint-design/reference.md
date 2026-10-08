@@ -71,3 +71,50 @@ Plain, direct, active, human. No emoji, no em dash, plain words over corporate o
 - A heading that counted channels ("six ways in"); no counts that the product does not keep.
 - The visitor form carrying a magenta button and purple headings from another palette; tokens only.
 - Biome `--write` over a folder re-wrapping legal pages; format only the files you touched and confirm with `git diff -w`.
+
+## Refero crawl to Checkpoint mapping
+
+Local root: `LifeCompass/crawl4AI-agent-v2/refero_sitemap_crawl/` (read-only design reference; never copy `images.refero.design` assets or crawl screenshots into any app). Contents: `pages_markdown/` (six articles), `screenshots/` (one per page), `images/` (about 80 thumbnails), `manifests/` (`pages.json`, `images.json`, `crawl_summary.json`, `article_urls.json`).
+
+| Page | Title | Used for |
+|---|---|---|
+| `2d394cf648802efe.md` | Dashboard UI | Dashboard principles (table below) |
+| `196662c1e0d112c8.md` | UI UX Design | General principles (table below) |
+| `c19bd3de3a9fdddd.md` | Paywall Examples | The go-live gate and pricing page |
+| `0bb26a5282b3cc5a.md`, `50e1596165e83569.md`, `fc048ad556de110f.md` | Articles index and two gallery landings | Navigation of the library only; no principles |
+
+### Dashboard principles (`2d394cf648802efe.md`)
+
+| Refero principle | Checkpoint application |
+|---|---|
+| Clarity and focus: the top three or four indicators; progressive disclosure | Overview and Analytics: four stat tiles; the rest in panels, tabs and tooltips |
+| Visual hierarchy: top-left prominence, whitespace, 12-column grid | `PageHeader`, stat row, then panels; `bc-grid-marketing` and `bc-span-*` for public pages |
+| Consistency and affordance: uniform charts, controls, navigation; hover states | `bc-panel`, `List`, `ListRow`, shared `StatusSelect`; focus ring from the preset |
+| Readability and typography: clean heading face, neutral body, H2 to paragraph hierarchy | Archivo headings, Geist body, `bc-h-page` and `bc-h-section` on product screens |
+| Colour and accessibility: semantic green and red, neutral base, WCAG contrast | Status live `#15803D`, destructive `#B91C1C`, ink variant of the yellow for text |
+| Responsive and mobile first: collapse charts to summaries, hide less critical elements behind toggles | Visitor pages and the website are phone first; admin tables scroll |
+| Chart choice: lines for trends, bars for categories, heatmaps and sparklines for dense data; no default pies | `TrendChart`, `ShareBars`, `BusyHoursHeatmap`; no pies |
+| Interaction and microinteractions: filters, drill-downs, tooltips, animated reloads that keep context | Roster filters and export; skeletons that keep layout while loading |
+| Role-based, customisable dashboards | Role-filtered sidebar; summaries by role |
+| Real-time data and alerts: sockets or server-sent events, badges and colour-coded thresholds | The roster stream and anomaly alerts; mark when data is stale |
+
+### UI and UX principles (`196662c1e0d112c8.md`)
+
+| Principle | Checkpoint application |
+|---|---|
+| Clarity over complexity | Plain labels, one task per visitor screen, no jargon in copy |
+| Consistency | One shell, one panel language across admin, ops console and website |
+| Feedback and response | Pending, success and error states on every action; specific errors with a retry |
+| Hierarchy and prioritisation | One primary action per view, filled Sodium Yellow; the rest secondary |
+| Accessibility and inclusivity | WCAG AA; keyboard through tables; assisted entry is equal, not a fallback |
+| Process: research, wireframe, prototype, test, hand off | Pilot sites (blueprint 29.2) as the usability test; measure task success, time on task and error rate by channel |
+
+### Paywall principles (`c19bd3de3a9fdddd.md`) applied to the go-live gate
+
+Seamless integration with the brand; clear value messaging; responsive; minimal intrusion; consistent aesthetics; accessibility first; test and iterate with data (drop-off at each gate step). Checkpoint's gate is a hard gate for paid plans, shown from the start, and never a surprise at the end.
+
+## Other facts for QA
+
+- Sidebar groups and items (2026-10-08): Operations 9, Account 4, Site Experience 10, Devices and Credentials 3, Governance and Compliance 8, Access Administration 5.
+- Radius values in the preset today: 0.5 rem, 0.75 rem, 1 rem (the blueprint lists 4, 8, 16, 24 px: reconcile).
+- Primary stat tiles: Overview 4, Analytics 4.
