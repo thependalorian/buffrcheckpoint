@@ -1,17 +1,18 @@
-import Image from "next/image";
-import Link from "next/link";
-
+import { FileCheck, QrCode, ShieldCheck, UserCheck, WifiOff, Zap } from "lucide-react";
 import type { Metadata } from "next";
 
 import { HomeJsonLd } from "@/components/json-ld";
 import { ChannelConvergenceVisual } from "@/components/marketing/channel-convergence-visual";
+import { CheckInPhoneMock } from "@/components/marketing/check-in-phone-mock";
 import { MarketingCta } from "@/components/marketing/marketing-cta";
 import { MarketingHero } from "@/components/marketing/marketing-hero";
 import { MarketingPageClose } from "@/components/marketing/marketing-page-close";
 import { MarketingProductScreenshot } from "@/components/marketing/marketing-product-screenshot";
+import { MarketingSectionHeader } from "@/components/marketing/marketing-section-header";
 import { PhoneProductFrame } from "@/components/marketing/phone-product-frame";
 import { PrivacyManagedSection } from "@/components/marketing/privacy-managed-section";
-import { HOME_CAPABILITIES, HOME_STEPS, MARKETING_PAGES } from "@/lib/copy/marketing";
+import { ProofStrip } from "@/components/marketing/proof-strip";
+import { HOME_CAPABILITIES, HOME_PROOF, HOME_STEPS, MARKETING_PAGES } from "@/lib/copy/marketing";
 import { MARKETING_SECONDARY_PRICING_CTA } from "@/lib/copy/signup";
 import {
   marketingCapabilityCard,
@@ -23,6 +24,8 @@ import {
 import { MARKETING_HERO_IMAGES } from "@/lib/marketing-visuals";
 import { fetchPublicPricing } from "@/lib/pricing";
 import { pageMetadata } from "@/lib/seo";
+
+const CAPABILITY_ICONS = [QrCode, UserCheck, WifiOff, ShieldCheck, FileCheck, Zap] as const;
 
 export const metadata: Metadata = pageMetadata("home");
 
@@ -59,18 +62,13 @@ export default async function HomePage() {
         <div className="flex min-w-0 items-center justify-center lg:justify-end">
           <div className="w-full max-w-[18rem]">
             <PhoneProductFrame label="Guest check-in on a phone">
-              <Image
-                src="/screenshots/phone-check-in.png"
-                alt="The live Checkpoint check-in page on a guest's phone, with language, visitor type, name and mobile number fields."
-                width={780}
-                height={1500}
-                priority
-                className="h-auto w-full"
-              />
+              <CheckInPhoneMock />
             </PhoneProductFrame>
           </div>
         </div>
       </MarketingHero>
+
+      <ProofStrip items={HOME_PROOF} />
 
       <section className="border-b border-border bg-card">
         <div className={marketingWideSection}>
@@ -136,23 +134,32 @@ export default async function HomePage() {
 
       <section className="border-b border-border bg-background">
         <div className={marketingWideSection}>
-          <h2 className={marketingSectionTitle}>{MARKETING_PAGES.home.doorTitle}</h2>
+          <MarketingSectionHeader eyebrow="Capabilities" title={MARKETING_PAGES.home.doorTitle} />
 
           <div className="mt-12 grid min-w-0 gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {HOME_CAPABILITIES.map((cap) => (
-              <div key={cap.title} className={`min-w-0 ${marketingCapabilityCard}`}>
-                <h3 className="font-heading text-lg font-medium text-foreground">{cap.title}</h3>
-                <p className="mt-3 text-sm text-muted-foreground">{cap.body}</p>
-              </div>
-            ))}
+            {HOME_CAPABILITIES.map((cap, i) => {
+              const Icon = CAPABILITY_ICONS[i % CAPABILITY_ICONS.length];
+              return (
+                <div key={cap.title} className={`min-w-0 ${marketingCapabilityCard}`}>
+                  <span className="bc-icon-box mb-4">
+                    <Icon aria-hidden className="size-4" />
+                  </span>
+                  <h3 className="font-heading text-lg font-medium text-foreground">{cap.title}</h3>
+                  <p className="mt-3 text-sm text-muted-foreground">{cap.body}</p>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
 
       <section className="border-b border-border bg-card">
         <div className={marketingWideSection}>
-          <h2 className={marketingSectionTitle}>{MARKETING_PAGES.home.phoneTitle}</h2>
-          <p className="mt-4 max-w-3xl text-muted-foreground">{MARKETING_PAGES.home.phoneLead}</p>
+          <MarketingSectionHeader
+            eyebrow="Channels"
+            title={MARKETING_PAGES.home.phoneTitle}
+            lead={MARKETING_PAGES.home.phoneLead}
+          />
 
           <div className="mt-12">
             <ChannelConvergenceVisual />
@@ -162,13 +169,15 @@ export default async function HomePage() {
 
       <section className="border-b border-border bg-background">
         <div className={marketingWideSection}>
-          <h2 className={marketingSectionTitle}>How it works</h2>
+          <MarketingSectionHeader eyebrow="Process" title="How it works" />
 
           <ol className="mt-12 grid min-w-0 gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             {HOME_STEPS.map((step) => (
               <li key={step.n}>
-                <p className="font-mono text-xs text-muted-foreground">{step.n}</p>
-                <h3 className="mt-2 font-heading text-lg font-medium text-foreground">{step.title}</h3>
+                <span className="inline-flex size-8 items-center justify-center rounded-md bg-[var(--color-sodium-yellow)] font-mono text-xs font-semibold text-[var(--color-carbon)]">
+                  {step.n}
+                </span>
+                <h3 className="mt-3 font-heading text-lg font-medium text-foreground">{step.title}</h3>
                 <p className="mt-2 text-sm text-muted-foreground">{step.body}</p>
               </li>
             ))}
@@ -178,7 +187,7 @@ export default async function HomePage() {
 
       <section className="border-b border-border bg-card">
         <div className={marketingWideSection}>
-          <h2 className={marketingSectionTitle}>{MARKETING_PAGES.home.seeTitle}</h2>
+          <MarketingSectionHeader eyebrow="The product" title={MARKETING_PAGES.home.seeTitle} />
 
           <div className="mt-12 grid min-w-0 gap-6 md:grid-cols-2 lg:grid-cols-3">
             <MarketingProductScreenshot

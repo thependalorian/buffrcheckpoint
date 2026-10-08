@@ -12,14 +12,7 @@ type MarketingClosingVisualProps = {
 export function MarketingClosingVisual({ backgroundSrc, backgroundAlt }: MarketingClosingVisualProps) {
   return (
     <section className="relative isolate min-h-[min(16rem,38vw)] overflow-hidden border-b border-border sm:min-h-[min(20rem,42vw)]">
-      <Image
-        src={backgroundSrc}
-        alt=""
-        aria-hidden
-        fill
-        sizes="100vw"
-        className="object-cover object-center"
-      />
+      <Image src={backgroundSrc} alt="" aria-hidden fill sizes="100vw" className="object-cover object-center" />
       <div
         className="absolute inset-0 bg-[linear-gradient(180deg,color-mix(in_srgb,var(--color-cloud)_15%,transparent)_0%,color-mix(in_srgb,var(--color-cloud)_55%,transparent)_55%,color-mix(in_srgb,var(--color-cloud)_88%,transparent)_100%)]"
         aria-hidden

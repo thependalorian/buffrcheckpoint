@@ -13,7 +13,8 @@ export const marketingSurfaceInset = "bc-surface-inset";
 export const marketingEyebrow = "bc-marketing-eyebrow";
 export const marketingLead = "bc-marketing-lead";
 export const marketingFeatureCard = "bc-surface p-6 sm:p-8";
-export const marketingCapabilityCard = "bc-surface p-6";
+export const marketingCapabilityCard =
+  "bc-surface p-6 transition-colors duration-[var(--duration-fast)] hover:border-[var(--border-strong)]";
 export const marketingListCard = "bc-surface p-4";
 /** Subscription / plan cards — taller padding, equal-height flex column. */
 export const marketingPricingCard = "bc-surface flex min-w-0 flex-col p-6 sm:p-7";

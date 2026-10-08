@@ -39,7 +39,9 @@ export function ChannelConvergenceVisual() {
         <p className="mt-3 font-heading text-lg font-medium tracking-tight text-foreground sm:text-xl">
           One isolated visitor record
         </p>
-        <p className="mt-2 text-sm text-muted-foreground">Same encryption, audit trail, and retention policy for every channel.</p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Same encryption, audit trail, and retention policy for every channel.
+        </p>
       </div>
     </div>
   );

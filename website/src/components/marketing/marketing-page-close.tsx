@@ -1,7 +1,4 @@
-import {
-  MARKETING_PAGE_CLOSES,
-  type MarketingPageCloseKey,
-} from "@/lib/marketing-visuals";
+import { MARKETING_PAGE_CLOSES, type MarketingPageCloseKey } from "@/lib/marketing-visuals";
 
 import { MarketingBottomCta } from "./marketing-bottom-cta";
 import { MarketingClosingVisual } from "./marketing-closing-visual";

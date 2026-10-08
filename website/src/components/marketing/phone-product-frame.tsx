@@ -7,7 +7,7 @@ import type { ReactNode } from "react";
 export function PhoneProductFrame({ children, label }: { children: ReactNode; label: string }) {
   return (
     <figure className="relative mx-auto w-full min-w-0 max-w-[18rem]" aria-label={label}>
-      <div className="relative rounded-[2.75rem] bg-[var(--color-sodium-yellow)] p-2.5 shadow-[0_24px_60px_-20px_color-mix(in_srgb,var(--color-charcoal)_45%,transparent)] ring-1 ring-[color-mix(in_srgb,var(--color-sodium-yellow)_70%,black)]">
+      <div className="relative rounded-[2.75rem] bg-[var(--color-sodium-yellow)] p-2.5 border border-[color-mix(in_srgb,var(--color-sodium-yellow)_70%,black)]">
         <span
           aria-hidden
           className="absolute top-24 -left-1 h-10 w-1 rounded-l bg-[color-mix(in_srgb,var(--color-sodium-yellow)_80%,black)]"

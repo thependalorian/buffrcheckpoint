@@ -1,5 +1,10 @@
 import { PRIVACY_MANAGED } from "@/lib/copy/privacy-managed";
-import { marketingCapabilityCard, marketingLead, marketingSectionTitle, marketingWideSection } from "@/lib/marketing-layout";
+import {
+  marketingCapabilityCard,
+  marketingLead,
+  marketingSectionTitle,
+  marketingWideSection,
+} from "@/lib/marketing-layout";
 
 /** The product's main promise, stated once in plain words: Checkpoint does the data protection work so the organisation does not have to. */
 export function PrivacyManagedSection() {

@@ -1,6 +1,13 @@
 // Marketing page copy in one place (lib/copy rule): the lists the pages render. The legal documents (/terms, /privacy) keep their text with the
 // page, because a legal document is versioned as a document and is not edited as interface copy.
 
+export const HOME_PROOF = [
+  { figure: "AES-256-GCM", label: "Every visitor record is encrypted" },
+  { figure: "30 days", label: "Then queued contact details are cleared" },
+  { figure: "1 month", label: "Data request deadline, tracked for you" },
+  { figure: "Offline", label: "Check-in keeps working through an outage" },
+] as const;
+
 export const HOME_CAPABILITIES = [
   {
     title: "QR-first phone check-in",
