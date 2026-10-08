@@ -2,13 +2,12 @@ import Link from "next/link";
 
 import { Metadata } from "next";
 
+import { pageMetadata } from "@/lib/seo";
+
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 
-export const metadata: Metadata = {
-  title: "Terms & Conditions",
-  description: "Standard SaaS terms for Buffr Checkpoint, scoped to the customer role model and packaging tiers.",
-};
+export const metadata: Metadata = pageMetadata("terms");
 
 export default function TermsPage() {
   return (
@@ -66,8 +65,9 @@ export default function TermsPage() {
               <p className="mt-4 text-muted-foreground">
                 The client organisation is the data controller for all visitor data processed through the Platform.
                 Buffr Checkpoint acts as the data processor, processing visitor data only in accordance with the
-                client's instructions and the applicable data-protection framework. The client is responsible for its
-                own legal obligations, including privacy notices, retention policies, and data-subject request handling.
+                client's instructions and the applicable data-protection framework. Checkpoint provides the privacy notice,
+                retention and disposal, data-subject request handling, and evidence as part of the Platform, switched on by
+                default. The client decides who may see what, and which legal holds apply.
               </p>
             </div>
 
@@ -128,8 +128,7 @@ export default function TermsPage() {
               <h2 className="text-2xl font-bold">6. Data Protection and Privacy</h2>
               <p className="mt-4 text-muted-foreground">
                 Buffr Checkpoint is designed to support privacy, cybersecurity, retention, evidence, and
-                operational-resilience controls. Each client remains responsible for its own legal obligations and
-                configuration decisions. Please review our{" "}
+                operational-resilience controls, and runs them for the client from the start. Please review our{" "}
                 <Link href="/privacy" className="text-sodium-yellow-ink hover:underline">
                   Privacy Policy
                 </Link>{" "}

@@ -113,7 +113,7 @@ export const onboardingCopy = {
       acceptedOn: (date: string) => `Accepted on ${date}`,
       again: "If you change something later, you can accept again.",
       responsibility:
-        "Each organisation is responsible for its own legal obligations. Checkpoint's wording is designed to support privacy and retention controls: change it to suit yours.",
+        "Checkpoint writes your privacy notice, sets how long records are kept and handles data requests for you. The wording is yours to adjust if you want to.",
       notReady: "Your standards are being created. Reload this page in a moment.",
     },
     goLive: {

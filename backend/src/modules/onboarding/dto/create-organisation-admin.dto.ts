@@ -1,5 +1,6 @@
 import { Equals, IsEmail, IsOptional, IsString, MinLength } from "class-validator";
 
+import { MeetsPasswordPolicy } from "../../../common/auth/password-policy";
 import { NormaliseEmail } from "../../../common/decorators/normalise-email.decorator";
 
 export class CreateOrganisationAdminDto {
@@ -13,10 +14,9 @@ export class CreateOrganisationAdminDto {
   @IsEmail()
   email!: string;
 
-  // Same floor as backend/src/modules/auth/dto/register.dto.ts — not a
-  // real password policy yet, flagged there already.
+  // Same policy as backend/src/modules/auth/dto/register.dto.ts.
   @IsString()
-  @MinLength(8)
+  @MeetsPasswordPolicy()
   password!: string;
 
   // The owner must agree to the Terms and Conditions and the Privacy Policy to create an account. The acceptance is recorded in the

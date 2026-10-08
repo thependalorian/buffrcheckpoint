@@ -23,7 +23,9 @@ describe("privacy posture", () => {
   });
 
   it("makes no compliance claim", () => {
-    expect(buildPrivacyPosture(input).note).toContain("not a statement of legal compliance");
+    const note = buildPrivacyPosture(input).note;
+    expect(note).toContain("not a certification");
+    expect(note.toLowerCase()).not.toMatch(/remains? responsible|own legal obligations/);
   });
 
   it("lists every subprocessor and never invents a region", () => {

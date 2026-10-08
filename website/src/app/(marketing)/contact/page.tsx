@@ -1,15 +1,14 @@
 import type { Metadata } from "next";
 
+import { pageMetadata } from "@/lib/seo";
+
 import { CONTACT_EMAIL_TOPICS, contactMailto, PUBLIC_CONTACT_EMAIL } from "@/lib/copy/contact";
 import { MarketingHero } from "@/components/marketing/marketing-hero";
 import { marketingFeatureCard, marketingPageTitle, marketingWideSection } from "@/lib/marketing-layout";
 import { MarketingPageClose } from "@/components/marketing/marketing-page-close";
 import { MARKETING_HERO_IMAGES } from "@/lib/marketing-visuals";
 
-export const metadata: Metadata = {
-  title: "Contact",
-  description: "Questions before you sign up, multi-site rollouts, hardware, integrations, or partnerships with Checkpoint.",
-};
+export const metadata: Metadata = pageMetadata("contact");
 
 export default function ContactPage() {
   return (

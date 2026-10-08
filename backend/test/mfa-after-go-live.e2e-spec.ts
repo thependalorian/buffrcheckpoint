@@ -53,7 +53,7 @@ describe("MFA after onboarding (e2e)", () => {
         organisationName: `E2E MFA Gate ${runId}`,
         sectorCode: "sme", acceptTerms: true,
         email: ownerEmail,
-        password: "testpassword123",
+        password: "blue tractor sings 123",
       })
       .expect(201);
     organisationId = created.body.organisationId as string;

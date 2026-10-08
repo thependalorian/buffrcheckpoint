@@ -8,7 +8,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { authCopy } from "@/lib/copy/auth";
+import { authCopy, PASSWORD_MIN_LENGTH, passwordRule } from "@/lib/copy/auth";
 import { AnalyticsEvents, track } from "@/lib/observability/track";
 
 export function ResetPasswordForm() {
@@ -51,12 +51,14 @@ export function ResetPasswordForm() {
         <Input
           id="password"
           type="password"
-          minLength={8}
+          minLength={PASSWORD_MIN_LENGTH}
+          autoComplete="new-password"
           required
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
       </div>
+      <p className="text-muted-foreground text-xs">{passwordRule}</p>
       {error ? <p className="text-destructive text-sm">{error}</p> : null}
       <Button type="submit" disabled={submitting || !token}>
         {submitting ? authCopy.resetPassword.submitting : authCopy.resetPassword.submit}

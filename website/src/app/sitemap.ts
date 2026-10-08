@@ -1,15 +1,13 @@
 import type { MetadataRoute } from "next";
 
-// Section 11.8.8: generated at build time from the actual page list
-// (Section 1a.3, now 8 pages/states) — not hand-maintained separately.
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://buffrcheckpoint.com";
+import { absoluteUrl, SEO_PAGES } from "@/lib/seo";
 
+// Built from the same page list as the page metadata (lib/seo.ts), so a page cannot be in one and not the other. No last-modified date is
+// given: a date that changes on every build tells a crawler nothing true, and search engines learn to ignore it.
 export default function sitemap(): MetadataRoute.Sitemap {
-  const routes = ["", "/platform", "/pricing", "/developers", "/about", "/status", "/contact", "/privacy", "/terms"];
-  return routes.map((route) => ({
-    url: `${SITE_URL}${route}`,
-    lastModified: new Date(),
-    changeFrequency: route === "" ? "weekly" : "monthly",
-    priority: route === "" ? 1 : 0.7,
+  return Object.values(SEO_PAGES).map((page) => ({
+    url: absoluteUrl(page.path),
+    changeFrequency: page.changeFrequency,
+    priority: page.priority,
   }));
 }

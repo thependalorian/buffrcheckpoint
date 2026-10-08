@@ -4,7 +4,7 @@
  *    default) and §8.1 (General visitor: name, host, purpose category);
  *  - the visitor privacy notice follows the commitments of the public Privacy Policy (organisation is controller, Buffr Checkpoint is
  *    processor; what is collected; how it is used; retention; security; rights) and the "practical legal position" (designed to
- *    support privacy and retention controls; each client remains responsible for its own legal obligations; no compliance claims);
+ *    support privacy and retention controls, which Checkpoint runs for the client; no compliance claims);
  *  - retention uses the "Standard" tier of §8.5. The blueprint gives no day count, so the number is a platform setting with the
  *    placeholder below, to be confirmed by the owner and counsel.
  * An organisation accepts all of this as it stands or edits it, now or at go-live. Pure functions, so the content is testable.
@@ -187,6 +187,6 @@ export function standardPrivacyNotice(input: {
     "Your rights",
     `You can ask ${name} to show you the information held about you, to correct it, or to delete it. Ask at reception and you will be told who handles these requests.`,
     "",
-    `This notice is the organisation's standard visitor notice, provided through Buffr Checkpoint. ${name} may change it to suit its own legal obligations.`,
+    `This notice is the organisation's standard visitor notice, provided through Buffr Checkpoint. ${name} may adjust it to fit how it works.`,
   ].join("\n");
 }

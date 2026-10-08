@@ -1,5 +1,6 @@
-import { IsEmail, IsString, MinLength } from "class-validator";
+import { IsEmail, IsString } from "class-validator";
 
+import { MeetsPasswordPolicy } from "../../../common/auth/password-policy";
 import { NormaliseEmail } from "../../../common/decorators/normalise-email.decorator";
 
 export class RequestPasswordResetDto {
@@ -13,6 +14,6 @@ export class ConfirmPasswordResetDto {
   token!: string;
 
   @IsString()
-  @MinLength(8)
+  @MeetsPasswordPolicy()
   newPassword!: string;
 }

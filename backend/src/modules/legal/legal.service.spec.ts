@@ -86,7 +86,7 @@ describe("LegalService", () => {
 });
 
 describe("account creation requires acceptance", () => {
-  const body = { organisationName: "Acme", sectorCode: "sme", email: "owner@example.com", password: "a-long-password" };
+  const body = { organisationName: "Acme", sectorCode: "sme", email: "owner@example.com", password: "river stone lantern" };
 
   it("refuses a sign-up that does not accept, or accepts with anything but true", async () => {
     for (const acceptTerms of [undefined, false, "true", 1]) {

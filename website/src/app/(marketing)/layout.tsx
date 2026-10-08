@@ -1,3 +1,4 @@
+import { BreadcrumbAuto } from "@/components/breadcrumb-auto";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 
@@ -10,6 +11,7 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
       >
         Skip to content
       </a>
+      <BreadcrumbAuto />
       <SiteHeader />
       <main id="main" className="min-w-0 flex-1 overflow-x-clip">
         {children}

@@ -1,5 +1,6 @@
-import { IsEmail, IsOptional, IsString, IsUUID, MinLength } from "class-validator";
+import { IsEmail, IsOptional, IsString, IsUUID } from "class-validator";
 
+import { MeetsPasswordPolicy } from "../../../common/auth/password-policy";
 import { NormaliseEmail } from "../../../common/decorators/normalise-email.decorator";
 
 // No organisationId here — the controller always uses the authenticated
@@ -11,11 +12,9 @@ export class RegisterDto {
   @IsEmail()
   email!: string;
 
-  // Section 13.1's minimum control baseline doesn't set a specific password
-  // policy; 8 chars is a floor, not a recommendation — tighten with a real
-  // policy (entropy check, breached-password list) before production launch.
+  // 12 characters minimum, no composition rules (common/auth/password-policy.ts).
   @IsString()
-  @MinLength(8)
+  @MeetsPasswordPolicy()
   password!: string;
 
   /** Customer-assignable role_code (defaults to owner_operator if omitted). */

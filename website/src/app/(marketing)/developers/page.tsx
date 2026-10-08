@@ -1,16 +1,14 @@
 import type { Metadata } from "next";
 
+import { pageMetadata } from "@/lib/seo";
+
 import { PUBLIC_CONTACT_EMAIL } from "@/lib/copy/contact";
 import { MarketingHero } from "@/components/marketing/marketing-hero";
 import { marketingCapabilityCard, marketingNarrowSection, marketingPageTitle } from "@/lib/marketing-layout";
 import { MarketingPageClose } from "@/components/marketing/marketing-page-close";
 import { MARKETING_HERO_IMAGES } from "@/lib/marketing-visuals";
 
-export const metadata: Metadata = {
-  title: "Developers",
-  description:
-    "Checkpoint API overview, authentication model, and integration boundaries for customer engineering teams.",
-};
+export const metadata: Metadata = pageMetadata("developers");
 
 const resources = [
   {

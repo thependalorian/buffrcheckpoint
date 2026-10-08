@@ -91,7 +91,7 @@ describe("Site notices and QR types (e2e)", () => {
         organisationName: `E2E Notices ${runId}`,
         sectorCode: "sme", acceptTerms: true,
         email: ownerEmail,
-        password: "testpassword123",
+        password: "blue tractor sings 123",
       })
       .expect(201);
     organisationId = created.body.organisationId as string;

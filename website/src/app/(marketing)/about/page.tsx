@@ -1,14 +1,13 @@
 import type { Metadata } from "next";
 
+import { pageMetadata } from "@/lib/seo";
+
 import { MarketingHero } from "@/components/marketing/marketing-hero";
 import { marketingCapabilityCard, marketingNarrowSection, marketingPageTitle, marketingSectionTitle, marketingWideSection } from "@/lib/marketing-layout";
 import { MarketingPageClose } from "@/components/marketing/marketing-page-close";
 import { MARKETING_HERO_IMAGES } from "@/lib/marketing-visuals";
 
-export const metadata: Metadata = {
-  title: "About",
-  description: "Why we built Checkpoint, an independent visitor and access-management platform from Windhoek, Namibia.",
-};
+export const metadata: Metadata = pageMetadata("about");
 
 const VALUES = [
   { title: "Privacy by design", body: "Data minimisation, retention control, and record isolation ship switched on." },

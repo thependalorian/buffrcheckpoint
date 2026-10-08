@@ -3,7 +3,10 @@ import Link from "next/link";
 
 import type { Metadata } from "next";
 
+import { pageMetadata } from "@/lib/seo";
+
 import { HomeJsonLd } from "@/components/json-ld";
+import { fetchPublicPricing } from "@/lib/pricing";
 import { ChannelConvergenceVisual } from "@/components/marketing/channel-convergence-visual";
 import { MarketingHero } from "@/components/marketing/marketing-hero";
 import { MarketingPageClose } from "@/components/marketing/marketing-page-close";
@@ -13,10 +16,7 @@ import { MARKETING_SECONDARY_PRICING_CTA } from "@/lib/copy/signup";
 import { marketingCapabilityCard, marketingFeatureCard, marketingLead } from "@/lib/marketing-layout";
 import { MARKETING_HERO_IMAGES } from "@/lib/marketing-visuals";
 
-export const metadata: Metadata = {
-  description:
-    "A paper visitor register shows every name, phone number, and ID number to the next person who signs. Checkpoint gives each visitor a private, encrypted record, keeps working offline, and checks in people with or without a smartphone.",
-};
+export const metadata: Metadata = pageMetadata("home");
 
 const CAPABILITIES = [
   {
@@ -73,10 +73,11 @@ const STEPS = [
   },
 ];
 
-export default function HomePage() {
+export default async function HomePage() {
+  const { catalog } = await fetchPublicPricing();
   return (
     <>
-      <HomeJsonLd />
+      <HomeJsonLd plans={catalog.plans} />
 
       <MarketingHero
         backgroundSrc={MARKETING_HERO_IMAGES.home.src}

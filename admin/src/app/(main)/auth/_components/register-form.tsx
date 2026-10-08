@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useBuffrIdConfig } from "@/lib/auth/use-buffr-id-config";
-import { authCopy } from "@/lib/copy/auth";
+import { authCopy, PASSWORD_MIN_LENGTH, passwordRule } from "@/lib/copy/auth";
 import { LEGAL_LINKS } from "@/lib/legal-links";
 import { AnalyticsEvents, track } from "@/lib/observability/track";
 import { useOrganisationSectors } from "@/lib/use-organisation-sectors";
@@ -139,14 +139,14 @@ export function RegisterForm() {
                 id="password"
                 type="password"
                 autoComplete="new-password"
-                minLength={8}
+                minLength={PASSWORD_MIN_LENGTH}
                 required
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 className="pl-8"
               />
             </div>
-            <p className="text-muted-foreground text-xs">At least 8 characters.</p>
+            <p className="text-muted-foreground text-xs">{passwordRule}</p>
           </div>
         </>
       )}

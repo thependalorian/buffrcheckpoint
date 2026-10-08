@@ -30,6 +30,6 @@ export function buildPrivacyPosture(input: PrivacyPostureInput): PrivacyPosture 
       "Data requests carry a one-month deadline that is tracked for you.",
     ],
     subprocessors: [...SUBPROCESSORS],
-    note: "This section states settings in force when the pack was generated. It is not a statement of legal compliance; each organisation remains responsible for its own legal obligations.",
+    note: "This section states the settings in force when the pack was generated, read from the platform's own records. It describes what Checkpoint does for the organisation; it is not a certification or a legal opinion.",
   };
 }

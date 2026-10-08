@@ -2,16 +2,14 @@ import Link from "next/link";
 
 import { Metadata } from "next";
 
+import { pageMetadata } from "@/lib/seo";
+
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { IDENTITY_ASSURANCE_LADDER_SUMMARY } from "@/lib/copy/identity-assurance";
 import { POLICY_SUBPROCESSORS, PRIVACY_COPY } from "@/lib/copy/privacy";
 
-export const metadata: Metadata = {
-  title: "Privacy Policy",
-  description:
-    "How Buffr Checkpoint collects, uses, stores, and protects personal information in accordance with Namibia's data-protection direction.",
-};
+export const metadata: Metadata = pageMetadata("privacy");
 
 export default function PrivacyPage() {
   return (

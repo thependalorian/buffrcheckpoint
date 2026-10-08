@@ -55,10 +55,10 @@ describe("onboarding copy (§11.9.15.4)", () => {
     expect(onboardingCopy.home.standards.days(1)).toBe("1 day");
   });
 
-  it("makes no compliance claim and puts the responsibility where it belongs", () => {
+  it("says Checkpoint does the privacy work, makes no compliance claim, and does not hand the work back", () => {
     const text = onboardingCopy.home.standards.responsibility;
-    expect(text).toMatch(/responsible for its own legal obligations/);
-    expect(text).toMatch(/designed to support/);
+    expect(text).toMatch(/for you/);
+    expect(text.toLowerCase()).not.toMatch(/responsible for its own|your own legal|remains? responsible/);
     expect(strings.join(" ").toLowerCase()).not.toMatch(/\bcompliant\b|\bcertified\b|guarantee/);
   });
 

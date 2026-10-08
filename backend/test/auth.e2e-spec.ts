@@ -114,7 +114,7 @@ describe("Secure onboarding auth (e2e)", () => {
         organisationName: `E2E Org A ${runId}`,
         sectorCode: "sme", acceptTerms: true,
         email: email("org-a-admin"),
-        password: "testpassword123",
+        password: "blue tractor sings 123",
       })
       .expect(201);
 
@@ -140,7 +140,7 @@ describe("Secure onboarding auth (e2e)", () => {
         organisationName: `Should Not Exist ${runId}`,
         sectorCode: "sme", acceptTerms: true,
         email: email("org-a-admin"),
-        password: "testpassword123",
+        password: "blue tractor sings 123",
       })
       .expect(409);
   });
@@ -148,7 +148,7 @@ describe("Secure onboarding auth (e2e)", () => {
   it("denies full login until email is verified", async () => {
     const response = await request(app.getHttpServer())
       .post("/auth/login")
-      .send({ email: email("org-a-admin"), password: "testpassword123" })
+      .send({ email: email("org-a-admin"), password: "blue tractor sings 123" })
       .expect(200);
 
     expect(response.body.emailVerificationRequired).toBe(true);
@@ -184,7 +184,7 @@ describe("Secure onboarding auth (e2e)", () => {
   it("requires MFA challenge on subsequent login", async () => {
     const login = await request(app.getHttpServer())
       .post("/auth/login")
-      .send({ email: email("org-a-admin"), password: "testpassword123" })
+      .send({ email: email("org-a-admin"), password: "blue tractor sings 123" })
       .expect(200);
 
     expect(login.body.mfaRequired).toBe(true);
@@ -230,7 +230,7 @@ describe("Secure onboarding auth (e2e)", () => {
         organisationName: `E2E Org B ${runId}`,
         sectorCode: "sme", acceptTerms: true,
         email: email("org-b-admin"),
-        password: "testpassword123",
+        password: "blue tractor sings 123",
       })
       .expect(201);
     createdOrgIds.push(orgB.body.organisationId);
@@ -244,7 +244,7 @@ describe("Secure onboarding auth (e2e)", () => {
 
     const orgALogin = await request(app.getHttpServer())
       .post("/auth/login")
-      .send({ email: email("org-a-admin"), password: "testpassword123" })
+      .send({ email: email("org-a-admin"), password: "blue tractor sings 123" })
       .expect(200);
     expect(orgALogin.body.mfaChallengeToken).toEqual(expect.any(String));
     const userA = await db.query.applicationUsers.findFirst({
@@ -261,7 +261,7 @@ describe("Secure onboarding auth (e2e)", () => {
     if (orgASession.status !== 200) {
       const retryLogin = await request(app.getHttpServer())
         .post("/auth/login")
-        .send({ email: email("org-a-admin"), password: "testpassword123" })
+        .send({ email: email("org-a-admin"), password: "blue tractor sings 123" })
         .expect(200);
       orgASession = await request(app.getHttpServer())
         .post("/auth/mfa/challenge/verify")

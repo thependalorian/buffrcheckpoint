@@ -1,3 +1,8 @@
+/** The rule for choosing a password, shown beside every field where one is chosen. It matches backend/src/common/auth/password-policy.ts. */
+export const passwordRule =
+  "Use at least 12 characters. A phrase of several words works well. Spaces and any characters are allowed.";
+export const PASSWORD_MIN_LENGTH = 12;
+
 export const authCopy = {
   register: {
     title: "Create your organisation",
@@ -103,7 +108,7 @@ export const authCopy = {
   },
   resetPassword: {
     title: "Choose a new password",
-    description: "Use at least 8 characters. You will sign in again after saving.",
+    description: "Choose a new password. You will sign in again after saving.",
     submit: "Update password",
     submitting: "Updating...",
     missingToken: "This reset link is missing or incomplete. Request a new one.",

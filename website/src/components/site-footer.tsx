@@ -91,8 +91,8 @@ export function SiteFooter() {
             Africa&apos;s Compliance.
           </p>
           <p className="max-w-4xl text-xs leading-relaxed text-muted-foreground/90">
-            {BRAND.productName} supports privacy, retention, and operational-resilience controls. Each organisation remains
-            responsible for its own legal obligations, configuration, and supervisory reporting.
+            {BRAND.productName} takes care of the data protection work for you: the privacy notice, retention and disposal, data requests and
+            their deadlines, and the evidence. It is built in and switched on from day one.
           </p>
         </div>
       </div>

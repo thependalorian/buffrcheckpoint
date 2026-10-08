@@ -2,6 +2,8 @@ import Image from "next/image";
 
 import type { Metadata } from "next";
 
+import { pageMetadata } from "@/lib/seo";
+
 import { MarketingHero } from "@/components/marketing/marketing-hero";
 import { MarketingPageClose } from "@/components/marketing/marketing-page-close";
 import { ReportingFigure } from "@/components/marketing/reporting-figure";
@@ -15,11 +17,7 @@ import {
 } from "@/lib/marketing-layout";
 import { MARKETING_HERO_IMAGES } from "@/lib/marketing-visuals";
 
-export const metadata: Metadata = {
-  title: "Platform",
-  description:
-    "How Checkpoint works: six check-in channels, one encrypted visitor record, and role-based access checked on the server.",
-};
+export const metadata: Metadata = pageMetadata("platform");
 
 const LAYERS = [
   {

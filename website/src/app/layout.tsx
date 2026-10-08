@@ -53,6 +53,8 @@ export const metadata: Metadata = {
     apple: "/apple-icon.png",
   },
   robots: { index: true, follow: true },
+  // Google Search Console: set this to the verification code it shows, then the domain is claimed without a DNS change.
+  ...(process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION ? { verification: { google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION } } : {}),
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

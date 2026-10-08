@@ -2,6 +2,8 @@ import Link from "next/link";
 
 import type { Metadata } from "next";
 
+import { pageMetadata } from "@/lib/seo";
+
 import {
   CapabilityStatusBadge,
   capabilityStatusLabel,
@@ -12,10 +14,7 @@ import { marketingListCard, marketingNarrowSection, marketingPageTitle } from "@
 import { MarketingPageClose } from "@/components/marketing/marketing-page-close";
 import { MARKETING_HERO_IMAGES } from "@/lib/marketing-visuals";
 
-export const metadata: Metadata = {
-  title: "Status",
-  description: "Current status of Checkpoint services and check-in features.",
-};
+export const metadata: Metadata = pageMetadata("status");
 
 const INFRA_ROWS = [
   { name: "Core API", status: "Operational", note: "Authenticated tenant APIs and public check-in endpoints." },
