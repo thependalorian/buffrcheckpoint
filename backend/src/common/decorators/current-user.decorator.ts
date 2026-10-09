@@ -23,6 +23,8 @@ export interface AuthenticatedUser {
    */
   supportSessionId?: string;
   supportGrantId?: string;
+  /** When the token was issued, in Unix seconds. Used to require a fresh sign-in for sensitive actions (DL-3). */
+  issuedAt?: number;
 }
 
 // Populated by JwtAuthGuard (modules/auth/guards/jwt-auth.guard.ts) from the

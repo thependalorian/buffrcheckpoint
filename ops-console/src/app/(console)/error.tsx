@@ -1,5 +1,6 @@
 "use client";
 
+import * as Sentry from "@sentry/nextjs";
 import { useEffect } from "react";
 
 import { DashboardErrorState } from "@/components/dashboard-state";
@@ -7,7 +8,7 @@ import { Button } from "@/components/ui/button";
 
 export default function ConsoleError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
-    console.error(error);
+    Sentry.captureException(error);
   }, [error]);
 
   return (

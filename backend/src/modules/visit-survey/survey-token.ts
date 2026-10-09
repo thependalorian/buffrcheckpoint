@@ -1,4 +1,5 @@
 import { COMPACT_TOKEN_LENGTH, createCompactToken, verifyCompactToken } from "../../common/crypto/compact-link-token";
+import { purposeTokenKey } from "../../common/crypto/token-secret";
 import { createHmac, timingSafeEqual } from "node:crypto";
 
 // Proof that the person rating a visit is the one who just checked out. The
@@ -8,9 +9,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 const SURVEY_TOKEN_TTL_MS = 24 * 60 * 60 * 1000;
 
 function secret(): string {
-  const key = process.env.QR_TOKEN_PEPPER || process.env.JWT_SECRET;
-  if (!key) throw new Error("QR_TOKEN_PEPPER or JWT_SECRET must be set to sign survey tokens");
-  return `visit-survey:${key}`;
+  return purposeTokenKey("visit-survey");
 }
 
 function sign(payload: string): string {

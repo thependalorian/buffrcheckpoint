@@ -84,6 +84,14 @@ export const SEO_PAGES = {
     priority: 0.4,
     changeFrequency: "monthly",
   },
+  security: {
+    path: "/security",
+    title: "Security",
+    description:
+      "How to report a security problem in Checkpoint, what we do after a report, the rules for testing, and how fast we fix problems.",
+    priority: 0.4,
+    changeFrequency: "yearly",
+  },
   terms: {
     path: "/terms",
     title: "Terms & Conditions",

@@ -58,6 +58,7 @@
         "useImportType": "off"
       },
       "suspicious": {
+        "noConsole": "error",
         "noConstantBinaryExpressions": "error",
         "noEmptyBlockStatements": "error",
         "noImportCycles": "error"
@@ -80,6 +81,10 @@
     }
   },
   "overrides": [
+    {
+      "includes": ["scripts/**"],
+      "linter": { "rules": { "suspicious": { "noConsole": "off" } } }
+    },
     {
       "includes": ["**/*.spec.ts", "test/**"],
       "javascript": {

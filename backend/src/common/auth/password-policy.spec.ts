@@ -1,4 +1,4 @@
-import { PASSWORD_MAX_BYTES, passwordProblem } from "./password-policy";
+import { PASSWORD_MAX_LENGTH, passwordProblem } from "./password-policy";
 
 describe("password policy", () => {
   it("accepts a twelve character phrase, with spaces and any characters", () => {
@@ -13,11 +13,12 @@ describe("password policy", () => {
     expect(passwordProblem("日本語のパスワードです。お願い")).toBeNull();
   });
 
-  it("refuses more than bcrypt reads, saying so, instead of cutting it silently", () => {
+  it("accepts a 128 character passphrase and refuses one more", () => {
     const phrase = "river stone lantern ";
-    const longest = phrase.repeat(4).slice(0, PASSWORD_MAX_BYTES);
-    expect(passwordProblem(`${longest}x`)).toMatch(/too long/);
+    const longest = phrase.repeat(7).slice(0, PASSWORD_MAX_LENGTH);
+    expect([...longest]).toHaveLength(PASSWORD_MAX_LENGTH);
     expect(passwordProblem(longest)).toBeNull();
+    expect(passwordProblem(`${longest}x`)).toMatch(/at most 128/);
   });
 
   it("refuses blanks, repeats and very common words", () => {

@@ -63,7 +63,7 @@ export class SitesController {
   @Delete(":id")
   @RequirePermission(PERMISSIONS.SITE_CONFIGURE)
   @RequireVerifiedEmail()
-  @AuditLog({ action: "site.delete", resourceType: "site" })
+  @AuditLog({ action: "site.delete", resourceType: "site", writeAhead: true })
   softDelete(@Param("id") id: string, @CurrentUser() user: AuthenticatedUser) {
     return this.sitesService.softDelete(id, user);
   }

@@ -4,23 +4,18 @@
 import "dotenv/config";
 import "./instrument";
 
-import { ValidationPipe } from "@nestjs/common";
+import { Logger, ValidationPipe } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import helmet from "helmet";
 
 import { AppModule } from "./app.module";
+import { corsOrigins } from "./common/config/cors-origins";
+import { assertProductionConfig } from "./common/config/production-config-guard";
 
-function corsOrigins(): boolean | string[] {
-  const raw = process.env.CORS_ORIGIN?.trim();
-  if (!raw) return true;
-  const list = raw
-    .split(",")
-    .map((o) => o.trim())
-    .filter(Boolean);
-  return list.length > 0 ? list : true;
-}
+const logger = new Logger("Bootstrap");
 
 async function bootstrap() {
+  assertProductionConfig();
   const app = await NestFactory.create(AppModule);
 
   // Section 11.8.6: security hardening baseline.
@@ -30,10 +25,17 @@ async function bootstrap() {
   app.use(
     helmet({
       crossOriginResourcePolicy: { policy: "cross-origin" },
+      // HD-1: a JSON API serves no documents, so no source is allowed and nothing may frame it.
+      contentSecurityPolicy: { directives: { defaultSrc: ["'none'"], frameAncestors: ["'none'"] } },
+      strictTransportSecurity: { maxAge: 31_536_000, includeSubDomains: true },
     }),
   );
+  app.use((_req: unknown, res: { setHeader(name: string, value: string): void }, next: () => void) => {
+    res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()");
+    next();
+  });
   app.enableCors({
-    origin: corsOrigins(),
+    origin: corsOrigins(process.env.CORS_ORIGIN, logger),
     credentials: true,
   });
   app.useGlobalPipes(
@@ -46,10 +48,10 @@ async function bootstrap() {
 
   const port = process.env.PORT ?? 3001;
   await app.listen(port);
-  console.log(`Buffr Checkpoint backend listening on port ${port}`);
+  logger.log(`Buffr Checkpoint backend listening on port ${port}`);
 }
 
 bootstrap().catch((error: unknown) => {
-  console.error("Fatal error during bootstrap:", error);
+  logger.error("Fatal error during bootstrap", error instanceof Error ? error.stack : String(error));
   process.exit(1);
 });

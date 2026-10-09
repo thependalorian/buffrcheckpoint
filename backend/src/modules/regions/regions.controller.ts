@@ -60,7 +60,7 @@ export class RegionsController {
 
   @Delete(":id")
   @RequirePermission(PERMISSIONS.SITE_CONFIGURE)
-  @AuditLog({ action: "region.delete", resourceType: "region" })
+  @AuditLog({ action: "region.delete", resourceType: "region", writeAhead: true })
   softDelete(@Param("id") id: string, @CurrentUser() user: AuthenticatedUser) {
     return this.regionsService.softDelete(id, user);
   }

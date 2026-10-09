@@ -40,9 +40,10 @@ export async function POST(request: Request) {
     recoveryCodes: string[];
     nextPath: string;
     accessToken: string;
+    refreshToken?: string;
   };
 
-  await setSessionCookie(payload.accessToken);
+  await setSessionCookie(payload.accessToken, payload.refreshToken);
 
   return NextResponse.json({
     recoveryCodes: payload.recoveryCodes,

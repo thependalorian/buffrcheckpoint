@@ -2,21 +2,24 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
-  HttpException,
-  HttpStatus,
   Inject,
   Injectable,
   NotFoundException,
   UnauthorizedException,
 } from "@nestjs/common";
-import { JwtService } from "@nestjs/jwt";
-import * as bcrypt from "bcryptjs";
 import { and, desc, eq, gt, isNull, sql } from "drizzle-orm";
 import { authenticator } from "otplib";
 
 import { ScopedPermissionEvaluationService } from "../../common/access-control/scoped-permission-evaluation.service";
 import { appendAuditEvent } from "../../common/audit/audit-chain";
-import { ADMIN_SESSION_TTL, OPS_ENROLL_TTL, OPS_SESSION_TTL } from "../../common/auth/session-audience";
+import { markCredentialsChanged } from "../../common/auth/credential-revocation";
+import {
+  dummyPasswordHash,
+  hashPassword,
+  passwordNeedsRehash,
+  verifyPassword,
+} from "../../common/auth/password-hasher";
+import { accessTokenTtlSeconds, OPS_ENROLL_SECONDS } from "../../common/auth/session-audience";
 import { sessionCache } from "../../common/auth/session-cache";
 import {
   decryptSecret,
@@ -62,9 +65,10 @@ import {
   type SignInSurface,
 } from "./buffr-id.service";
 import type { ConfirmPasswordResetDto, RequestPasswordResetDto } from "./dto/password-reset.dto";
+import { RefreshTokenService } from "./refresh-token.service";
+import { TokenIssuerService } from "./token-issuer.service";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 
-const BCRYPT_ROUNDS = 12;
 const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000;
 const PASSWORD_RESET_MAX_PER_HOUR = 3;
 const EMAIL_VERIFICATION_TTL_MS = Number(process.env.EMAIL_VERIFICATION_TTL_MS ?? 24 * 60 * 60 * 1000);
@@ -93,6 +97,8 @@ authenticator.options = { window: 1 };
 
 export interface AccessTokenResult {
   accessToken: string;
+  /** Exchange at POST /auth/refresh for a new access token; works once (SE-2). Absent on the paths that do not start a refreshable session. */
+  refreshToken?: string;
   emailVerified: boolean;
   mfaEnabled: boolean;
   onboardingComplete: boolean;
@@ -116,6 +122,11 @@ export interface LoginResult {
 const PLATFORM_ROLE = "platform_support";
 const INVALID_CREDENTIALS = "Invalid email or password";
 
+/** True while a lockout is still running. */
+function isLocked(lockedUntil: Date | null | undefined): boolean {
+  return Boolean(lockedUntil && lockedUntil.getTime() > Date.now());
+}
+
 export interface RegisterInput {
   organisationId: string;
   email: string;
@@ -130,13 +141,14 @@ const VERIFY_EMAIL_REPLAY_GRACE_MS = 60_000;
 export class AuthService {
   constructor(
     @Inject(DB) private readonly db: Database,
-    private readonly jwt: JwtService,
+    private readonly tokens: TokenIssuerService,
     private readonly typeDefs: TypeDefinitionLookupService,
     private readonly permissionEvaluation: ScopedPermissionEvaluationService,
     private readonly templatedEmail: TemplatedEmailService,
     private readonly rbac: RbacService,
     private readonly onboardingState: OnboardingStateService,
     private readonly buffrId: BuffrIdService,
+    private readonly refreshTokens: RefreshTokenService,
   ) {}
 
   async register(dto: RegisterInput): Promise<{ ok: true; email: string; emailVerificationRequired: true }> {
@@ -151,7 +163,7 @@ export class AuthService {
     this.rbac.assertAssignableRoleCode(roleCode);
     const targetRole = await this.rbac.resolveRoleDefinition(dto.organisationId, roleCode);
 
-    const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
+    const passwordHash = await hashPassword(dto.password);
     const userId = randomUUID();
 
     await this.db.insert(applicationUsers).values({
@@ -234,7 +246,7 @@ export class AuthService {
       return { mfaRequired: true, mfaChallengeToken: challenge };
     }
     const permissions = Array.from(await this.permissionEvaluation.permissionsForRoleCode(PLATFORM_ROLE));
-    const enrollmentToken = this.jwt.sign(
+    const enrollmentToken = await this.tokens.sign(
       {
         sub: user.id,
         organisationId: user.organisationId,
@@ -245,35 +257,45 @@ export class AuthService {
         mfaEnabled: false,
         aud: "ops_enroll",
       },
-      { expiresIn: OPS_ENROLL_TTL },
+      OPS_ENROLL_SECONDS,
     );
     return { mfaEnrollmentRequired: true, enrollmentToken };
   }
 
-  /** Password check shared by both front doors, including lockout bookkeeping. */
+  /**
+   * Password check shared by both front doors, including lockout bookkeeping.
+   *
+   * An unknown account, a wrong password and a locked account all verify against a real Argon2id hash and all answer with the same
+   * 401 body, so neither the response nor its timing says which case it was (PW-3). A correct password on a locked account is
+   * refused the same way and does not count as a new failure. A hash that is not Argon2id at the current cost is replaced after a
+   * successful check (PW-1).
+   */
   private async checkCredentials(email: string, password: string) {
     const user = await this.db.query.applicationUsers.findFirst({
       where: and(eq(applicationUsers.email, email), isNull(applicationUsers.deletedAt)),
     });
 
-    if (user) {
-      this.assertNotLocked(user.lockedUntil);
-    }
+    const closing = user?.statusCode ? (await this.typeDefs.codeById(user.statusCode)) === "closing" : false;
+    const locked = user ? isLocked(user.lockedUntil) || closing : false;
+    const stored = user?.passwordHash ?? (await dummyPasswordHash());
+    const passwordOk = await verifyPassword(password, stored);
 
-    const passwordOk = !!user?.passwordHash && (await bcrypt.compare(password, user.passwordHash));
-
-    if (!user || !passwordOk) {
-      if (user) {
-        const lockedUntil = await this.recordFailedLogin(user);
-        if (lockedUntil) {
-          this.assertNotLocked(lockedUntil);
-        }
-      }
+    if (!user?.passwordHash || !passwordOk || locked) {
+      if (user && !locked) await this.recordFailedLogin(user);
       throw new UnauthorizedException(INVALID_CREDENTIALS);
     }
 
+    if (passwordNeedsRehash(user.passwordHash)) await this.replacePasswordHash(user.id, password);
     await this.clearLoginLockout(user.id);
     return user;
+  }
+
+  /** Stores the password again as Argon2id after a successful sign-in. The password itself is unchanged, so no token is revoked. */
+  private async replacePasswordHash(userId: string, password: string): Promise<void> {
+    await this.db
+      .update(applicationUsers)
+      .set({ passwordHash: await hashPassword(password) })
+      .where(eq(applicationUsers.id, userId));
   }
 
   /**
@@ -306,6 +328,9 @@ export class AuthService {
       linked = true;
     }
 
+    if (user.statusCode && (await this.typeDefs.codeById(user.statusCode)) === "closing") {
+      throw new UnauthorizedException(INVALID_CREDENTIALS);
+    }
     const { roleCode } = await this.resolveSessionRole(user.id);
     if (!roleCode) throw new UnauthorizedException("Account has no role assignment — contact your administrator");
     if (surface === "ops") {
@@ -892,7 +917,7 @@ export class AuthService {
       throw new UnauthorizedException("Invalid or expired password reset token");
     }
 
-    const newHash = await bcrypt.hash(dto.newPassword, BCRYPT_ROUNDS);
+    const newHash = await hashPassword(dto.newPassword);
     await this.db
       .update(applicationUsers)
       .set({
@@ -902,12 +927,15 @@ export class AuthService {
         lastFailedLoginAt: null,
       })
       .where(eq(applicationUsers.id, candidate.userId));
-    await this.db.delete(passwordResetTokens).where(eq(passwordResetTokens.id, candidate.id));
+    // PW-4: the token is single use, every other outstanding reset link dies with it, and every session issued before now is refused.
+    await this.db.delete(passwordResetTokens).where(eq(passwordResetTokens.userId, candidate.userId));
+    await markCredentialsChanged(this.db, candidate.userId);
 
     const account = await this.db.query.applicationUsers.findFirst({
       where: eq(applicationUsers.id, candidate.userId),
     });
     if (account) {
+      await this.refreshTokens.revokeAllForUser(account.organisationId, account.id, "password_reset");
       const adminBase = (process.env.PUBLIC_ADMIN_BASE_URL ?? "http://localhost:3000").replace(/\/$/, "");
       await this.templatedEmail.send({
         templateCode: "password_changed",
@@ -925,22 +953,6 @@ export class AuthService {
     }
 
     return { success: true };
-  }
-
-  private assertNotLocked(lockedUntil: Date | null | undefined): void {
-    if (!lockedUntil) return;
-    const remainingMs = lockedUntil.getTime() - Date.now();
-    if (remainingMs <= 0) return;
-    const retryAfterSeconds = Math.max(1, Math.ceil(remainingMs / 1000));
-    throw new HttpException(
-      {
-        statusCode: HttpStatus.TOO_MANY_REQUESTS,
-        message: "Too many failed sign-in attempts. Wait a few minutes or reset your password, then try again.",
-        retryAfterSeconds,
-        error: "Too Many Requests",
-      },
-      HttpStatus.TOO_MANY_REQUESTS,
-    );
   }
 
   private async recordFailedLogin(user: {
@@ -1065,6 +1077,19 @@ export class AuthService {
     await this.db.update(applicationUsers).set({ lastLoginAt: new Date() }).where(eq(applicationUsers.id, userId));
     sessionCache.invalidateUser(userId);
 
+    const session = await this.mintAccessToken(userId, organisationId, roleCode, emailVerified, mfaEnabled, audience);
+    const refreshToken = await this.refreshTokens.issue(userId, organisationId, audience);
+    return { ...session, refreshToken };
+  }
+
+  private async mintAccessToken(
+    userId: string,
+    organisationId: string,
+    roleCode: string,
+    emailVerified: boolean,
+    mfaEnabled: boolean,
+    audience: "admin" | "ops",
+  ): Promise<AccessTokenResult> {
     const onboarding = await this.db.query.organisationOnboardingStates.findFirst({
       where: and(
         eq(organisationOnboardingStates.organisationId, organisationId),
@@ -1090,7 +1115,7 @@ export class AuthService {
             permissions.includes(PERMISSIONS.ONBOARDING_MANAGE),
           );
 
-    const accessToken = this.jwt.sign(
+    const accessToken = await this.tokens.sign(
       {
         sub: userId,
         organisationId,
@@ -1101,9 +1126,42 @@ export class AuthService {
         mfaEnabled,
         aud: audience,
       },
-      { expiresIn: audience === "ops" ? OPS_SESSION_TTL : ADMIN_SESSION_TTL },
+      accessTokenTtlSeconds(audience),
     );
     return { accessToken, emailVerified, mfaEnabled, onboardingComplete, nextPath };
+  }
+
+  /**
+   * Exchanges a refresh token for a new access token and a replacement refresh token (SE-2).
+   * The role and permissions are read again, so a role change or a lost role takes effect at the next refresh. A token that was
+   * already used, expired, revoked or issued before a credential change is refused with the same 401.
+   */
+  async refreshSession(rawRefreshToken: string): Promise<AccessTokenResult> {
+    const rotated = await this.refreshTokens.rotate(rawRefreshToken, async (userId) => {
+      const { roleCode } = await this.resolveSessionRole(userId);
+      if (!roleCode) return null;
+      return roleCode === PLATFORM_ROLE ? "ops" : "admin";
+    });
+    const user = await this.db.query.applicationUsers.findFirst({
+      where: and(eq(applicationUsers.id, rotated.userId), isNull(applicationUsers.deletedAt)),
+    });
+    const { roleCode } = await this.resolveSessionRole(rotated.userId);
+    if (!user || !roleCode) throw new UnauthorizedException("Invalid or expired session");
+    const session = await this.mintAccessToken(
+      user.id,
+      user.organisationId,
+      roleCode,
+      Boolean(user.emailVerifiedAt),
+      user.mfaEnabled,
+      rotated.audience,
+    );
+    return { ...session, refreshToken: rotated.refreshToken };
+  }
+
+  /** Ends every refresh chain of the signed-in user: sign out everywhere (SE-6). Access tokens already issued expire on their own. */
+  async signOutEverywhere(user: AuthenticatedUser): Promise<{ revoked: number }> {
+    const revoked = await this.refreshTokens.revokeAllForUser(user.organisationId, user.userId, "sign_out");
+    return { revoked };
   }
 
   resolveNextPath(

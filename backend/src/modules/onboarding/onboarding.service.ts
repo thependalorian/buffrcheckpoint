@@ -1,7 +1,7 @@
 import { ConflictException, ForbiddenException, HttpException, HttpStatus, Inject, Injectable } from "@nestjs/common";
-import * as bcrypt from "bcryptjs";
 import { and, eq, gt, isNull, sql } from "drizzle-orm";
 
+import { hashPassword } from "../../common/auth/password-hasher";
 import type { Database } from "../../db/client";
 import { DB } from "../../db/db.module";
 import {
@@ -21,8 +21,6 @@ import { TemplatedEmailService } from "../notifications/templated-email.service"
 import type { CreateOrganisationAdminDto } from "./dto/create-organisation-admin.dto";
 import { assessSignup, emailDomain, signupLimitsFromEnv } from "./signup-abuse";
 import { createHash, randomUUID } from "node:crypto";
-
-const BCRYPT_ROUNDS = 12;
 
 export interface OnboardingResult {
   ok: true;
@@ -85,7 +83,7 @@ export class OnboardingService {
       throw new ConflictException("An account with this email already exists");
     }
 
-    const passwordHash = await bcrypt.hash(dto.password, BCRYPT_ROUNDS);
+    const passwordHash = await hashPassword(dto.password);
     return this.provision(dto, { passwordHash, emailVerified: false, mfaEnabled: false, buffrIdSubject: null });
   }
 

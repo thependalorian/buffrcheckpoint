@@ -33,7 +33,7 @@ export class EvidenceController {
   @Get(":id/download")
   @RequirePermission(PERMISSIONS.EVIDENCE_EXPORT)
   @RequireVerifiedEmail()
-  @AuditLog({ action: "evidence_pack.download", resourceType: "evidence_pack" })
+  @AuditLog({ action: "evidence_pack.download", resourceType: "evidence_pack", writeAhead: true })
   async download(@Param("id") id: string, @CurrentUser() user: AuthenticatedUser) {
     const content = await this.evidenceService.getContent(id, user);
     return new StreamableFile(content, {
@@ -47,6 +47,11 @@ export class EvidenceController {
   @RequireVerifiedEmail()
   @AuditLog({ action: "evidence_pack.report", resourceType: "evidence_pack" })
   @Header("Content-Type", "text/html; charset=utf-8")
+  // The one API route that serves a document: it needs its own inline stylesheet, nothing else (HD-1).
+  @Header(
+    "Content-Security-Policy",
+    "default-src 'none'; style-src 'unsafe-inline'; img-src data:; frame-ancestors 'none'",
+  )
   report(@Param("id") id: string, @CurrentUser() user: AuthenticatedUser) {
     return this.evidenceService.renderReport(id, user);
   }

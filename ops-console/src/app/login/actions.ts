@@ -38,15 +38,14 @@ export async function loginAction(formData: FormData): Promise<{ error?: string 
     return {
       error: nestMessage(
         errorBody,
-        res.status === 429
-          ? "Too many failed sign-in attempts. Wait a few minutes."
-          : "Invalid email or password",
+        res.status === 429 ? "Too many failed sign-in attempts. Wait a few minutes." : "Invalid email or password",
       ),
     };
   }
 
   const body = (await res.json()) as {
     accessToken?: string;
+    refreshToken?: string;
     mfaRequired?: boolean;
     mfaChallengeToken?: string;
     emailVerificationRequired?: boolean;
@@ -72,7 +71,7 @@ export async function loginAction(formData: FormData): Promise<{ error?: string 
     return { error: "Login did not return a session — try again." };
   }
 
-  await setSessionCookie(body.accessToken);
+  await setSessionCookie(body.accessToken, body.refreshToken);
   redirect("/");
 }
 
@@ -103,13 +102,13 @@ export async function mfaChallengeAction(formData: FormData): Promise<{ error?: 
     return { error: nestMessage(errorBody, "Invalid authenticator code") };
   }
 
-  const payload = (await res.json()) as { accessToken?: string };
+  const payload = (await res.json()) as { accessToken?: string; refreshToken?: string };
   if (!payload.accessToken) {
     return { error: "MFA succeeded but no session was returned." };
   }
 
   await clearMfaChallengeCookie();
-  await setSessionCookie(payload.accessToken);
+  await setSessionCookie(payload.accessToken, payload.refreshToken);
   redirect("/");
 }
 
@@ -146,9 +145,9 @@ export async function confirmMfaEnrollmentAction(
     const errorBody = (await res.json().catch(() => ({}))) as { message?: string | string[] };
     return { error: nestMessage(errorBody, "Invalid authenticator code") };
   }
-  const body = (await res.json()) as { accessToken?: string; recoveryCodes?: string[] };
+  const body = (await res.json()) as { accessToken?: string; refreshToken?: string; recoveryCodes?: string[] };
   if (!body.accessToken) return { error: "MFA enabled but no session was returned. Sign in again." };
   await clearMfaEnrollCookie();
-  await setSessionCookie(body.accessToken);
+  await setSessionCookie(body.accessToken, body.refreshToken);
   return { recoveryCodes: body.recoveryCodes ?? [] };
 }

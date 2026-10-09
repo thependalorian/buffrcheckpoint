@@ -10,9 +10,21 @@
  */
 export type SessionAudience = "admin" | "ops" | "ops_enroll";
 
-export const OPS_SESSION_TTL = "2h";
-export const OPS_ENROLL_TTL = "15m";
-export const ADMIN_SESSION_TTL = "8h";
+/** How long a sign-in lasts per surface in seconds. This is the refresh-token life (SE-3); the access token itself lives for `accessTokenTtlSeconds`. */
+export const OPS_SESSION_SECONDS = 2 * 3600;
+export const ADMIN_SESSION_SECONDS = 8 * 3600;
+/** The enrolment token is not refreshable and lasts 15 minutes. */
+export const OPS_ENROLL_SECONDS = 15 * 60;
+
+/**
+ * Access token lifetime. SE-2 sets 15 minutes (900) once the admin and ops apps refresh through POST /auth/refresh.
+ * Until ACCESS_TOKEN_TTL_SECONDS is set, a token lasts the whole session, as it did before refresh tokens existed.
+ */
+export function accessTokenTtlSeconds(audience: "admin" | "ops", env: NodeJS.ProcessEnv = process.env): number {
+  const session = audience === "ops" ? OPS_SESSION_SECONDS : ADMIN_SESSION_SECONDS;
+  const configured = Number(env.ACCESS_TOKEN_TTL_SECONDS);
+  return Number.isFinite(configured) && configured > 0 ? Math.min(configured, session) : session;
+}
 
 /** Backend paths the Platform Ops Console calls (checked against ops-console/src on 2026-09-29). */
 const OPS_PATH_PREFIXES = [

@@ -1,14 +1,12 @@
-import { BadRequestException, Inject, Injectable, Logger, NotFoundException, StreamableFile } from "@nestjs/common";
-import { and, eq, inArray, isNull, sql } from "drizzle-orm";
+import { BadRequestException, Inject, Injectable, NotFoundException, StreamableFile } from "@nestjs/common";
+import { and, eq, inArray, isNull } from "drizzle-orm";
 
 import { createArtifactStore } from "../../common/artifacts/artifact-store";
-import { sessionCache } from "../../common/auth/session-cache";
 import { PersonalDataProtectionService } from "../../common/data-protection/personal-data-protection.service";
 import type { AuthenticatedUser } from "../../common/decorators/current-user.decorator";
 import type { Database } from "../../db/client";
 import { DB } from "../../db/db.module";
 import {
-  applicationUsers,
   privacyRequestStatusLog,
   privacyRequests,
   visitorPersonalData,
@@ -16,41 +14,11 @@ import {
   visitorVisits,
 } from "../../db/schema";
 import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.service";
-import { TemplatedEmailService } from "../notifications/templated-email.service";
+import { AccountDeletionService } from "./account-deletion.service";
 import { canExtend, EXTENSION_PREFIX, requestClock } from "./dsar-clock";
 import { randomUUID } from "node:crypto";
 
-/**
- * What completing an account-deletion request does to the user row: the person's identifiers and credential material are erased,
- * not just flagged. The id stays (audit events and status logs join on it) and the row is soft-deleted. The placeholder email keeps
- * the unique (organisation, email) index satisfied and can never receive mail (.invalid is reserved).
- */
-export function erasedUserFields(now: Date) {
-  return {
-    email: sql<string>`'erased-' || ${applicationUsers.id}::text || '@erased.invalid'`,
-    passwordHash: null,
-    mfaEnabled: false,
-    mfaSecretReference: null,
-    buffrIdSubject: null,
-    lockedUntil: null,
-    deletedAt: now,
-  };
-}
-
-/** The placeholder address an erased account carries. It can never receive mail (.invalid is reserved). */
-export function erasedEmail(userId: string): string {
-  return `erased-${userId}@erased.invalid`;
-}
-
-/** Plain account of the outcome: what was erased, and that some records are kept on purpose. Never claims everything is gone. */
-export const ACCOUNT_CLOSED_NOTICE = {
-  subject: "Your Buffr Checkpoint account has been closed",
-  body: [
-    "Your account has been closed and the personal details tied to it have been erased or anonymised.",
-    "We keep only the records we are required or justified to keep, such as billing records and audit events. Those records are restricted to the people who need them and are removed when their retention period ends.",
-    "If you did not ask for this, reply to this email straight away.",
-  ].join("\n\n"),
-};
+export { ACCOUNT_CLOSED_NOTICE, erasedEmail, erasedUserFields } from "./account-deletion.service";
 
 export interface CreateDsarInput {
   subjectReference: string;
@@ -65,25 +33,8 @@ export class DsarService {
     @Inject(DB) private readonly db: Database,
     private readonly typeDefs: TypeDefinitionLookupService,
     private readonly dataProtection: PersonalDataProtectionService,
-    private readonly templatedEmail: TemplatedEmailService,
+    private readonly deletion: AccountDeletionService,
   ) {}
-
-  private readonly logger = new Logger(DsarService.name);
-
-  /** Tells the person what was done and what was kept. A mail failure never undoes or blocks the erasure. */
-  private async sendClosureNotice(to: string, organisationId: string) {
-    try {
-      await this.templatedEmail.send({
-        templateCode: "account_deletion_completed",
-        organisationId,
-        to,
-        variables: {},
-        fallback: ACCOUNT_CLOSED_NOTICE,
-      });
-    } catch (error) {
-      this.logger.warn(`Account closure notice not queued: ${error instanceof Error ? error.message : "unknown error"}`);
-    }
-  }
 
   async create(input: CreateDsarInput, user: AuthenticatedUser) {
     const [requestTypeCode, pendingStatus] = await Promise.all([
@@ -194,6 +145,18 @@ export class DsarService {
     return { requestId, dueAt: updated.dueAt, extended: true };
   }
 
+  /** Accepts an account-deletion request (see AccountDeletionService.accept). */
+  async accept(requestId: string, user: AuthenticatedUser) {
+    const request = await this.db.query.privacyRequests.findFirst({
+      where: and(eq(privacyRequests.id, requestId), eq(privacyRequests.organisationId, user.organisationId)),
+    });
+    if (!request) throw new NotFoundException("DSAR not found");
+    if (request.requestTypeCode !== (await this.typeDefs.id("dsar_request_type", "account_deletion"))) {
+      throw new BadRequestException("Only an account-deletion request is accepted this way.");
+    }
+    return { requestId, state: await this.deletion.accept(request, user) };
+  }
+
   async resolve(requestId: string, resolution: "completed" | "rejected", reason: string, user: AuthenticatedUser) {
     const request = await this.db.query.privacyRequests.findFirst({
       where: and(eq(privacyRequests.id, requestId), eq(privacyRequests.organisationId, user.organisationId)),
@@ -206,37 +169,19 @@ export class DsarService {
       this.typeDefs.id("dsar_request_type", "data_export"),
     ]);
 
+    // Account deletion is a workflow (blueprint 8.7): accept (fresh sign-in, legal holds, access ended), run one task per system, and
+    // report the status that follows from the tasks. It may finish as in progress, on hold or partially completed, not only completed.
+    if (request.requestTypeCode === accountDeletionType) {
+      if (resolution === "completed") {
+        const accepted = await this.deletion.accept(request, user);
+        if (accepted === "on_hold") return { requestId, resolution: "on_hold" as const, exportFileReference: null };
+        const outcome = await this.deletion.run(request, user.userId);
+        return { requestId, resolution: outcome, exportFileReference: null };
+      }
+      await this.deletion.release(request);
+    }
+
     let exportFileReference: string | null = request.exportFileReference ?? null;
-
-    let subjectReference = request.subjectReference;
-    let closureNoticeTo: string | null = null;
-    if (resolution === "completed" && request.requestTypeCode === accountDeletionType) {
-      const target = await this.db.query.applicationUsers.findFirst({
-        columns: { id: true },
-        where: and(
-          eq(applicationUsers.email, request.subjectReference),
-          eq(applicationUsers.organisationId, user.organisationId),
-          isNull(applicationUsers.deletedAt),
-        ),
-      });
-      // The request record keeps a reference to the erased account, never the address it was asked about.
-      if (target) subjectReference = erasedEmail(target.id);
-      closureNoticeTo = request.subjectReference;
-      await this.db
-        .update(applicationUsers)
-        .set(erasedUserFields(new Date()))
-        .where(
-          and(
-            eq(applicationUsers.email, request.subjectReference),
-            eq(applicationUsers.organisationId, user.organisationId),
-          ),
-        );
-    }
-
-    if (resolution === "completed" && request.requestTypeCode === accountDeletionType) {
-      sessionCache.invalidateOrganisation(user.organisationId);
-    }
-
     if (resolution === "completed" && request.requestTypeCode === dataExportType) {
       const packaged = await this.buildExportPackage(request.subjectReference, user);
       exportFileReference = packaged.fileReference;
@@ -244,8 +189,8 @@ export class DsarService {
 
     await this.db
       .update(privacyRequests)
-      .set({ statusCode: resolvedStatus, exportFileReference, subjectReference })
-      .where(eq(privacyRequests.id, requestId));
+      .set({ statusCode: resolvedStatus, exportFileReference })
+      .where(and(eq(privacyRequests.id, requestId), eq(privacyRequests.organisationId, user.organisationId)));
 
     await this.db.insert(privacyRequestStatusLog).values({
       id: randomUUID(),
@@ -255,8 +200,6 @@ export class DsarService {
       actorId: user.userId,
       reason,
     });
-
-    if (closureNoticeTo) await this.sendClosureNotice(closureNoticeTo, user.organisationId);
 
     return { requestId, resolution, exportFileReference };
   }

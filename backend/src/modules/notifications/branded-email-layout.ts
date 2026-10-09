@@ -43,7 +43,8 @@ export function brandedEmailLayout(input: EmailLayoutInput): string {
   const contact = process.env.PUBLIC_CONTACT_EMAIL?.trim() || "team@buffranalytics.com";
   const website = (process.env.PUBLIC_WEBSITE_BASE_URL?.trim() || "https://buffrcheckpoint.com").replace(/\/$/, "");
   const blocks = structureBody(input.bodyText, { actionLabel: input.actionLabel });
-  const signature = input.signature !== undefined ? input.signature : { name: "The Buffr Checkpoint team" };
+  // null means "no signature" (internal alerts); only undefined falls back to the default team signature.
+  const signature = input.signature === null ? null : (input.signature ?? { name: "The Buffr Checkpoint team" });
   const greeting = input.greeting ?? null;
 
   const preheader = input.preheader

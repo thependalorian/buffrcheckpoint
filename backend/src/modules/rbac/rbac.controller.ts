@@ -15,7 +15,7 @@ export class RbacController {
   @Post("role-assignments/change")
   @RequirePermission(PERMISSIONS.ROLE_MANAGE)
   @RequireVerifiedEmail()
-  @AuditLog({ action: "role_assignment.change", resourceType: "role_assignment" })
+  @AuditLog({ action: "role_assignment.change", resourceType: "role_assignment", writeAhead: true })
   changeRole(@Body() dto: ChangeRoleDto, @CurrentUser() user: AuthenticatedUser) {
     return this.rbacService.changeRole(dto, user);
   }

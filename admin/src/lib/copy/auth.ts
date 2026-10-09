@@ -128,6 +128,8 @@ export const authCopy = {
     emailVerificationRequired: "Confirm your email before signing in. Check your inbox for the link.",
     mfaRequired: "Enter your authenticator code to finish signing in.",
     lockedOut: "Too many failed sign-in attempts. Wait a few minutes or use Forgot password, then try again.",
+    /** Shown with every failed sign-in. The API answers a wrong password and a paused account the same way, so this covers both. */
+    signInHint: "Sign-in pauses for a few minutes after repeated failures. Use Forgot password to get back in sooner.",
     generic: "Something went wrong. Try again.",
   },
 } as const;

@@ -2,7 +2,7 @@ import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundEx
 import { and, asc, count, eq, inArray, isNull } from "drizzle-orm";
 
 import { ScopedPermissionEvaluationService } from "../../common/access-control/scoped-permission-evaluation.service";
-import { sessionCache } from "../../common/auth/session-cache";
+import { markCredentialsChanged } from "../../common/auth/credential-revocation";
 import type { AuthenticatedUser } from "../../common/decorators/current-user.decorator";
 import type { Database } from "../../db/client";
 import { DB } from "../../db/db.module";
@@ -156,7 +156,8 @@ export class RbacService {
       approvedBy: actingUser.userId,
       reason: input.reason,
     });
-    sessionCache.invalidateUser(input.userId);
+    // A changed role must take effect at once: tokens carry the old permissions, so every older token is refused (SE-4).
+    await markCredentialsChanged(this.db, input.userId);
 
     return this.getUserDetail(actingUser.organisationId, input.userId);
   }

@@ -108,7 +108,7 @@ export class AnalyticsController {
   // same action so the evidence trail does not depend on the format chosen.
   @Get("export.csv")
   @RequirePermission(PERMISSIONS.VISIT_READ_ORG)
-  @AuditLog({ action: "analytics.export", resourceType: "visit_daily_fact" })
+  @AuditLog({ action: "analytics.export", resourceType: "visit_daily_fact", writeAhead: true })
   exportCsv(
     @Query("from") from: string | undefined,
     @Query("to") to: string | undefined,
@@ -120,7 +120,7 @@ export class AnalyticsController {
 
   @Get("export.xlsx")
   @RequirePermission(PERMISSIONS.VISIT_READ_ORG)
-  @AuditLog({ action: "analytics.export", resourceType: "visit_daily_fact" })
+  @AuditLog({ action: "analytics.export", resourceType: "visit_daily_fact", writeAhead: true })
   exportXlsx(
     @Query("from") from: string | undefined,
     @Query("to") to: string | undefined,

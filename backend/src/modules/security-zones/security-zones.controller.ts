@@ -71,7 +71,7 @@ export class SecurityZonesController {
 
   @Delete(":id")
   @RequirePermission(PERMISSIONS.SITE_CONFIGURE)
-  @AuditLog({ action: "security_zone.delete", resourceType: "security_zone" })
+  @AuditLog({ action: "security_zone.delete", resourceType: "security_zone", writeAhead: true })
   softDelete(@Param("id") id: string, @CurrentUser() user: AuthenticatedUser) {
     return this.zonesService.softDelete(id, user);
   }

@@ -18,7 +18,7 @@ import { typeDefinition } from "./type-definitions";
 // tables instead of a hardcoded TS map (ScopedPermissionEvaluationService
 // reads them), matching this workspace's own type_definition pattern.
 export const permissionDefinitions = pgTable("permission_definitions", {
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   permissionCode: text("permission_code").primaryKey(),
   description: text("description").notNull(),
   riskClassification: text("risk_classification").notNull().default("standard"),
@@ -71,7 +71,9 @@ export const applicationUsers = pgTable(
       .notNull()
       .references(() => organisations.id),
     email: text("email").notNull(),
-    passwordHash: text("password_hash"), // bcrypt hash only, never plaintext
+    passwordHash: text("password_hash"), // Argon2id hash (legacy bcrypt until the next sign-in), never plaintext
+    /** Tokens issued before this moment are refused (SE-4). Set on password reset, role change and deletion acceptance. */
+    credentialsChangedAt: timestamp("credentials_changed_at", { withTimezone: true }),
     emailVerifiedAt: timestamp("email_verified_at", { withTimezone: true }),
     mfaEnabled: boolean("mfa_enabled").notNull().default(false),
     mfaSecretReference: text("mfa_secret_reference"),

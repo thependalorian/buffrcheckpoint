@@ -1,9 +1,10 @@
-import { forwardRef, Module } from "@nestjs/common";
+import { Module } from "@nestjs/common";
 
 import { TelecomsModule } from "../integrations/telecoms/telecoms.module";
 import { PlatformConfigurationModule } from "../platform-configuration/platform-configuration.module";
 import { NotificationDispatchWorkerService } from "./notification-dispatch-worker.service";
 import { NotificationPreferencesService } from "./notification-preferences.service";
+import { NotificationTemplateTestSendController } from "./notification-template-test-send.controller";
 import { NotificationsController } from "./notifications.controller";
 import { NotificationsService } from "./notifications.service";
 import { TemplatedEmailService } from "./templated-email.service";
@@ -13,8 +14,8 @@ import { VisitorEmailListener } from "./visitor-email.listener";
 import { VisitorSmsListener } from "./visitor-sms.listener";
 
 @Module({
-  imports: [TelecomsModule, forwardRef(() => PlatformConfigurationModule)],
-  controllers: [NotificationsController],
+  imports: [TelecomsModule, PlatformConfigurationModule],
+  controllers: [NotificationsController, NotificationTemplateTestSendController],
   providers: [
     NotificationsService,
     TemplatedEmailService,

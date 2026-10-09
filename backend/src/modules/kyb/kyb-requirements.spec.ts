@@ -46,6 +46,5 @@ describe("KYB requirements register", () => {
     const s = summariseCoverage();
     expect(s.covered + s.outOfScope).toBe(s.total);
     expect(s.coveredPercent).toBeGreaterThan(60);
-    console.log(JSON.stringify(s));
   });
 });

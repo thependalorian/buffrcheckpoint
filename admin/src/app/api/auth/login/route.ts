@@ -52,6 +52,7 @@ export async function POST(request: Request) {
 
   const payload = (await backendResponse.json()) as {
     accessToken?: string;
+    refreshToken?: string;
     emailVerified?: boolean;
     mfaEnabled?: boolean;
     onboardingComplete?: boolean;
@@ -84,7 +85,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Could not sign in" }, { status: 500 });
   }
 
-  await setSessionCookie(payload.accessToken);
+  await setSessionCookie(payload.accessToken, payload.refreshToken);
 
   return NextResponse.json({
     ok: true,

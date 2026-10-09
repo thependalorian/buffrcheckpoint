@@ -107,3 +107,37 @@ Open for the owner: the written safeguards assessment for Neon and Railway (the 
 ## 11. Data protection impact assessment triggers
 
 A DPIA is completed before any of these go live for an organisation: processing special-category information at scale (clinics, faith-based and community organisations are flagged by sector, and the standard form already treats the purpose of the visit as sensitive for them); systematic monitoring of a publicly accessible area at scale; any profiling feature; enabling photo or ID capture for a site; adding a subprocessor outside Namibia. Each DPIA records the processing and purpose, why it is necessary and proportionate, the risks to people, and the measures that address them.
+
+## 12. Security Framework summary and tolerances (standard GV-1, GV-3, GV-4)
+
+Status: draft for the owner's approval. Nothing here is approved until the owner signs and dates it in the governance record. The Framework is the Buffr Security Standard (`buffr-ai/BUFFR_SECURITY_STANDARD.md`) applied to Checkpoint; the requirement-by-requirement state is Annex E of `buffrcheckpoint.md`.
+
+| Tolerance | Value | Measured by |
+|---|---|---|
+| Availability of critical systems | 99.9 percent | Uptime monitor on `/health` (planned, blueprint 32.4) |
+| Recovery time | 2 hours | Restore rehearsal record (none yet) |
+| Recovery point | 5 minutes within the last 6 hours | Neon point-in-time history |
+| Recovery tests | 2 successful a year | Dated records (none yet) |
+| Time to first response | Sev 1 within 1 hour, Sev 2 within 4 hours | Incident log |
+
+Roles: the owner is the board and top management and approves the Framework; the security officer role reports to the owner directly (GV-2); a named privacy lead is an owner appointment (GP-2) not yet made. The risk profile goes to the owner four times a year (GV-4); no entry has been recorded yet. Scope (GV-6): the Checkpoint service as described in section 2 and the interfaces in section 6; other Buffr products are outside it.
+
+## 13. Vendor and processor register fields (VD-1, DL-12)
+
+Section 6 and section 10 above list the vendors. Each critical vendor row also needs: tier, whether a data processing agreement is on file, assurance report status, last review date. Until a document is in hand the cell says "not confirmed". Today: Neon, Railway (critical, holding visitor data), Vercel, GitHub, Namecheap, the mailbox provider, Sentry, PostHog, BulkSMS Namibia, Adumo, Cloudflare Turnstile and Collexia: agreement and report **not confirmed** for all. Owner action: request each agreement and report and file them.
+
+## 14. AI inventory and classification (AIG-1, AIG-2, AI-1)
+
+| System | Purpose | Tier | Data | Controls |
+|---|---|---|---|---|
+| Form AI (`FormAiService`, Neon AI Gateway) | Suggests and translates check-in form field definitions for administrators | Internal assistance (minimal) | Field definitions typed by the administrator; never visitor data | No tools; never publishes; admin only; kill switch `FORM_AI_ENABLED`; audit actions `check_in_form.ai_suggest_fields` and `check_in_form.ai_translate_field` with no prompt or response stored |
+
+No other AI feature exists. KYB document reading is classical OCR (Tesseract, PaddleOCR) on the platform; it suggests values and a person confirms them. No automated decision about a person is made (blueprint 3.2).
+
+## 15. Clock synchronisation and records access (LG-9, GV-9)
+
+All servers are managed platforms that synchronise time; authoritative timestamps are UTC. Regulator access to records (PSD-12 paragraph 14) is met by the evidence pack and audit export; retrieval within one working day has not been tested.
+
+## 16. Complementary user entity controls (AS-8)
+
+Customers run these for the service to be secure: enforce MFA for their administrators; remove leavers the day they leave; set retention periods that match their obligations; review audit exports and evidence packs; keep kiosk devices managed, patched and physically secured; use the privacy notice Checkpoint supplies unchanged or adjust it with their counsel.

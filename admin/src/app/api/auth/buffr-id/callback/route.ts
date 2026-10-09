@@ -73,9 +73,9 @@ export async function GET(request: Request) {
   const exchange = await post("/auth/buffr-id/exchange", { idToken, nonce: flow.nonce, surface: "admin" });
   if (exchange.status === 404) return NextResponse.redirect(new URL("/auth/register?error=no_account", url.origin));
   if (!exchange.ok) return fail(url.origin, exchange.status === 403 ? "buffr_id_forbidden" : "buffr_id_failed");
-  const session = (await exchange.json()) as { accessToken: string; nextPath?: string };
+  const session = (await exchange.json()) as { accessToken: string; refreshToken?: string; nextPath?: string };
 
-  await setSessionCookie(session.accessToken);
+  await setSessionCookie(session.accessToken, session.refreshToken);
   const response = NextResponse.redirect(new URL(safeNextPath(session.nextPath, "/dashboard/overview"), url.origin));
   response.cookies.delete({ name: FLOW_COOKIE, path: "/api/auth/buffr-id" });
   return response;

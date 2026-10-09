@@ -16,7 +16,11 @@ export async function GET(request: Request) {
   const client = buffrIdClient(url.origin);
   if (!client) return fail(url.origin, "buffr_id_unavailable");
 
-  const raw = (request.headers.get("cookie") ?? "").split(";").map((c) => c.trim()).find((c) => c.startsWith(`${FLOW_COOKIE}=`))?.slice(FLOW_COOKIE.length + 1);
+  const raw = (request.headers.get("cookie") ?? "")
+    .split(";")
+    .map((c) => c.trim())
+    .find((c) => c.startsWith(`${FLOW_COOKIE}=`))
+    ?.slice(FLOW_COOKIE.length + 1);
   const flow = decodeFlow(raw);
   if (!flow || !sameState(url.searchParams.get("state"), flow.state)) return fail(url.origin, "buffr_id_state");
   const code = url.searchParams.get("code");
@@ -28,7 +32,12 @@ export async function GET(request: Request) {
       "content-type": "application/x-www-form-urlencoded",
       authorization: `Basic ${Buffer.from(`${encodeURIComponent(client.clientId)}:${encodeURIComponent(client.clientSecret)}`).toString("base64")}`,
     },
-    body: new URLSearchParams({ grant_type: "authorization_code", code, redirect_uri: client.redirectUri, code_verifier: flow.verifier }),
+    body: new URLSearchParams({
+      grant_type: "authorization_code",
+      code,
+      redirect_uri: client.redirectUri,
+      code_verifier: flow.verifier,
+    }),
     cache: "no-store",
   }).catch(() => null);
   if (!tokenResponse?.ok) return fail(url.origin, "buffr_id_token");
@@ -42,8 +51,8 @@ export async function GET(request: Request) {
     cache: "no-store",
   });
   if (!exchange.ok) return fail(url.origin, exchange.status === 403 ? "buffr_id_two_step" : "buffr_id_failed");
-  const session = (await exchange.json()) as { accessToken: string };
-  await setSessionCookie(session.accessToken);
+  const session = (await exchange.json()) as { accessToken: string; refreshToken?: string };
+  await setSessionCookie(session.accessToken, session.refreshToken);
   const response = NextResponse.redirect(new URL("/", url.origin));
   response.cookies.delete({ name: FLOW_COOKIE, path: "/api/auth/buffr-id" });
   return response;

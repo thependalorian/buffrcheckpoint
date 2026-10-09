@@ -1,43 +1,44 @@
 import { Module } from "@nestjs/common";
-import { JwtModule } from "@nestjs/jwt";
-import { PassportModule } from "@nestjs/passport";
 
 import { LegalModule } from "../legal/legal.module";
 import { NotificationsModule } from "../notifications/notifications.module";
 import { OnboardingStateModule } from "../onboarding-state/onboarding-state.module";
 import { OrganisationStandardsModule } from "../organisation-standards/organisation-standards.module";
 import { RbacModule } from "../rbac/rbac.module";
+import { AccessTokenAuthenticator } from "./access-token-authenticator.service";
 import { AuthController } from "./auth.controller";
 import { AuthService } from "./auth.service";
 import { BuffrIdService } from "./buffr-id.service";
+import { JwksController } from "./jwks.controller";
 import { OnboardingEvidenceService } from "./onboarding-evidence.service";
 import { OnboardingPresenceService } from "./onboarding-presence.service";
 import { OnboardingProgressController } from "./onboarding-progress.controller";
 import { OnboardingProgressService } from "./onboarding-progress.service";
-import { JwtStrategy } from "./strategies/jwt.strategy";
+import { RefreshTokenService } from "./refresh-token.service";
+import { DrizzleSigningKeyStore } from "./signing-key.store";
+import { TokenIssuerService } from "./token-issuer.service";
 
 @Module({
-  imports: [
-    PassportModule,
-    JwtModule.register({
-      secret: process.env.JWT_SECRET,
-      signOptions: { expiresIn: "8h" },
-    }),
-    LegalModule,
-    NotificationsModule,
-    OnboardingStateModule,
-    OrganisationStandardsModule,
-    RbacModule,
-  ],
-  controllers: [AuthController, OnboardingProgressController],
+  imports: [LegalModule, NotificationsModule, OnboardingStateModule, OrganisationStandardsModule, RbacModule],
+  controllers: [AuthController, JwksController, OnboardingProgressController],
   providers: [
     AuthService,
     BuffrIdService,
-    JwtStrategy,
+    AccessTokenAuthenticator,
+    DrizzleSigningKeyStore,
+    RefreshTokenService,
+    TokenIssuerService,
     OnboardingEvidenceService,
     OnboardingPresenceService,
     OnboardingProgressService,
   ],
-  exports: [AuthService, BuffrIdService, JwtModule, OnboardingEvidenceService],
+  exports: [
+    AuthService,
+    BuffrIdService,
+    AccessTokenAuthenticator,
+    RefreshTokenService,
+    TokenIssuerService,
+    OnboardingEvidenceService,
+  ],
 })
 export class AuthModule {}

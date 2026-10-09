@@ -40,10 +40,19 @@ export class DsarController {
     return this.dsarService.extend(id, dto.reason, user);
   }
 
+  /** Accepts an account-deletion request: needs a fresh sign-in, checks legal holds, ends the account's access and plans the tasks. */
+  @Post(":id/accept")
+  @RequirePermission(PERMISSIONS.DSAR_MANAGE)
+  @RequireVerifiedEmail()
+  @AuditLog({ action: "dsar.accept", resourceType: "data_subject_request", writeAhead: true })
+  accept(@Param("id") id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.dsarService.accept(id, user);
+  }
+
   @Post(":id/resolve")
   @RequirePermission(PERMISSIONS.DSAR_MANAGE)
   @RequireVerifiedEmail()
-  @AuditLog({ action: "dsar.resolve", resourceType: "data_subject_request" })
+  @AuditLog({ action: "dsar.resolve", resourceType: "data_subject_request", writeAhead: true })
   resolve(@Param("id") id: string, @Body() dto: ResolveDsarDto, @CurrentUser() user: AuthenticatedUser) {
     return this.dsarService.resolve(id, dto.resolution, dto.reason, user);
   }
