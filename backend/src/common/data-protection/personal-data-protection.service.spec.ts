@@ -67,3 +67,17 @@ describe("PersonalDataProtectionService key ring (EN-2, EN-4)", () => {
     expect(() => svc.decrypt(envelope)).toThrow();
   });
 });
+
+describe("auth tag length (Semgrep gcm-no-tag-length)", () => {
+  it("refuses an envelope whose authentication tag is truncated", () => {
+    const svc = new PersonalDataProtectionService();
+    const envelope = svc.encrypt("value");
+    const short = {
+      ...envelope,
+      authenticationTag: Buffer.from(envelope.authenticationTag ?? "", "base64")
+        .subarray(0, 4)
+        .toString("base64"),
+    };
+    expect(() => svc.decrypt(short)).toThrow(/auth tag length/);
+  });
+});

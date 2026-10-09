@@ -81,12 +81,15 @@ export class PersonalDataProtectionService {
     if (!envelope.initializationVector || !envelope.authenticationTag) {
       throw new Error("Malformed protected-data envelope: missing IV or auth tag");
     }
+    const tag = Buffer.from(envelope.authenticationTag, "base64");
+    if (tag.length !== 16) throw new Error("Malformed protected-data envelope: wrong auth tag length");
     const decipher = createDecipheriv(
       "aes-256-gcm",
       readKey(envelope.keyVersion),
       Buffer.from(envelope.initializationVector, "base64"),
+      { authTagLength: 16 },
     );
-    decipher.setAuthTag(Buffer.from(envelope.authenticationTag, "base64"));
+    decipher.setAuthTag(tag);
     const plaintext = Buffer.concat([decipher.update(Buffer.from(envelope.ciphertext, "base64")), decipher.final()]);
     return plaintext.toString("utf8");
   }
