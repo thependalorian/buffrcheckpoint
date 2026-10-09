@@ -66,13 +66,18 @@ export function chainTip<T extends ChainLink>(newestFirst: T[]): T | undefined {
 
 /**
  * Walks an organisation's whole chain by its links, not its timestamps. Events in acceptedLegacyHeads start a registered pre-index fork:
- * each is checked as its own segment, so its hashes are still verified, but it is not reported as a break. Returns the first event that cannot be placed, if any: a second
+ * each is checked as its own segment, so its hashes are still verified, but it is not reported as a break. formerOrganisationIds are ids the
+ * organisation had before a merge: an event whose hash was made under one of them still verifies, but only if the hash matches exactly. Returns the first event that cannot be placed, if any: a second
  * successor to one event (a fork), a hash that does not match its content, or an event the walk never reaches.
  */
 export function verifyChain<T extends ChainLink & AuditEventHashInput & { id: string }>(
   events: T[],
   acceptedLegacyHeads: ReadonlySet<string> = new Set(),
+  formerOrganisationIds: ReadonlyArray<string> = [],
 ): { valid: boolean; brokenAtEventId: string | null } {
+  const hashMatches = (event: T): boolean =>
+    computeAuditEventHash(event) === event.eventHash ||
+    formerOrganisationIds.some((id) => computeAuditEventHash({ ...event, organisationId: id }) === event.eventHash);
   if (events.length === 0) return { valid: true, brokenAtEventId: null };
   const byPrev = new Map<string, T[]>();
   for (const event of events) {
@@ -89,7 +94,7 @@ export function verifyChain<T extends ChainLink & AuditEventHashInput & { id: st
   for (const head of segments) {
     let cursor: T | undefined = head;
     while (cursor && !visited.has(cursor.id)) {
-      if (computeAuditEventHash(cursor) !== cursor.eventHash) return { valid: false, brokenAtEventId: cursor.id };
+      if (!hashMatches(cursor)) return { valid: false, brokenAtEventId: cursor.id };
       visited.add(cursor.id);
       const kids: T[] = byPrev.get(cursor.eventHash) ?? [];
       const main = kids.filter((k) => !acceptedLegacyHeads.has(k.id));

@@ -3,7 +3,7 @@ import * as Sentry from "@sentry/nestjs";
 import { eq } from "drizzle-orm";
 
 import { appendAuditEvent, verifyChain } from "../../common/audit/audit-chain";
-import { loadLegacyForkHeads } from "../../common/audit/legacy-forks";
+import { loadFormerOrganisationIds, loadLegacyForkHeads } from "../../common/audit/legacy-forks";
 import type { Database } from "../../db/client";
 import { DB } from "../../db/db.token";
 import { auditEvents } from "../../db/schema";
@@ -54,9 +54,10 @@ export class AuditChainVerifierService implements OnModuleInit, OnModuleDestroy 
       .groupBy(auditEvents.organisationId);
     const breaks: ChainVerificationSummary["breaks"] = [];
     const legacyForks = await loadLegacyForkHeads(this.db);
+    const formerIds = await loadFormerOrganisationIds(this.db);
     for (const { organisationId } of orgs) {
       const events = await this.db.select().from(auditEvents).where(eq(auditEvents.organisationId, organisationId));
-      const result = verifyChain(events, legacyForks);
+      const result = verifyChain(events, legacyForks, formerIds.get(organisationId) ?? []);
       if (!result.valid) {
         breaks.push({ organisationId, brokenAtEventId: result.brokenAtEventId });
         this.logger.error(`Audit chain break for organisation ${organisationId} at event ${result.brokenAtEventId}`);

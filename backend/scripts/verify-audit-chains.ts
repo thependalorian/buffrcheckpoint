@@ -12,19 +12,20 @@ import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/neon-http";
 
 import { verifyChain } from "../src/common/audit/audit-chain";
-import { loadLegacyForkHeads } from "../src/common/audit/legacy-forks";
+import { loadFormerOrganisationIds, loadLegacyForkHeads } from "../src/common/audit/legacy-forks";
 import * as schema from "../src/db/schema";
 
 async function main(): Promise<void> {
   const db = drizzle(neon(process.env.DATABASE_URL ?? ""), { schema });
   const forks = await loadLegacyForkHeads(db as never);
+  const former = await loadFormerOrganisationIds(db as never);
   const orgs = await db.selectDistinct({ id: schema.auditEvents.organisationId }).from(schema.auditEvents);
   const breaks: Array<{ organisationId: string; brokenAtEventId: string | null }> = [];
   let events = 0;
   for (const { id } of orgs) {
     const rows = await db.query.auditEvents.findMany({ where: eq(schema.auditEvents.organisationId, id) });
     events += rows.length;
-    const result = verifyChain(rows, forks);
+    const result = verifyChain(rows, forks, former.get(id) ?? []);
     if (!result.valid) breaks.push({ organisationId: id, brokenAtEventId: result.brokenAtEventId });
   }
   process.stdout.write(

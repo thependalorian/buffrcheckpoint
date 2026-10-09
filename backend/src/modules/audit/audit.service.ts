@@ -2,7 +2,7 @@ import { Inject, Injectable } from "@nestjs/common";
 import { and, desc, eq, gte, inArray, lt, lte, or, type SQL } from "drizzle-orm";
 
 import { type AppendAuditEventInput, appendAuditEvent, verifyChain } from "../../common/audit/audit-chain";
-import { loadLegacyForkHeads } from "../../common/audit/legacy-forks";
+import { loadFormerOrganisationIds, loadLegacyForkHeads } from "../../common/audit/legacy-forks";
 import type { AuthenticatedUser } from "../../common/decorators/current-user.decorator";
 import type { TabularExport } from "../../common/export/tabular";
 import { clampPageSize } from "../../common/pagination/page-size";
@@ -120,6 +120,7 @@ export class AuditService {
       orderBy: [auditEvents.occurredAt],
     });
     // Followed by links, not by timestamps: events written in the same millisecond tie on time.
-    return verifyChain(events, await loadLegacyForkHeads(this.db));
+    const formerIds = await loadFormerOrganisationIds(this.db);
+    return verifyChain(events, await loadLegacyForkHeads(this.db), formerIds.get(user.organisationId) ?? []);
   }
 }
