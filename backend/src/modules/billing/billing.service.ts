@@ -71,6 +71,8 @@ export interface SubmitPopInput {
   amount: string;
   popDocumentBase64: string;
   popDocumentName: string;
+  /** Client key from the Idempotency-Key header: a retry returns the first payment instead of creating another (MP-1). */
+  idempotencyKey?: string;
 }
 
 export interface CreateSubscriptionInput {
@@ -935,6 +937,9 @@ export class BillingService implements OnModuleInit {
       throw new ForbiddenException("Invoice belongs to another organisation");
     }
 
+    const replay = await this.findByIdempotencyKey(user.organisationId, dto.idempotencyKey);
+    if (replay) return replay;
+
     const stored = await artifactStore.writePackage(
       "payment-pop",
       [{ name: dto.popDocumentName, content: Buffer.from(dto.popDocumentBase64, "base64") }],
@@ -944,7 +949,7 @@ export class BillingService implements OnModuleInit {
     const statusCode = await this.typeDefs.id("payment_status", "pending_review");
     const paymentMethodCode = await this.typeDefs.id("payment_method", "bank_transfer");
 
-    const [txn] = await this.db
+    const [inserted] = await this.db
       .insert(paymentTransaction)
       .values({
         id: randomUUID(),
@@ -956,11 +961,28 @@ export class BillingService implements OnModuleInit {
         paymentMethodCode,
         popDocumentReference: stored.fileReference,
         submittedBy: user.userId,
+        idempotencyKey: dto.idempotencyKey ?? null,
       })
+      .onConflictDoNothing()
       .returning();
+    if (!inserted) {
+      // Two requests with one key raced; the unique index let only the first through.
+      const first = await this.findByIdempotencyKey(user.organisationId, dto.idempotencyKey);
+      if (first) return first;
+      throw new ConflictException("Payment could not be recorded");
+    }
 
     await this.notifyPopReceived(invoiceRow, dto.amount, user).catch(() => undefined);
-    return txn;
+    return inserted;
+  }
+
+  /** The payment this organisation already recorded under a client key, or null when the key is new or absent. */
+  private async findByIdempotencyKey(organisationId: string, key: string | undefined) {
+    if (!key) return null;
+    const existing = await this.db.query.paymentTransaction.findFirst({
+      where: and(eq(paymentTransaction.organisationId, organisationId), eq(paymentTransaction.idempotencyKey, key)),
+    });
+    return existing ?? null;
   }
 
   /** Streams the stored proof-of-payment document back for staff review, same pattern as KybService.getDocument. */
@@ -1061,13 +1083,30 @@ export class BillingService implements OnModuleInit {
    * Inserts a payment_transaction at 'initiated' and returns the signed form
    * post for Adumo's hosted page; its id is the merchant reference.
    */
-  async startCardPayment(invoiceId: string, user: AuthenticatedUser) {
+  async startCardPayment(invoiceId: string, user: AuthenticatedUser, idempotencyKey?: string) {
     const row = await this.db.query.invoice.findFirst({
       where: and(eq(invoice.id, invoiceId), isNull(invoice.deletedAt)),
     });
     if (!row) throw new NotFoundException("Invoice not found");
     if (row.organisationId !== user.organisationId)
       throw new ForbiddenException("Invoice belongs to another organisation");
+
+    const replay = await this.findByIdempotencyKey(user.organisationId, idempotencyKey);
+    if (replay) {
+      if (replay.invoiceId !== row.id) throw new ConflictException("Idempotency-Key was used for a different invoice");
+      const again = this.adumo.buildCheckout(
+        replay.id,
+        adumoAmount(String(replay.amount)),
+        `Buffr Checkpoint invoice ${row.invoiceNumber}`,
+      );
+      return {
+        paymentTransactionId: replay.id,
+        invoiceId: row.id,
+        amount: replay.amount,
+        currencyCode: row.currencyCode,
+        ...again,
+      };
+    }
 
     const [paidStatus, voidStatus, confirmedStatus] = await Promise.all([
       this.typeDefs.id("invoice_status", "paid"),
@@ -1095,16 +1134,38 @@ export class BillingService implements OnModuleInit {
     const paymentId = randomUUID();
     const amount = adumoAmount(outstanding);
     const checkout = this.adumo.buildCheckout(paymentId, amount, `Buffr Checkpoint invoice ${row.invoiceNumber}`);
-    await this.db.insert(paymentTransaction).values({
-      id: paymentId,
-      organisationId: row.organisationId,
-      invoiceId: row.id,
-      amount,
-      currencyCode: row.currencyCode,
-      statusCode: initiatedStatus,
-      paymentMethodCode: cardMethod,
-      submittedBy: user.userId,
-    });
+    const inserted = await this.db
+      .insert(paymentTransaction)
+      .values({
+        id: paymentId,
+        organisationId: row.organisationId,
+        invoiceId: row.id,
+        amount,
+        currencyCode: row.currencyCode,
+        statusCode: initiatedStatus,
+        paymentMethodCode: cardMethod,
+        submittedBy: user.userId,
+        idempotencyKey: idempotencyKey ?? null,
+      })
+      .onConflictDoNothing()
+      .returning({ id: paymentTransaction.id });
+    if (inserted.length === 0) {
+      // A parallel request with the same key won; return its payment so the client never holds two.
+      const first = await this.findByIdempotencyKey(user.organisationId, idempotencyKey);
+      if (!first) throw new ConflictException("Payment could not be started");
+      const again = this.adumo.buildCheckout(
+        first.id,
+        adumoAmount(String(first.amount)),
+        `Buffr Checkpoint invoice ${row.invoiceNumber}`,
+      );
+      return {
+        paymentTransactionId: first.id,
+        invoiceId: row.id,
+        amount: first.amount,
+        currencyCode: row.currencyCode,
+        ...again,
+      };
+    }
     return { paymentTransactionId: paymentId, invoiceId: row.id, amount, currencyCode: row.currencyCode, ...checkout };
   }
 

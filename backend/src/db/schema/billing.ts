@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   boolean,
   char,
@@ -255,10 +256,15 @@ export const paymentTransaction = pgTable(
     processorStatus: text("processor_status"),
     processorResultCode: text("processor_result_code"),
     cardMaskedPan: text("card_masked_pan"),
+    // Client-chosen key (db/migrations/0081): a retried request returns the first payment instead of creating a second one.
+    idempotencyKey: text("idempotency_key"),
     occurredAt: timestamp("occurred_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [
     index("idx_payment_transaction_org").on(t.organisationId),
+    uniqueIndex("uq_payment_transaction_org_idempotency_key")
+      .on(t.organisationId, t.idempotencyKey)
+      .where(sql`${t.idempotencyKey} is not null`),
     index("idx_payment_transaction_invoice").on(t.invoiceId),
     index("idx_payment_transaction_status").on(t.statusCode),
   ],

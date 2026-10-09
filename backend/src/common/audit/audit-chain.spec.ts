@@ -108,6 +108,46 @@ describe("verifyChain", () => {
     expect(verifyChain([a, b, orphan])).toEqual({ valid: false, brokenAtEventId: "orphan" });
   });
 
+  describe("registered legacy forks", () => {
+    const t = (n: number) => `2026-09-10T08:00:0${n}.000Z`;
+
+    it("accepts a registered side branch and second root, and keeps walking the main line", () => {
+      const root = link("root", null, t(0));
+      const side = link("side", root.eventHash, t(0));
+      const main1 = link("main1", root.eventHash, t(1));
+      const main2 = link("main2", main1.eventHash, t(2));
+      const root2 = link("root2", null, t(3));
+      const r2kid = link("r2kid", root2.eventHash, t(4));
+      const events = [root, side, main1, main2, root2, r2kid];
+      expect(verifyChain(events).valid).toBe(false);
+      expect(verifyChain(events, new Set(["side", "root2"]))).toEqual({ valid: true, brokenAtEventId: null });
+    });
+
+    it("still catches an edited event after the fork and a new unregistered fork", () => {
+      const root = link("root", null, t(0));
+      const side = link("side", root.eventHash, t(0));
+      const main1 = link("main1", root.eventHash, t(1));
+      const main2 = link("main2", main1.eventHash, t(2));
+      const accepted = new Set(["side"]);
+      expect(verifyChain([root, side, main1, { ...main2, actionCode: "tampered" }], accepted)).toEqual({
+        valid: false,
+        brokenAtEventId: "main2",
+      });
+      const newFork = link("newFork", main1.eventHash, t(3));
+      expect(verifyChain([root, side, main1, main2, newFork], accepted).valid).toBe(false);
+    });
+
+    it("does not accept a registered event that was edited", () => {
+      const root = link("root", null, t(0));
+      const side = link("side", root.eventHash, t(0));
+      const main1 = link("main1", root.eventHash, t(1));
+      expect(verifyChain([root, { ...side, actionCode: "tampered" }, main1], new Set(["side"]))).toEqual({
+        valid: false,
+        brokenAtEventId: "side",
+      });
+    });
+  });
+
   it("treats an empty chain as valid", () => {
     expect(verifyChain([])).toEqual({ valid: true, brokenAtEventId: null });
   });

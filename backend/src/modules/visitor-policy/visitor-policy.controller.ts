@@ -1,5 +1,16 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from "@nestjs/common";
-import { IsArray, IsBoolean, IsInt, IsObject, IsOptional, IsString, IsUUID, Min, MinLength } from "class-validator";
+import {
+  IsArray,
+  IsBoolean,
+  IsInt,
+  IsObject,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+  Min,
+  MinLength,
+} from "class-validator";
 
 import { AuditLog } from "../../common/decorators/audit-log.decorator";
 import { type AuthenticatedUser, CurrentUser } from "../../common/decorators/current-user.decorator";
@@ -51,6 +62,11 @@ class CreateFormFieldDto {
   @IsString()
   helpText?: string;
 
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  purposeNote?: string;
+
   @IsString()
   dataClassificationCode!: string;
 
@@ -84,6 +100,11 @@ class UpdateFormFieldDto {
   @IsOptional()
   @IsString()
   helpText?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  purposeNote?: string;
 
   @IsOptional()
   @IsString()

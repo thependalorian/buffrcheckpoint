@@ -1,0 +1,27 @@
+name: Review health
+
+# CR-10: monthly figures for time to first review, change size, blockers found and escaped defects.
+on:
+  schedule:
+    - cron: "0 6 1 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  review-metrics:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Self-test
+        run: node scripts/review-metrics.mjs --self-test
+      - name: Monthly figures
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            echo "## Review health, last 30 days"
+            node scripts/review-metrics.mjs --days 30 --markdown | tail -n +2
+          } >> "$GITHUB_STEP_SUMMARY"

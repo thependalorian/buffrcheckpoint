@@ -59,4 +59,45 @@ Held at least once a year. Record the scenario, participants, times, findings an
 
 ## Restore and replay (RC-3, RC-5, DL-10)
 
-After any restore: start in restricted mode, list `deletion_recovery_tombstone` rows whose `replay_until` is in the future, erase each subject again, run the audit chain verifier and the reconciliation checks, then open traffic. The replay command is not built yet; until it is, the tombstone list is checked by hand.
+After any restore: start in restricted mode, list `deletion_recovery_tombstone` rows whose `replay_until` is in the future, erase each subject again, run the audit chain verifier and the reconciliation checks, then open traffic. Run `backend/scripts/replay-deletions.ts` (use `--dry-run` first to count); it prints counts only. Record the result as a workflow_run in workspace-ops.
+
+## Templates (IR-5, IR-6, IR-7)
+
+Copy these into the incident record. Each is filled during the incident, not after.
+
+### Impact report to the Bank of Namibia (IR-5), due within one month of the incident becoming known
+
+| Field | Value |
+|---|---|
+| Incident reference and dates (started, known, contained, closed) | |
+| What happened, in two sentences | |
+| Financial loss (amount and currency, or "none found" with how that was checked) | |
+| Data loss (what was lost or exposed, how many records, which customers) | |
+| Availability loss (minutes unavailable, by service) | |
+| Cause and the fix that closed it | |
+| Contact | |
+
+### Breach register (IR-6): one row per personal data breach, kept in workspace-ops as a `finding` of type `breach`
+
+| Column | Meaning |
+|---|---|
+| reference | Incident reference |
+| aware_at | When the first person suspected it; the 72 hour clock starts here |
+| facts | What happened and what data was involved |
+| categories and number of people | Approximate, per customer |
+| effects | Likely consequences for the people |
+| remedy | Measures taken and planned |
+| controller_told_at | When each affected customer was told, and by whom |
+| authority_notified_at | Set by the controller; Checkpoint records the date it was given |
+| late_reason | Required when notice went after 72 hours |
+
+### Decision record for telling affected people (IR-7)
+
+| Question | Answer |
+|---|---|
+| Is the breach likely to cause high risk to the people affected? Why | |
+| Was the data encrypted so as to be unintelligible to whoever took it? Which key state | |
+| Has the risk been removed since? How | |
+| Decision (tell, or do not tell) and the person who decided | |
+| If telling: the plain-language notice, sent through the controller, and when | |
+

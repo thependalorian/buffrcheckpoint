@@ -33,6 +33,9 @@ export type ValidatedFormAnswer = {
 };
 
 const HIGH_RISK_CLASSES = new Set(["high_risk", "verification_evidence"]);
+/** Classes that need no field-by-field justification: the details every visit already needs. */
+const NO_NOTE_CLASSES = new Set(["core", "basic"]);
+const MIN_PURPOSE_NOTE_LENGTH = 10;
 
 @Injectable()
 export class VisitorDataMinimisationService {
@@ -41,9 +44,20 @@ export class VisitorDataMinimisationService {
    * a non-empty approval_reference (compliance justification).
    */
   assertPublishAllowed(
-    fields: Array<{ dataClassificationCode: string }>,
+    fields: Array<{ dataClassificationCode: string; fieldCode?: string; purposeNote?: string | null }>,
     approvalReference: string | null | undefined,
   ): void {
+    const missing = fields.filter(
+      (f) =>
+        !NO_NOTE_CLASSES.has(f.dataClassificationCode) && (f.purposeNote?.trim().length ?? 0) < MIN_PURPOSE_NOTE_LENGTH,
+    );
+    if (missing.length > 0) {
+      throw new BadRequestException(
+        `Each field above the basic class needs a purpose note of at least ${MIN_PURPOSE_NOTE_LENGTH} characters: ${missing
+          .map((f) => f.fieldCode ?? "unnamed field")
+          .join(", ")}`,
+      );
+    }
     const needsJustification = fields.some((f) => HIGH_RISK_CLASSES.has(f.dataClassificationCode));
     if (needsJustification && !approvalReference?.trim()) {
       throw new BadRequestException(

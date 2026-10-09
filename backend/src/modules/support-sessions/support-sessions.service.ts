@@ -21,9 +21,16 @@ import { TokenIssuerService } from "../auth/token-issuer.service";
 import { TemplatedEmailService } from "../notifications/templated-email.service";
 import { randomUUID } from "node:crypto";
 
-const GRANT_MAX_DURATION_MS = 8 * 60 * 60 * 1000; // 8h ceiling
+/** Longest a break-glass grant may last (AZ-6): eight hours, whatever the request asks for. */
+export const GRANT_MAX_DURATION_MS = 8 * 60 * 60 * 1000;
 const SESSION_DURATION_MS = 30 * 60 * 1000; // support sessions are short — re-minted from the same grant if more time is needed
 const ADMIN_ROLE_CODES = ["owner_operator", "system_administrator"];
+
+/** Applies the eight hour ceiling; an absent, zero or negative request falls back to the ceiling or the one-minute floor. */
+export function clampGrantDuration(requestedMs: number | undefined): number {
+  if (requestedMs === undefined || Number.isNaN(requestedMs)) return GRANT_MAX_DURATION_MS;
+  return Math.min(Math.max(requestedMs, 60_000), GRANT_MAX_DURATION_MS);
+}
 
 export interface RequestGrantInput {
   organisationId: string;
@@ -54,7 +61,7 @@ export class SupportSessionsService {
   async requestGrant(input: RequestGrantInput, user: AuthenticatedUser) {
     const reasonCode = await this.typeDefs.id("support_access_reason", input.reasonCode);
     const pendingStatus = await this.typeDefs.id("privileged_access_grant_status", "pending_customer_approval");
-    const durationMs = Math.min(input.durationMs ?? GRANT_MAX_DURATION_MS, GRANT_MAX_DURATION_MS);
+    const durationMs = clampGrantDuration(input.durationMs);
 
     const org = await this.db.query.organisations.findFirst({ where: eq(organisations.id, input.organisationId) });
     if (!org) throw new NotFoundException("Organisation not found");

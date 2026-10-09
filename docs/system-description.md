@@ -190,3 +190,40 @@ Re-checked when a customer outside Namibia signs (GP-8). The privacy lead (GP-2)
 | About 17 pre-existing accessibility and hook lint findings in the web apps | Owner | Low | One focused pass | 2026-10-09 | 2026-11 |
 | 56 backend files not formatted to Biome | Owner | Low | One formatting commit | 2026-10-09 | 2026-11 |
 | 127 queries flagged by the tenant-scope scan | Owner | Medium | Add the organisation predicate to each, file by file | 2026-10-08 | 2026-11 |
+
+## 21. Purposes, lawful basis and minimisation (PR-1 to PR-3, PR-6)
+
+Checkpoint is a processor for visitor and staff data, so the lawful basis for a visitor record is the controller's. The table states the basis the product is built to support and what the customer confirms in the contract.
+
+| Purpose | Data | Basis the product supports | Customer confirms |
+|---|---|---|---|
+| Know who is on site and keep an access record | Name, mobile number, company, host, times | Legitimate interest in site security and safety, or a legal duty on the customer | The basis in the customer's own notice |
+| Reach a visitor and host during a visit | Mobile number, optional email | Same as above | Same |
+| Emergency roll call | Who is on site now | Legal duty or vital interests | Same |
+| Visit survey and rating | Rating, optional comment | Consent, given per survey, never required to leave | Same |
+| Billing and support for the customer | Customer contacts, invoices | Contract | n/a (Checkpoint is controller) |
+
+Field-by-field justification (PR-2): the standard check-in form (`organisation-standards/standard-defaults.ts`) gives a purpose note for every field, and the form builder will not publish any field above the basic class without a purpose note of at least ten characters (migration 0082, `visitor-data-minimisation.service.spec.ts`). The note is stored on the field, so the justification travels with the form version.
+
+Special categories (PR-6): none is collected by default. A clinic, faith-based or community organisation sets the purpose-of-visit field to the sensitive class, because the fact of the visit can reveal health or belief. Identity documents and photographs are high-risk fields, off by default, and need an approval reference as well as a purpose note to publish. The register of such fields is the set of published form fields at class sensitive or above, listed with their purpose note and approval reference by the form version API.
+
+## 22. Change record and emergency changes (GV-11)
+
+Every production change is a pull request with the template filled in; the pull request is the change record. An emergency change (an incident fix that cannot wait for review) is merged by the owner with the reason written in the pull request body under the heading "Emergency change", then reviewed after the fact within two working days and the review noted on the same pull request. Emergency changes are counted in the monthly review figures (`scripts/review-metrics.mjs`).
+
+## 23. Evidence for a court (ER-5)
+
+For a person in control of the system to swear an affidavit, keep these facts for each release: the repository and commit hash deployed, the deploy log from the platform, the software list (the CycloneDX bill of materials produced by CI), any alteration to stored records (none is possible on audit rows; corrections are new rows), the audit chain verification result for the period, and the qualifications of the person swearing. The evidence pack already carries the chain result; the rest comes from the pull request and CI run of the release.
+
+## 24. Measured security objectives (GV-12)
+
+Measured 2026-10-09. Values are re-measured at each quarterly review.
+
+| Objective | Target | Measured | Source |
+|---|---|---|---|
+| Audit chains verify clean | 100 percent | Production, 5 organisations and 108 events: 4 verify clean. One older organisation has 28 of 49 events whose stored hash no longer matches, consistent with the 2026-09 organisation merge noted in migration 0057; the check is not loosened for it. 4 pre-index forks are registered (migration 0083) | `backend/scripts/verify-audit-chains.ts` |
+| Payment reconciliation breaks | 0 unexplained | 0 on dev-local | `backend/scripts/run-payment-reconciliation.ts` |
+| Tests | Floor cannot fall | backend 699, admin 66, website 63, ops console 5 | `scripts/test-floor.json` |
+| Secrets present and strong in production | Verified at every deploy | Verified at boot by the production config guard | `production-config-guard.ts` |
+| Change review | Monthly figures | 1 merged pull request in 30 days, 0 reviewed (sole maintainer) | `scripts/review-metrics.mjs` |
+
