@@ -2,7 +2,10 @@ import { computeAuditEventHash } from "../../common/audit/audit-chain";
 import { loadLegacyForkHeads } from "../../common/audit/legacy-forks";
 import { AuditChainVerifierService } from "./audit-chain-verifier.service";
 
-jest.mock("../../common/audit/legacy-forks", () => ({ loadLegacyForkHeads: jest.fn(async () => new Set<string>()) }));
+jest.mock("../../common/audit/legacy-forks", () => ({
+  loadLegacyForkHeads: jest.fn(async () => new Set<string>()),
+  loadFormerOrganisationIds: jest.fn(async () => new Map<string, string[]>()),
+}));
 
 function event(id: string, organisationId: string, prev: string | null, action: string) {
   const base = {

@@ -221,7 +221,7 @@ Measured 2026-10-09. Values are re-measured at each quarterly review.
 
 | Objective | Target | Measured | Source |
 |---|---|---|---|
-| Audit chains verify clean | 100 percent | Production, 5 organisations and 108 events: 4 verify clean. One older organisation has 28 of 49 events whose stored hash no longer matches, consistent with the 2026-09 organisation merge noted in migration 0057; the check is not loosened for it. 4 pre-index forks are registered (migration 0083) | `backend/scripts/verify-audit-chains.ts` |
+| Audit chains verify clean | 100 percent | Production, 5 organisations and 118 events: 5 verify clean, 0 breaks. 4 pre-index forks and 28 merge-moved events are registered (migrations 0083 and 0084); the proof is in D-47 | `backend/scripts/verify-audit-chains.ts` |
 | Payment reconciliation breaks | 0 unexplained | 0 on dev-local | `backend/scripts/run-payment-reconciliation.ts` |
 | Tests | Floor cannot fall | backend 699, admin 66, website 63, ops console 5 | `scripts/test-floor.json` |
 | Secrets present and strong in production | Verified at every deploy | Verified at boot by the production config guard | `production-config-guard.ts` |

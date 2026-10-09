@@ -108,6 +108,36 @@ describe("verifyChain", () => {
     expect(verifyChain([a, b, orphan])).toEqual({ valid: false, brokenAtEventId: "orphan" });
   });
 
+  describe("former organisation ids (organisation merge)", () => {
+    const made = (id: string, prev: string | null, org: string, action = "x") => {
+      const base = {
+        organisationId: org,
+        actorId: null,
+        actionCode: action,
+        resourceType: "t",
+        resourceId: null,
+        occurredAt: new Date("2026-09-10T08:00:00.000Z"),
+        prevEventHash: prev,
+      };
+      return { id, ...base, eventHash: computeAuditEventHash(base) };
+    };
+
+    it("accepts events hashed under a registered former id after rows were moved to the current id", () => {
+      const a = made("a", null, "old-org");
+      const b = made("b", a.eventHash, "old-org");
+      const moved = [a, b].map((e) => ({ ...e, organisationId: "new-org" }));
+      expect(verifyChain(moved).valid).toBe(false);
+      expect(verifyChain(moved, new Set(), ["old-org"])).toEqual({ valid: true, brokenAtEventId: null });
+    });
+
+    it("still rejects an edited event and an event hashed under an unregistered id", () => {
+      const a = made("a", null, "old-org");
+      const moved = [{ ...a, organisationId: "new-org" }];
+      expect(verifyChain([{ ...moved[0], actionCode: "tampered" }], new Set(), ["old-org"]).valid).toBe(false);
+      expect(verifyChain(moved, new Set(), ["some-other-org"]).valid).toBe(false);
+    });
+  });
+
   describe("registered legacy forks", () => {
     const t = (n: number) => `2026-09-10T08:00:0${n}.000Z`;
 
