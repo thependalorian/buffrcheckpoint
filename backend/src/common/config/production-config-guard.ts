@@ -19,6 +19,13 @@ const PLACEHOLDER_MARKERS = ["change-me", "do-not-reuse", "<generate", "dev-only
 const TLS_MODES = new Set(["require", "verify-ca", "verify-full"]);
 const SIMULATOR_MARKERS = ["sandbox", "staging", "simulator", "mock"];
 
+/**
+ * The personal-data key that ships in the source for local development. Production data was first written under it, so it cannot be
+ * refused at start-up without taking the service down: it is reported as a critical warning until the data is re-encrypted under a new
+ * key (blueprint 14.3, Annex E EN-2). Any other placeholder value is still refused.
+ */
+export const KNOWN_DEV_DATA_KEY = "local-dev-only-insecure-key-do-not-deploy!!";
+
 export interface ConfigProblem {
   variable: string;
   reason: string;
@@ -47,6 +54,7 @@ function secretProblems(env: NodeJS.ProcessEnv): ConfigProblem[] {
       continue;
     }
     if (value.length < min) problems.push({ variable: name, reason: `is shorter than ${min} characters` });
+    if (name === "LOCAL_DEV_DATA_KEY" && value === KNOWN_DEV_DATA_KEY) continue;
     if (looksLikePlaceholder(value))
       problems.push({ variable: name, reason: "holds a placeholder or development value" });
     const key = digest(value);
@@ -108,6 +116,19 @@ function railProblems(env: NodeJS.ProcessEnv): ConfigProblem[] {
 export function productionConfigProblems(env: NodeJS.ProcessEnv = process.env): ConfigProblem[] {
   if (env.NODE_ENV !== "production") return [];
   return [...secretProblems(env), ...corsProblems(env), ...databaseProblems(env), ...railProblems(env)];
+}
+
+/** Settings that are unsafe but cannot stop the service yet, because stopping it would lose access to stored data. Names only. */
+export function productionConfigWarnings(env: NodeJS.ProcessEnv = process.env): ConfigProblem[] {
+  if (env.NODE_ENV !== "production") return [];
+  return env.LOCAL_DEV_DATA_KEY === KNOWN_DEV_DATA_KEY
+    ? [
+        {
+          variable: "LOCAL_DEV_DATA_KEY",
+          reason: "is the public development key; stored personal data must be re-encrypted under a new key",
+        },
+      ]
+    : [];
 }
 
 /** Throws one error naming every unsafe production setting. Called before the application is created. */

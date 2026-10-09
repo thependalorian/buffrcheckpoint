@@ -1,4 +1,9 @@
-import { assertProductionConfig, productionConfigProblems } from "./production-config-guard";
+import {
+  assertProductionConfig,
+  KNOWN_DEV_DATA_KEY,
+  productionConfigProblems,
+  productionConfigWarnings,
+} from "./production-config-guard";
 import { randomBytes } from "node:crypto";
 
 const SECRET_NAMES = [
@@ -112,5 +117,17 @@ describe("productionConfigProblems", () => {
     expect(message).toContain("JWT_SECRET");
     expect(message).toContain("CORS_ORIGIN");
     expect(message).not.toContain("tiny-secret-value-7f3a");
+  });
+
+  it("warns, and does not refuse, when the data key is the known development key", () => {
+    const env = { ...goodEnv(), LOCAL_DEV_DATA_KEY: KNOWN_DEV_DATA_KEY };
+    expect(productionConfigProblems(env)).toEqual([]);
+    expect(productionConfigWarnings(env).map((w) => w.variable)).toEqual(["LOCAL_DEV_DATA_KEY"]);
+    expect(productionConfigWarnings(goodEnv())).toEqual([]);
+  });
+
+  it("still refuses any other placeholder data key", () => {
+    const env = { ...goodEnv(), LOCAL_DEV_DATA_KEY: "some-changeme-value-that-is-long-enough" };
+    expect(productionConfigProblems(env).map((p) => p.variable)).toContain("LOCAL_DEV_DATA_KEY");
   });
 });

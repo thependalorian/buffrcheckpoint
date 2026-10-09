@@ -10,12 +10,13 @@ import helmet from "helmet";
 
 import { AppModule } from "./app.module";
 import { corsOrigins } from "./common/config/cors-origins";
-import { assertProductionConfig } from "./common/config/production-config-guard";
+import { assertProductionConfig, productionConfigWarnings } from "./common/config/production-config-guard";
 
 const logger = new Logger("Bootstrap");
 
 async function bootstrap() {
   assertProductionConfig();
+  for (const warning of productionConfigWarnings()) logger.error(`CRITICAL: ${warning.variable} ${warning.reason}`);
   const app = await NestFactory.create(AppModule);
 
   // Section 11.8.6: security hardening baseline.
