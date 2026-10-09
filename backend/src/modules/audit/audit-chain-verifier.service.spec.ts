@@ -1,5 +1,8 @@
 import { computeAuditEventHash } from "../../common/audit/audit-chain";
+import { loadLegacyForkHeads } from "../../common/audit/legacy-forks";
 import { AuditChainVerifierService } from "./audit-chain-verifier.service";
+
+jest.mock("../../common/audit/legacy-forks", () => ({ loadLegacyForkHeads: jest.fn(async () => new Set<string>()) }));
 
 function event(id: string, organisationId: string, prev: string | null, action: string) {
   const base = {
@@ -55,6 +58,19 @@ describe("audit chain verifier (LG-2)", () => {
       ["org-ok", "audit.chain_verified"],
       ["org-bad", "audit.chain_break_detected"],
     ]);
+  });
+
+  it("treats a registered legacy fork as clean but still flags a fork that is not registered", async () => {
+    const root = event("r", "org-fork", null, "first");
+    const side = event("side", "org-fork", root.eventHash, "raced");
+    const main = event("main", "org-fork", root.eventHash, "next");
+    (loadLegacyForkHeads as jest.Mock).mockResolvedValueOnce(new Set(["side"]));
+    const registered = build([{ organisationId: "org-fork", events: [root, side, main] }]);
+    expect((await registered.service.verifyAll()).breaks).toEqual([]);
+    expect(registered.inserted.map((row) => row.actionCode)).toEqual(["audit.chain_verified"]);
+
+    const unregistered = build([{ organisationId: "org-fork", events: [root, side, main] }]);
+    expect((await unregistered.service.verifyAll()).breaks).toHaveLength(1);
   });
 
   it("does nothing when no organisation has audit events", async () => {

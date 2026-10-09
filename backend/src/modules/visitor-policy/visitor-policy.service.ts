@@ -150,6 +150,7 @@ export class VisitorPolicyService {
       fieldLabel?: string;
       fieldTypeCode?: string;
       helpText?: string;
+      purposeNote?: string;
       dataClassificationCode: string;
       required?: boolean;
       displayOrder?: number;
@@ -170,6 +171,7 @@ export class VisitorPolicyService {
         fieldLabel: input.fieldLabel ?? null,
         fieldTypeCode,
         helpText: input.helpText ?? null,
+        purposeNote: input.purposeNote?.trim() || null,
         dataClassificationCode,
         required: input.required ?? false,
         displayOrder: input.displayOrder ?? 0,
@@ -186,6 +188,7 @@ export class VisitorPolicyService {
       fieldLabel?: string;
       fieldTypeCode?: string;
       helpText?: string;
+      purposeNote?: string;
       dataClassificationCode?: string;
       required?: boolean;
       displayOrder?: number;
@@ -210,6 +213,7 @@ export class VisitorPolicyService {
       .set({
         ...(input.fieldLabel !== undefined ? { fieldLabel: input.fieldLabel } : {}),
         ...(input.helpText !== undefined ? { helpText: input.helpText } : {}),
+        ...(input.purposeNote !== undefined ? { purposeNote: input.purposeNote.trim() || null } : {}),
         ...(fieldTypeCode !== undefined ? { fieldTypeCode } : {}),
         ...(dataClassificationCode !== undefined ? { dataClassificationCode } : {}),
         ...(input.required !== undefined ? { required: input.required } : {}),
@@ -269,6 +273,7 @@ export class VisitorPolicyService {
         fieldLabel: field.fieldLabel,
         fieldTypeCode: field.fieldTypeCode,
         helpText: field.helpText,
+        purposeNote: field.purposeNote,
         dataClassificationCode: field.dataClassificationCode,
         required: field.required,
         displayOrder: field.displayOrder,
@@ -404,6 +409,8 @@ export class VisitorPolicyService {
     this.dataMinimisation.assertPublishAllowed(
       fields.map((f) => ({
         dataClassificationCode: classById.get(f.dataClassificationCode) ?? "basic",
+        fieldCode: f.fieldCode,
+        purposeNote: f.purposeNote,
       })),
       refreshed?.approvalReference ?? version.approvalReference,
     );

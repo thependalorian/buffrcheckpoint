@@ -2,8 +2,10 @@ import { Inject, Injectable } from "@nestjs/common";
 import { and, desc, eq, gte, inArray, lt, lte, or, type SQL } from "drizzle-orm";
 
 import { type AppendAuditEventInput, appendAuditEvent, verifyChain } from "../../common/audit/audit-chain";
+import { loadLegacyForkHeads } from "../../common/audit/legacy-forks";
 import type { AuthenticatedUser } from "../../common/decorators/current-user.decorator";
 import type { TabularExport } from "../../common/export/tabular";
+import { clampPageSize } from "../../common/pagination/page-size";
 import type { Database } from "../../db/client";
 import { DB } from "../../db/db.module";
 import { applicationUsers, auditEvents } from "../../db/schema";
@@ -32,7 +34,7 @@ export class AuditService {
   // real date-range filtering plus keyset pagination over the hash-linked
   // read path, not just the most recent 200 rows.
   async listForOrganisation(user: AuthenticatedUser, input: ListAuditEventsInput = {}) {
-    const limit = Math.min(input.limit ?? DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE);
+    const limit = clampPageSize(input.limit, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE);
     const conditions: SQL[] = [eq(auditEvents.organisationId, user.organisationId)];
 
     if (input.from) conditions.push(gte(auditEvents.occurredAt, new Date(input.from)));
@@ -118,6 +120,6 @@ export class AuditService {
       orderBy: [auditEvents.occurredAt],
     });
     // Followed by links, not by timestamps: events written in the same millisecond tie on time.
-    return verifyChain(events);
+    return verifyChain(events, await loadLegacyForkHeads(this.db));
   }
 }

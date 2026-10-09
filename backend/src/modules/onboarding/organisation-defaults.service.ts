@@ -11,13 +11,13 @@ import {
   PRIVACY_NOTICE_LANGUAGE,
   PRIVACY_NOTICE_NAME,
   PRIVACY_NOTICE_POLICY_CODE,
-  standardFormFieldsFor,
   STANDARD_FORM_NAME,
   STANDARD_HOST_DEPARTMENT,
   STANDARD_HOST_NAME,
   STANDARD_QR_LABEL,
   STANDARD_SITE_NAME,
   STANDARD_VISITOR_TYPE,
+  standardFormFieldsFor,
   standardPrivacyNotice,
 } from "../organisation-standards/standard-defaults";
 import { RetentionPolicyService } from "../retention-policy/retention-policy.service";
@@ -75,7 +75,11 @@ export class OrganisationDefaultsService {
       LEFT JOIN type_definition st ON st.id = o.sector_code
       WHERE u.id = ${user.userId} AND u.deleted_at IS NULL LIMIT 1`);
     const row = result.rows[0] as { email?: string; organisation_name?: string; sector_code?: string } | undefined;
-    return { email: row?.email ?? null, organisationName: row?.organisation_name ?? "", sectorCode: row?.sector_code ?? null };
+    return {
+      email: row?.email ?? null,
+      organisationName: row?.organisation_name ?? "",
+      sectorCode: row?.sector_code ?? null,
+    };
   }
 
   /**
@@ -179,6 +183,7 @@ export class OrganisationDefaultsService {
             fieldLabel: field.fieldLabel,
             fieldTypeCode: field.fieldTypeCode,
             helpText: field.helpText,
+            purposeNote: field.purposeNote,
             dataClassificationCode: field.dataClassificationCode,
             required: field.required,
             displayOrder: field.displayOrder,

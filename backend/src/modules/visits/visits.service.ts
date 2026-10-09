@@ -21,6 +21,7 @@ import {
   VisitorCheckedOutEvent,
 } from "../../common/domain-events/visitor-email.events";
 import type { TabularExport } from "../../common/export/tabular";
+import { clampPageSize } from "../../common/pagination/page-size";
 import type { Database } from "../../db/client";
 import { DB } from "../../db/db.module";
 import {
@@ -986,7 +987,7 @@ export class VisitsService {
     user: AuthenticatedUser,
     input: { siteId?: string; from?: string; to?: string; limit?: number; cursor?: string },
   ): Promise<{ rows: VisitRosterRow[]; nextCursor: string | null }> {
-    const limit = Math.min(input.limit ?? 50, 200);
+    const limit = clampPageSize(input.limit, 50, 200);
     const conditions: SQL[] = [eq(visitorVisits.organisationId, user.organisationId), isNull(visitorVisits.deletedAt)];
     if (input.siteId) conditions.push(eq(visitorVisits.siteId, input.siteId));
     if (input.from) conditions.push(gte(visitorVisits.checkedInAt, new Date(input.from)));

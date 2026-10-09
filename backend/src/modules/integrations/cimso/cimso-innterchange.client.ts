@@ -38,7 +38,7 @@ export class CimsoInnterchangeClient {
 
   /**
    * Get Bookings Request (1101) for an arrival/departure window.
-   * TODO: implement TCP frame + JSON filters (Arrival From/Until Day, statuses).
+   * Not built: the TCP frame and JSON filters (Arrival From/Until Day, statuses) wait on the vendor NDA package and test credentials.
    */
   async fetchReservations(_params: {
     siteExternalId?: string;
@@ -55,7 +55,7 @@ export class CimsoInnterchangeClient {
 
   /**
    * Set Booking Status Request (1107) — e.g. Active (A) check-in, Left (L) departure.
-   * TODO: implement after TCP framing.
+   * Not built: follows the TCP framing above, so it waits on the same vendor package and credentials.
    */
   async publishFrontDeskEvent(event: CimsoFrontDeskEvent): Promise<{ accepted: boolean }> {
     this.assertReady();

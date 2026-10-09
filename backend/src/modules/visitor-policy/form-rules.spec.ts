@@ -44,13 +44,10 @@ describe("VisitorDataMinimisationService", () => {
   const service = new VisitorDataMinimisationService();
 
   it("blocks publish of high_risk without approval reference", () => {
-    expect(() => service.assertPublishAllowed([{ dataClassificationCode: "high_risk" }], null)).toThrow(
-      BadRequestException,
-    );
-    expect(() => service.assertPublishAllowed([{ dataClassificationCode: "high_risk" }], "  ")).toThrow(
-      BadRequestException,
-    );
-    expect(() => service.assertPublishAllowed([{ dataClassificationCode: "high_risk" }], "DPIA-1")).not.toThrow();
+    const highRisk = [{ dataClassificationCode: "high_risk", purposeNote: "Needed to verify identity at the gate" }];
+    expect(() => service.assertPublishAllowed(highRisk, null)).toThrow(BadRequestException);
+    expect(() => service.assertPublishAllowed(highRisk, "  ")).toThrow(BadRequestException);
+    expect(() => service.assertPublishAllowed(highRisk, "DPIA-1")).not.toThrow();
     expect(() => service.assertPublishAllowed([{ dataClassificationCode: "basic" }], null)).not.toThrow();
   });
 

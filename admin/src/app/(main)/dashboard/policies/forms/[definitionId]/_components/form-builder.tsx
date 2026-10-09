@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { formBuilderCopy, needsPurposeNote, purposeNoteIsValid } from "@/lib/copy/form-builder";
 
 import {
   addFormFieldAction,
@@ -53,6 +54,7 @@ type FormField = {
   fieldCode: string;
   fieldLabel: string | null;
   helpText: string | null;
+  purposeNote?: string | null;
   fieldTypeCode: string;
   dataClassificationCode: string;
   required: boolean;
@@ -494,6 +496,28 @@ export function FormBuilder({
                 }}
               />
             </div>
+            {needsPurposeNote(selectedField.dataClassificationCode) ? (
+              <div className="space-y-1">
+                <Label>{formBuilderCopy.purposeNote.label}</Label>
+                <Input
+                  value={selectedField.purposeNote ?? ""}
+                  placeholder={formBuilderCopy.purposeNote.placeholder}
+                  disabled={!isDraft || pending}
+                  onChange={(e) => updateSelected({ purposeNote: e.target.value })}
+                  onBlur={() => {
+                    if (!isDraft) return;
+                    run(async () => {
+                      await updateFormFieldAction(definition.id, selectedField.id, {
+                        purposeNote: selectedField.purposeNote ?? "",
+                      });
+                    });
+                  }}
+                />
+                {!purposeNoteIsValid(selectedField.purposeNote) ? (
+                  <p className="text-xs text-warning-ink">{formBuilderCopy.purposeNote.required}</p>
+                ) : null}
+              </div>
+            ) : null}
             <div className="space-y-1">
               <Label>Type</Label>
               <select

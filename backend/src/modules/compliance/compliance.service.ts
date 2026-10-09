@@ -1,19 +1,24 @@
 import { Inject, Injectable } from "@nestjs/common";
-import { and, eq, gte, isNull, lt } from "drizzle-orm";
+import { and, asc, eq, gte, inArray, isNull, lt } from "drizzle-orm";
 
 import type { AuthenticatedUser } from "../../common/decorators/current-user.decorator";
 import type { Database } from "../../db/client";
 import { DB } from "../../db/db.module";
 import {
+  dataDispositionTask,
+  deletionRecoveryTombstone,
   organisationMembershipStatusLog,
   organisationMemberships,
+  privacyRequestStatusLog,
   privacyRequests,
   privilegedAccessGrants,
   retentionPolicies,
   typeDefinition,
   visitorVisits,
 } from "../../db/schema";
+import { computeDeletionMetrics, type DeletionMetrics } from "../dsar/deletion-metrics";
 import { openRequestDeadlines } from "../dsar/dsar-deadlines";
+import { LegalHoldsService } from "../legal-holds/legal-holds.service";
 
 // Backs Section 10.5's Compliance Dashboard KPI row. Retention-actions-due
 // and offline-sync-exceptions are computed here directly against visit
@@ -23,7 +28,10 @@ import { openRequestDeadlines } from "../dsar/dsar-deadlines";
 // eventual job-driven figure.
 @Injectable()
 export class ComplianceService {
-  constructor(@Inject(DB) private readonly db: Database) {}
+  constructor(
+    @Inject(DB) private readonly db: Database,
+    private readonly legalHolds: LegalHoldsService,
+  ) {}
 
   async dashboard(user: AuthenticatedUser) {
     const [
@@ -33,14 +41,16 @@ export class ComplianceService {
       offlineSyncExceptions,
       retentionActionsDue,
       deadlines,
+      deletion,
     ] = await Promise.all([
-        this.countOpenDsars(user.organisationId),
-        this.countRoleChangesThisMonth(user.organisationId),
-        this.countActivePrivilegedAccessGrants(user.organisationId),
-        this.countOfflineSyncExceptions(user.organisationId),
-        this.countRetentionActionsDue(user.organisationId),
-        openRequestDeadlines(this.db, user.organisationId),
-      ]);
+      this.countOpenDsars(user.organisationId),
+      this.countRoleChangesThisMonth(user.organisationId),
+      this.countActivePrivilegedAccessGrants(user.organisationId),
+      this.countOfflineSyncExceptions(user.organisationId),
+      this.countRetentionActionsDue(user.organisationId),
+      openRequestDeadlines(this.db, user.organisationId),
+      this.deletionMetrics(user.organisationId),
+    ]);
 
     return {
       retentionActionsDue,
@@ -50,7 +60,91 @@ export class ComplianceService {
       privilegedAccessEvents,
       offlineSyncExceptions,
       roleChangesThisMonth,
+      deletion,
     };
+  }
+
+  /** Deletion workflow figures for this organisation (DL-19): requests, completion time, tasks, holds and tombstones. */
+  async deletionMetrics(organisationId: string): Promise<DeletionMetrics> {
+    const requests = await this.db
+      .select({
+        id: privacyRequests.id,
+        createdAt: privacyRequests.createdAt,
+        status: typeDefinition.code,
+        type: privacyRequests.requestTypeCode,
+      })
+      .from(privacyRequests)
+      .innerJoin(typeDefinition, eq(privacyRequests.statusCode, typeDefinition.id))
+      .where(and(eq(privacyRequests.organisationId, organisationId), isNull(privacyRequests.deletedAt)));
+    const deletionType = await this.db
+      .select({ id: typeDefinition.id })
+      .from(typeDefinition)
+      .where(and(eq(typeDefinition.domain, "dsar_request_type"), eq(typeDefinition.code, "account_deletion")));
+    const typeId = deletionType[0]?.id;
+    const own = requests.filter((r) => r.type === typeId);
+    const ids = own.map((r) => r.id);
+
+    const [logs, tasks, holds, tombstones] = await Promise.all([
+      ids.length === 0
+        ? []
+        : this.db
+            .select({
+              requestId: privacyRequestStatusLog.requestId,
+              at: privacyRequestStatusLog.occurredAt,
+              code: typeDefinition.code,
+            })
+            .from(privacyRequestStatusLog)
+            .innerJoin(typeDefinition, eq(privacyRequestStatusLog.statusCode, typeDefinition.id))
+            .where(inArray(privacyRequestStatusLog.requestId, ids))
+            .orderBy(asc(privacyRequestStatusLog.occurredAt)),
+      this.db
+        .select({
+          requestId: dataDispositionTask.requestId,
+          system: dataDispositionTask.systemCode,
+          status: dataDispositionTask.statusCode,
+          attemptCount: dataDispositionTask.attemptCount,
+        })
+        .from(dataDispositionTask)
+        .where(and(eq(dataDispositionTask.organisationId, organisationId), isNull(dataDispositionTask.deletedAt))),
+      this.legalHolds.activeHoldScopes(organisationId),
+      this.db
+        .select({ id: deletionRecoveryTombstone.id })
+        .from(deletionRecoveryTombstone)
+        .where(
+          and(
+            eq(deletionRecoveryTombstone.organisationId, organisationId),
+            isNull(deletionRecoveryTombstone.deletedAt),
+            gte(deletionRecoveryTombstone.replayUntil, new Date()),
+          ),
+        ),
+    ]);
+
+    const taskStatusCodes = await this.codes([...new Set(tasks.map((t) => t.status))]);
+    const closing = new Set(["completed", "partially_completed"]);
+    const closedAt = new Map<string, Date>();
+    for (const log of logs)
+      if (closing.has(log.code) && !closedAt.has(log.requestId)) closedAt.set(log.requestId, log.at);
+
+    return computeDeletionMetrics(
+      own.map((r) => ({ id: r.id, createdAt: r.createdAt, status: r.status, closedAt: closedAt.get(r.id) ?? null })),
+      tasks.map((t) => ({
+        requestId: t.requestId,
+        system: t.system,
+        status: taskStatusCodes.get(t.status) ?? "unknown",
+        attemptCount: t.attemptCount,
+      })),
+      holds.length,
+      tombstones.length,
+    );
+  }
+
+  private async codes(ids: string[]): Promise<Map<string, string>> {
+    if (ids.length === 0) return new Map();
+    const rows = await this.db
+      .select({ id: typeDefinition.id, code: typeDefinition.code })
+      .from(typeDefinition)
+      .where(inArray(typeDefinition.id, ids));
+    return new Map(rows.map((r) => [r.id, r.code]));
   }
 
   private async countOpenDsars(organisationId: string): Promise<number> {

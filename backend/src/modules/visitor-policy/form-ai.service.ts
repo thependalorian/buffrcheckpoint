@@ -25,6 +25,9 @@ export type TranslateFieldInput = {
   helpText?: string | null;
 };
 
+/** Upper bound on one completion, so a single request cannot run up cost (AIG-11). The request carries no tools (AI-1). */
+export const FORM_AI_MAX_TOKENS = 1_200;
+
 const ALLOWED_FIELD_TYPES = new Set([
   "text",
   "phone",
@@ -163,6 +166,7 @@ export class FormAiService {
       body: JSON.stringify({
         model,
         temperature: 0.2,
+        max_tokens: FORM_AI_MAX_TOKENS,
         response_format: { type: "json_object" },
         messages: [
           { role: "system", content: system },

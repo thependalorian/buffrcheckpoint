@@ -64,6 +64,8 @@ export const checkInFormFields = pgTable(
       .notNull()
       .references(() => typeDefinition.id), // domain 'field_type'
     helpText: text("help_text"),
+    // Why the form asks for this field (db/migrations/0082); required before publishing a field above the basic class (PR-2).
+    purposeNote: text("purpose_note"),
     dataClassificationCode: uuid("data_classification_code")
       .notNull()
       .references(() => typeDefinition.id), // domain 'field_class'

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, Res, StreamableFile } from "@nestjs/common";
+import { Body, Controller, Get, Headers, Param, Patch, Post, Query, Res, StreamableFile } from "@nestjs/common";
 import { Throttle } from "@nestjs/throttler";
 import type { Response } from "express";
 
@@ -16,6 +16,7 @@ import {
   type CreateSubscriptionInput,
   type SubmitPopInput,
 } from "./billing.service";
+import { parseIdempotencyKey } from "./idempotency-key";
 import { SmsUsageInvoicingService } from "./sms-usage-invoicing.service";
 
 @Controller()
@@ -249,8 +250,12 @@ export class BillingController {
   @Post("platform/billing/invoices/:invoiceId/card-payment")
   @RequirePermission(PERMISSIONS.VISIT_READ_ORG)
   @AuditLog({ action: "payment_transaction.card_start", resourceType: "invoice", writeAhead: true })
-  startCardPayment(@Param("invoiceId") invoiceId: string, @CurrentUser() user: AuthenticatedUser) {
-    return this.service.startCardPayment(invoiceId, user);
+  startCardPayment(
+    @Param("invoiceId") invoiceId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Headers("idempotency-key") idempotencyKey?: string,
+  ) {
+    return this.service.startCardPayment(invoiceId, user, parseIdempotencyKey(idempotencyKey));
   }
 
   // Adumo result (browser return relayed by admin, or Adumo's own
@@ -268,8 +273,12 @@ export class BillingController {
   @Post("platform/billing/payments/pop")
   @RequirePermission(PERMISSIONS.VISIT_READ_ORG)
   @AuditLog({ action: "payment_transaction.submit_pop", resourceType: "payment_transaction", writeAhead: true })
-  submitPop(@Body() dto: SubmitPopInput, @CurrentUser() user: AuthenticatedUser) {
-    return this.service.submitProofOfPayment(dto, user);
+  submitPop(
+    @Body() dto: SubmitPopInput,
+    @CurrentUser() user: AuthenticatedUser,
+    @Headers("idempotency-key") idempotencyKey?: string,
+  ) {
+    return this.service.submitProofOfPayment({ ...dto, idempotencyKey: parseIdempotencyKey(idempotencyKey) }, user);
   }
 
   @Get("platform/billing/payments/export")

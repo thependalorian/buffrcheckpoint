@@ -1,3 +1,4 @@
+import { VisitorDataMinimisationService } from "../visitor-policy/visitor-data-minimisation.service";
 import {
   describeDays,
   HIGH_RISK_CLASSES,
@@ -110,8 +111,10 @@ describe("standard retention", () => {
 
 describe("sector-aware defaults", () => {
   it("treats clinics, faith-based and community organisations as special-category sectors", () => {
-    for (const code of ["healthcare", "religious_faith_based", "ngo_nonprofit"]) expect(isSpecialCategorySector(code)).toBe(true);
-    for (const code of ["sme", "government", "financial_services", "other", null, undefined]) expect(isSpecialCategorySector(code)).toBe(false);
+    for (const code of ["healthcare", "religious_faith_based", "ngo_nonprofit"])
+      expect(isSpecialCategorySector(code)).toBe(true);
+    for (const code of ["sme", "government", "financial_services", "other", null, undefined])
+      expect(isSpecialCategorySector(code)).toBe(false);
   });
 
   it("classes the purpose of the visit as sensitive for those sectors, and changes nothing else", () => {
@@ -120,12 +123,15 @@ describe("sector-aware defaults", () => {
     expect(sensitive.find((f) => f.fieldCode === "purpose_category")?.dataClassificationCode).toBe("sensitive");
     expect(normal.find((f) => f.fieldCode === "purpose_category")?.dataClassificationCode).toBe("basic");
     expect(sensitive.map((f) => f.fieldCode)).toEqual(normal.map((f) => f.fieldCode));
-    expect(sensitive.filter((f) => f.fieldCode !== "purpose_category")).toEqual(normal.filter((f) => f.fieldCode !== "purpose_category"));
+    expect(sensitive.filter((f) => f.fieldCode !== "purpose_category")).toEqual(
+      normal.filter((f) => f.fieldCode !== "purpose_category"),
+    );
   });
 
   it("never introduces a high-risk class", () => {
     for (const code of ["healthcare", "religious_faith_based", "ngo_nonprofit"]) {
-      for (const field of standardFormFieldsFor(code)) expect(HIGH_RISK_CLASSES).not.toContain(field.dataClassificationCode as never);
+      for (const field of standardFormFieldsFor(code))
+        expect(HIGH_RISK_CLASSES).not.toContain(field.dataClassificationCode as never);
     }
   });
 
@@ -134,5 +140,23 @@ describe("sector-aware defaults", () => {
     expect(standardPrivacyNotice({ ...base, sectorCode: "healthcare" })).toContain("treated as sensitive information");
     expect(standardPrivacyNotice({ ...base, sectorCode: "sme" })).not.toContain("treated as sensitive information");
     expect(standardPrivacyNotice(base)).not.toContain("treated as sensitive information");
+  });
+});
+
+describe("standard form: field-by-field justification (PR-2)", () => {
+  it("gives every standard field a purpose note of at least ten characters", () => {
+    for (const field of STANDARD_FORM_FIELDS) {
+      expect({ field: field.fieldCode, ok: field.purposeNote.trim().length >= 10 }).toEqual({
+        field: field.fieldCode,
+        ok: true,
+      });
+    }
+  });
+
+  it("publishes under the minimisation gate for every sector, including the special-category ones", () => {
+    const gate = new VisitorDataMinimisationService();
+    for (const sector of ["sme", "healthcare", "religious_faith_based", "ngo_nonprofit"]) {
+      expect(() => gate.assertPublishAllowed([...standardFormFieldsFor(sector)], null)).not.toThrow();
+    }
   });
 });

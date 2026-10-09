@@ -36,6 +36,8 @@ export interface StandardFormField {
   required: boolean;
   displayOrder: number;
   helpText?: string;
+  /** Why the form asks for this field (PR-2). Every standard field states one. */
+  purposeNote: string;
   visibilityRule?: Record<string, unknown>;
   validationSchema?: Record<string, unknown>;
 }
@@ -50,6 +52,7 @@ export const STANDARD_FORM_FIELDS: readonly StandardFormField[] = [
     dataClassificationCode: "core",
     required: true,
     displayOrder: 1,
+    purposeNote: "Records who is on site and lets the host and the front desk recognise the visitor.",
   },
   {
     fieldCode: "visitor_phone",
@@ -58,6 +61,8 @@ export const STANDARD_FORM_FIELDS: readonly StandardFormField[] = [
     dataClassificationCode: "core",
     required: true,
     displayOrder: 2,
+    purposeNote:
+      "Lets the host or the front desk reach the visitor during the visit and confirms the person is contactable in an emergency.",
   },
   {
     fieldCode: "company_name",
@@ -66,6 +71,7 @@ export const STANDARD_FORM_FIELDS: readonly StandardFormField[] = [
     dataClassificationCode: "basic",
     required: false,
     displayOrder: 3,
+    purposeNote: "Tells the host which organisation the visitor represents so the visit can be matched to the booking.",
   },
   {
     fieldCode: "visitor_email",
@@ -74,6 +80,7 @@ export const STANDARD_FORM_FIELDS: readonly StandardFormField[] = [
     dataClassificationCode: "basic",
     required: false,
     displayOrder: 4,
+    purposeNote: "Optional address for the visit receipt and for the sign-out link when no mobile number is used.",
   },
   {
     fieldCode: "host",
@@ -82,6 +89,7 @@ export const STANDARD_FORM_FIELDS: readonly StandardFormField[] = [
     dataClassificationCode: "core",
     required: true,
     displayOrder: 5,
+    purposeNote: "Routes the arrival to the person being visited and lets the host be notified.",
   },
   {
     fieldCode: "purpose_category",
@@ -90,6 +98,8 @@ export const STANDARD_FORM_FIELDS: readonly StandardFormField[] = [
     dataClassificationCode: "basic",
     required: true,
     displayOrder: 6,
+    purposeNote:
+      "Tells the front desk what kind of visit this is so the visitor is directed correctly and the right checks apply.",
     validationSchema: { options: ["meeting", "delivery", "interview", "vehicle", "other"] },
   },
   {
@@ -99,6 +109,8 @@ export const STANDARD_FORM_FIELDS: readonly StandardFormField[] = [
     dataClassificationCode: "sensitive",
     required: false,
     displayOrder: 7,
+    purposeNote:
+      "Matches the vehicle to the visit at the gate and during an evacuation. Asked only when the visit involves a vehicle.",
     helpText: "Only asked when your visit involves a vehicle",
     visibilityRule: VEHICLE_RULE,
     validationSchema: { requiredIf: VEHICLE_RULE },

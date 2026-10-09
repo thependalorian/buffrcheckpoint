@@ -65,40 +65,40 @@ export function chainTip<T extends ChainLink>(newestFirst: T[]): T | undefined {
 }
 
 /**
- * Walks an organisation's whole chain by its links, not its timestamps. Returns the first event that cannot be placed, if any: a second
+ * Walks an organisation's whole chain by its links, not its timestamps. Events in acceptedLegacyHeads start a registered pre-index fork:
+ * each is checked as its own segment, so its hashes are still verified, but it is not reported as a break. Returns the first event that cannot be placed, if any: a second
  * successor to one event (a fork), a hash that does not match its content, or an event the walk never reaches.
  */
 export function verifyChain<T extends ChainLink & AuditEventHashInput & { id: string }>(
   events: T[],
+  acceptedLegacyHeads: ReadonlySet<string> = new Set(),
 ): { valid: boolean; brokenAtEventId: string | null } {
+  if (events.length === 0) return { valid: true, brokenAtEventId: null };
   const byPrev = new Map<string, T[]>();
   for (const event of events) {
     const key = event.prevEventHash ?? "";
     byPrev.set(key, [...(byPrev.get(key) ?? []), event]);
   }
-  let expected = "";
-  let visited = 0;
-  for (;;) {
-    const next = byPrev.get(expected);
-    if (!next || next.length === 0) break;
-    if (next.length > 1) return { valid: false, brokenAtEventId: next[1].id };
-    const event = next[0];
-    if (computeAuditEventHash(event) !== event.eventHash) return { valid: false, brokenAtEventId: event.id };
-    visited++;
-    expected = event.eventHash;
-  }
-  if (visited < events.length) {
-    const reached = new Set<string>();
-    let cursor = "";
-    for (;;) {
-      const next = byPrev.get(cursor)?.[0];
-      if (!next) break;
-      reached.add(next.id);
-      cursor = next.eventHash;
+  const accepted = events.filter((e) => acceptedLegacyHeads.has(e.id));
+  const mainRoots = (byPrev.get("") ?? []).filter((e) => !acceptedLegacyHeads.has(e.id));
+  if (mainRoots.length > 1) return { valid: false, brokenAtEventId: mainRoots[1].id };
+  if (mainRoots.length === 0) return { valid: false, brokenAtEventId: events[0].id };
+
+  const visited = new Set<string>();
+  const segments: T[] = [mainRoots[0], ...accepted];
+  for (const head of segments) {
+    let cursor: T | undefined = head;
+    while (cursor && !visited.has(cursor.id)) {
+      if (computeAuditEventHash(cursor) !== cursor.eventHash) return { valid: false, brokenAtEventId: cursor.id };
+      visited.add(cursor.id);
+      const kids: T[] = byPrev.get(cursor.eventHash) ?? [];
+      const main = kids.filter((k) => !acceptedLegacyHeads.has(k.id));
+      if (main.length > 1) return { valid: false, brokenAtEventId: main[1].id };
+      cursor = main[0];
     }
-    return { valid: false, brokenAtEventId: events.find((e) => !reached.has(e.id))?.id ?? null };
   }
-  return { valid: true, brokenAtEventId: null };
+  const unreached = events.find((e) => !visited.has(e.id));
+  return unreached ? { valid: false, brokenAtEventId: unreached.id } : { valid: true, brokenAtEventId: null };
 }
 
 function isUniqueViolation(error: unknown): boolean {

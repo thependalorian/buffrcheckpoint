@@ -16,6 +16,18 @@ interface ComplianceDashboard {
   privilegedAccessEvents: number;
   offlineSyncExceptions: number;
   roleChangesThisMonth: number;
+  deletion: {
+    requestsReceived: number;
+    requestsCompleted: number;
+    medianCompletionHours: number | null;
+    tasksAutomated: number;
+    tasksManual: number;
+    failedProcessorTasks: number;
+    requestsOnHold: number;
+    systemsPerRequest: number | null;
+    activeHolds: number;
+    liveTombstones: number;
+  };
 }
 
 export default async function CompliancePage() {
@@ -62,6 +74,7 @@ export default async function CompliancePage() {
         ),
       ]
     : [];
+  const m = privacyRequestsCopy.deletionMetrics;
   const dsarOpen = dashboard ? dashboard.dataRequestsOverdue + dashboard.dataRequestsDueSoon : 0;
 
   return (
@@ -123,6 +136,32 @@ export default async function CompliancePage() {
                 <dt className="text-muted-foreground">Role changes this month</dt>
                 <dd className="mt-1 font-medium tabular-nums">{dashboard.roleChangesThisMonth}</dd>
               </div>
+            </dl>
+          </BcPanel>
+          <BcPanel header={<span>{privacyRequestsCopy.deletionMetrics.heading}</span>}>
+            <dl className="grid gap-4 text-sm sm:grid-cols-2 lg:grid-cols-3">
+              {[
+                [m.received, dashboard.deletion.requestsReceived],
+                [m.completed, dashboard.deletion.requestsCompleted],
+                [
+                  m.medianCompletion,
+                  dashboard.deletion.medianCompletionHours === null
+                    ? m.none
+                    : `${dashboard.deletion.medianCompletionHours} ${m.hours}`,
+                ],
+                [m.automated, dashboard.deletion.tasksAutomated],
+                [m.manual, dashboard.deletion.tasksManual],
+                [m.failed, dashboard.deletion.failedProcessorTasks],
+                [m.onHold, dashboard.deletion.requestsOnHold],
+                [m.activeHolds, dashboard.deletion.activeHolds],
+                [m.systems, dashboard.deletion.systemsPerRequest ?? m.none],
+                [m.tombstones, dashboard.deletion.liveTombstones],
+              ].map(([label, value]) => (
+                <div key={label}>
+                  <dt className="text-muted-foreground">{label}</dt>
+                  <dd className="mt-1 font-medium tabular-nums">{value}</dd>
+                </div>
+              ))}
             </dl>
           </BcPanel>
         </>
