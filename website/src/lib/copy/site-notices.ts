@@ -26,7 +26,7 @@ export const siteNoticesCopy = {
     done: "Thank you. Your induction is recorded against your visit.",
     doneRepeat: "You had already confirmed this induction. Nothing more to do.",
     changed:
-      "The induction was updated while you were reading it. The new version is shown below; please read it again.",
+      "The induction was updated while you were reading it. The new version is shown below. Please read it again.",
     failed: "We could not record your confirmation. Please try again or ask reception.",
   },
 } as const;

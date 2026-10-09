@@ -4,3 +4,5 @@ dist/
 generated-evidence-packs/
 .vercel
 .env*
+
+!.env.example

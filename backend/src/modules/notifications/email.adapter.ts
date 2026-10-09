@@ -2,6 +2,8 @@
 // when chosen (EMAIL_TRANSPORT=resend), when SMTP is not configured, or as the live fallback if the chosen transport fails;
 // otherwise an honest failure (never a fake "sent").
 
+import { Logger } from "@nestjs/common";
+
 import { chooseTransport, smtpConfigFromEnv } from "./smtp-config";
 import { EmailBudgetExhaustedError, SmtpEmailAdapter } from "./smtp-email.adapter";
 
@@ -23,6 +25,8 @@ export interface NotificationChannelAdapter {
     },
   ): Promise<{ delivered: boolean; providerReference?: string }>;
 }
+
+const emailLogger = new Logger("EmailAdapter");
 
 export class UnconfiguredEmailAdapter implements NotificationChannelAdapter {
   async send(
@@ -48,7 +52,7 @@ export class FallbackEmailAdapter implements NotificationChannelAdapter {
     readonly secondary: NotificationChannelAdapter,
     /** Called with the primary transport's error when the message goes out through the fallback instead. */
     readonly onFallback: (error: unknown) => void = (error) => {
-      console.warn(
+      emailLogger.warn(
         `Email transport failed, sending through the fallback instead: ${error instanceof Error ? error.message : String(error)}`,
       );
     },
@@ -158,10 +162,7 @@ function smtpAdapter(env: NodeJS.ProcessEnv): NotificationChannelAdapter | null 
 function resendAdapter(env: NodeJS.ProcessEnv): NotificationChannelAdapter | null {
   const apiKey = env.RESEND_API_KEY?.trim();
   if (!apiKey) return null;
-  return new ResendEmailAdapter(
-    apiKey,
-    env.RESEND_FROM_EMAIL?.trim() ?? "Buffr Checkpoint <team@buffranalytics.com>",
-  );
+  return new ResendEmailAdapter(apiKey, env.RESEND_FROM_EMAIL?.trim() ?? "Buffr Checkpoint <team@buffranalytics.com>");
 }
 
 export function createEmailAdapter(env: NodeJS.ProcessEnv = process.env): NotificationChannelAdapter {

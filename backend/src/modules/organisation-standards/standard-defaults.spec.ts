@@ -48,7 +48,7 @@ describe("standard check-in form", () => {
       conditions: [{ fieldCode: "purpose_category", equals: "vehicle" }],
     });
     const purpose = STANDARD_FORM_FIELDS.find((f) => f.fieldCode === "purpose_category");
-    expect((purpose?.validationSchema as { options: string[] }).options).toContain("vehicle");
+    expect((purpose?.validationSchema as { options: string[] } | undefined)?.options).toContain("vehicle");
   });
 });
 

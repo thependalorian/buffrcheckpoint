@@ -42,7 +42,7 @@ export class PlatformStaffController {
   @RequirePermission(PERMISSIONS.PLATFORM_STAFF_MANAGE)
   @RequireVerifiedEmail()
   @RequireMfa()
-  @AuditLog({ action: "platform_staff.set_role", resourceType: "organisation_memberships" })
+  @AuditLog({ action: "platform_staff.set_role", resourceType: "organisation_memberships", writeAhead: true })
   setRole(
     @Param("userId") userId: string,
     @Body() body: { roleCode: string; reason?: string },

@@ -1,4 +1,5 @@
 import { COMPACT_TOKEN_LENGTH, createCompactToken, verifyCompactToken } from "../../common/crypto/compact-link-token";
+import { purposeTokenKey } from "../../common/crypto/token-secret";
 import { createHmac, timingSafeEqual } from "node:crypto";
 
 // A personal sign-out link for one visit, put in the visitor's receipt email. It binds the visit id and an expiry and is signed with a
@@ -7,9 +8,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 const SIGN_OUT_TTL_MS = 24 * 60 * 60 * 1000;
 
 function secret(): string {
-  const key = process.env.QR_TOKEN_PEPPER || process.env.JWT_SECRET;
-  if (!key) throw new Error("QR_TOKEN_PEPPER or JWT_SECRET must be set to sign sign-out tokens");
-  return `visit-sign-out:${key}`;
+  return purposeTokenKey("visit-sign-out");
 }
 
 function sign(payload: string): string {

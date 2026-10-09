@@ -88,7 +88,7 @@ export const kybCopy = {
     rejected: "Not approved",
     superseded: "Replaced by a newer submission",
     pendingBody:
-      "You do not need to do anything. You will get an email when it is decided. You can still correct a detail or add a document below; that sends a new version to the same reviewer.",
+      "You do not need to do anything. You will get an email when it is decided. You can still correct a detail or add a document below. Doing so sends a new version to the same reviewer.",
     verifiedBody: "Your business is verified. Billing activation and go-live are no longer held up by this step.",
     editAndResend: "Correct details or add documents",
   },

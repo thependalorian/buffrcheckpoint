@@ -57,9 +57,10 @@ export class KybDocumentReaderService implements OnModuleInit {
     if (process.env.KYB_PADDLE_OCR !== "false") {
       try {
         // Loading the native bindings (not the models) proves the binaries were installed for this platform, which resolving the package does not.
-        require.resolve("@gutenye/ocr-node");
-        require("onnxruntime-node");
-        require("sharp");
+        await import("@gutenye/ocr-node");
+        // biome-ignore lint/correctness/noUndeclaredDependencies: native binding installed with @gutenye/ocr-node; importing it proves the platform binary loads
+        await import("onnxruntime-node");
+        await import("sharp");
         paddle = true;
       } catch (error) {
         this.logger.warn(`PaddleOCR runtime cannot load: ${error instanceof Error ? error.message.split("\n")[0] : "unknown error"}`);

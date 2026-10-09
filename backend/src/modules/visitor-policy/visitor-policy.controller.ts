@@ -300,7 +300,7 @@ export class VisitorPolicyController {
 
   @Delete("fields/:fieldId")
   @RequirePermission(PERMISSIONS.SITE_CONFIGURE)
-  @AuditLog({ action: "check_in_form_field.delete", resourceType: "check_in_form_field" })
+  @AuditLog({ action: "check_in_form_field.delete", resourceType: "check_in_form_field", writeAhead: true })
   deleteField(@Param("fieldId") fieldId: string, @CurrentUser() user: AuthenticatedUser) {
     return this.visitorPolicyService.softDeleteFormField(fieldId, user);
   }

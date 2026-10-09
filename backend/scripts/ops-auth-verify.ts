@@ -12,7 +12,7 @@
  */
 import "dotenv/config";
 import { authenticator } from "otplib";
-import * as jwt from "jsonwebtoken";
+import { decodeJwt, SignJWT } from "jose";
 
 const API = (process.env.API_BASE ?? "http://localhost:3001").replace(/\/$/, "");
 let failures = 0;
@@ -39,7 +39,7 @@ async function call(path: string, init: { method?: string; token?: string; body?
 }
 
 function audOf(token: unknown): unknown {
-  return typeof token === "string" ? (jwt.decode(token) as { aud?: string } | null)?.aud : undefined;
+  return typeof token === "string" ? (decodeJwt(token) as { aud?: string }).aud : undefined;
 }
 
 async function main() {
@@ -105,7 +105,7 @@ async function main() {
 
   if (opsToken) {
     // Rule 4: shorter ops sessions.
-    const claims = jwt.decode(opsToken) as { exp: number; iat: number };
+    const claims = decodeJwt(opsToken) as { exp: number; iat: number };
     check("ops session lasts 2h", claims.exp - claims.iat === 7200, `${claims.exp - claims.iat}s`);
     // Rule 3: ops tokens only on the ops surface.
     const opsRoute = await call("/platform/billing/catalog", { token: opsToken });
@@ -116,11 +116,20 @@ async function main() {
 
   // Rule 3, other direction: a customer-audience token never exercises platform permissions.
   if (process.env.JWT_SECRET) {
-    const forged = jwt.sign(
-      { sub: "00000000-0000-0000-0000-000000000000", organisationId: "00000000-0000-0000-0000-000000000000", siteId: null, roleCode: "platform_support", permissions: ["platform.billing.manage"], emailVerified: true, mfaEnabled: true, aud: "admin" },
-      process.env.JWT_SECRET,
-      { expiresIn: "5m" },
-    );
+    const forged = await new SignJWT({
+      sub: "00000000-0000-0000-0000-000000000000",
+      organisationId: "00000000-0000-0000-0000-000000000000",
+      siteId: null,
+      roleCode: "platform_support",
+      permissions: ["platform.billing.manage"],
+      emailVerified: true,
+      mfaEnabled: true,
+      aud: "admin",
+    })
+      .setProtectedHeader({ alg: "HS256" })
+      .setIssuedAt()
+      .setExpirationTime("5m")
+      .sign(new TextEncoder().encode(process.env.JWT_SECRET));
     const res = await call("/platform/billing/catalog", { token: forged });
     check("admin token refused on platform permission", res.status === 403, `${res.status} ${res.json.message}`);
   }

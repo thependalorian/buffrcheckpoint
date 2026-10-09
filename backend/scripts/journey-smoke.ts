@@ -128,7 +128,7 @@ async function main() {
         }),
       });
       approvalZone = {
-        id: (created.id as string) || (created.zone as { id?: string } | undefined)?.id || "",
+        id: (created.id as string | undefined) ?? (created.zone as { id?: string } | undefined)?.id ?? "",
         hostApprovalRequired: true,
       };
       assert(approvalZone.id, "created zone missing id");

@@ -68,7 +68,7 @@ export function ThemeBootScript() {
         root.style.colorScheme = resolvedMode;
 
       } catch (e) {
-        console.warn("ThemeBootScript error:", e);
+        document.documentElement.setAttribute("data-theme-boot-error", "1");
       }
     })();
   `;

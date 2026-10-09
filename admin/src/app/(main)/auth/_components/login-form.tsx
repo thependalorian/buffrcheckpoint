@@ -142,7 +142,12 @@ export function LoginForm() {
         </div>
       </div>
       <TurnstileWidget onToken={setTurnstileToken} resetSignal={turnstileReset} />
-      {error ? <p className="text-destructive text-sm">{error}</p> : null}
+      {error ? (
+        <div className="space-y-1">
+          <p className="text-destructive text-sm">{error}</p>
+          <p className="text-muted-foreground text-xs">{authCopy.errors.signInHint}</p>
+        </div>
+      ) : null}
       <Button type="submit" disabled={submitting || (turnstileEnabled && !turnstileToken)} className="w-full">
         {submitting ? authCopy.login.submitting : authCopy.login.submit}
       </Button>

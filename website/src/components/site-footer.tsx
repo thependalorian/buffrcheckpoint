@@ -17,6 +17,7 @@ const COMPANY_LINKS = [
   { href: "/contact", label: "Contact" },
   { href: "/privacy", label: "Privacy" },
   { href: "/terms", label: "Terms" },
+  { href: "/security", label: "Security" },
 ] as const;
 
 function FooterLinkGroup({ title, links }: { title: string; links: readonly { href: string; label: string }[] }) {

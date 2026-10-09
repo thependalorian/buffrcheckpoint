@@ -1,7 +1,7 @@
 import { type CallHandler, type ExecutionContext, Inject, Injectable, type NestInterceptor } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import type { Observable } from "rxjs";
-import { from, mergeMap } from "rxjs";
+import { from, mergeMap, switchMap } from "rxjs";
 
 import type { Database } from "../../db/client";
 import { DB } from "../../db/db.module";
@@ -48,6 +48,11 @@ export class AuditInterceptor implements NestInterceptor {
     const request = context.switchToHttp().getRequest();
     const user = request.user as AuthenticatedUser | undefined;
 
+    // Fail closed (LG-3): for a write-ahead route the event is written first, and if that write fails the handler never runs.
+    if (metadata.writeAhead && user) {
+      return from(this.writeAuditEvent(user, metadata, request, undefined)).pipe(switchMap(() => next.handle()));
+    }
+
     return next.handle().pipe(
       mergeMap((result: unknown) => {
         if (!user) return from(Promise.resolve(result)); // unauthenticated routes are never audit-logged as user actions
@@ -67,7 +72,7 @@ export class AuditInterceptor implements NestInterceptor {
       actorId: user.userId,
       actionCode: metadata.action,
       resourceType: metadata.resourceType,
-      resourceId: (result as { id?: string })?.id ?? request.params?.id ?? null,
+      resourceId: (result as { id?: string } | undefined)?.id ?? request.params?.id ?? null,
     });
   }
 }

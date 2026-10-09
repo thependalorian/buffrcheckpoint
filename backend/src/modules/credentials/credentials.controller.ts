@@ -33,7 +33,7 @@ export class CredentialsController {
   @Post(":id/revoke")
   @RequirePermission(PERMISSIONS.SITE_CONFIGURE)
   @RequireVerifiedEmail()
-  @AuditLog({ action: "credential.revoke", resourceType: "credential" })
+  @AuditLog({ action: "credential.revoke", resourceType: "credential", writeAhead: true })
   revoke(@Param("id") id: string, @Body() dto: RevokeCredentialDto, @CurrentUser() user: AuthenticatedUser) {
     return this.credentialsService.revoke(id, dto.reason, user);
   }

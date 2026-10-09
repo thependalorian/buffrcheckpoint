@@ -1,7 +1,6 @@
 import { Injectable } from "@nestjs/common";
 
 import { requiredSecret } from "../crypto/required-secret";
-
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 
 // Canonical Engineering Constitution §4/§5.2: the protected-PII envelope
@@ -21,14 +20,31 @@ export interface ProtectedPersonalDataEnvelope {
   authenticationTag?: string;
 }
 
-const LOCAL_DEV_KEY_ENV_VAR = "LOCAL_DEV_DATA_KEY";
-const KEY_VERSION = 1;
+// Key ring (EN-4 until a managed key service is chosen). Version 2 is PERSONAL_DATA_KEY, a random secret held only in the platform
+// secret store; every new envelope uses it. Version 1 is the development key that ships in the source (LOCAL_DEV_DATA_KEY). It is
+// public, so it only decrypts envelopes written before the rotation and `rotateEnvelope` moves them to version 2. Outside production
+// with no PERSONAL_DATA_KEY the development key is still used so local runs and tests need no setup.
+const LEGACY_KEY_ENV_VAR = "LOCAL_DEV_DATA_KEY";
+const CURRENT_KEY_ENV_VAR = "PERSONAL_DATA_KEY";
+const LEGACY_KEY_VERSION = 1;
+const CURRENT_KEY_VERSION = 2;
+const DEV_FALLBACK = "local-dev-only-insecure-key-do-not-deploy!!";
 
-function localDevKey(): Buffer {
-  // 32-byte key required by AES-256-GCM, derived from the configured secret. In production a missing or short
-  // value throws (no fallback); the fixed value below is for local development and tests only.
-  const material = requiredSecret(LOCAL_DEV_KEY_ENV_VAR, "local-dev-only-insecure-key-do-not-deploy!!");
+function deriveKey(material: string): Buffer {
   return createHash("sha256").update(material).digest();
+}
+
+/** The key and version used for new envelopes. */
+function writeKey(): { key: Buffer; version: number } {
+  const current = process.env[CURRENT_KEY_ENV_VAR];
+  if (current) return { key: deriveKey(requiredSecret(CURRENT_KEY_ENV_VAR, "")), version: CURRENT_KEY_VERSION };
+  return { key: deriveKey(requiredSecret(LEGACY_KEY_ENV_VAR, DEV_FALLBACK)), version: LEGACY_KEY_VERSION };
+}
+
+/** The key that decrypts an envelope of the given version. */
+function readKey(version: number): Buffer {
+  if (version === CURRENT_KEY_VERSION) return deriveKey(requiredSecret(CURRENT_KEY_ENV_VAR, ""));
+  return deriveKey(requiredSecret(LEGACY_KEY_ENV_VAR, DEV_FALLBACK));
 }
 
 @Injectable()
@@ -40,14 +56,15 @@ export class PersonalDataProtectionService {
   // the local-dev stub, not the cipher itself.
   encrypt(plaintext: string): ProtectedPersonalDataEnvelope {
     const iv = randomBytes(12);
-    const cipher = createCipheriv("aes-256-gcm", localDevKey(), iv);
+    const { key, version } = writeKey();
+    const cipher = createCipheriv("aes-256-gcm", key, iv);
     const ciphertext = Buffer.concat([cipher.update(plaintext, "utf8"), cipher.final()]);
     const authTag = cipher.getAuthTag();
 
     return {
       encryptionAlgorithm: "AES_256_GCM",
-      keyManagementReference: "local-dev-stub",
-      keyVersion: KEY_VERSION,
+      keyManagementReference: version === CURRENT_KEY_VERSION ? "platform-secret-store" : "local-dev-stub",
+      keyVersion: version,
       initializationVector: iv.toString("base64"),
       ciphertext: ciphertext.toString("base64"),
       authenticationTag: authTag.toString("base64"),
@@ -64,14 +81,27 @@ export class PersonalDataProtectionService {
     if (!envelope.initializationVector || !envelope.authenticationTag) {
       throw new Error("Malformed protected-data envelope: missing IV or auth tag");
     }
+    const tag = Buffer.from(envelope.authenticationTag, "base64");
+    if (tag.length !== 16) throw new Error("Malformed protected-data envelope: wrong auth tag length");
     const decipher = createDecipheriv(
       "aes-256-gcm",
-      localDevKey(),
+      readKey(envelope.keyVersion),
       Buffer.from(envelope.initializationVector, "base64"),
+      { authTagLength: 16 },
     );
-    decipher.setAuthTag(Buffer.from(envelope.authenticationTag, "base64"));
+    decipher.setAuthTag(tag);
     const plaintext = Buffer.concat([decipher.update(Buffer.from(envelope.ciphertext, "base64")), decipher.final()]);
     return plaintext.toString("utf8");
+  }
+
+  /** True when the envelope is a real cipher text written under an older key than the current one. */
+  needsRotation(envelope: ProtectedPersonalDataEnvelope): boolean {
+    return envelope.encryptionAlgorithm === "AES_256_GCM" && envelope.keyVersion < writeKey().version;
+  }
+
+  /** Re-encrypts an envelope under the current key. Idempotent: an envelope already on the current key is returned unchanged. */
+  rotateEnvelope(envelope: ProtectedPersonalDataEnvelope): ProtectedPersonalDataEnvelope {
+    return this.needsRotation(envelope) ? this.encrypt(this.decrypt(envelope)) : envelope;
   }
 
   /**

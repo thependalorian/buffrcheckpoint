@@ -1,7 +1,6 @@
 import "dotenv/config";
 
 import type { INestApplication } from "@nestjs/common";
-import { JwtService } from "@nestjs/jwt";
 import { Test, type TestingModule } from "@nestjs/testing";
 import { and, eq, isNull } from "drizzle-orm";
 import { authenticator } from "otplib";
@@ -24,6 +23,7 @@ import {
   typeDefinition,
 } from "../src/db/schema";
 import { TypeDefinitionLookupService } from "../src/db/type-definition-lookup.service";
+import { TokenIssuerService } from "../src/modules/auth/token-issuer.service";
 import { randomUUID } from "node:crypto";
 
 jest.setTimeout(60_000);
@@ -32,7 +32,7 @@ describe("Secure onboarding auth (e2e)", () => {
   let app: INestApplication<App>;
   let db: Database;
   let typeDefs: TypeDefinitionLookupService;
-  let jwt: JwtService;
+  let tokens: TokenIssuerService;
 
   const runId = Date.now();
   const createdOrgIds: string[] = [];
@@ -54,7 +54,7 @@ describe("Secure onboarding auth (e2e)", () => {
     await app.init();
     db = moduleFixture.get(DB);
     typeDefs = moduleFixture.get(TypeDefinitionLookupService);
-    jwt = moduleFixture.get(JwtService);
+    tokens = moduleFixture.get(TokenIssuerService);
   });
 
   afterAll(async () => {
@@ -112,7 +112,8 @@ describe("Secure onboarding auth (e2e)", () => {
       .post("/onboarding/organisation-admin")
       .send({
         organisationName: `E2E Org A ${runId}`,
-        sectorCode: "sme", acceptTerms: true,
+        sectorCode: "sme",
+        acceptTerms: true,
         email: email("org-a-admin"),
         password: "blue tractor sings 123",
       })
@@ -138,7 +139,8 @@ describe("Secure onboarding auth (e2e)", () => {
       .post("/onboarding/organisation-admin")
       .send({
         organisationName: `Should Not Exist ${runId}`,
-        sectorCode: "sme", acceptTerms: true,
+        sectorCode: "sme",
+        acceptTerms: true,
         email: email("org-a-admin"),
         password: "blue tractor sings 123",
       })
@@ -228,7 +230,8 @@ describe("Secure onboarding auth (e2e)", () => {
       .post("/onboarding/organisation-admin")
       .send({
         organisationName: `E2E Org B ${runId}`,
-        sectorCode: "sme", acceptTerms: true,
+        sectorCode: "sme",
+        acceptTerms: true,
         email: email("org-b-admin"),
         password: "blue tractor sings 123",
       })
@@ -327,19 +330,22 @@ describe("Secure onboarding auth (e2e)", () => {
       expiresAt: new Date(now - 60 * 60 * 1000),
     });
 
-    const token = jwt.sign({
-      sub: userId,
-      organisationId: orgId,
-      siteId: null,
-      roleCode: "platform_support",
-      permissions: ["capability.write"],
-      emailVerified: true,
-      mfaEnabled: true,
-      // Only support-session tokens are grant-checked (RbacGuard, v0.24);
-      // routine platform actions without a session need no grant.
-      supportSessionId: randomUUID(),
-      supportGrantId: grantId,
-    });
+    const token = await tokens.sign(
+      {
+        sub: userId,
+        organisationId: orgId,
+        siteId: null,
+        roleCode: "platform_support",
+        permissions: ["capability.write"],
+        emailVerified: true,
+        mfaEnabled: true,
+        // Only support-session tokens are grant-checked (RbacGuard, v0.24);
+        // routine platform actions without a session need no grant.
+        supportSessionId: randomUUID(),
+        supportGrantId: grantId,
+      },
+      3600,
+    );
 
     await request(app.getHttpServer())
       .patch("/capability-status")

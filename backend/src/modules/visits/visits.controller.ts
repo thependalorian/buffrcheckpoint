@@ -124,7 +124,7 @@ export class VisitsController {
 
   @Get("roster/export")
   @RequirePermission(PERMISSIONS.VISIT_READ_SITE)
-  @AuditLog({ action: "visit.roster.export", resourceType: "visit" })
+  @AuditLog({ action: "visit.roster.export", resourceType: "visit", writeAhead: true })
   async exportRoster(
     @Query("siteId") siteId: string | undefined,
     @Query("from") from: string | undefined,

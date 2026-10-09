@@ -1,8 +1,9 @@
+import { requiredSecret } from "./required-secret";
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
 
-import { requiredSecret } from "./required-secret";
-
 const ALGO = "aes-256-gcm";
+/** A shorter authentication tag weakens GCM, so the expected length is fixed and checked (Semgrep gcm-no-tag-length). */
+const GCM_TAG_BYTES = 16;
 
 function encryptionKey(): Buffer {
   const raw = process.env.MFA_SECRET_ENCRYPTION_KEY;
@@ -25,13 +26,15 @@ export function decryptSecret(payload: string): string {
   if (!ivHex || !tagHex || !dataHex) {
     throw new Error("Invalid encrypted secret payload");
   }
-  const decipher = createDecipheriv(ALGO, encryptionKey(), Buffer.from(ivHex, "hex"));
-  decipher.setAuthTag(Buffer.from(tagHex, "hex"));
+  const tag = Buffer.from(tagHex, "hex");
+  if (tag.length !== GCM_TAG_BYTES) throw new Error("Invalid encrypted secret payload");
+  const decipher = createDecipheriv(ALGO, encryptionKey(), Buffer.from(ivHex, "hex"), { authTagLength: GCM_TAG_BYTES });
+  decipher.setAuthTag(tag);
   return Buffer.concat([decipher.update(Buffer.from(dataHex, "hex")), decipher.final()]).toString("utf8");
 }
 
 export function hashOpaqueToken(rawToken: string, pepperEnv = "EMAIL_VERIFICATION_PEPPER"): string {
-  const pepper = process.env[pepperEnv] ? requiredSecret(pepperEnv, "") : requiredSecret("JWT_SECRET", "dev-only-pepper-change-me");
+  const pepper = requiredSecret(pepperEnv, "dev-only-opaque-token-pepper-not-for-production");
   return createHash("sha256").update(`${pepper}:${rawToken}`).digest("hex");
 }
 

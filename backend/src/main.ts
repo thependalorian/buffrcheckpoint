@@ -4,23 +4,19 @@
 import "dotenv/config";
 import "./instrument";
 
-import { ValidationPipe } from "@nestjs/common";
+import { Logger, ValidationPipe, VERSION_NEUTRAL, VersioningType } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import helmet from "helmet";
 
 import { AppModule } from "./app.module";
+import { corsOrigins } from "./common/config/cors-origins";
+import { assertProductionConfig, productionConfigWarnings } from "./common/config/production-config-guard";
 
-function corsOrigins(): boolean | string[] {
-  const raw = process.env.CORS_ORIGIN?.trim();
-  if (!raw) return true;
-  const list = raw
-    .split(",")
-    .map((o) => o.trim())
-    .filter(Boolean);
-  return list.length > 0 ? list : true;
-}
+const logger = new Logger("Bootstrap");
 
 async function bootstrap() {
+  assertProductionConfig();
+  for (const warning of productionConfigWarnings()) logger.error(`CRITICAL: ${warning.variable} ${warning.reason}`);
   const app = await NestFactory.create(AppModule);
 
   // Section 11.8.6: security hardening baseline.
@@ -30,12 +26,22 @@ async function bootstrap() {
   app.use(
     helmet({
       crossOriginResourcePolicy: { policy: "cross-origin" },
+      // HD-1: a JSON API serves no documents, so no source is allowed and nothing may frame it.
+      contentSecurityPolicy: { directives: { defaultSrc: ["'none'"], frameAncestors: ["'none'"] } },
+      strictTransportSecurity: { maxAge: 31_536_000, includeSubDomains: true },
     }),
   );
+  app.use((_req: unknown, res: { setHeader(name: string, value: string): void }, next: () => void) => {
+    res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()");
+    next();
+  });
   app.enableCors({
-    origin: corsOrigins(),
+    origin: corsOrigins(process.env.CORS_ORIGIN, logger),
     credentials: true,
   });
+  // API-6: every route also answers under /v1 (each route is neutral and version 1), so clients can move to /v1 and
+  // the unversioned paths are retired later with a published date. Within v1 fields are added, never removed or repurposed.
+  app.enableVersioning({ type: VersioningType.URI, defaultVersion: [VERSION_NEUTRAL, "1"] });
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true, // strip unknown properties — never trust client-supplied fields the DTO doesn't declare
@@ -46,10 +52,10 @@ async function bootstrap() {
 
   const port = process.env.PORT ?? 3001;
   await app.listen(port);
-  console.log(`Buffr Checkpoint backend listening on port ${port}`);
+  logger.log(`Buffr Checkpoint backend listening on port ${port}`);
 }
 
 bootstrap().catch((error: unknown) => {
-  console.error("Fatal error during bootstrap:", error);
+  logger.error("Fatal error during bootstrap", error instanceof Error ? error.stack : String(error));
   process.exit(1);
 });

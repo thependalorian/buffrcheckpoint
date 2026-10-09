@@ -14,7 +14,7 @@ export class SupportSessionsController {
   // org's own admin approves it (see the customer-side endpoints below).
   @Post("grants")
   @RequirePermission(PERMISSIONS.PLATFORM_SUPPORT_SESSION_REQUEST)
-  @AuditLog({ action: "privileged_access_grant.request", resourceType: "privileged_access_grants" })
+  @AuditLog({ action: "privileged_access_grant.request", resourceType: "privileged_access_grants", writeAhead: true })
   requestGrant(@Body() dto: RequestGrantInput, @CurrentUser() user: AuthenticatedUser) {
     return this.service.requestGrant(dto, user);
   }
@@ -27,7 +27,7 @@ export class SupportSessionsController {
 
   @Delete("grants/:grantId")
   @RequirePermission(PERMISSIONS.PLATFORM_SUPPORT_SESSION_REQUEST)
-  @AuditLog({ action: "privileged_access_grant.revoke", resourceType: "privileged_access_grants" })
+  @AuditLog({ action: "privileged_access_grant.revoke", resourceType: "privileged_access_grants", writeAhead: true })
   revokeGrant(@Param("grantId") grantId: string, @CurrentUser() user: AuthenticatedUser) {
     return this.service.revokeGrant(grantId, user);
   }
@@ -76,14 +76,14 @@ export class SupportSessionsController {
 
   @Patch("grants/:grantId/approve")
   @RequirePermission(PERMISSIONS.SUPPORT_ACCESS_GRANT_REVIEW)
-  @AuditLog({ action: "privileged_access_grant.approve", resourceType: "privileged_access_grants" })
+  @AuditLog({ action: "privileged_access_grant.approve", resourceType: "privileged_access_grants", writeAhead: true })
   approveGrant(@Param("grantId") grantId: string, @CurrentUser() user: AuthenticatedUser) {
     return this.service.approveGrant(grantId, user);
   }
 
   @Patch("grants/:grantId/deny")
   @RequirePermission(PERMISSIONS.SUPPORT_ACCESS_GRANT_REVIEW)
-  @AuditLog({ action: "privileged_access_grant.deny", resourceType: "privileged_access_grants" })
+  @AuditLog({ action: "privileged_access_grant.deny", resourceType: "privileged_access_grants", writeAhead: true })
   denyGrant(
     @Param("grantId") grantId: string,
     @Body() body: { reason?: string },

@@ -17,6 +17,6 @@ export default async function SupportSessionPage({ searchParams }: { searchParam
     redirect("/auth/login");
   }
 
-  await setSessionCookie(token);
+  await setSessionCookie(token, null);
   redirect("/dashboard/overview");
 }

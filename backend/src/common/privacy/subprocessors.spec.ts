@@ -1,7 +1,6 @@
+import { SUBPROCESSORS } from "./subprocessors";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-
-import { SUBPROCESSORS } from "./subprocessors";
 
 // The Privacy Policy on the website lists the same providers. If one list changes without the other, the policy would say something the
 // product does not do, so this test compares them.

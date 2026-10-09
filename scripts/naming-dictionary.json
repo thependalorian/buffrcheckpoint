@@ -1,0 +1,12 @@
+{
+  "tokens": ["psd\\d*", "iso\\d+", "rfc\\d+", "chapter\\d*", "annex\\w*", "bopcus", "from_pdf", "from_excel", "stripe", "adumo", "bulksmsnam", "collexia", "cimso", "paratus", "innterchange", "pms", "ticket\\d+", "v034"],
+  "allow": [
+    { "token": "adumo", "where": "payment adapter, environment variables and the card payment route", "reason": "an adapter whose whole job is one vendor's wire format (NM-2)" },
+    { "token": "cimso", "where": "integrations/cimso and CIMSO_* variables", "reason": "vendor adapter for the property-management interface (NM-2)" },
+    { "token": "innterchange", "where": "the CiMSO adapter", "reason": "the vendor's product name inside its adapter (NM-2)" },
+    { "token": "pms", "where": "pms_* tables and routes", "reason": "property management system is the capability name, not a source document" },
+    { "token": "bulksmsnam", "where": "telecom provider arrangement code", "reason": "a row in a table of provider arrangements: the row is the provider (NM-2)" },
+    { "token": "collexia", "where": "documentation only", "reason": "vendor named in the blueprint, not in code" },
+    { "token": "paratus", "where": "documentation only", "reason": "vendor named in the blueprint, not in code" }
+  ]
+}

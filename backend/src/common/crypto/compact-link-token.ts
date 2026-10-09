@@ -1,3 +1,4 @@
+import { purposeTokenKey } from "./token-secret";
 import { createHmac, timingSafeEqual } from "node:crypto";
 
 // A short signed link token for text messages. The email links carry a base64 payload and a 43-character signature (about 110
@@ -14,9 +15,7 @@ const MAC_CHARS = 12;
 export const COMPACT_TOKEN_LENGTH = 1 + VISIT_CHARS + EXPIRY_CHARS + MAC_CHARS;
 
 function secret(): string {
-  const key = process.env.QR_TOKEN_PEPPER || process.env.JWT_SECRET;
-  if (!key) throw new Error("QR_TOKEN_PEPPER or JWT_SECRET must be set to sign link tokens");
-  return `compact-link:${key}`;
+  return purposeTokenKey("compact-link");
 }
 
 function mac(signed: string): string {

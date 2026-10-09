@@ -37,7 +37,7 @@ export class InvitationsController {
 
   @Post(":id/revoke")
   @RequirePermission(PERMISSIONS.VISIT_WRITE)
-  @AuditLog({ action: "invitation.revoke", resourceType: "visit_invitation" })
+  @AuditLog({ action: "invitation.revoke", resourceType: "visit_invitation", writeAhead: true })
   revoke(@Param("id") id: string, @Body("reason") reason: string, @CurrentUser() user: AuthenticatedUser) {
     return this.invitationsService.revoke(id, reason ?? "revoked", user);
   }

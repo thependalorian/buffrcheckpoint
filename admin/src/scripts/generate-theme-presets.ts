@@ -19,10 +19,15 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
+/** Build-script output goes to the process streams: this file runs in a terminal, never in the app. */
+function report(message: string, stream: "out" | "err" = "out"): void {
+  (stream === "err" ? process.stderr : process.stdout).write(`${message}\n`);
+}
+
 const presetDir = path.resolve(__dirname, "../styles/presets");
 
 if (!fs.existsSync(presetDir)) {
-  console.error(`❌ Preset directory not found at: ${presetDir}`);
+  report(`Preset directory not found at: ${presetDir}`, "err");
   process.exit(1);
 }
 
@@ -31,7 +36,7 @@ const outputPath = path.resolve(__dirname, "../lib/preferences/theme.ts");
 const files = fs.readdirSync(presetDir).filter((file) => file.endsWith(".css"));
 
 if (files.length === 0) {
-  console.warn("⚠️ No preset CSS files found. Only default preset will be included.");
+  report("No preset CSS files found. Only default preset will be included.", "err");
 }
 
 const presets = files.map((file) => {
@@ -42,10 +47,10 @@ const presets = files.map((file) => {
   const valueMatch = content.match(/value:\s*(.+)/);
 
   if (!labelMatch) {
-    console.warn(`⚠️ No 'label:' found in ${file}, using filename as fallback.`);
+    report(`No 'label:' found in ${file}, using filename as fallback.`, "err");
   }
   if (!valueMatch) {
-    console.warn(`⚠️ No 'value:' found in ${file}, using filename as fallback.`);
+    report(`No 'value:' found in ${file}, using filename as fallback.`, "err");
   }
 
   const label = labelMatch?.[1]?.trim() ?? file.replace(".css", "");
@@ -60,7 +65,7 @@ const presets = files.map((file) => {
   };
 
   if (!lightPrimaryMatch || !darkPrimaryMatch) {
-    console.warn(`⚠️ Missing --primary for ${file} (light or dark). Check CSS syntax.`);
+    report(`Missing --primary for ${file} (light or dark). Check CSS syntax.`, "err");
   }
 
   return { label, value, primary };
@@ -72,8 +77,7 @@ let globalContent = "";
 try {
   globalContent = fs.readFileSync(globalStylesPath, "utf8");
 } catch (err) {
-  console.error(`❌ Could not read globals.css at ${globalStylesPath}`);
-  console.error(err);
+  report(`Could not read globals.css at ${globalStylesPath}: ${String(err)}`, "err");
   process.exit(1);
 }
 
@@ -115,17 +119,17 @@ function main() {
   });
 
   if (formatted === fileContent) {
-    console.log("ℹ️  No changes in theme.ts");
+    report("No changes in theme.ts");
     return;
   }
 
   fs.writeFileSync(outputPath, formatted);
-  console.log("✅ theme.ts updated with new theme presets");
+  report("theme.ts updated with new theme presets");
 }
 
 try {
   main();
 } catch (err) {
-  console.error("❌ Unexpected error while generating theme presets:", err);
+  report(`Unexpected error while generating theme presets: ${String(err)}`, "err");
   process.exit(1);
 }

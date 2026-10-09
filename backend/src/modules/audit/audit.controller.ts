@@ -36,7 +36,7 @@ export class AuditController {
   @Get("events/export")
   @RequirePermission(PERMISSIONS.AUDIT_READ)
   @RequireVerifiedEmail()
-  @AuditLog({ action: "audit_log.export", resourceType: "audit_event" })
+  @AuditLog({ action: "audit_log.export", resourceType: "audit_event", writeAhead: true })
   async exportEvents(
     @CurrentUser() user: AuthenticatedUser,
     @Query("from") from?: string,

@@ -48,11 +48,12 @@ export async function POST(request: Request) {
 
   const payload = (await backendResponse.json()) as {
     accessToken: string;
+    refreshToken?: string;
     nextPath: string;
   };
 
   await clearMfaChallengeCookie();
-  await setSessionCookie(payload.accessToken);
+  await setSessionCookie(payload.accessToken, payload.refreshToken);
 
   return NextResponse.json({ ok: true, nextPath: payload.nextPath });
 }

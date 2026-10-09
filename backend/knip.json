@@ -1,0 +1,19 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": [
+    "src/main.ts",
+    "scripts/*.{ts,cjs}",
+    "test/*.e2e-spec.ts"
+  ],
+  "project": [
+    "src/**/*.ts",
+    "scripts/**",
+    "test/**"
+  ],
+  "ignoreDependencies": [
+    "husky",
+    "lint-staged",
+    "source-map-support",
+    "ts-loader"
+  ]
+}

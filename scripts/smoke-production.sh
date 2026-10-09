@@ -58,6 +58,18 @@ snippet() {
   echo
 }
 
+
+# Header probe (HD-1): every HTTP service sends HSTS for a year, frame denial, nosniff, a permissions policy and a content security policy.
+check_headers() {
+  local label="$1" url="$2" headers missing=""
+  headers="$(curl -sSI --connect-timeout 15 --max-time 45 "$url" 2>/dev/null | tr -d '\r' | tr 'A-Z' 'a-z' || true)"
+  for h in "strict-transport-security: max-age=31536000" "x-content-type-options: nosniff" "permissions-policy:" "content-security-policy:"; do
+    grep -q "^$h" <<<"$headers" || missing="$missing [$h]"
+  done
+  grep -qE "^x-frame-options: deny|frame-ancestors 'none'" <<<"$headers" || missing="$missing [frame denial]"
+  if [[ -z "$missing" ]]; then pass "headers $label"; else fail "headers $label missing:$missing"; fi
+}
+
 echo "=== Buffr Checkpoint production smoke ==="
 echo "API=$API_BASE WEB=$WEB_BASE site=$SITE_ID"
 
@@ -68,6 +80,28 @@ if [[ "$CODE" == "200" ]]; then
   pass "GET /health → $CODE"
 else
   fail "GET /health → $CODE (expected 200); body=$(snippet "$BODY")"
+fi
+
+# 1b) Security headers on all four services (HD-1) and the disclosure file (HD-4)
+ADMIN_BASE="${ADMIN_BASE:-https://admin.buffrcheckpoint.com}"
+OPS_BASE="${OPS_BASE:-https://ops.buffrcheckpoint.com}"
+check_headers "api" "$API_BASE/health"
+check_headers "website" "$WEB_BASE/"
+check_headers "admin" "$ADMIN_BASE/auth/login"
+check_headers "ops-console" "$OPS_BASE/login"
+BODY="$TMPDIR_SMOKE/security.txt"
+CODE=$(curl_http "$BODY" "$WEB_BASE/.well-known/security.txt" || true)
+if [[ "$CODE" == "200" ]] && grep -q "^Contact: mailto:" "$BODY" && grep -q "^Policy: https://" "$BODY" && grep -q "^Expires:" "$BODY"; then
+  pass "security.txt (200, Contact, Policy, Expires)"
+else
+  fail "security.txt → $CODE or fields missing; body=$(snippet "$BODY")"
+fi
+BODY="$TMPDIR_SMOKE/security-page.html"
+CODE=$(curl_http "$BODY" "$WEB_BASE/security" || true)
+if [[ "$CODE" == "200" ]] && grep -qi "security problem" "$BODY"; then
+  pass "GET /security disclosure page"
+else
+  fail "GET /security → $CODE (expected 200 with the disclosure text)"
 fi
 
 # 2) Public check-in form contract

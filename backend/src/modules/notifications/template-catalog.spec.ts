@@ -24,6 +24,7 @@ const seed = [
   "0069_customer_breach_notice_template.sql",
   "0071_kyb_pipeline.sql",
   "0073_account_deletion_notice_template.sql",
+  "0080_account_deletion_accepted_template.sql",
 ]
   .map((file) => readFileSync(join(SRC, "..", "db", "migrations", file), "utf8"))
   .join("\n");

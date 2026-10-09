@@ -6,10 +6,10 @@ import { AuthenticatedOnly } from "../../common/decorators/authenticated-only.de
 import { type AuthenticatedUser, CurrentUser } from "../../common/decorators/current-user.decorator";
 import { NormaliseEmail } from "../../common/decorators/normalise-email.decorator";
 import { Public } from "../../common/decorators/public.decorator";
-import { RequireTurnstile } from "../../common/turnstile/turnstile.guard";
 import { RequirePermission } from "../../common/decorators/require-permission.decorator";
 import { RequireVerifiedEmail } from "../../common/decorators/require-verified-email.decorator";
 import { PERMISSIONS } from "../../common/rbac/permissions";
+import { RequireTurnstile } from "../../common/turnstile/turnstile.guard";
 import { AuthService } from "./auth.service";
 import { BuffrIdService } from "./buffr-id.service";
 import { LoginDto } from "./dto/login.dto";
@@ -43,6 +43,12 @@ class BuffrIdExchangeDto {
   @IsOptional()
   @IsString()
   nonce?: string;
+}
+
+class RefreshSessionDto {
+  @IsString()
+  @Length(70, 120)
+  refreshToken!: string;
 }
 
 class ConfirmMfaDto {
@@ -91,6 +97,23 @@ export class AuthController {
   @Post("buffr-id/exchange")
   buffrIdExchange(@Body() dto: BuffrIdExchangeDto) {
     return this.authService.signInWithBuffrId(dto.idToken, dto.surface, dto.nonce);
+  }
+
+  /** Exchange a refresh token for a new access token and a new refresh token. Each refresh token works once (SE-2). */
+  @Public()
+  @Throttle(AUTH_THROTTLE)
+  @HttpCode(HttpStatus.OK)
+  @Post("refresh")
+  refresh(@Body() dto: RefreshSessionDto) {
+    return this.authService.refreshSession(dto.refreshToken);
+  }
+
+  /** Ends every refresh chain of the signed-in user, on every device. */
+  @AuthenticatedOnly()
+  @HttpCode(HttpStatus.OK)
+  @Post("sign-out-everywhere")
+  signOutEverywhere(@CurrentUser() user: AuthenticatedUser) {
+    return this.authService.signOutEverywhere(user);
   }
 
   @Post("register")

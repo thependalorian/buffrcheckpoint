@@ -107,3 +107,86 @@ Open for the owner: the written safeguards assessment for Neon and Railway (the 
 ## 11. Data protection impact assessment triggers
 
 A DPIA is completed before any of these go live for an organisation: processing special-category information at scale (clinics, faith-based and community organisations are flagged by sector, and the standard form already treats the purpose of the visit as sensitive for them); systematic monitoring of a publicly accessible area at scale; any profiling feature; enabling photo or ID capture for a site; adding a subprocessor outside Namibia. Each DPIA records the processing and purpose, why it is necessary and proportionate, the risks to people, and the measures that address them.
+
+## 12. Security Framework summary and tolerances (standard GV-1, GV-3, GV-4)
+
+Status: draft for the owner's approval. Nothing here is approved until the owner signs and dates it in the governance record. The Framework is the Buffr Security Standard (`buffr-ai/BUFFR_SECURITY_STANDARD.md`) applied to Checkpoint; the requirement-by-requirement state is Annex E of `buffrcheckpoint.md`.
+
+| Tolerance | Value | Measured by |
+|---|---|---|
+| Availability of critical systems | 99.9 percent | Uptime monitor on `/health` (planned, blueprint 32.4) |
+| Recovery time | 2 hours | Restore rehearsal record (none yet) |
+| Recovery point | 5 minutes within the last 6 hours | Neon point-in-time history |
+| Recovery tests | 2 successful a year | Dated records (none yet) |
+| Time to first response | Sev 1 within 1 hour, Sev 2 within 4 hours | Incident log |
+
+Roles: the owner is the board and top management and approves the Framework; the security officer role reports to the owner directly (GV-2); a named privacy lead is an owner appointment (GP-2) not yet made. The risk profile goes to the owner four times a year (GV-4); no entry has been recorded yet. Scope (GV-6): the Checkpoint service as described in section 2 and the interfaces in section 6; other Buffr products are outside it.
+
+## 13. Vendor and processor register fields (VD-1, DL-12)
+
+Section 6 and section 10 above list the vendors. Each critical vendor row also needs: tier, whether a data processing agreement is on file, assurance report status, last review date. Until a document is in hand the cell says "not confirmed". Today: Neon, Railway (critical, holding visitor data), Vercel, GitHub, Namecheap, the mailbox provider, Sentry, PostHog, BulkSMS Namibia, Adumo, Cloudflare Turnstile and Collexia: agreement and report **not confirmed** for all. Owner action: request each agreement and report and file them.
+
+## 14. AI inventory and classification (AIG-1, AIG-2, AI-1)
+
+| System | Purpose | Tier | Data | Controls |
+|---|---|---|---|---|
+| Form AI (`FormAiService`, Neon AI Gateway) | Suggests and translates check-in form field definitions for administrators | Internal assistance (minimal) | Field definitions typed by the administrator; never visitor data | No tools; never publishes; admin only; kill switch `FORM_AI_ENABLED`; audit actions `check_in_form.ai_suggest_fields` and `check_in_form.ai_translate_field` with no prompt or response stored |
+
+No other AI feature exists. KYB document reading is classical OCR (Tesseract, PaddleOCR) on the platform; it suggests values and a person confirms them. No automated decision about a person is made (blueprint 3.2).
+
+## 15. Clock synchronisation and records access (LG-9, GV-9)
+
+All servers are managed platforms that synchronise time; authoritative timestamps are UTC. Regulator access to records (PSD-12 paragraph 14) is met by the evidence pack and audit export; retrieval within one working day has not been tested.
+
+## 16. Complementary user entity controls (AS-8)
+
+Customers run these for the service to be secure: enforce MFA for their administrators; remove leavers the day they leave; set retention periods that match their obligations; review audit exports and evidence packs; keep kiosk devices managed, patched and physically secured; use the privacy notice Checkpoint supplies unchanged or adjust it with their counsel.
+
+## 17. Risk register and scoring (GV-5)
+
+Likelihood and consequence are each scored 1 to 5 (blueprint 19.4) and multiplied: 1 to 5 low, 6 to 12 medium, 13 to 25 high. Owner of every row is the owner until a second person is named. Reviewed each quarter and on a new data category, subprocessor, region or incident.
+
+| Risk | L | C | Score | Treatment | Residual | Review |
+|---|---|---|---|---|---|---|
+| Personal data readable through a known encryption key | 1 | 5 | 5 | Key ring, envelopes re-encrypted 2026-10-09, key removed from the source of truth | Low | 2027-01 |
+| Signing secret forged sessions | 1 | 5 | 5 | EdDSA keys in the database, 90 day rotation, legacy secret window ends 2026-10-09 19:20 UTC | Low | 2027-01 |
+| Cross-tenant read through a missing scope | 2 | 5 | 10 | Two guard layers, tenant-scope ratchet, isolation e2e; row-level security proposed (AZ-4) | Medium | 2027-01 |
+| Audit rows edited by the application | 1 | 4 | 4 | Append-only grants checked in CI and on production; daily chain verifier | Low | 2027-01 |
+| Public repository exposes design detail | 4 | 2 | 8 | Secret scan with history, push protection; visibility decision is the owner's (IN-5) | Medium | 2026-11 |
+| Mail spoofing of the product domain (no DMARC) | 3 | 3 | 9 | Add DMARC and DKIM (IN-4) | Medium | 2026-11 |
+| No tested restore | 2 | 4 | 8 | Replay procedure and script written; drill blocked by the branch limit (RC-3) | Medium | 2026-11 |
+| Single API replica outage | 3 | 3 | 9 | Redeploy within the two hour target; second replica needs the shared event bus | Medium | 2027-01 |
+| Vendor without agreement or report on file | 4 | 3 | 12 | Request agreements and reports (VD-1, VD-2) | Medium | 2026-12 |
+
+## 18. Asset and account inventory (GV-14)
+
+| Asset | Kind | Owner | Data class | Environment | Last review |
+|---|---|---|---|---|---|
+| Source repository `thependalorian/buffrcheckpoint` | Source code | Owner | Internal | GitHub | 2026-10-09 |
+| Railway project `buffrcheckpoint`, service `api` | Compute and secrets | Owner | Restricted | Production | 2026-10-09 |
+| Vercel projects `buffrcheckpoint-website`, `-admin`, `-ops-console` | Compute | Owner | Internal | Production | 2026-10-09 |
+| Neon project `buffr-checkpoint-eu` (`falling-frog-15538162`) | Database and object storage | Owner | Restricted | Production and branches | 2026-10-09 |
+| Neon project `steep-credit-81607786` | Workspace operations records | Owner | Internal | Operations | 2026-10-09 |
+| Namecheap: `buffrcheckpoint.com`, `buffranalytics.com`, Private Email | DNS, domains, mailbox | Owner | Internal | Production | 2026-10-09 |
+| Secrets in Railway: signing keys are in the database; `PERSONAL_DATA_KEY`, peppers, `DELETION_TOMBSTONE_PEPPER`, SMTP, Adumo, Turnstile | Keys and credentials | Owner | Restricted | Production | 2026-10-09 |
+| Sentry, PostHog, Cloudflare Turnstile, BulkSMS Namibia, Adumo | Third-party services | Owner | Internal | Production | 2026-10-09 |
+| AI gateway key (Neon AI Gateway) for Form AI | Provider key, one per service | Owner | Restricted | Production | 2026-10-09 |
+
+## 19. Regimes by whose data is processed (GP-1)
+
+| Product | Namibia | South Africa | EU or EEA |
+|---|---|---|---|
+| Buffr Checkpoint | Yes: visitors and customer staff at Namibian sites; the draft Data Protection Bill applies when enacted | Only if a customer site hosts visitors from South Africa as data subjects of that customer: the customer is the responsible party and Checkpoint its operator | Only if a customer site is in the EU: no such customer exists today, so no representative is appointed |
+
+Re-checked when a customer outside Namibia signs (GP-8). The privacy lead (GP-2) and registrations (GP-7) are owner appointments.
+
+## 20. Technical debt register (DC-11)
+
+| Item | Owner | Risk | Cost to fix | Raised | Review |
+|---|---|---|---|---|---|
+| 270 exported backend units without a comment above them | Owner | Low | Spread over normal edits (ratchet falls) | 2026-10-09 | 2027-01 |
+| 24 source files over 400 lines | Owner | Low | Split on the next change to each | 2026-10-09 | 2027-01 |
+| 77 banned words in public copy | Owner | Low | Rewrite copy modules in tranches | 2026-10-09 | 2027-01 |
+| About 17 pre-existing accessibility and hook lint findings in the web apps | Owner | Low | One focused pass | 2026-10-09 | 2026-11 |
+| 56 backend files not formatted to Biome | Owner | Low | One formatting commit | 2026-10-09 | 2026-11 |
+| 127 queries flagged by the tenant-scope scan | Owner | Medium | Add the organisation predicate to each, file by file | 2026-10-08 | 2026-11 |

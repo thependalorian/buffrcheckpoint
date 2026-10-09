@@ -174,7 +174,7 @@ export class BillingController {
 
   @Post("platform/billing/invoices/:invoiceId/credit-notes")
   @RequirePermission(PERMISSIONS.PLATFORM_BILLING_MANAGE)
-  @AuditLog({ action: "invoice.credit_note", resourceType: "invoice" })
+  @AuditLog({ action: "invoice.credit_note", resourceType: "invoice", writeAhead: true })
   issueCreditNote(
     @Param("invoiceId") invoiceId: string,
     @Body() dto: { amount: string; reason: string },
@@ -248,7 +248,7 @@ export class BillingController {
   // for Adumo's hosted page.
   @Post("platform/billing/invoices/:invoiceId/card-payment")
   @RequirePermission(PERMISSIONS.VISIT_READ_ORG)
-  @AuditLog({ action: "payment_transaction.card_start", resourceType: "invoice" })
+  @AuditLog({ action: "payment_transaction.card_start", resourceType: "invoice", writeAhead: true })
   startCardPayment(@Param("invoiceId") invoiceId: string, @CurrentUser() user: AuthenticatedUser) {
     return this.service.startCardPayment(invoiceId, user);
   }
@@ -267,7 +267,7 @@ export class BillingController {
 
   @Post("platform/billing/payments/pop")
   @RequirePermission(PERMISSIONS.VISIT_READ_ORG)
-  @AuditLog({ action: "payment_transaction.submit_pop", resourceType: "payment_transaction" })
+  @AuditLog({ action: "payment_transaction.submit_pop", resourceType: "payment_transaction", writeAhead: true })
   submitPop(@Body() dto: SubmitPopInput, @CurrentUser() user: AuthenticatedUser) {
     return this.service.submitProofOfPayment(dto, user);
   }
@@ -275,7 +275,7 @@ export class BillingController {
   @Get("platform/billing/payments/export")
   @RequirePermission(PERMISSIONS.PLATFORM_BILLING_MANAGE)
   @PlatformScoped()
-  @AuditLog({ action: "payment_register.export", resourceType: "payment_transaction" })
+  @AuditLog({ action: "payment_register.export", resourceType: "payment_transaction", writeAhead: true })
   async exportPaymentRegister(
     @Query("from") from: string | undefined,
     @Query("to") to: string | undefined,
@@ -297,7 +297,7 @@ export class BillingController {
 
   @Patch("platform/billing/payments/bulk-review")
   @RequirePermission(PERMISSIONS.PLATFORM_BILLING_MANAGE)
-  @AuditLog({ action: "payment_transaction.review_bulk", resourceType: "payment_transaction" })
+  @AuditLog({ action: "payment_transaction.review_bulk", resourceType: "payment_transaction", writeAhead: true })
   reviewPaymentBulk(
     @Body() body: { paymentTransactionIds: string[]; decision: "confirmed" | "rejected"; note?: string },
     @CurrentUser() user: AuthenticatedUser,
@@ -316,7 +316,7 @@ export class BillingController {
 
   @Patch("platform/billing/payments/:paymentTransactionId/review")
   @RequirePermission(PERMISSIONS.PLATFORM_BILLING_MANAGE)
-  @AuditLog({ action: "payment_transaction.review", resourceType: "payment_transaction" })
+  @AuditLog({ action: "payment_transaction.review", resourceType: "payment_transaction", writeAhead: true })
   reviewPayment(
     @Param("paymentTransactionId") paymentTransactionId: string,
     @Body() body: { decision: "confirmed" | "rejected"; note?: string },

@@ -1,6 +1,7 @@
 export * from "./analytics";
 export * from "./anomaly-rules";
 export * from "./audit";
+export * from "./auth-tokens";
 export * from "./billing";
 export * from "./capability-status";
 export * from "./consent";
@@ -8,6 +9,7 @@ export * from "./contact-enquiries";
 export * from "./credential-validation";
 export * from "./credentials";
 export * from "./crm";
+export * from "./deletion";
 export * from "./dsar";
 export * from "./emergency";
 export * from "./evidence";

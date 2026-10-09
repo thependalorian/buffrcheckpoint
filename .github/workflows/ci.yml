@@ -26,16 +26,16 @@ jobs:
         include:
           - app: backend
             typecheck: npx tsc --noEmit -p tsconfig.build.json
-            test: npx jest --ci
+            test: npx jest --ci --json --outputFile=test-report.json
           - app: admin
             typecheck: npx next typegen && npx tsc --noEmit
-            test: npx vitest run
+            test: npx vitest run --reporter=json --outputFile=test-report.json
           - app: ops-console
             typecheck: npx next typegen && npx tsc --noEmit
-            test: npx vitest run
+            test: npx vitest run --reporter=json --outputFile=test-report.json
           - app: website
             typecheck: npx next typegen && npx tsc --noEmit
-            test: npx vitest run
+            test: npx vitest run --reporter=json --outputFile=test-report.json
     defaults:
       run:
         working-directory: ${{ matrix.app }}
@@ -54,8 +54,27 @@ jobs:
       - name: Test
         if: matrix.test != ''
         run: ${{ matrix.test }}
+      - name: Test floor (CI-6, blocking)
+        if: matrix.test != ''
+        run: node ../scripts/test-floor.mjs ${{ matrix.app }} test-report.json
+      - name: Semgrep (CI-3, blocking)
+        run: pipx run semgrep==1.* --config p/typescript --config p/owasp-top-ten --error --quiet src
+      - name: Software bill of materials (DP-3)
+        run: npx --yes @cyclonedx/cyclonedx-npm@1 --omit dev --output-file sbom.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: sbom-${{ matrix.app }}
+          path: ${{ matrix.app }}/sbom.json
       - name: Build
         run: npm run build
+      - name: Route contract (API-13, blocking)
+        if: matrix.app == 'backend'
+        run: node scripts/route-contract.cjs
+      - name: Route policy audit (AZ-2, blocking)
+        if: matrix.app == 'backend'
+        run: node scripts/audit-route-policy.cjs
+      - name: No raw console output (LG-7, blocking)
+        run: npx biome lint --only=suspicious/noConsole .
       - name: Lint (reporting)
         continue-on-error: true
         run: npx biome ci .
@@ -90,11 +109,56 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -c "CREATE ROLE buffr_checkpoint_app; CREATE ROLE buffr_checkpoint_runtime;"
       - name: Replay migrations in order
         run: for f in backend/db/migrations/*.sql; do echo "$f"; psql -v ON_ERROR_STOP=1 -q -f "$f"; done
+      - name: Schema guard (blueprint 14.1, DOC-1)
+        run: |
+          out="$(psql -tA -F, -f backend/db/maintenance/schema-guard.sql)"
+          echo "$out"
+          test -z "$(echo "$out" | awk -F, '$2 != 0')"
+      - name: Append-only grants (LG-1)
+        run: |
+          test -z "$(psql -tA -f backend/db/maintenance/append-only-grant-violations.sql)"
+          for statement in "DELETE FROM audit_events" "TRUNCATE audit_events" "UPDATE audit_events SET id = id"; do
+            if psql -v ON_ERROR_STOP=1 -q -c "SET ROLE buffr_checkpoint_runtime; $statement" 2>/dev/null; then
+              echo "the runtime role was allowed: $statement"; exit 1
+            fi
+          done
       - name: Wiebe guards (no triggers, cascades or CHECK lists)
         run: |
           test "$(psql -tA -c "select count(*) from pg_trigger where not tgisinternal")" = "0"
           test "$(psql -tA -c "select count(*) from pg_constraint where connamespace='public'::regnamespace and confdeltype='c'")" = "0"
           test "$(psql -tA -c "select count(*) from pg_constraint where connamespace='public'::regnamespace and contype='c'")" = "0"
+
+  quality:
+    name: quality ratchet
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Copy rules and ratchets (WR-24, DOC-1, DC-9, KS-3)
+        run: node scripts/quality-ratchet.mjs
+      - name: Source names in identifiers (NM-9)
+        run: node scripts/naming-scan.mjs
+
+  dead-code:
+    name: dead code and duplication
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - name: Unused files and dependencies (DC-2, DC-6)
+        run: npx --yes knip@6.38.0 --no-progress --include files,dependencies
+      - name: Duplication under 1 percent (DR-4)
+        run: npx --yes jscpd@5.3.3 src --min-tokens 80 --min-lines 15 --threshold 1 --ignore "**/*.spec.ts,**/schema/**" --reporters console --silent
 
   secrets:
     name: secrets scan

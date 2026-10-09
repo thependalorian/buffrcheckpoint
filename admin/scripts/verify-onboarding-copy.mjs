@@ -33,4 +33,4 @@ for (const step of backendSteps) {
   assert.ok(new RegExp(`^\\s{4}${step}: \\{`, "m").test(copySource), `steps copy missing for ${step}`);
 }
 
-console.log(`onboarding copy checks passed (${backendSteps.length} steps, ${evidenceKeys.length} evidence keys)`);
+process.stdout.write(`onboarding copy checks passed (${backendSteps.length} steps, ${evidenceKeys.length} evidence keys)\n`);

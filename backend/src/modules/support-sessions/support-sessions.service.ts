@@ -1,5 +1,4 @@
 import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundException } from "@nestjs/common";
-import { JwtService } from "@nestjs/jwt";
 import { and, count, desc, eq, gte, inArray, isNull, lte, ne } from "drizzle-orm";
 
 import { ScopedPermissionEvaluationService } from "../../common/access-control/scoped-permission-evaluation.service";
@@ -18,6 +17,7 @@ import {
   typeDefinition,
 } from "../../db/schema";
 import { TypeDefinitionLookupService } from "../../db/type-definition-lookup.service";
+import { TokenIssuerService } from "../auth/token-issuer.service";
 import { TemplatedEmailService } from "../notifications/templated-email.service";
 import { randomUUID } from "node:crypto";
 
@@ -47,7 +47,7 @@ export class SupportSessionsService {
     @Inject(DB) private readonly db: Database,
     private readonly typeDefs: TypeDefinitionLookupService,
     private readonly permissionEvaluation: ScopedPermissionEvaluationService,
-    private readonly jwt: JwtService,
+    private readonly tokens: TokenIssuerService,
     private readonly templatedEmail: TemplatedEmailService,
   ) {}
 
@@ -391,7 +391,7 @@ export class SupportSessionsService {
     // active (rbac.guard.ts).
     const permissions = Array.from(await this.permissionEvaluation.permissionsForRoleCode("owner_operator"));
 
-    const accessToken = this.jwt.sign(
+    const accessToken = await this.tokens.sign(
       {
         sub: user.userId,
         organisationId: grant.organisationId,
@@ -405,7 +405,7 @@ export class SupportSessionsService {
         // Support sessions act inside the customer admin app.
         aud: "admin",
       },
-      { expiresIn: Math.round((expiresAt.getTime() - now.getTime()) / 1000) },
+      Math.round((expiresAt.getTime() - now.getTime()) / 1000),
     );
 
     return { accessToken, sessionId, organisationId: grant.organisationId, expiresAt };
