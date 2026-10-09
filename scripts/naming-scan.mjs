@@ -23,7 +23,13 @@ try {
     identifiers.push({ kind: "route", name: route.split(" ")[1], file: "api-route-contract.json" });
   }
 } catch {}
-for (const m of readFileSync(join(root, "backend", ".env.example"), "utf8").matchAll(/^#?\s*([A-Z][A-Z0-9_]+)=/gm)) {
+for (const m of (() => {
+  try {
+    return readFileSync(join(root, "backend", ".env.example"), "utf8");
+  } catch {
+    return "";
+  }
+})().matchAll(/^#?\s*([A-Z][A-Z0-9_]+)=/gm)) {
   identifiers.push({ kind: "environment variable", name: m[1], file: ".env.example" });
 }
 
