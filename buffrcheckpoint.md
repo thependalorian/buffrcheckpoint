@@ -2536,7 +2536,7 @@ Source comments in live code and docs have been updated to the new numbers. Comm
 
 Tracks `buffr-ai/BUFFR_SECURITY_STANDARD.md` (rev 3, 2026-10-08) requirement by requirement. **Pass** needs a named test, command or artifact (the Evidence cell); nothing is Pass from the existence of code or a document. **Partial** means control exists with the open part named. **Gap** means being closed in the current programme (phase named). **Owner-gated** means it needs the owner's decision, credential, signature or schema design, with the action stated. **Not verified** means not yet checked. No row is a claim of compliance or certification (§1.4). Findings are mirrored as rows in the workspace-ops database (project `buffrcheckpoint`).
 
-Totals: Gap 5, N/A 34, Owner-gated 45, Partial 166, Pass 107; 357 requirements.
+Totals: Gap 5, N/A 34, Owner-gated 45, Partial 162, Pass 111; 357 requirements.
 
 | ID | Requirement | Status | Evidence or open part |
 |---|---|---|---|
@@ -2619,26 +2619,26 @@ Totals: Gap 5, N/A 34, Owner-gated 45, Partial 166, Pass 107; 357 requirements.
 | MP-5 | Incident reporting to the Bank (IR-4, IR-5) is one shared module with the contact preconfigured | N/A | Checkpoint is not a payment service provider |
 | MP-6 | Payments are monitored continuously for fraud and anomalies (LG-5, AB-4) | N/A | Checkpoint is not a payment service provider |
 | CI-1 | Secret scan with full history | Pass | gitleaks full history in .github/workflows/ci.yml |
-| CI-2 | Dependency audit (`npm audit --omit=dev`, `pip-audit --strict`) at the SLA severity: critical 7 days, high 30, medium ... | Partial | npm audit blocks at high; SLA severities differ; Phase 7 |
-| CI-3 | Static analysis (for example Semgrep with `--error`) for every language in the repository | Partial | Semgrep in CI; first run pending the next push |
+| CI-2 | Dependency audit (`npm audit --omit=dev`, `pip-audit --strict`) at the SLA severity: critical 7 days, high 30, medium ... | Pass | npm audit blocks at high; next patched to 16.4.0 on 2026-10-09 (six advisories, found by this gate in CI); 0 vulnerabilities in all four apps |
+| CI-3 | Static analysis (for example Semgrep with `--error`) for every language in the repository | Pass | Semgrep (--error, TypeScript and OWASP rules) runs per app in CI; run 37918038772 passed after fixing two real GCM tag-length findings (secret-crypto.ts, personal-data-protection.service.ts) |
 | CI-4 | Frozen-lockfile install; the lockfile is committed and never ignored | Pass | npm ci in CI, lockfiles committed |
 | CI-5 | Tests that assert security properties, not only behaviour: no implicit account linking, exact redirect matching, ... | Partial | named tests exist for cors, config guard, token separation, headers; more added per phase |
-| CI-6 | A test floor: zero failures, zero skips, and a test count that cannot fall, so deleting or disabling a test fails the ... | Pass | scripts/test-floor.mjs with scripts/test-floor.json (backend 635, website 63, admin 63, ops-console 5), blocking step in ci.yml; run locally for backend and website |
+| CI-6 | A test floor: zero failures, zero skips, and a test count that cannot fall, so deleting or disabling a test fails the ... | Pass | scripts/test-floor.mjs blocking in CI; floor backend 652, website 63, admin 63, ops-console 5 |
 | CI-7 | Migrations replay on an empty database | Pass | migrations replay job in ci.yml |
 | CI-8 | Container images (where used) scanned, run as a non-root user, with no `.env` baked in | N/A | no container images are built by the project (Railpack builds the API) |
-| CI-9 | The default branch is protected: pull request, review and passing CI required, no force push. Code that touches access, ... | Partial | branch protection applied to main 2026-10-09 (pull request, code owner review, required checks, no force push); the owner can still bypass as the only maintainer |
+| CI-9 | The default branch is protected: pull request, review and passing CI required, no force push. Code that touches access, ... | Pass | branch protection on main (pull request, code owner review, required checks, no force push); enforce_admins is off so the sole owner can bypass, recorded as an exception |
 | CI-10 | A pull request template carries an evidence checklist (tests, scan results, rollback) | Pass | pull_request_template.md has an evidence checklist |
 | CI-11 | Queries are parameterised; string-built SQL is a defect | Pass | parameterised queries only; the few sql.raw uses take literal column names (analytics.service.ts, test-visit-filter.ts) |
 | DP-1 | Pin exact versions (no `^` or `~`). Honour a 7-day cool-down before adopting a newly published package. Automated ... | Pass | no ^ or ~ in any package.json; Dependabot cooldown 7 days |
 | DP-2 | A framework version that has published security advisories MUST be pinned, and a test MUST fail if a vulnerable feature ... | Pass | npm audit reports 0 vulnerabilities; versions are exact |
-| DP-3 | Keep a software bill of materials per release | Partial | CycloneDX SBOM artifact per app in CI; first run pending |
+| DP-3 | Keep a software bill of materials per release | Pass | CycloneDX SBOM uploaded as an artifact per app in CI (run 37918038772) |
 | DP-4 | Security requirements are written for each feature, threats considered at design, and secure-coding rules applied ... | Partial | threats are considered in the blueprint and pull request template; no per-feature design note |
 | DP-5 | Outsourced development is bound by the same standard and its output scanned (8.30) | Partial | AI assistants work under the same pull request and CI path (blueprint 34) |
 | IN-1 | A cluster workload MUST have a default-deny network policy, run as non-root with a read-only root filesystem and ... | N/A | no cluster workloads |
 | IN-2 | Hosted platforms (application, database, mail, DNS, source control) are covered by vendor management (section 9). ... | Owner-gated | per-account MFA evidence is the owner's |
 | IN-3 | Segregate networks and restrict outbound access from production (controls 8.20 to 8.22) | Partial | hosted platforms provide network separation; outbound limits are not configured |
 | IN-4 | Mail domains MUST publish MX, SPF, DKIM and DMARC, and an apex MUST NOT be a CNAME that hides them. Dangling DNS ... | Owner-gated | dig 2026-10-09: buffranalytics.com has MX and SPF but no DMARC; add TXT _dmarc "v=DMARC1; p=none; rua=mailto:team@buffranalytics.com" and enable DKIM in Private Email at Namecheap |
-| IN-5 | The repository for each product MUST be private unless a written decision makes it public, and a public repository MUST ... | Owner-gated | gh repo view reports the repository PUBLIC; decide to make it private or record a written decision (finding in workspace-ops) |
+| IN-5 | The repository for each product MUST be private unless a written decision makes it public, and a public repository MUST ... | Owner-gated | repository is PUBLIC; secret scan with history, GitGuardian and push protection are on; decide private or record the decision |
 | IR-1 | MUST keep an incident runbook covering severity, roles including in a crisis, containment, recovery, evidence ... | Partial | runbook with severity, first hour and roles in docs/incident-response.md; not yet exercised |
 | IR-2 | On a suspected successful attack or fraudulent payment, MUST investigate nature, extent and damage (PSD-12 11.7) | Partial | runbook with severity, first hour and roles in docs/incident-response.md; not yet exercised |
 | IR-3 | While investigating, MUST contain to prevent further damage and start recovery or redress of the fraudulent payment ... | Partial | runbook with severity, first hour and roles in docs/incident-response.md; not yet exercised |
@@ -2727,8 +2727,8 @@ Totals: Gap 5, N/A 34, Owner-gated 45, Partial 166, Pass 107; 357 requirements.
 | AS-9 | MUST investigate and record every exception raised by the examiner, with root cause and remediation, and track it to ... | Owner-gated | no examiner is engaged |
 | AS-10 | A Type 2 report MUST be renewed annually; the monthly evidence close MUST continue between reports | Owner-gated | no examiner is engaged |
 | AS-11 | Public wording MUST name the report type, the criteria, the period and the boundary. "SOC 2 compliant" is never used ... | Pass | marketing.test.ts blocks compliant, certified and guarantee wording |
-| VM-1 | Fix within SLA: critical 7 days, high 30, medium 90, low next release. A fix date is set when the finding is raised | Pass | fix times in SECURITY.md (critical 2 days, high 7, moderate 30) are stricter than the standard; npm audit has 0 findings |
-| VM-2 | Scan dependencies, code, secrets, containers and the running service on a schedule and on every change | Partial | dependency audit, secret scan, Semgrep, knip in CI; no scan of the running service |
+| VM-1 | Fix within SLA: critical 7 days, high 30, medium 90, low next release. A fix date is set when the finding is raised | Pass | SECURITY.md fix times are stricter than the standard; the next advisories were fixed the same day they were raised |
+| VM-2 | Scan dependencies, code, secrets, containers and the running service on a schedule and on every change | Partial | dependency audit, secret scan, Semgrep, knip and jscpd run in CI; no scan of the running service |
 | VM-3 | Apply security patches to platforms and operating systems on the same SLA (control 8.8) | Partial | managed platforms patch their own layers (Annex B 8.8) |
 | VM-4 | Penetration test critical systems at least once every three years (PSD-12 11.3) and after any major change; keep threat ... | Owner-gated | external penetration test must be commissioned |
 | KG-1 | The governing body MUST have a written charter covering its role, membership and conduct, reviewed regularly (P1, ... | Owner-gated | board duty: the owner approves and minutes it; drafts exist in the blueprint |
