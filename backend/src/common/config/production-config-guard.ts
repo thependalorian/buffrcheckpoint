@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 
 /** Secrets that protect personal data or sign tokens. Each needs its own value in production (SC-1, SC-2). */
 const PURPOSE_SECRETS = [
-  "LOCAL_DEV_DATA_KEY",
+  "PERSONAL_DATA_KEY",
   "PHONE_HASH_PEPPER",
   "NAME_HASH_PEPPER",
   "CONTACT_REFERENCE_HASH_PEPPER",
@@ -18,13 +18,6 @@ const MIN_SIGNING_SECRET_LENGTH = 32;
 const PLACEHOLDER_MARKERS = ["change-me", "do-not-reuse", "<generate", "dev-only", "example", "changeme"];
 const TLS_MODES = new Set(["require", "verify-ca", "verify-full"]);
 const SIMULATOR_MARKERS = ["sandbox", "staging", "simulator", "mock"];
-
-/**
- * The personal-data key that ships in the source for local development. Production data was first written under it, so it cannot be
- * refused at start-up without taking the service down: it is reported as a critical warning until the data is re-encrypted under a new
- * key (blueprint 14.3, Annex E EN-2). Any other placeholder value is still refused.
- */
-export const KNOWN_DEV_DATA_KEY = "local-dev-only-insecure-key-do-not-deploy!!";
 
 export interface ConfigProblem {
   variable: string;
@@ -54,7 +47,6 @@ function secretProblems(env: NodeJS.ProcessEnv): ConfigProblem[] {
       continue;
     }
     if (value.length < min) problems.push({ variable: name, reason: `is shorter than ${min} characters` });
-    if (name === "LOCAL_DEV_DATA_KEY" && value === KNOWN_DEV_DATA_KEY) continue;
     if (looksLikePlaceholder(value))
       problems.push({ variable: name, reason: "holds a placeholder or development value" });
     const key = digest(value);
@@ -118,14 +110,17 @@ export function productionConfigProblems(env: NodeJS.ProcessEnv = process.env): 
   return [...secretProblems(env), ...corsProblems(env), ...databaseProblems(env), ...railProblems(env)];
 }
 
-/** Settings that are unsafe but cannot stop the service yet, because stopping it would lose access to stored data. Names only. */
+/**
+ * Settings that are unsafe but must not stop the service. The old development data key (version 1 of the key ring) is public; once
+ * every envelope is on the current key it should be removed from the secret store, and until then it is reported.
+ */
 export function productionConfigWarnings(env: NodeJS.ProcessEnv = process.env): ConfigProblem[] {
   if (env.NODE_ENV !== "production") return [];
-  return env.LOCAL_DEV_DATA_KEY === KNOWN_DEV_DATA_KEY
+  return env.LOCAL_DEV_DATA_KEY
     ? [
         {
           variable: "LOCAL_DEV_DATA_KEY",
-          reason: "is the public development key; stored personal data must be re-encrypted under a new key",
+          reason: "is still set: it is the retired key ring version 1 and should be removed once nothing is on it",
         },
       ]
     : [];

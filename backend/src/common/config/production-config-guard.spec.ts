@@ -1,14 +1,9 @@
-import {
-  assertProductionConfig,
-  KNOWN_DEV_DATA_KEY,
-  productionConfigProblems,
-  productionConfigWarnings,
-} from "./production-config-guard";
+import { assertProductionConfig, productionConfigProblems, productionConfigWarnings } from "./production-config-guard";
 import { randomBytes } from "node:crypto";
 
 const SECRET_NAMES = [
   "JWT_SECRET",
-  "LOCAL_DEV_DATA_KEY",
+  "PERSONAL_DATA_KEY",
   "PHONE_HASH_PEPPER",
   "NAME_HASH_PEPPER",
   "CONTACT_REFERENCE_HASH_PEPPER",
@@ -119,15 +114,15 @@ describe("productionConfigProblems", () => {
     expect(message).not.toContain("tiny-secret-value-7f3a");
   });
 
-  it("warns, and does not refuse, when the data key is the known development key", () => {
-    const env = { ...goodEnv(), LOCAL_DEV_DATA_KEY: KNOWN_DEV_DATA_KEY };
+  it("refuses the public development data key as the current key", () => {
+    const env = { ...goodEnv(), PERSONAL_DATA_KEY: "local-dev-only-insecure-key-do-not-deploy!!" };
+    expect(productionConfigProblems(env).map((p) => p.variable)).toContain("PERSONAL_DATA_KEY");
+  });
+
+  it("warns, and does not refuse, while the retired version 1 key is still set", () => {
+    const env = { ...goodEnv(), LOCAL_DEV_DATA_KEY: "anything-at-all-still-set" };
     expect(productionConfigProblems(env)).toEqual([]);
     expect(productionConfigWarnings(env).map((w) => w.variable)).toEqual(["LOCAL_DEV_DATA_KEY"]);
     expect(productionConfigWarnings(goodEnv())).toEqual([]);
-  });
-
-  it("still refuses any other placeholder data key", () => {
-    const env = { ...goodEnv(), LOCAL_DEV_DATA_KEY: "some-changeme-value-that-is-long-enough" };
-    expect(productionConfigProblems(env).map((p) => p.variable)).toContain("LOCAL_DEV_DATA_KEY");
   });
 });
