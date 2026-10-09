@@ -67,6 +67,9 @@ jobs:
           path: ${{ matrix.app }}/sbom.json
       - name: Build
         run: npm run build
+      - name: Route contract (API-13, blocking)
+        if: matrix.app == 'backend'
+        run: node scripts/route-contract.cjs
       - name: Route policy audit (AZ-2, blocking)
         if: matrix.app == 'backend'
         run: node scripts/audit-route-policy.cjs
@@ -106,6 +109,11 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -c "CREATE ROLE buffr_checkpoint_app; CREATE ROLE buffr_checkpoint_runtime;"
       - name: Replay migrations in order
         run: for f in backend/db/migrations/*.sql; do echo "$f"; psql -v ON_ERROR_STOP=1 -q -f "$f"; done
+      - name: Schema guard (blueprint 14.1, DOC-1)
+        run: |
+          out="$(psql -tA -F, -f backend/db/maintenance/schema-guard.sql)"
+          echo "$out"
+          test -z "$(echo "$out" | awk -F, '$2 != 0')"
       - name: Append-only grants (LG-1)
         run: |
           test -z "$(psql -tA -f backend/db/maintenance/append-only-grant-violations.sql)"
@@ -119,6 +127,38 @@ jobs:
           test "$(psql -tA -c "select count(*) from pg_trigger where not tgisinternal")" = "0"
           test "$(psql -tA -c "select count(*) from pg_constraint where connamespace='public'::regnamespace and confdeltype='c'")" = "0"
           test "$(psql -tA -c "select count(*) from pg_constraint where connamespace='public'::regnamespace and contype='c'")" = "0"
+
+  quality:
+    name: quality ratchet
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Copy rules and ratchets (WR-24, DOC-1, DC-9, KS-3)
+        run: node scripts/quality-ratchet.mjs
+      - name: Source names in identifiers (NM-9)
+        run: node scripts/naming-scan.mjs
+
+  dead-code:
+    name: dead code and duplication
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - name: Unused files and dependencies (DC-2, DC-6)
+        run: npx --yes knip@6.38.0 --no-progress --include files,dependencies
+      - name: Duplication under 1 percent (DR-4)
+        run: npx --yes jscpd@5.3.3 src --min-tokens 80 --min-lines 15 --threshold 1 --ignore "**/*.spec.ts,**/schema/**" --reporters console --silent
 
   secrets:
     name: secrets scan

@@ -27,7 +27,7 @@ Any event that exposes or could expose visitor or customer data, stops visitors 
 
 | Item | Target | Based on |
 |---|---|---|
-| RTO, API and web | 4 hours | Railway redeploy of the previous build plus a Vercel rollback each take minutes; the margin covers diagnosis |
+| RTO, API and web | 2 hours | Railway redeploy of the previous build plus a Vercel rollback each take minutes; the margin covers diagnosis, and the target matches the standard's two hours |
 | RPO, database, within the last 6 hours | Under 5 minutes | Neon point-in-time restore. Project `falling-frog-15538162` keeps 6 hours of history (21,600 s) |
 | RPO, database, older than 6 hours | Up to 24 hours | Daily Neon snapshot branches (`scripts/neon-daily-snapshot.sh`), kept 14 days. Needs `NEON_API_KEY` in the repository secrets and the scheduled workflow |
 

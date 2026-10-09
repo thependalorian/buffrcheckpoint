@@ -34,6 +34,7 @@ import {
   type TaskStatus,
   taskKey,
 } from "./deletion-plan";
+import { subjectHmac } from "./deletion-replay";
 import {
   type DispositionStore,
   type DispositionTaskRow,
@@ -41,9 +42,19 @@ import {
   runDueTasks,
   type TaskHandler,
 } from "./disposition-executor";
-import { createHmac, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 
 type RequestRow = typeof privacyRequests.$inferSelect;
+
+/** Plain account of the outcome: what was erased, and that some records are kept on purpose. Never claims everything is gone. */
+export const ACCOUNT_ACCEPTED_NOTICE = {
+  subject: "We received your request to close your Buffr Checkpoint account",
+  body: [
+    "Your request to close your account has been accepted. Sign-in has ended for this account.",
+    "Over the next steps we erase or anonymise the personal details tied to your account. We keep only the records we are required or justified to keep, such as billing records and audit events. Those records are restricted to the people who need them and are removed when their retention period ends.",
+    "We will write to you again when the work is finished. If you did not ask for this, reply to this email straight away.",
+  ].join("\n\n"),
+};
 
 /** Plain account of the outcome: what was erased, and that some records are kept on purpose. Never claims everything is gone. */
 export const ACCOUNT_CLOSED_NOTICE = {
@@ -138,6 +149,12 @@ export class AccountDeletionService implements OnModuleInit, OnModuleDestroy {
     }
     await this.store(request.organisationId).ensureTasks(request.id, planAccountDeletion());
     await this.setRequestStatus(request, "scheduled", actor.userId, "deletion accepted, access ended");
+    await this.sendNotice(
+      "account_deletion_accepted",
+      ACCOUNT_ACCEPTED_NOTICE,
+      request.subjectReference,
+      request.organisationId,
+    );
     return "scheduled";
   }
 
@@ -264,7 +281,7 @@ export class AccountDeletionService implements OnModuleInit, OnModuleDestroy {
           .set({ subjectReference: erasedEmail(userId) })
           .where(and(eq(privacyRequests.id, request.id), eq(privacyRequests.organisationId, organisationId)));
         sessionCache.invalidateUser(userId);
-        await this.sendClosureNotice(original, organisationId);
+        await this.sendNotice("account_deletion_completed", ACCOUNT_CLOSED_NOTICE, original, organisationId);
         return done();
       },
       billing_records: async () => ({
@@ -302,26 +319,25 @@ export class AccountDeletionService implements OnModuleInit, OnModuleDestroy {
         id: randomUUID(),
         organisationId: request.organisationId,
         requestId: request.id,
-        subjectHmac: createHmac("sha256", pepper).update(userId).digest("hex"),
+        subjectHmac: subjectHmac(userId, pepper),
         erasedAt,
         replayUntil: replayUntil(erasedAt, Number(process.env.DELETION_REPLAY_DAYS ?? DEFAULT_REPLAY_DAYS)),
       })
       .onConflictDoNothing();
   }
 
-  /** Tells the person what was done and what was kept. A mail failure never undoes or blocks the erasure. */
-  private async sendClosureNotice(to: string, organisationId: string): Promise<void> {
+  /** Tells the person what was done and what was kept. A mail failure never undoes or blocks the work. */
+  private async sendNotice(
+    templateCode: string,
+    fallback: { subject: string; body: string },
+    to: string,
+    organisationId: string,
+  ): Promise<void> {
     try {
-      await this.templatedEmail.send({
-        templateCode: "account_deletion_completed",
-        organisationId,
-        to,
-        variables: {},
-        fallback: ACCOUNT_CLOSED_NOTICE,
-      });
+      await this.templatedEmail.send({ templateCode, organisationId, to, variables: {}, fallback });
     } catch (error) {
       this.logger.warn(
-        `Account closure notice not queued: ${error instanceof Error ? error.constructor.name : "unknown error"}`,
+        `Notice ${templateCode} not queued: ${error instanceof Error ? error.constructor.name : "unknown error"}`,
       );
     }
   }

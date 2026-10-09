@@ -2,18 +2,18 @@ import { Module } from "@nestjs/common";
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
 import { EventEmitterModule } from "@nestjs/event-emitter";
 import { ThrottlerGuard, ThrottlerModule } from "@nestjs/throttler";
-
-import { TurnstileModule } from "./common/turnstile/turnstile.module";
-import { SentryGlobalFilter, SentryModule } from "@sentry/nestjs/setup";
+import { SentryModule } from "@sentry/nestjs/setup";
 
 import { AppController } from "./app.controller";
 import { AccessControlModule } from "./common/access-control/access-control.module";
 import { DataProtectionModule } from "./common/data-protection/data-protection.module";
+import { UniformErrorFilter } from "./common/filters/uniform-error.filter";
 import { MfaAfterGoLiveGuard } from "./common/guards/mfa-after-go-live.guard";
 import { RbacGuard } from "./common/guards/rbac.guard";
 import { SessionAudienceGuard } from "./common/guards/session-audience.guard";
 import { TenantScopeGuard } from "./common/guards/tenant-scope.guard";
 import { AuditInterceptor } from "./common/interceptors/audit.interceptor";
+import { TurnstileModule } from "./common/turnstile/turnstile.module";
 import { DbModule } from "./db/db.module";
 import { AccessPoliciesModule } from "./modules/access-policies/access-policies.module";
 import { AccessReviewsModule } from "./modules/access-reviews/access-reviews.module";
@@ -151,7 +151,7 @@ import { VisitsModule } from "./modules/visits/visits.module";
   ],
   controllers: [AppController],
   providers: [
-    { provide: APP_FILTER, useClass: SentryGlobalFilter },
+    { provide: APP_FILTER, useClass: UniformErrorFilter },
     // Global guard order matters: JwtAuthGuard populates request.user first,
     // TenantScopeGuard checks any org/site path params against that user,
     // then RbacGuard checks the route's @RequirePermission() against the

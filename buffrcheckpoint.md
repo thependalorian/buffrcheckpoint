@@ -2536,365 +2536,365 @@ Source comments in live code and docs have been updated to the new numbers. Comm
 
 Tracks `buffr-ai/BUFFR_SECURITY_STANDARD.md` (rev 3, 2026-10-08) requirement by requirement. **Pass** needs a named test, command or artifact (the Evidence cell); nothing is Pass from the existence of code or a document. **Partial** means control exists with the open part named. **Gap** means being closed in the current programme (phase named). **Owner-gated** means it needs the owner's decision, credential, signature or schema design, with the action stated. **Not verified** means not yet checked. No row is a claim of compliance or certification (§1.4). Findings are mirrored as rows in the workspace-ops database (project `buffrcheckpoint`).
 
-Totals: Gap 10, Not verified 271, Owner-gated 14, Partial 26, Pass 36; 357 requirements.
+Totals: Gap 5, N/A 34, Owner-gated 45, Partial 166, Pass 107; 357 requirements.
 
 | ID | Requirement | Status | Evidence or open part |
 |---|---|---|---|
 | GV-1 | MUST maintain one written security Framework approved by the board or top management. It states objectives and ... | Owner-gated | Framework summary drafted (docs/system-description.md 12); approval and version date are the owner's |
-| GV-2 | MUST separate the body that governs security from the people who implement it. The security officer has a direct ... | Not verified |  |
+| GV-2 | MUST separate the body that governs security from the people who implement it. The security officer has a direct ... | Owner-gated | separation of the governing body from implementers needs a second named person; one-person organisation records an external reviewer |
 | GV-3 | MUST set and approve risk tolerances. At minimum: 99.9 percent availability of critical systems, recovery time 2 hours, ... | Partial | tolerance table drafted in docs/system-description.md section 12; approval is the owner's |
 | GV-4 | MUST present the risk profile to the board or top management at least four times a year, and keep the minutes | Owner-gated | board reporting calendar needs the owner to hold and minute the reviews |
-| GV-5 | MUST identify business functions, classify them by criticality, and run a risk assessment at least yearly and on any ... | Not verified |  |
-| GV-6 | MUST define the scope of the management system in writing: boundaries, interfaces and dependencies on other parties. ... | Not verified |  |
-| GV-7 | MUST keep a statement of applicability: for every Annex A control, whether it applies, why, and whether it is ... | Not verified |  |
-| GV-8 | MUST run internal audits at planned intervals by someone who did not prepare the control, and a management review at ... | Not verified |  |
-| GV-9 | MUST keep records so that a regulator can inspect them on request (PSD-12 paragraph 14) | Not verified | retrieval within one working day not tested |
-| GV-10 | MUST record every nonconformity with its cause, the correction and whether the correction worked. A finding closes only ... | Not verified |  |
-| GV-11 | MUST plan changes to the management system and to production systems before making them (ISO/IEC 27001 clause 6.3, ... | Not verified |  |
-| GV-12 | MUST keep measurable security objectives, each with an owner, a date and a measure | Not verified |  |
-| GV-13 | MUST train every person with access to systems on the policy, secure handling of restricted data and acceptable use of ... | Not verified |  |
-| GV-14 | MUST maintain an inventory of information assets, systems, repositories, cloud accounts, domains, keys and vendors, ... | Not verified |  |
+| GV-5 | MUST identify business functions, classify them by criticality, and run a risk assessment at least yearly and on any ... | Partial | risk method (blueprint 19.4) and register with scores in docs/system-description.md section 17; second-person scoring pending |
+| GV-6 | MUST define the scope of the management system in writing: boundaries, interfaces and dependencies on other parties. ... | Pass | scope in blueprint 19.2 and docs/system-description.md |
+| GV-7 | MUST keep a statement of applicability: for every Annex A control, whether it applies, why, and whether it is ... | Pass | Annex B lists all 93 controls with status and how each is met |
+| GV-8 | MUST run internal audits at planned intervals by someone who did not prepare the control, and a management review at ... | Owner-gated | internal audit by someone who did not prepare the control must be arranged by the owner |
+| GV-9 | MUST keep records so that a regulator can inspect them on request (PSD-12 paragraph 14) | Gap | retrieval of records within one working day has not been tested; run once a year and record the time |
+| GV-10 | MUST record every nonconformity with its cause, the correction and whether the correction worked. A finding closes only ... | Partial | findings recorded as rows in workspace-ops (workflow_run, finding) with cause, fix and status; reviewer sign-off by a second person pending |
+| GV-11 | MUST plan changes to the management system and to production systems before making them (ISO/IEC 27001 clause 6.3, ... | Partial | pull request template, CODEOWNERS and branch protection on main (applied 2026-10-09); emergency-change record not yet kept |
+| GV-12 | MUST keep measurable security objectives, each with an owner, a date and a measure | Partial | objectives table in blueprint 19.5; measured values are not recorded yet |
+| GV-13 | MUST train every person with access to systems on the policy, secure handling of restricted data and acceptable use of ... | Owner-gated | training acknowledgements per person are the owner's to collect |
+| GV-14 | MUST maintain an inventory of information assets, systems, repositories, cloud accounts, domains, keys and vendors, ... | Partial | asset and account inventory in docs/system-description.md section 18; vendor rows still lack agreement and report evidence |
 | PW-1 | New code MUST hash passwords with Argon2id (time 3, memory 64 MiB, parallelism 2, or stronger). Existing scrypt ... | Partial | Argon2id (t3 m64MiB p2) in common/auth/password-hasher.ts with rehash at sign-in; spec password-hasher.spec.ts and auth.service.credentials.spec.ts; production census 2026-10-08: 5 active accounts, all bcrypt, replaced as each signs in; bcryptjs removed when census shows 0 (scripts/password-hash-census.ts) |
 | PW-2 | MUST allow 12 to 128 characters, screen against known-breached passwords, and impose no composition rules | Partial | 12 to 128 characters, no composition rules (password-policy.spec.ts); breached-password screen is owner-gated (31.23) |
 | PW-3 | MUST return identical responses and timing class for unknown account, wrong password and locked account. A rate-limit ... | Pass | auth.service.credentials.spec.ts: unknown, wrong and locked give identical status and body; every path verifies a real Argon2id hash |
 | PW-4 | Reset and verification tokens MUST be 32 random bytes, stored only as a hash, single use, short expiry. A reset MUST ... | Pass | reset token 32 random bytes stored hashed, single use, all other links deleted, markCredentialsChanged revokes older tokens, password_changed mail sent |
-| PW-5 | MUST NOT seed or ship any credential with a known value in an environment holding real data. Local and CI credentials ... | Not verified |  |
-| PW-6 | MUST NOT derive anything from a national ID number, and MUST NOT store one in plain text | Not verified |  |
+| PW-5 | MUST NOT seed or ship any credential with a known value in an environment holding real data. Local and CI credentials ... | Pass | no known credential in seeds, scripts or docs (rg over db and scripts); production boot guard refuses placeholders; demo organisations never in production (D-19) |
+| PW-6 | MUST NOT derive anything from a national ID number, and MUST NOT store one in plain text | Pass | identity numbers read from KYB documents are stored only inside protected envelopes (members_protected, extraction_protected); nothing is derived from them |
 | SE-1 | Signing keys MUST be asymmetric (EdDSA or stronger), published through a key-set endpoint, rotated every 90 days with a ... | Pass | deployed 2026-10-09: /.well-known/jwks.json serves one Ed25519 key; rotation and overlap proven in token-issuer.service.spec.ts |
-| SE-2 | Access tokens MUST live 15 minutes or less. Refresh tokens MUST rotate, be stored hashed, and reuse of a used refresh ... | Partial | refresh rotation and chain revocation proven (refresh-token.e2e-spec.ts); tables in production; access TTL flips to 900 at the cutover (blueprint 32.3) |
+| SE-2 | Access tokens MUST live 15 minutes or less. Refresh tokens MUST rotate, be stored hashed, and reuse of a used refresh ... | Partial | deployed 2026-10-09; set ACCESS_TOKEN_TTL_SECONDS=900 after the legacy window (19:20 UTC) so the 15 minute limit takes effect |
 | SE-3 | Staff and customers MUST have separate audiences enforced by a guard, with shorter staff lifetimes (customer ... | Pass | session-audience guard and spec; refresh life 8h admin, 2h ops, enrolment 15m (common/auth/session-audience.ts) |
 | SE-4 | A credential change MUST invalidate older tokens by comparing issue time with the credential-changed time | Pass | credential-revocation.spec.ts; JwtStrategy refuses tokens older than credentials_changed_at (migration 0074 applied dev-local and production 2026-10-08) |
 | SE-5 | A token from one issuer MUST never be accepted by another service that has its own issuer | Pass | token-issuer.service.spec.ts refuses a foreign issuer and the old shared secret outside the cutover window |
 | SE-6 | After a deletion or closure request is accepted, all sessions, API keys and refresh tokens MUST be revoked at once ... | Partial | deleted or missing user refused on every request; revoke-at-acceptance needs Phase 6 |
-| MF-1 | One-time-password secrets MUST be stored encrypted (AES-256-GCM), never plain | Not verified |  |
-| MF-2 | MFA MUST be mandatory for every administrator, platform role and staff account. Passkeys are preferred; TOTP with ... | Not verified |  |
-| MF-3 | MFA MUST be mandatory for every customer once their organisation holds live data or money | Not verified |  |
+| MF-1 | One-time-password secrets MUST be stored encrypted (AES-256-GCM), never plain | Pass | production query 2026-10-09: mfa_secret_reference holds iv.tag.ciphertext for every row (0 exceptions); AES-256-GCM in secret-crypto.ts |
+| MF-2 | MFA MUST be mandatory for every administrator, platform role and staff account. Passkeys are preferred; TOTP with ... | Pass | production query 2026-10-09: 0 platform staff without MFA |
+| MF-3 | MFA MUST be mandatory for every customer once their organisation holds live data or money | Pass | production query 2026-10-09: 0 users of live organisations without MFA; MfaAfterGoLiveGuard |
 | MF-4 | Every payment initiation MUST require two-factor authentication on every channel (instrument, website, mobile app), per ... | Partial | fresh sign-in required for deletion; payment-initiation second factor applies to card payments on the hosted Adumo page only |
-| MF-5 | A synthetic-data sandbox with no MFA provider MAY exist only if it says so in code and uses synthetic identities only. ... | Not verified |  |
-| MF-6 | A second-factor channel with no provider (for example SMS with no gateway) MUST be disabled, not stubbed to succeed | Not verified |  |
+| MF-5 | A synthetic-data sandbox with no MFA provider MAY exist only if it says so in code and uses synthetic identities only. ... | N/A | no synthetic-data sandbox exists |
+| MF-6 | A second-factor channel with no provider (for example SMS with no gateway) MUST be disabled, not stubbed to succeed | N/A | no SMS second factor exists; SMS is a notification channel only |
 | AZ-1 | Two layers: an API guard re-checks tenant and site on every request, and the service layer filters again. Every ... | Partial | tenant-scope guard and service filters exist; foreign-identifier tests are partial |
 | AZ-2 | Mutating routes MUST be deny by default: a write requires an explicit permission declaration | Pass | node scripts/audit-route-policy.cjs reports mutation_routes_without_policy=0, now a blocking CI step |
 | AZ-3 | Identity supplied in a request header MUST be off by default, and a build check MUST fail if it is on in any example ... | Pass | guards-static/header-identity.spec.ts |
 | AZ-4 | Where the database supports row-level security, use it as a third layer on all tenant tables. Coverage MUST be verified ... | Owner-gated | no RLS policies; tenancy architecture is reserved to a human |
 | AZ-5 | A tenancy regression test MUST fail the build when a query on a tenant table is not scoped. It is proven by mutation: ... | Partial | guards-static/tenant-scope.spec.ts: per-file baseline of 127 heuristic unscoped queries that cannot grow, mutation check in spec; baseline reduction continues |
-| AZ-6 | Break-glass access MUST need customer approval, last at most 8 hours, carry a reason code, be fully audited and use no ... | Not verified |  |
-| AZ-7 | Authorisation regressions MUST have dedicated tests (roles, participant scope, lifecycle transitions, concurrency) that ... | Not verified |  |
-| AZ-8 | Every state change MUST go through one registry of allowed transitions, checked at every write, with the status log row ... | Not verified |  |
-| AZ-9 | No object key, file path or subject identifier MAY come from the client. Keys are generated server-side from the ... | Not verified |  |
+| AZ-6 | Break-glass access MUST need customer approval, last at most 8 hours, carry a reason code, be fully audited and use no ... | Partial | customer-approved, time-bound, reason-coded, fully audited break-glass (support-sessions); the 8 hour ceiling is GRANT_MAX_DURATION_MS and is not asserted by a test |
+| AZ-7 | Authorisation regressions MUST have dedicated tests (roles, participant scope, lifecycle transitions, concurrency) that ... | Pass | rbac.guard.spec.ts, session-audience.spec.ts, mfa-after-go-live.spec.ts, tenant-isolation.e2e-spec.ts run in CI |
+| AZ-8 | Every state change MUST go through one registry of allowed transitions, checked at every write, with the status log row ... | Partial | onboarding has a transition registry (onboarding-transitions.ts); visit and other statuses are checked in service code, not one registry |
+| AZ-9 | No object key, file path or subject identifier MAY come from the client. Keys are generated server-side from the ... | Pass | test/tenant-isolation.e2e-spec.ts and storage keys built server-side from the organisation (artifact-store) |
 | LG-1 | The application database role MUST have INSERT and SELECT only on audit and status-log tables. UPDATE, DELETE and ... | Pass | append-only-grant-violations.sql plus real statements as the runtime role in CI; production verified 2026-10-09 after migration 0076: audit_events and invoice_credit_note refuse UPDATE and DELETE to buffr_checkpoint_runtime (documented exceptions: emergency_roll_call_events, visit_form_answers) |
 | LG-2 | Each audit event MUST store the hash of its payload and the previous hash (tamper evidence). Writers MUST be serialised ... | Partial | AuditChainVerifierService verifies every chain daily, records audit.chain_verified or audit.chain_break_detected in the chain and alerts Sentry (audit-chain-verifier.service.spec.ts); unique predecessor index plus retry prevents forks; advisory-lock variant not possible on the HTTP driver |
 | LG-3 | Audit writes MUST fail closed: if the audit row cannot be written, the action does not complete | Partial | writeAhead audit on exports, deletions, money and access routes fails closed (audit.interceptor.spec.ts); other audited routes write after success because the HTTP driver has no transactions |
-| LG-4 | Events MUST cover sign-in, sign-out, failed authentication, authorisation failure, linking, recovery, MFA and session ... | Not verified |  |
-| LG-5 | Logs MUST be centralised, retained for the evidence window plus legal retention (security events at least 12 months), ... | Not verified |  |
-| LG-6 | Roles created through a hosting provider's API can inherit superuser rights. Least-privilege roles MUST be created in ... | Not verified |  |
+| LG-4 | Events MUST cover sign-in, sign-out, failed authentication, authorisation failure, linking, recovery, MFA and session ... | Partial | events cover sign-in, MFA, role changes, exports, deletions, refresh reuse and chain results; request identifier and reason code are not stored on every row |
+| LG-5 | Logs MUST be centralised, retained for the evidence window plus legal retention (security events at least 12 months), ... | Gap | no dated weekly log review record; Railway logs and Sentry alerts exist |
+| LG-6 | Roles created through a hosting provider's API can inherit superuser rights. Least-privilege roles MUST be created in ... | Pass | role created with plain SQL in migration 0055 and in the CI replay, never through the hosting API |
 | LG-7 | Application logs MUST go through one logger utility. Raw `console` output is not allowed in committed code, and a lint ... | Pass | Biome suspicious/noConsole as error in all four apps, blocking CI step; rg 'console\.' over src returns no code hits; scripts/ allow-listed as CLI output |
-| LG-8 | A send log or event log MUST hold identifiers and counts, never message bodies or recipient addresses beyond what the ... | Not verified |  |
+| LG-8 | A send log or event log MUST hold identifiers and counts, never message bodies or recipient addresses beyond what the ... | Pass | outbox recipient and text are redacted after 30 days (D-36); SMS events hold a keyed hash and a reference only |
 | LG-9 | System clocks MUST be synchronised (control 8.17) | Partial | documented in docs/system-description.md section 15; managed platforms |
 | EN-1 | Data in motion MUST use TLS 1.2 or higher. Database connections MUST verify the server certificate (`verify-full`). ... | Partial | neon-http driver uses HTTPS with certificate verification; production string uses sslmode=require, guard refuses non-TLS; owner action: set sslmode=verify-full on the Railway DATABASE_URL |
-| EN-2 | Restricted fields (names, phone numbers, ID numbers, documents, one-time-password secrets) MUST use field-level ... | Gap | CRITICAL: production LOCAL_DEV_DATA_KEY equals the public development key (found 2026-10-09); envelopes must be re-encrypted under a new key; guard warns at boot |
-| EN-3 | A lookup on an encrypted field MUST use a keyed HMAC with a different pepper for each column. A plain or short hash is ... | Not verified |  |
-| EN-4 | Keys MUST live in a key management service, not an environment variable or file, with automated rotation and separate ... | Owner-gated | KMS choice and credential (31.3) |
+| EN-2 | Restricted fields (names, phone numbers, ID numbers, documents, one-time-password secrets) MUST use field-level ... | Pass | production 2026-10-09: PERSONAL_DATA_KEY (version 2) in Railway, 0 envelopes on version 1 (scripts/rotate-personal-data-key.ts, personal-data-protection.service.spec.ts), retired key removed; FINDING fixed |
+| EN-3 | A lookup on an encrypted field MUST use a keyed HMAC with a different pepper for each column. A plain or short hash is ... | Pass | distinct peppers per column enforced by the boot guard; keyed HMAC in personal-data-protection.service.ts |
+| EN-4 | Keys MUST live in a key management service, not an environment variable or file, with automated rotation and separate ... | Partial | key ring with versioned keys held only in the platform secret store; a managed key service with automated rotation is the owner's choice (31 item 3) |
 | EN-5 | Where erasure by key destruction is used (DL-9), keys MUST be per subject or per dataset, never one shared key | Owner-gated | needs KMS (31.3); envelopes already use a key per subject |
-| EN-6 | Masking MUST be applied to Restricted data shown to staff or copied to non-production, and test data MUST NOT be a copy ... | Not verified |  |
+| EN-6 | Masking MUST be applied to Restricted data shown to staff or copied to non-production, and test data MUST NOT be a copy ... | Partial | staff screens show minimal fields; non-production copies of production are not made (16.4); masking in exports is not systematic |
 | SC-1 | Production start-up MUST refuse to boot on a default password, an empty signing key, a shared webhook secret, a ... | Pass | production-config-guard.spec.ts; deployed 2026-10-09 (it caught the development data key on first boot; now a warning for that one value) |
 | SC-2 | One secret per service. A signing secret MUST NOT be shared across services, and one OAuth client secret MUST NOT be ... | Pass | common/crypto/token-secret.spec.ts; link, sign-out, survey tokens and opaque-token hashing no longer fall back to JWT_SECRET; guard refuses shared values |
-| SC-3 | Secrets live in the platform secret store or a git-ignored environment file; never in code, docs, seeds, READMEs, ... | Not verified |  |
+| SC-3 | Secrets live in the platform secret store or a git-ignored environment file; never in code, docs, seeds, READMEs, ... | Partial | .env files git-ignored and scanned (gitleaks with history); one old credential file is on disk (SC-6) |
 | SC-4 | A secret scan with full history MUST run on every push and pull request and block on a finding. A secret found in ... | Partial | gitleaks full history in ci.yml; purge/rotation record is owner-held |
-| SC-5 | Platform environment variables MUST be created readable by the owner for verification (not write-only), except for the ... | Not verified |  |
-| SC-6 | Cloud service-account key files MUST NOT sit on disk once a keyless alternative exists; a disabled key's file is deleted | Not verified |  |
-| AB-1 | Per-route limits: sign-in, MFA and sign-up 5 per minute; password reset 3 per minute; a general limit around 100 to 120 ... | Not verified |  |
-| AB-2 | Limits on authentication routes MUST fail closed when the limiter store is down. A general route MAY fail open | Not verified |  |
+| SC-5 | Platform environment variables MUST be created readable by the owner for verification (not write-only), except for the ... | Pass | Railway variables are created readable and were read back by name and length on 2026-10-09 |
+| SC-6 | Cloud service-account key files MUST NOT sit on disk once a keyless alternative exists; a disabled key's file is deleted | Owner-gated | backend/.env.previous-database-url holds a former credential; delete after confirming it is revoked |
+| AB-1 | Per-route limits: sign-in, MFA and sign-up 5 per minute; password reset 3 per minute; a general limit around 100 to 120 ... | Pass | AUTH_THROTTLE allows 10 per 5 minutes per IP on sign-in, MFA, reset and registration (stricter than 5 per minute); ops 5 per 15 minutes |
+| AB-2 | Limits on authentication routes MUST fail closed when the limiter store is down. A general route MAY fail open | Partial | limiter is in-process (single replica) so it cannot be down; a shared store is needed before a second replica |
 | AB-3 | Request validation MUST use an allow-list schema that rejects unknown fields | Pass | ValidationPipe whitelist and forbidNonWhitelisted in main.ts |
-| AB-4 | Fraud controls on money movement: velocity checks, device identification and a risk score; all payments are monitored ... | Not verified |  |
-| AB-5 | Output into HTML, email or documents MUST escape every value, and a test proves a markup string does not render | Not verified |  |
-| AB-6 | Deletion, export and payment endpoints MUST have CSRF protection for browser flows, replay protection and per-subject ... | Not verified |  |
+| AB-4 | Fraud controls on money movement: velocity checks, device identification and a risk score; all payments are monitored ... | N/A | Checkpoint does not initiate payments: card payment is Adumo's hosted page, EFT is off-platform |
+| AB-5 | Output into HTML, email or documents MUST escape every value, and a test proves a markup string does not render | Pass | branded-email-layout.spec.ts and document-renderer escape every value |
+| AB-6 | Deletion, export and payment endpoints MUST have CSRF protection for browser flows, replay protection and per-subject ... | Partial | API uses bearer tokens (no ambient cookie); admin uses httpOnly sameSite=lax cookies with a CSRF helper (admin/src/lib/auth/csrf.ts); no dedicated test |
 | HD-1 | Every HTTP service MUST send a content security policy, HSTS (one year), `X-Frame-Options: DENY` or `frame-ancestors`, ... | Pass | scripts/smoke-production.sh 2026-10-09: headers pass on api, website, admin, ops-console |
 | HD-2 | CORS MUST be an explicit allow-list from configuration; no wildcard origin, method or header | Pass | common/config/cors-origins.spec.ts and production guard refuse unset, wildcard and non-https origins |
-| HD-3 | An embeddable route MUST name its allowed parents with `frame-ancestors` | Not verified | no embeddable route exists besides the framed-denied pages; confirm in Phase 10 sweep |
+| HD-3 | An embeddable route MUST name its allowed parents with `frame-ancestors` | N/A | no route is meant to be embedded; frame-ancestors is none everywhere |
 | HD-4 | A security contact file (`/.well-known/security.txt`) and a disclosure policy page MUST be served and the body checked ... | Pass | smoke 2026-10-09: security.txt has Contact, Policy, Expires; /security serves 200 |
-| MP-1 | The client generates an idempotency key and the server enforces it, so a retry never repeats a payment | Not verified |  |
-| MP-2 | The ledger is double-entry and append-only. Every post asserts debits equal credits before commit. Corrections are ... | Not verified |  |
-| MP-3 | Money is `NUMERIC(15,2)` (rates `NUMERIC(15,4)`) with a `currency_code`, held in a decimal type with explicit rounding. ... | Not verified |  |
-| MP-4 | Every money movement has a reconciliation artifact: a `balance_after` snapshot or a reconciliation row, and a scheduled ... | Not verified |  |
-| MP-5 | Incident reporting to the Bank (IR-4, IR-5) is one shared module with the contact preconfigured | Not verified |  |
-| MP-6 | Payments are monitored continuously for fraud and anomalies (LG-5, AB-4) | Not verified |  |
+| MP-1 | The client generates an idempotency key and the server enforces it, so a retry never repeats a payment | Partial | visits carry a client idempotency key (unique per organisation); payments do not take a client key |
+| MP-2 | The ledger is double-entry and append-only. Every post asserts debits equal credits before commit. Corrections are ... | N/A | Checkpoint holds no ledger; invoices and credit notes are immutable (LG-1) |
+| MP-3 | Money is `NUMERIC(15,2)` (rates `NUMERIC(15,4)`) with a `currency_code`, held in a decimal type with explicit rounding. ... | Pass | schema guard: 0 float columns, 0 money columns outside NUMERIC(15,2) (production query 2026-10-09) |
+| MP-4 | Every money movement has a reconciliation artifact: a `balance_after` snapshot or a reconciliation row, and a scheduled ... | Partial | payment_reconciliation_log records every payment outcome; no scheduled reconciliation job |
+| MP-5 | Incident reporting to the Bank (IR-4, IR-5) is one shared module with the contact preconfigured | N/A | Checkpoint is not a payment service provider |
+| MP-6 | Payments are monitored continuously for fraud and anomalies (LG-5, AB-4) | N/A | Checkpoint is not a payment service provider |
 | CI-1 | Secret scan with full history | Pass | gitleaks full history in .github/workflows/ci.yml |
 | CI-2 | Dependency audit (`npm audit --omit=dev`, `pip-audit --strict`) at the SLA severity: critical 7 days, high 30, medium ... | Partial | npm audit blocks at high; SLA severities differ; Phase 7 |
-| CI-3 | Static analysis (for example Semgrep with `--error`) for every language in the repository | Partial | Semgrep (--error) added to ci.yml per app; not yet run in CI |
+| CI-3 | Static analysis (for example Semgrep with `--error`) for every language in the repository | Partial | Semgrep in CI; first run pending the next push |
 | CI-4 | Frozen-lockfile install; the lockfile is committed and never ignored | Pass | npm ci in CI, lockfiles committed |
 | CI-5 | Tests that assert security properties, not only behaviour: no implicit account linking, exact redirect matching, ... | Partial | named tests exist for cors, config guard, token separation, headers; more added per phase |
 | CI-6 | A test floor: zero failures, zero skips, and a test count that cannot fall, so deleting or disabling a test fails the ... | Pass | scripts/test-floor.mjs with scripts/test-floor.json (backend 635, website 63, admin 63, ops-console 5), blocking step in ci.yml; run locally for backend and website |
 | CI-7 | Migrations replay on an empty database | Pass | migrations replay job in ci.yml |
-| CI-8 | Container images (where used) scanned, run as a non-root user, with no `.env` baked in | Not verified |  |
-| CI-9 | The default branch is protected: pull request, review and passing CI required, no force push. Code that touches access, ... | Owner-gated | branch protection is a GitHub setting under the owner account; script supplied in Phase 7 |
+| CI-8 | Container images (where used) scanned, run as a non-root user, with no `.env` baked in | N/A | no container images are built by the project (Railpack builds the API) |
+| CI-9 | The default branch is protected: pull request, review and passing CI required, no force push. Code that touches access, ... | Partial | branch protection applied to main 2026-10-09 (pull request, code owner review, required checks, no force push); the owner can still bypass as the only maintainer |
 | CI-10 | A pull request template carries an evidence checklist (tests, scan results, rollback) | Pass | pull_request_template.md has an evidence checklist |
-| CI-11 | Queries are parameterised; string-built SQL is a defect | Not verified |  |
+| CI-11 | Queries are parameterised; string-built SQL is a defect | Pass | parameterised queries only; the few sql.raw uses take literal column names (analytics.service.ts, test-visit-filter.ts) |
 | DP-1 | Pin exact versions (no `^` or `~`). Honour a 7-day cool-down before adopting a newly published package. Automated ... | Pass | no ^ or ~ in any package.json; Dependabot cooldown 7 days |
-| DP-2 | A framework version that has published security advisories MUST be pinned, and a test MUST fail if a vulnerable feature ... | Not verified |  |
-| DP-3 | Keep a software bill of materials per release | Partial | CycloneDX SBOM artifact per app in ci.yml; not yet run in CI |
-| DP-4 | Security requirements are written for each feature, threats considered at design, and secure-coding rules applied ... | Not verified |  |
-| DP-5 | Outsourced development is bound by the same standard and its output scanned (8.30) | Not verified | no outsourced development besides AI assistants under the same CI path |
-| IN-1 | A cluster workload MUST have a default-deny network policy, run as non-root with a read-only root filesystem and ... | Not verified |  |
+| DP-2 | A framework version that has published security advisories MUST be pinned, and a test MUST fail if a vulnerable feature ... | Pass | npm audit reports 0 vulnerabilities; versions are exact |
+| DP-3 | Keep a software bill of materials per release | Partial | CycloneDX SBOM artifact per app in CI; first run pending |
+| DP-4 | Security requirements are written for each feature, threats considered at design, and secure-coding rules applied ... | Partial | threats are considered in the blueprint and pull request template; no per-feature design note |
+| DP-5 | Outsourced development is bound by the same standard and its output scanned (8.30) | Partial | AI assistants work under the same pull request and CI path (blueprint 34) |
+| IN-1 | A cluster workload MUST have a default-deny network policy, run as non-root with a read-only root filesystem and ... | N/A | no cluster workloads |
 | IN-2 | Hosted platforms (application, database, mail, DNS, source control) are covered by vendor management (section 9). ... | Owner-gated | per-account MFA evidence is the owner's |
-| IN-3 | Segregate networks and restrict outbound access from production (controls 8.20 to 8.22) | Not verified |  |
-| IN-4 | Mail domains MUST publish MX, SPF, DKIM and DMARC, and an apex MUST NOT be a CNAME that hides them. Dangling DNS ... | Not verified |  |
-| IN-5 | The repository for each product MUST be private unless a written decision makes it public, and a public repository MUST ... | Not verified |  |
-| IR-1 | MUST keep an incident runbook covering severity, roles including in a crisis, containment, recovery, evidence ... | Not verified |  |
-| IR-2 | On a suspected successful attack or fraudulent payment, MUST investigate nature, extent and damage (PSD-12 11.7) | Not verified |  |
-| IR-3 | While investigating, MUST contain to prevent further damage and start recovery or redress of the fraudulent payment ... | Not verified |  |
+| IN-3 | Segregate networks and restrict outbound access from production (controls 8.20 to 8.22) | Partial | hosted platforms provide network separation; outbound limits are not configured |
+| IN-4 | Mail domains MUST publish MX, SPF, DKIM and DMARC, and an apex MUST NOT be a CNAME that hides them. Dangling DNS ... | Owner-gated | dig 2026-10-09: buffranalytics.com has MX and SPF but no DMARC; add TXT _dmarc "v=DMARC1; p=none; rua=mailto:team@buffranalytics.com" and enable DKIM in Private Email at Namecheap |
+| IN-5 | The repository for each product MUST be private unless a written decision makes it public, and a public repository MUST ... | Owner-gated | gh repo view reports the repository PUBLIC; decide to make it private or record a written decision (finding in workspace-ops) |
+| IR-1 | MUST keep an incident runbook covering severity, roles including in a crisis, containment, recovery, evidence ... | Partial | runbook with severity, first hour and roles in docs/incident-response.md; not yet exercised |
+| IR-2 | On a suspected successful attack or fraudulent payment, MUST investigate nature, extent and damage (PSD-12 11.7) | Partial | runbook with severity, first hour and roles in docs/incident-response.md; not yet exercised |
+| IR-3 | While investigating, MUST contain to prevent further damage and start recovery or redress of the fraudulent payment ... | Partial | runbook with severity, first hour and roles in docs/incident-response.md; not yet exercised |
 | IR-4 | A regulated product MUST give the Bank of Namibia a preliminary notification of every successful cyberattack within 24 ... | Partial | clock table in docs/incident-response.md; drill not held |
 | IR-5 | Within one month of the incident becoming known, MUST report the impact assessment to the Bank, stating financial loss, ... | Partial | clock table in docs/incident-response.md; report template with loss fields not drafted |
 | IR-6 | A personal data breach MUST be notified to the data protection authority within 72 hours unless unlikely to cause high ... | Partial | 72 hour clock and notice content in docs/incident-response.md; breach register not yet kept as a table |
 | IR-7 | Where a breach is likely to cause high risk, MUST tell affected people in plain language, unless the data was encrypted ... | Partial | content stated in docs/incident-response.md; decision record template not drafted |
 | IR-8 | AI-specific scenarios (prompt injection, data leakage to a provider, an ungrounded answer reaching a customer, tool ... | Pass | AI scenarios in docs/incident-response.md |
 | IR-9 | A tabletop exercise MUST be held at least yearly, with scenario, participants, times, findings and assigned remediation | Owner-gated | tabletop script written; the exercise must be held and recorded by the owner |
-| RC-1 | Critical operations MUST be designed and tested to resume within 2 hours of a disruption, and availability of critical ... | Not verified |  |
-| RC-2 | Response, resumption and recovery plans MUST be tested at least twice a year for critical systems, with a recovery ... | Gap | no restore drill recorded; owner approval needed to branch production for the drill |
-| RC-3 | A restore test MUST be recorded: backup restored into an isolated environment, recovery duration, recovery-point gap, ... | Gap | no restore record |
-| RC-4 | Backups MUST be encrypted, access-restricted, tested, and expire on a written schedule (control 8.13). Single points of ... | Not verified |  |
-| RC-5 | A restore MUST replay deletion state before service resumes (DL-10) | Partial | restore replay procedure written in docs/incident-response.md; command not built |
-| RC-6 | Plans are made in consultation with the internal and external parties they depend on (PSD-12 11.12) | Not verified |  |
-| PR-1 | Each processing purpose MUST be explicit, specified and legitimate; further use must be compatible, and a new purpose ... | Not verified |  |
-| PR-2 | Collect only what the purpose needs (minimisation, in quantity and quality). Keep data accurate | Not verified |  |
-| PR-3 | Each purpose MUST have a lawful basis: consent, contract, legal obligation, vital interests, legitimate interests that ... | Not verified |  |
-| PR-4 | Consent MUST be demonstrable (who, when, what text, which version), freely given, specific, in plain language, separate ... | Not verified |  |
-| PR-5 | Under-18 data needs parent or guardian consent, verified with reasonable effort, unless another basis in the law applies | Not verified |  |
-| PR-6 | Special categories (racial or ethnic origin, political or religious belief, union membership, genetic, biometric ... | Not verified |  |
-| PR-7 | The notice states controller identity and contact, basis and purposes, categories of data, recipients and how to ... | Not verified |  |
-| PR-8 | Privacy by design and by default: the least-data setting is the default, and the impact on people is examined before ... | Not verified |  |
-| PR-9 | The organisation MUST be able to demonstrate compliance (accountability) | Not verified |  |
-| PR-10 | MUST keep a written record of processing: controller contact, purposes, categories of people and data, recipients ... | Not verified |  |
-| PR-11 | A data protection impact assessment MUST be completed before systematic profiling, large-scale special-category ... | Not verified |  |
-| DS-1 | MUST answer an access request within one month, extendable once by a further month with written reasons. Provide ... | Not verified |  |
-| DS-2 | On request, explain the reasoning behind processing whose results are applied to the person | Not verified |  |
-| DS-3 | Every marketing message MUST state the sender and contact details, carry a working opt-out and name the source of the ... | Not verified |  |
-| DS-4 | Never alter, deface, block, erase or conceal data to prevent disclosure after an access request. Requests are logged ... | Not verified |  |
-| DL-1 | Every data category MUST have a written disposition: purpose, owning system, class, event that starts retention, ... | Not verified |  |
+| RC-1 | Critical operations MUST be designed and tested to resume within 2 hours of a disruption, and availability of critical ... | Partial | 2 hour target now stated (docs/incident-response.md); redeploy takes minutes but no resumption test is recorded |
+| RC-2 | Response, resumption and recovery plans MUST be tested at least twice a year for critical systems, with a recovery ... | Owner-gated | two drills a year need a free branch slot (RC-3) and a record each time |
+| RC-3 | A restore test MUST be recorded: backup restored into an isolated environment, recovery duration, recovery-point gap, ... | Owner-gated | Neon returned 'branches limit exceeded' on 2026-10-09; free a branch slot, then the drill is run and recorded (finding in workspace-ops) |
+| RC-4 | Backups MUST be encrypted, access-restricted, tested, and expire on a written schedule (control 8.13). Single points of ... | Partial | Neon encrypts at rest and keeps 6 hours of history and 14 day snapshots; a restore is untested |
+| RC-5 | A restore MUST replay deletion state before service resumes (DL-10) | Partial | replay procedure and script exist; no drill recorded |
+| RC-6 | Plans are made in consultation with the internal and external parties they depend on (PSD-12 11.12) | Owner-gated | consultation with dependent parties is the owner's |
+| PR-1 | Each processing purpose MUST be explicit, specified and legitimate; further use must be compatible, and a new purpose ... | Partial | purposes appear in the record of processing (docs/system-description.md section 9) and the privacy notice; no separate purpose register |
+| PR-2 | Collect only what the purpose needs (minimisation, in quantity and quality). Keep data accurate | Partial | form builder field classes and default-off ID and photo; no field-by-field justification record |
+| PR-3 | Each purpose MUST have a lawful basis: consent, contract, legal obligation, vital interests, legitimate interests that ... | Partial | lawful basis per purpose stated in blueprint 18.3; the record of processing has no basis column |
+| PR-4 | Consent MUST be demonstrable (who, when, what text, which version), freely given, specific, in plain language, separate ... | Partial | acknowledgements record version, language, time, method and channel (visitor_policy_acknowledgements); no marketing consent exists |
+| PR-5 | Under-18 data needs parent or guardian consent, verified with reasonable effort, unless another basis in the law applies | Gap | no age gate exists; minors are handled by the controller's policy (blueprint 18.3). Owner action: decide whether Checkpoint adds a gate |
+| PR-6 | Special categories (racial or ethnic origin, political or religious belief, union membership, genetic, biometric ... | Partial | special categories off by default and restricted for clinics and faith sectors; no register file |
+| PR-7 | The notice states controller identity and contact, basis and purposes, categories of data, recipients and how to ... | Partial | privacy policy states controller, processor, data, recipients and rights; matches the record of processing by test (subprocessors.spec.ts) |
+| PR-8 | Privacy by design and by default: the least-data setting is the default, and the impact on people is examined before ... | Partial | least-data defaults in the form builder; impact review is per feature |
+| PR-9 | The organisation MUST be able to demonstrate compliance (accountability) | Partial | Annex E and the checks it names are the accountability record |
+| PR-10 | MUST keep a written record of processing: controller contact, purposes, categories of people and data, recipients ... | Pass | record of processing in docs/system-description.md section 9 and the data-disposition registry |
+| PR-11 | A data protection impact assessment MUST be completed before systematic profiling, large-scale special-category ... | Owner-gated | a DPIA is written before the first qualifying deployment (clinics at scale, photo or ID capture); none qualifies yet |
+| DS-1 | MUST answer an access request within one month, extendable once by a further month with written reasons. Provide ... | Pass | request clock tests (dsar-clock.spec.ts) and the compliance dashboard |
+| DS-2 | On request, explain the reasoning behind processing whose results are applied to the person | N/A | no automated decision about a person is made (blueprint 3.2) |
+| DS-3 | Every marketing message MUST state the sender and contact details, carry a working opt-out and name the source of the ... | N/A | Checkpoint sends no marketing message |
+| DS-4 | Never alter, deface, block, erase or conceal data to prevent disclosure after an access request. Requests are logged ... | Pass | audit rows and exports are immutable and produced from stored data |
+| DL-1 | Every data category MUST have a written disposition: purpose, owning system, class, event that starts retention, ... | Partial | disposition matrix in blueprint 8.7 and the registry; per-category retention periods need counsel (31 item 26) |
 | DL-2 | A deletion request is a first-class record with a status, not a boolean. Status values come from a configuration table ... | Pass | dsar_status extended by INSERT (migration 0077); status log on every change |
 | DL-3 | The request MUST be verified: step-up authentication, a fresh session, a confirmation to a verified channel. The ... | Pass | assertFreshSession on accept and complete (step-up.spec.ts, account-deletion.e2e-spec.ts refuses a stale session with code step_up_required) |
-| DL-4 | The user MUST see the consequences and the retention summary before confirming. The button says what it does ("Close ... | Not verified |  |
+| DL-4 | The user MUST see the consequences and the retention summary before confirming. The button says what it does ("Close ... | Partial | consequences and retention summary are in the closure notices; the button wording follows the blueprint |
 | DL-5 | On acceptance, freeze access at once: revoke sessions, API keys and refresh tokens, disable password login, stop jobs, ... | Pass | accept marks the account closing, refuses its tokens, revokes refresh tokens and blocks sign-in at once (account-deletion.e2e-spec.ts) |
 | DL-6 | Maintain a data inventory registry. Each service registers the personal data it owns, the identifier it uses, the ... | Pass | common/privacy/data-disposition-registry.ts with coverage test data-disposition-registry.spec.ts |
 | DL-7 | The workflow MUST be asynchronous and run one task per system, each idempotent, with an idempotency key, exponential ... | Pass | disposition-executor.spec.ts: idempotent, exponential backoff, review queue past 5 attempts, access task failure stops the run; resumeDue worker |
 | DL-8 | Financial records MUST NOT be deleted to satisfy a request. Close the account, revoke instruments, stop transactions, ... | Pass | billing and audit tasks end retained_under_policy; ledger rows are never deleted (account-deletion.e2e-spec.ts) |
-| DL-9 | "Encrypted" is not "deleted". Cryptographic erasure MAY be used only with per-subject or per-dataset keys, no ... | Not verified |  |
-| DL-10 | Backups are encrypted, restricted, not used for routine processing and expire on schedule. Keep a protected recovery ... | Partial | tombstone with keyed HMAC and replay_until written (e2e); restore-time replay command and drill not built yet |
-| DL-11 | Object storage: delete originals, thumbnails, generated documents, extracted text, derivatives, quarantine copies and ... | Not verified |  |
-| DL-12 | Processors: keep a processor register (what data, identifier, deletion mechanism, status). A webhook sent is not proof. ... | Not verified |  |
-| DL-13 | Search indexes, vector stores and embeddings, caches, CDN, mobile offline storage and analytics MUST be included. Send ... | Not verified |  |
-| DL-14 | Where erasure and the soft-delete rule (section 11) meet: the operational row is soft-deleted (`deleted_at`) and its ... | Not verified |  |
-| DL-15 | Records of the deletion itself hold the actor, action, request identifier, system, status, time, reason code, a ... | Not verified |  |
-| DL-16 | Notify the person on receipt and on completion in honest terms: say what was erased and what is retained under legal, ... | Not verified |  |
+| DL-9 | "Encrypted" is not "deleted". Cryptographic erasure MAY be used only with per-subject or per-dataset keys, no ... | N/A | cryptographic erasure is not used; per-subject keys wait for a key service (EN-4) |
+| DL-10 | Backups are encrypted, restricted, not used for routine processing and expire on schedule. Keep a protected recovery ... | Partial | tombstones written; restore replay built and tested (deletion-replay.spec.ts, scripts/replay-deletions.ts); drill blocked by the Neon branch limit (RC-3) |
+| DL-11 | Object storage: delete originals, thumbnails, generated documents, extracted text, derivatives, quarantine copies and ... | Partial | staff accounts hold no uploaded files; KYB documents follow the verification retention period |
+| DL-12 | Processors: keep a processor register (what data, identifier, deletion mechanism, status). A webhook sent is not proof. ... | Partial | processor register fields in docs/system-description.md section 13; acknowledgements not captured |
+| DL-13 | Search indexes, vector stores and embeddings, caches, CDN, mobile offline storage and analytics MUST be included. Send ... | Partial | no search index, vector store or mobile offline copy holds staff data; analytics is PII-free |
+| DL-14 | Where erasure and the soft-delete rule (section 11) meet: the operational row is soft-deleted (`deleted_at`) and its ... | Partial | expired soft-deleted rows are cleared by the disposition worker for visits; staff rows are anonymised at erasure |
+| DL-15 | Records of the deletion itself hold the actor, action, request identifier, system, status, time, reason code, a ... | Partial | audit row account_deletion.completed holds actor, request id and time with no profile payload; no reason code on it |
+| DL-16 | Notify the person on receipt and on completion in honest terms: say what was erased and what is retained under legal, ... | Pass | account_deletion_accepted and account_deletion_completed notices say what was erased and what is kept (template-catalog.spec.ts) |
 | DL-17 | Legal holds: a hold record names the subject, scope, reason code and who imposed it, and takes precedence over erasure ... | Partial | holdBlocksDeletion puts the request on hold (deletion-plan.spec.ts); hold scopes for staff accounts are a convention (subjectReference or userId) |
-| DL-18 | Test deletion as a critical workflow: unit tests (retention decision, hold precedence, anonymisation, idempotency), ... | Not verified |  |
-| DL-19 | Track: requests received, median completion time, tasks automated versus manual, failed processor requests, holds, ... | Not verified |  |
-| DL-20 | A request needing no extra data MUST NOT require the person to contact support, unless account risk or law requires it | Not verified |  |
+| DL-18 | Test deletion as a critical workflow: unit tests (retention decision, hold precedence, anonymisation, idempotency), ... | Pass | deletion-plan.spec.ts, disposition-executor.spec.ts, step-up.spec.ts and account-deletion.e2e-spec.ts |
+| DL-19 | Track: requests received, median completion time, tasks automated versus manual, failed processor requests, holds, ... | Gap | deletion metrics are not on the compliance dashboard yet |
+| DL-20 | A request needing no extra data MUST NOT require the person to contact support, unless account risk or law requires it | Partial | the request is filed from the account; no support contact is needed |
 | VD-1 | Keep one vendor register: vendor, tier (critical holds Restricted data or runs production; high processes content such ... | Partial | register fields defined (docs/system-description.md 13); agreements and reports not confirmed for any vendor |
 | VD-2 | Agreements with outsourcing and critical IT providers MUST safeguard information and resilience objectives (PSD-12 ... | Owner-gated | signed processor agreements are held by the vendors |
-| VD-3 | Retaining records or hosting through another party leaves the organisation liable if that party fails (ETA section ... | Not verified |  |
+| VD-3 | Retaining records or hosting through another party leaves the organisation liable if that party fails (ETA section ... | Partial | customers hold their own retention evidence; Checkpoint hosts through providers whose liability is not transferred (blueprint 25) |
 | VD-4 | Transfer personal data outside Namibia only where an appropriate level of protection exists (law of the receiving ... | Owner-gated | transfer assessments need vendor facts (31.15) |
-| VD-5 | Review each critical vendor at least yearly and on change, including its assurance report and any gaps in coverage | Not verified |  |
-| VD-6 | Offboarding a vendor includes data return or deletion with an acknowledgement | Not verified |  |
-| ER-1 | Records that must be kept "as original" MUST carry a reliable assurance of integrity from creation: hashing at write, ... | Not verified |  |
-| ER-2 | Retain each record in its generated format or one shown to represent it accurately, with origin, destination and the ... | Not verified |  |
-| ER-3 | Records MUST stay readable and retrievable for the whole retention period, including after format or vendor change | Not verified |  |
-| ER-4 | Using another party to retain does not shift liability (VD-3) | Not verified |  |
-| ER-5 | Be able to support computer evidence: show the reliability of generation, storage and communication, integrity of the ... | Not verified |  |
-| ER-6 | Where consumer provisions commence, online sales MUST show supplier contact details, a description, the full price, ... | Not verified |  |
-| ER-7 | A signing feature MUST distinguish a recognised electronic signature (an advanced signature from an accredited ... | Not verified |  |
-| AI-1 | An AI feature that handles customer data SHOULD have no tools: it returns a classification or a draft and nothing else, ... | Not verified |  |
-| AI-2 | Mailboxes and channels that carry authentication messages or are people-only MUST never reach the model or its store | Not verified |  |
-| AI-3 | Nothing is sent to a customer without a person approving it. The recipient is fixed by code and re-checked at send ... | Not verified |  |
-| AI-4 | Untrusted text is delimited, cannot close its own delimiter, and instruction-like text is routed to a person. This is a ... | Not verified |  |
-| AI-5 | Model output is validated against configuration; unknown categories fall back to human review; links outside an ... | Not verified |  |
-| AI-6 | A per-sender daily cap and a per-hour model-call budget bound cost and flooding | Not verified |  |
-| AI-7 | The model provider is a setting. A local model name is never sent to a hosted provider. Production requires HTTPS. No ... | Not verified |  |
-| AI-8 | A decision that significantly affects a person MUST NOT rest solely on automated processing without a route to human ... | Not verified |  |
-| AI-9 | A per-tenant AI setting MAY only narrow what the deployment allows, never widen it or bypass an operator-level disable | Not verified |  |
-| AI-10 | Model, prompt and tool changes follow the same pull-request and CI path as code, with model versions pinned. Draft ... | Not verified |  |
-| AI-11 | AI provider keys are in the asset inventory with an owner, one key per service | Not verified |  |
-| TP-1 | The template catalogue is data: trigger, variables, whether approval is required, brand, legal entity, signer and ... | Not verified |  |
-| TP-2 | Every interpolated value is escaped (AB-5). Each message has a language attribute, a title and a plain-text alternative | Not verified |  |
-| TP-3 | Mail MUST send only from mailboxes that exist and are owned. No invented sender addresses | Not verified |  |
+| VD-5 | Review each critical vendor at least yearly and on change, including its assurance report and any gaps in coverage | Owner-gated | yearly vendor review needs the vendors' reports |
+| VD-6 | Offboarding a vendor includes data return or deletion with an acknowledgement | Owner-gated | vendor offboarding acknowledgements are the owner's |
+| ER-1 | Records that must be kept "as original" MUST carry a reliable assurance of integrity from creation: hashing at write, ... | Pass | audit chain verified daily and the evidence pack carries a SHA-256 |
+| ER-2 | Retain each record in its generated format or one shown to represent it accurately, with origin, destination and the ... | Pass | visit evidence fields in blueprint 25.4 are stored |
+| ER-3 | Records MUST stay readable and retrievable for the whole retention period, including after format or vendor change | Partial | retrieval over the retention period is not tested |
+| ER-4 | Using another party to retain does not shift liability (VD-3) | Partial | customers hold their own retention evidence; Checkpoint hosts through providers whose liability is not transferred (blueprint 25) |
+| ER-5 | Be able to support computer evidence: show the reliability of generation, storage and communication, integrity of the ... | Partial | evidence pack and system facts exist; no affidavit template |
+| ER-6 | Where consumer provisions commence, online sales MUST show supplier contact details, a description, the full price, ... | N/A | consumer provisions are not commenced and Checkpoint is business to business |
+| ER-7 | A signing feature MUST distinguish a recognised electronic signature (an advanced signature from an accredited ... | Pass | acknowledgements are kept as audit evidence, not signatures (blueprint 25.3); no signing feature |
+| AI-1 | An AI feature that handles customer data SHOULD have no tools: it returns a classification or a draft and nothing else, ... | Partial | Form AI is given no tools by construction; no test asserts it |
+| AI-2 | Mailboxes and channels that carry authentication messages or are people-only MUST never reach the model or its store | N/A | applies to the email inbox agent, not to Checkpoint |
+| AI-3 | Nothing is sent to a customer without a person approving it. The recipient is fixed by code and re-checked at send ... | N/A | applies to the email inbox agent, not to Checkpoint |
+| AI-4 | Untrusted text is delimited, cannot close its own delimiter, and instruction-like text is routed to a person. This is a ... | N/A | applies to the email inbox agent, not to Checkpoint |
+| AI-5 | Model output is validated against configuration; unknown categories fall back to human review; links outside an ... | N/A | applies to the email inbox agent, not to Checkpoint |
+| AI-6 | A per-sender daily cap and a per-hour model-call budget bound cost and flooding | N/A | applies to the email inbox agent, not to Checkpoint |
+| AI-7 | The model provider is a setting. A local model name is never sent to a hosted provider. Production requires HTTPS. No ... | Partial | Form AI provider is a gateway setting and receives no visitor data |
+| AI-8 | A decision that significantly affects a person MUST NOT rest solely on automated processing without a route to human ... | Pass | no decision about a person rests on automated processing (blueprint 3.2) |
+| AI-9 | A per-tenant AI setting MAY only narrow what the deployment allows, never widen it or bypass an operator-level disable | N/A | applies to the email inbox agent, not to Checkpoint |
+| AI-10 | Model, prompt and tool changes follow the same pull-request and CI path as code, with model versions pinned. Draft ... | Pass | prompts and models change only through the pull request and CI path |
+| AI-11 | AI provider keys are in the asset inventory with an owner, one key per service | Owner-gated | gateway key owner and one key per service are the owner's to record |
+| TP-1 | The template catalogue is data: trigger, variables, whether approval is required, brand, legal entity, signer and ... | Pass | template-catalog.spec.ts ties the catalogue to the seeded templates and callers |
+| TP-2 | Every interpolated value is escaped (AB-5). Each message has a language attribute, a title and a plain-text alternative | Pass | values are escaped (branded-email-layout.spec.ts); plain text is canonical, HTML is derived |
+| TP-3 | Mail MUST send only from mailboxes that exist and are owned. No invented sender addresses | Pass | mail is sent only from team@buffranalytics.com |
 | AS-1 | MUST choose the report type from the audience and the service (14.2), and write the choice down with the reason | Owner-gated | report type decision is the owner's |
-| AS-2 | MUST define the system boundary before assessment: the services, infrastructure, software, people, procedures and data ... | Not verified |  |
-| AS-3 | MUST prepare the system description and a management assertion that the description is fair and the controls are ... | Not verified |  |
-| AS-4 | MUST run a readiness assessment before engaging an examiner: for each criterion, is there a control, who owns it, and ... | Not verified |  |
-| AS-5 | Evidence MUST be relevant, reliable, timely and sufficient, produced on the day the control operates, and stored as a ... | Not verified |  |
-| AS-6 | MUST NOT start a Type 2 window while any blocker finding is open (a blocker is any finding that breaks a mandatory ... | Not verified |  |
-| AS-7 | For each vendor in the boundary, MUST record whether it is carved out (the examiner excludes it and lists the vendor's ... | Not verified |  |
+| AS-2 | MUST define the system boundary before assessment: the services, infrastructure, software, people, procedures and data ... | Partial | system boundary in blueprint 19.2 and docs/system-description.md |
+| AS-3 | MUST prepare the system description and a management assertion that the description is fair and the controls are ... | Owner-gated | management assertion is signed by the owner |
+| AS-4 | MUST run a readiness assessment before engaging an examiner: for each criterion, is there a control, who owns it, and ... | Partial | this register is the readiness assessment; an examiner has not seen it |
+| AS-5 | Evidence MUST be relevant, reliable, timely and sufficient, produced on the day the control operates, and stored as a ... | Partial | this register is the readiness assessment; an examiner has not seen it |
+| AS-6 | MUST NOT start a Type 2 window while any blocker finding is open (a blocker is any finding that breaks a mandatory ... | Partial | blocker findings closed in this programme (EN-2, LG-1); window not started |
+| AS-7 | For each vendor in the boundary, MUST record whether it is carved out (the examiner excludes it and lists the vendor's ... | Owner-gated | carve-out versus inclusive and bridge letters need the vendors' reports |
 | AS-8 | MUST list the complementary user-entity controls customers must run for the service to be secure (for example ... | Pass | published list in docs/system-description.md section 16 (publication on the website is pending) |
-| AS-9 | MUST investigate and record every exception raised by the examiner, with root cause and remediation, and track it to ... | Not verified |  |
-| AS-10 | A Type 2 report MUST be renewed annually; the monthly evidence close MUST continue between reports | Not verified |  |
-| AS-11 | Public wording MUST name the report type, the criteria, the period and the boundary. "SOC 2 compliant" is never used ... | Not verified |  |
-| VM-1 | Fix within SLA: critical 7 days, high 30, medium 90, low next release. A fix date is set when the finding is raised | Not verified |  |
-| VM-2 | Scan dependencies, code, secrets, containers and the running service on a schedule and on every change | Not verified |  |
-| VM-3 | Apply security patches to platforms and operating systems on the same SLA (control 8.8) | Not verified |  |
+| AS-9 | MUST investigate and record every exception raised by the examiner, with root cause and remediation, and track it to ... | Owner-gated | no examiner is engaged |
+| AS-10 | A Type 2 report MUST be renewed annually; the monthly evidence close MUST continue between reports | Owner-gated | no examiner is engaged |
+| AS-11 | Public wording MUST name the report type, the criteria, the period and the boundary. "SOC 2 compliant" is never used ... | Pass | marketing.test.ts blocks compliant, certified and guarantee wording |
+| VM-1 | Fix within SLA: critical 7 days, high 30, medium 90, low next release. A fix date is set when the finding is raised | Pass | fix times in SECURITY.md (critical 2 days, high 7, moderate 30) are stricter than the standard; npm audit has 0 findings |
+| VM-2 | Scan dependencies, code, secrets, containers and the running service on a schedule and on every change | Partial | dependency audit, secret scan, Semgrep, knip in CI; no scan of the running service |
+| VM-3 | Apply security patches to platforms and operating systems on the same SLA (control 8.8) | Partial | managed platforms patch their own layers (Annex B 8.8) |
 | VM-4 | Penetration test critical systems at least once every three years (PSD-12 11.3) and after any major change; keep threat ... | Owner-gated | external penetration test must be commissioned |
-| KG-1 | The governing body MUST have a written charter covering its role, membership and conduct, reviewed regularly (P1, ... | Not verified |  |
-| KG-2 | Ethics: approve a code of conduct addressing the main ethics risks, publish it, include it in contracts and induction, ... | Not verified |  |
-| KG-3 | Risk: approve the risk appetite and the limit of loss the organisation can tolerate, approve the risk policy, oversee ... | Not verified |  |
-| KG-4 | Compliance: approve a compliance policy that names the laws and also the non-binding rules, codes and standards the ... | Not verified |  |
-| KG-5 | Information and technology: approve information strategy and policy, ensure information is secured, controlled and of ... | Not verified |  |
-| KG-6 | Data: structure data across collection, storage, use, sharing and disposal; prevent leaks; comply with privacy law; ... | Not verified |  |
-| KG-7 | Emerging technology: every AI system the organisation buys, builds, uses or sells meets appropriate ethical and ... | Not verified |  |
-| KG-8 | Assurance: operate a combined-assurance model across management, risk and compliance functions and internal and ... | Not verified |  |
-| KG-9 | Stakeholders: identify material stakeholders, manage stakeholder risk, give them formal channels and dispute ... | Not verified |  |
-| KG-10 | Reporting: approve the reports issued, ensure their integrity, and disclose on an "apply and explain" basis: the ... | Not verified |  |
-| GP-1 | MUST record, for each product, which regimes apply by whose data it processes (Namibia, South Africa, EU or EEA) and ... | Not verified |  |
+| KG-1 | The governing body MUST have a written charter covering its role, membership and conduct, reviewed regularly (P1, ... | Owner-gated | board duty: the owner approves and minutes it; drafts exist in the blueprint |
+| KG-2 | Ethics: approve a code of conduct addressing the main ethics risks, publish it, include it in contracts and induction, ... | Owner-gated | board duty: the owner approves and minutes it; drafts exist in the blueprint |
+| KG-3 | Risk: approve the risk appetite and the limit of loss the organisation can tolerate, approve the risk policy, oversee ... | Owner-gated | board duty: the owner approves and minutes it; drafts exist in the blueprint |
+| KG-4 | Compliance: approve a compliance policy that names the laws and also the non-binding rules, codes and standards the ... | Owner-gated | board duty: the owner approves and minutes it; drafts exist in the blueprint |
+| KG-5 | Information and technology: approve information strategy and policy, ensure information is secured, controlled and of ... | Owner-gated | board duty: the owner approves and minutes it; drafts exist in the blueprint |
+| KG-6 | Data: structure data across collection, storage, use, sharing and disposal; prevent leaks; comply with privacy law; ... | Partial | data lifecycle matrix in blueprint 8.7 |
+| KG-7 | Emerging technology: every AI system the organisation buys, builds, uses or sells meets appropriate ethical and ... | Partial | AI inventory and controls in docs/system-description.md section 14 |
+| KG-8 | Assurance: operate a combined-assurance model across management, risk and compliance functions and internal and ... | Owner-gated | board duty: the owner approves and minutes it; drafts exist in the blueprint |
+| KG-9 | Stakeholders: identify material stakeholders, manage stakeholder risk, give them formal channels and dispute ... | Owner-gated | board duty: the owner approves and minutes it; drafts exist in the blueprint |
+| KG-10 | Reporting: approve the reports issued, ensure their integrity, and disclose on an "apply and explain" basis: the ... | Owner-gated | board duty: the owner approves and minutes it; drafts exist in the blueprint |
+| GP-1 | MUST record, for each product, which regimes apply by whose data it processes (Namibia, South Africa, EU or EEA) and ... | Partial | applicability table in docs/system-description.md section 19 |
 | GP-2 | MUST appoint a named privacy lead (information officer / data protection officer role) with a direct reporting line to ... | Owner-gated | appointment is the owner's |
-| GP-3 | MUST export, on request, the data a person supplied or generated through use, in a structured, commonly used, ... | Not verified |  |
-| GP-4 | MUST notify the South African Information Regulator and affected people as soon as reasonably possible after a ... | Not verified |  |
-| GP-5 | MUST document a legitimate-interests assessment (purpose, necessity, balancing test, safeguards) before relying on that ... | Not verified |  |
-| GP-6 | MUST run a transfer impact assessment and put a written safeguard (standard contractual clauses or equivalent) in place ... | Not verified |  |
+| GP-3 | MUST export, on request, the data a person supplied or generated through use, in a structured, commonly used, ... | Partial | data request export produces data.json and visits.csv (dsar.service.ts); no dedicated portability test |
+| GP-4 | MUST notify the South African Information Regulator and affected people as soon as reasonably possible after a ... | Partial | 72 hour clock in docs/incident-response.md; South African regulator contact is the owner's |
+| GP-5 | MUST document a legitimate-interests assessment (purpose, necessity, balancing test, safeguards) before relying on that ... | Owner-gated | a legitimate-interests assessment is the controller's for each purpose |
+| GP-6 | MUST run a transfer impact assessment and put a written safeguard (standard contractual clauses or equivalent) in place ... | Owner-gated | transfer assessments need vendor facts (31 item 15) |
 | GP-7 | MUST register with each regulator that requires it, and record the registration number and renewal date | Owner-gated | registrations are the owner's |
-| GP-8 | MUST re-check this section against the final Namibian Act on enactment and at least twice a year until then | Not verified |  |
+| GP-8 | MUST re-check this section against the final Namibian Act on enactment and at least twice a year until then | Owner-gated | twice-a-year re-check of the Namibian draft is the owner's; next due 2027-03 |
 | AIG-1 | MUST keep an AI inventory: every model and AI feature, purpose, owner, provider, data used, deployment, risk tier ... | Pass | AI inventory in docs/system-description.md section 14 |
 | AIG-2 | MUST classify each system before build against the EU tiers (17.2) and the internal tiers: customer-affecting decision ... | Pass | classified minimal in docs/system-description.md section 14 |
-| AIG-3 | MUST approve AI policy, risk appetite for AI and the AI inventory at board or top-management level, and receive AI risk ... | Not verified |  |
-| AIG-4 | MUST apply the lifecycle controls Govern, Map, Measure, Manage: a named accountable owner; documented context, intended ... | Not verified |  |
-| AIG-5 | MUST document data provenance and quality for training, evaluation and retrieval data: source, lawful basis, consent or ... | Not verified |  |
-| AIG-6 | MUST test for harmful bias on the groups the system could affect, before release and after every material change, ... | Not verified |  |
-| AIG-7 | MUST complete a DPIA (PR-11) and, for EU high-risk credit decisions, an impact assessment on fundamental rights before ... | Not verified |  |
-| AIG-8 | A decision with legal or similarly significant effect on a person MUST NOT rest solely on automated processing. The ... | Not verified |  |
-| AIG-9 | Human oversight MUST be designed in, proportionate to risk: overseers understand the capabilities and limits, can ... | Not verified |  |
-| AIG-10 | MUST log the inputs reference, model and version, prompt version, output, human action and reason for every AI-assisted ... | Not verified |  |
-| AIG-11 | MUST monitor in production: accuracy, drift, error and complaint rates, bias metrics, abuse and cost. A threshold ... | Not verified |  |
+| AIG-3 | MUST approve AI policy, risk appetite for AI and the AI inventory at board or top-management level, and receive AI risk ... | Owner-gated | AI policy and risk appetite approval is the owner's |
+| AIG-4 | MUST apply the lifecycle controls Govern, Map, Measure, Manage: a named accountable owner; documented context, intended ... | Partial | Form AI has an owner and a kill switch; no lifecycle record |
+| AIG-5 | MUST document data provenance and quality for training, evaluation and retrieval data: source, lawful basis, consent or ... | N/A | no training, evaluation or retrieval data is used |
+| AIG-6 | MUST test for harmful bias on the groups the system could affect, before release and after every material change, ... | N/A | no AI system affects a person |
+| AIG-7 | MUST complete a DPIA (PR-11) and, for EU high-risk credit decisions, an impact assessment on fundamental rights before ... | N/A | no AI system affects a person |
+| AIG-8 | A decision with legal or similarly significant effect on a person MUST NOT rest solely on automated processing. The ... | Pass | no decision rests solely on automation |
+| AIG-9 | Human oversight MUST be designed in, proportionate to risk: overseers understand the capabilities and limits, can ... | N/A | no AI system affects a person |
+| AIG-10 | MUST log the inputs reference, model and version, prompt version, output, human action and reason for every AI-assisted ... | Partial | Form AI audit actions are logged without prompts or responses |
+| AIG-11 | MUST monitor in production: accuracy, drift, error and complaint rates, bias metrics, abuse and cost. A threshold ... | Partial | cost and abuse are bounded by the kill switch; no drift metrics because there is no model decision |
 | AIG-12 | MUST provide a kill switch that disables an AI feature without a deployment, and fall back to a non-AI path | Pass | FORM_AI_ENABLED kill switch |
-| AIG-13 | MUST disclose AI use: tell people when they interact with an AI system, label synthetic content, and mark generated ... | Not verified |  |
-| AIG-14 | MUST hold the provider documentation for bought or hosted models and general-purpose AI (model card, training-data ... | Not verified |  |
-| AIG-15 | AI incidents (harmful output, discrimination, data leakage, a successful injection, a failed oversight) MUST enter the ... | Not verified |  |
-| AIG-16 | MUST train every person who builds or operates AI on its limits, bias, injection risks and acceptable use, yearly | Not verified |  |
-| AIG-17 | Section 12 controls apply to every system that handles customer data | Not verified |  |
-| XA-1 | Every AI-assisted decision about a person MUST store a machine-readable reason: the factors, their weight or direction, ... | Not verified |  |
-| XA-2 | Explanations MUST be faithful: produced from the actual factors of the decision, not a story written afterwards. A ... | Not verified |  |
-| XA-3 | On request, the person MUST receive a clear and meaningful explanation of the decision, the main factors and how to ... | Not verified |  |
-| XA-4 | Prefer an inherently interpretable model (rules, scorecards, linear or tree models) when it meets the accuracy need for ... | Not verified |  |
-| XA-5 | Overseers MUST get interpretation tools: confidence or uncertainty with its limits stated, the main contributing ... | Not verified |  |
-| XA-6 | Explanations MUST NOT expose another person's data, trade secrets beyond what the person needs, or information that ... | Not verified |  |
-| XA-7 | Technical documentation (EU AI Act Art 11) and the model card MUST be kept for each high-risk system: purpose, design, ... | Not verified |  |
-| XA-8 | Test explanation quality: a sample of explanations is read by someone outside the build team each quarter and by a ... | Not verified |  |
-| API-1 | Choose the paradigm by use. REST for resource APIs consumed by browsers and mobile apps (stateless, standard methods, ... | Not verified |  |
-| API-2 | Name resources as plural nouns and map CRUD to methods: `POST /products` create, `GET /products` list, `GET ... | Not verified |  |
-| API-3 | `GET` MUST be safe and idempotent: it never changes state. State changes use `POST`, `PUT`, `PATCH` or `DELETE` | Not verified |  |
-| API-4 | Money-moving and create calls MUST accept a client-generated idempotency key (MP-1) | Not verified |  |
-| API-5 | Every list endpoint MUST paginate with a bounded maximum page size (`limit`, and an `offset` or an opaque cursor) and ... | Not verified |  |
-| API-6 | Version from the first release (`/v1/...`). Changes are backward compatible: add fields and endpoints, never remove or ... | Gap | no /v1 prefix; Phase 9 |
-| API-7 | Return correct status codes and a uniform error body (stable error code, message, request identifier) with no stack ... | Not verified | Phase 9 |
-| API-8 | Rate-limit per client and per route (AB-1), set CORS from an allow-list (HD-2), and enforce request size and timeout ... | Not verified |  |
-| API-9 | GraphQL MUST limit query depth, complexity and batch size, disable introspection in production for private APIs, and ... | Not verified |  |
-| API-10 | gRPC and WebSocket channels MUST use TLS and authenticate each connection and each message that changes state | Not verified |  |
-| API-11 | Every endpoint MUST check authentication, then authorisation on the specific object and field (AZ-1, AZ-9). Never trust ... | Not verified |  |
-| API-12 | No secret, token, national ID or personal data in URLs, query strings or logs; use headers and bodies | Not verified |  |
-| API-13 | Document every endpoint in an OpenAPI (or schema) contract that is the source of tests, clients and review; the ... | Gap | Phase 9 |
-| API-14 | Use a consistent format: JSON with ISO 8601 UTC timestamps, `NUMERIC` money serialised as strings with a currency code, ... | Not verified |  |
-| API-15 | Webhooks MUST be signed with a per-sender secret, carry a timestamp and event identifier, be idempotent to receive, and ... | Not verified |  |
+| AIG-13 | MUST disclose AI use: tell people when they interact with an AI system, label synthetic content, and mark generated ... | Partial | the admin form-builder labels AI suggestions as suggestions |
+| AIG-14 | MUST hold the provider documentation for bought or hosted models and general-purpose AI (model card, training-data ... | Owner-gated | provider model documents for the gateway model must be requested and filed |
+| AIG-15 | AI incidents (harmful output, discrimination, data leakage, a successful injection, a failed oversight) MUST enter the ... | Pass | AI scenarios are in docs/incident-response.md |
+| AIG-16 | MUST train every person who builds or operates AI on its limits, bias, injection risks and acceptable use, yearly | Owner-gated | AI training records are the owner's |
+| AIG-17 | Section 12 controls apply to every system that handles customer data | Partial | Form AI sees no customer data |
+| XA-1 | Every AI-assisted decision about a person MUST store a machine-readable reason: the factors, their weight or direction, ... | N/A | no AI-assisted decision about a person |
+| XA-2 | Explanations MUST be faithful: produced from the actual factors of the decision, not a story written afterwards. A ... | N/A | no AI-assisted decision about a person |
+| XA-3 | On request, the person MUST receive a clear and meaningful explanation of the decision, the main factors and how to ... | N/A | no AI-assisted decision about a person |
+| XA-4 | Prefer an inherently interpretable model (rules, scorecards, linear or tree models) when it meets the accuracy need for ... | N/A | no AI-assisted decision about a person |
+| XA-5 | Overseers MUST get interpretation tools: confidence or uncertainty with its limits stated, the main contributing ... | N/A | no AI-assisted decision about a person |
+| XA-6 | Explanations MUST NOT expose another person's data, trade secrets beyond what the person needs, or information that ... | N/A | no AI-assisted decision about a person |
+| XA-7 | Technical documentation (EU AI Act Art 11) and the model card MUST be kept for each high-risk system: purpose, design, ... | N/A | no AI-assisted decision about a person |
+| XA-8 | Test explanation quality: a sample of explanations is read by someone outside the build team each quarter and by a ... | N/A | no AI-assisted decision about a person |
+| API-1 | Choose the paradigm by use. REST for resource APIs consumed by browsers and mobile apps (stateless, standard methods, ... | Pass | REST by decision (blueprint 13.2); gateway and real-time needs are not present |
+| API-2 | Name resources as plural nouns and map CRUD to methods: `POST /products` create, `GET /products` list, `GET ... | Partial | plural resource nouns in most routes; the route contract lists every path |
+| API-3 | `GET` MUST be safe and idempotent: it never changes state. State changes use `POST`, `PUT`, `PATCH` or `DELETE` | Partial | reads are not meant to change state; no automated check |
+| API-4 | Money-moving and create calls MUST accept a client-generated idempotency key (MP-1) | Partial | visit check-in takes a client key; other create calls do not |
+| API-5 | Every list endpoint MUST paginate with a bounded maximum page size (`limit`, and an `offset` or an opaque cursor) and ... | Partial | list endpoints cap page size in services; no uniform cap test |
+| API-6 | Version from the first release (`/v1/...`). Changes are backward compatible: add fields and endpoints, never remove or ... | Pass | routes answer neutral and under /v1 (api-versioning.spec.ts), deployed 2026-10-09; deprecation date for unversioned paths to be published when clients move |
+| API-7 | Return correct status codes and a uniform error body (stable error code, message, request identifier) with no stack ... | Pass | uniform-error.filter.spec.ts: stable code, message, requestId, no stack, SQL or path |
+| API-8 | Rate-limit per client and per route (AB-1), set CORS from an allow-list (HD-2), and enforce request size and timeout ... | Partial | throttle per route, CORS allow-list, body limit from the framework; no timeout setting |
+| API-9 | GraphQL MUST limit query depth, complexity and batch size, disable introspection in production for private APIs, and ... | N/A | no GraphQL or gRPC endpoints exist |
+| API-10 | gRPC and WebSocket channels MUST use TLS and authenticate each connection and each message that changes state | N/A | no GraphQL or gRPC endpoints exist |
+| API-11 | Every endpoint MUST check authentication, then authorisation on the specific object and field (AZ-1, AZ-9). Never trust ... | Pass | authentication then permission on every route (route audit), organisation scope on objects (tenant-isolation e2e), unknown fields rejected |
+| API-12 | No secret, token, national ID or personal data in URLs, query strings or logs; use headers and bodies | Partial | visitor sign-out and rating links carry a signed single-purpose token in the path by design; nothing else puts a secret in a URL |
+| API-13 | Document every endpoint in an OpenAPI (or schema) contract that is the source of tests, clients and review; the ... | Partial | route contract generated from controllers and checked in CI (docs/api-route-contract.json, 388 routes); request and response schemas are not in it |
+| API-14 | Use a consistent format: JSON with ISO 8601 UTC timestamps, `NUMERIC` money serialised as strings with a currency code, ... | Partial | JSON with UTC timestamps and money as strings; no schema test |
+| API-15 | Webhooks MUST be signed with a per-sender secret, carry a timestamp and event identifier, be idempotent to receive, and ... | Partial | Adumo notifications are signed tokens verified once; no other webhooks are sent |
 | DB-1 | Do: Put a type, status or category in `type_definition` and store its `code` | Pass | CI guard: zero CHECK constraints |
-| DB-2 | Do: Use a `type_code` column when two tables differ only by a label | Not verified |  |
-| DB-3 | Do: Create the `_status_log` table in the same migration as the entity | Not verified |  |
-| DB-4 | Do: Make log and ledger rows immutable and correct with a new row | Not verified |  |
+| DB-2 | Do: Use a `type_code` column when two tables differ only by a label | Pass | type_code columns with type_definition rows (schema guard: 0 enums) |
+| DB-3 | Do: Create the `_status_log` table in the same migration as the entity | Pass | status logs exist beside every stateful table (schema review at each migration; CI guard on enums and triggers) |
+| DB-4 | Do: Make log and ledger rows immutable and correct with a new row | Pass | schema guard: 0 updated_at columns on log and event tables |
 | DB-5 | Do: Move every transition and cascade effect into application code with the transition registry (AZ-8) | Pass | CI guard: zero triggers, zero cascades |
-| DB-6 | Do: Store money as `NUMERIC(15,2)` (rates `NUMERIC(15,4)`) with `currency_code CHAR(3)` | Not verified |  |
-| DB-7 | Do: Generate UUID primary keys in the client before the write so retries are idempotent | Not verified |  |
-| DB-8 | Do: Soft-delete with `deleted_at`, and erase personal fields in the same workflow when erasure applies (DL-14) | Not verified |  |
-| DB-9 | Do: Put the tenancy column on every operational table and start every index with it; make active-record indexes partial ... | Not verified |  |
-| DB-10 | Do: Write migrations forward-only, additive and idempotent; refuse to run an edited, already-applied file | Not verified |  |
-| DB-11 | Do: Use declarative row-level security as an extra layer | Not verified |  |
-| DB-12 | Do: Give the application role only the privileges it needs; INSERT and SELECT only on log and ledger tables (LG-1) | Not verified |  |
-| DB-13 | Do: Parameterise every query (CI-11) | Not verified |  |
-| DB-14 | Do: Encrypt Restricted fields (EN-2) and keep keyed lookup hashes (EN-3) | Not verified |  |
-| DB-15 | Do: Record the data class and personal-data flag for each column in the inventory (PR-10) | Not verified |  |
-| DB-16 | Do: Have a person design the core schema, tenancy model, ledger and permissions | Not verified |  |
-| DB-17 | Do: Name tables, columns and constraints by what they hold or do (section 20) | Not verified |  |
-| NM-1 | Name every identifier by its function or purpose: tables, columns, services, modules, classes, functions, API routes, ... | Not verified |  |
-| NM-2 | A source name is allowed only where the artefact is the source: a row in a table of instruments or documents, a vendor ... | Not verified |  |
-| NM-3 | Keep source references in data, not in names. A rule, control or document type carries its origin in attributes such as ... | Not verified |  |
-| NM-4 | Each artefact has one capability. Split along seams where the two halves would change for different reasons, on ... | Not verified |  |
-| NM-5 | Write the capability sentence for every module, service, table and route before naming it ("validates a fee against its ... | Not verified |  |
-| NM-6 | Before building, search by behaviour as well as by name. If the capability exists under another name, extend it. Merge ... | Not verified |  |
-| NM-7 | Never delete on suspicion. An artefact with no static reference can still be reached through a string-built name, a ... | Not verified |  |
-| NM-8 | Rename safely. Produce a mapping file (old identifier, new identifier, kind, reason) and commit it with the change. ... | Not verified |  |
-| NM-9 | Keep a source-name dictionary: source document names, standard and instrument codes (for example `PSD-\d+`, `ISO\d+`, ... | Gap | Phase 8 |
-| NM-10 | A rename is complete only when: build, type check and tests pass. No reference to the old name remains outside the ... | Not verified |  |
-| NM-11 | A rename never redesigns. Schema shape, tenancy, ledger structure and permission models stay with the person who owns ... | Not verified |  |
-| NM-12 | Findings from a naming review go into the findings register as rows, not into a new dated report file | Not verified |  |
-| WR-1 | Use clear, simple language. Prefer a plain word over a polished one. Address the reader as "you" | Not verified |  |
-| WR-2 | Vary sentence length and paragraph length. A long sentence is fine if it earns its length. Three or more neighbouring ... | Not verified |  |
-| WR-3 | Use the active voice. Put a concrete subject in front of the verb | Not verified |  |
-| WR-4 | Back every claim with a number, a name, a date or an example. A generic claim with nothing behind it gets cut or fixed | Not verified |  |
-| WR-5 | Take a position when the evidence supports one. Do not present two sides as equal when they are not | Not verified |  |
-| WR-6 | Give practical, actionable content before abstract statements | Not verified |  |
-| WR-7 | Repeat a plain word when it fits. Do not swap in a synonym to avoid repetition | Not verified |  |
-| WR-8 | Add only the context and caveats the reader needs to understand the point | Not verified |  |
-| WR-9 | No em dashes. Use a comma, a full stop or brackets | Not verified |  |
-| WR-10 | No semicolons. Split the sentence or use a comma | Not verified |  |
-| WR-11 | No emojis and no hashtags | Not verified |  |
-| WR-12 | No contrast formulas: "not just X but also Y", "It's not X. It's Y.", or a repeated "While X, Y" | Not verified |  |
-| WR-13 | No rhetorical questions as transitions. No fake conversational lead-ins ("Here's the thing", "Think about it", "Let ... | Not verified |  |
-| WR-14 | No dramatic one-line fragments placed for emphasis | Not verified |  |
-| WR-15 | No setup or wrap-up phrases ("In conclusion", "The key takeaway"). Do not restate the question before answering. Do not ... | Not verified |  |
-| WR-16 | No filler sentence whose only job is to bridge to the next point. No explaining an implication the reader already sees | Not verified |  |
-| WR-17 | No forced groups of three. No bullets that all follow one grammatical pattern. Let some paragraphs sit next to each ... | Not verified |  |
-| WR-18 | No hedging or over-qualification. State a verified fact as a fact. State an unverified fact once, in one short sentence ... | Not verified |  |
-| WR-19 | Use headings only where the reader needs them, and never generic ones such as "Key Takeaways". Use bullets only where ... | Not verified |  |
-| WR-20 | Do not use markdown symbols in text that will be pasted into a plain-text channel (email body, SMS, notice) | Not verified |  |
-| WR-21 | Style rules never remove a required disclosure. Where the law or this standard requires telling a person they are ... | Not verified |  |
-| WR-22 | Plain does not mean overclaiming. Claim language stays within section 1 and AS-11. Regulator-facing and client-facing ... | Not verified |  |
-| WR-23 | When asked to rewrite a piece of text, return only the finished text, with no preface and no list of changes, unless ... | Not verified |  |
-| WR-24 | A lint rule over the copy modules fails the build on an em dash, a semicolon, an emoji or a banned word. The lint ... | Gap | Phase 8 |
-| CR-1 | Every change reaches the default branch through a pull request with at least one approving reviewer who did not write ... | Not verified |  |
-| CR-2 | Run automated checks first (format, lint, types, tests, scans, schema guard) so people review design, correctness and ... | Not verified |  |
-| CR-3 | Keep a change reviewable: about 400 changed lines or fewer, one purpose, one capability. Larger work splits into steps ... | Not verified |  |
-| CR-4 | The author self-reviews first and states in the description: what changed, why, how it was tested, what could break, ... | Not verified |  |
-| CR-5 | The reviewer checks, at least: correctness and edge cases; security against this standard (authorisation, validation, ... | Not verified |  |
+| DB-6 | Do: Store money as `NUMERIC(15,2)` (rates `NUMERIC(15,4)`) with `currency_code CHAR(3)` | Pass | schema guard: 0 float money columns and 0 money columns outside NUMERIC(15,2) |
+| DB-7 | Do: Generate UUID primary keys in the client before the write so retries are idempotent | Pass | identifiers are client-generated UUIDs; tables have no serial keys |
+| DB-8 | Do: Soft-delete with `deleted_at`, and erase personal fields in the same workflow when erasure applies (DL-14) | Partial | soft delete everywhere; erasure of personal fields by the deletion workflow and visit disposition |
+| DB-9 | Do: Put the tenancy column on every operational table and start every index with it; make active-record indexes partial ... | Pass | schema guard: every organisation_id table has an index that leads with it |
+| DB-10 | Do: Write migrations forward-only, additive and idempotent; refuse to run an edited, already-applied file | Pass | forward-only, additive, idempotent migrations replayed on an empty database in CI |
+| DB-11 | Do: Use declarative row-level security as an extra layer | Owner-gated | declarative row-level security needs the tenancy design approved (AZ-4) |
+| DB-12 | Do: Give the application role only the privileges it needs; INSERT and SELECT only on log and ledger tables (LG-1) | Pass | runtime role has no UPDATE or DELETE on log tables; CI step and production check |
+| DB-13 | Do: Parameterise every query (CI-11) | Pass | parameterised queries only (CI-11) |
+| DB-14 | Do: Encrypt Restricted fields (EN-2) and keep keyed lookup hashes (EN-3) | Pass | envelopes re-encrypted under PERSONAL_DATA_KEY (EN-2); keyed HMAC lookups |
+| DB-15 | Do: Record the data class and personal-data flag for each column in the inventory (PR-10) | Pass | every table and column carries a comment with its data class (migrations 0078, 0079; schema guard) |
+| DB-16 | Do: Have a person design the core schema, tenancy model, ledger and permissions | Pass | core schema, tenancy and permission models were signed off by the owner |
+| DB-17 | Do: Name tables, columns and constraints by what they hold or do (section 20) | Pass | scripts/naming-scan.mjs: 0 source-name hits in 1898 identifiers |
+| NM-1 | Name every identifier by its function or purpose: tables, columns, services, modules, classes, functions, API routes, ... | Pass | scripts/naming-scan.mjs runs in CI |
+| NM-2 | A source name is allowed only where the artefact is the source: a row in a table of instruments or documents, a vendor ... | Pass | allow-list entries carry a reason (scripts/naming-dictionary.json) |
+| NM-3 | Keep source references in data, not in names. A rule, control or document type carries its origin in attributes such as ... | Pass | source codes live in data (type_definition, capability register), not in names |
+| NM-4 | Each artefact has one capability. Split along seams where the two halves would change for different reasons, on ... | Partial | capability-named modules (blueprint 13.3); no automated check of single capability |
+| NM-5 | Write the capability sentence for every module, service, table and route before naming it ("validates a fee against its ... | Partial | capability sentences exist in docstrings for new units; older code is covered by the docstring ratchet |
+| NM-6 | Before building, search by behaviour as well as by name. If the capability exists under another name, extend it. Merge ... | Partial | practice, recorded in pull requests; no tooling |
+| NM-7 | Never delete on suspicion. An artefact with no static reference can still be reached through a string-built name, a ... | Partial | practice, recorded in pull requests; no tooling |
+| NM-8 | Rename safely. Produce a mapping file (old identifier, new identifier, kind, reason) and commit it with the change. ... | Partial | practice, recorded in pull requests; no tooling |
+| NM-9 | Keep a source-name dictionary: source document names, standard and instrument codes (for example `PSD-\d+`, `ISO\d+`, ... | Pass | scripts/naming-scan.mjs with scripts/naming-dictionary.json runs in CI; 0 hits in 1898 identifiers |
+| NM-10 | A rename is complete only when: build, type check and tests pass. No reference to the old name remains outside the ... | Partial | practice, recorded in pull requests; no tooling |
+| NM-11 | A rename never redesigns. Schema shape, tenancy, ledger structure and permission models stay with the person who owns ... | Partial | practice, recorded in pull requests; no tooling |
+| NM-12 | Findings from a naming review go into the findings register as rows, not into a new dated report file | Pass | findings are rows in workspace-ops, not report files |
+| WR-1 | Use clear, simple language. Prefer a plain word over a polished one. Address the reader as "you" | Partial | followed when copy is written; no automated check beyond the hard rules |
+| WR-2 | Vary sentence length and paragraph length. A long sentence is fine if it earns its length. Three or more neighbouring ... | Partial | followed when copy is written; no automated check beyond the hard rules |
+| WR-3 | Use the active voice. Put a concrete subject in front of the verb | Partial | followed when copy is written; no automated check beyond the hard rules |
+| WR-4 | Back every claim with a number, a name, a date or an example. A generic claim with nothing behind it gets cut or fixed | Partial | followed when copy is written; no automated check beyond the hard rules |
+| WR-5 | Take a position when the evidence supports one. Do not present two sides as equal when they are not | Partial | followed when copy is written; no automated check beyond the hard rules |
+| WR-6 | Give practical, actionable content before abstract statements | Partial | followed when copy is written; no automated check beyond the hard rules |
+| WR-7 | Repeat a plain word when it fits. Do not swap in a synonym to avoid repetition | Partial | followed when copy is written; no automated check beyond the hard rules |
+| WR-8 | Add only the context and caveats the reader needs to understand the point | Partial | followed when copy is written; no automated check beyond the hard rules |
+| WR-9 | No em dashes. Use a comma, a full stop or brackets | Pass | quality-ratchet.mjs: 0 em dashes in copy strings |
+| WR-10 | No semicolons. Split the sentence or use a comma | Pass | quality-ratchet.mjs: 0 semicolons in copy strings |
+| WR-11 | No emojis and no hashtags | Pass | quality-ratchet.mjs: 0 emoji in copy strings; Biome and review keep code clean |
+| WR-12 | No contrast formulas: "not just X but also Y", "It's not X. It's Y.", or a repeated "While X, Y" | Partial | followed when copy is written; no automated check beyond the hard rules |
+| WR-13 | No rhetorical questions as transitions. No fake conversational lead-ins ("Here's the thing", "Think about it", "Let ... | Partial | followed when copy is written; no automated check beyond the hard rules |
+| WR-14 | No dramatic one-line fragments placed for emphasis | Partial | followed when copy is written; no automated check beyond the hard rules |
+| WR-15 | No setup or wrap-up phrases ("In conclusion", "The key takeaway"). Do not restate the question before answering. Do not ... | Partial | followed when copy is written; no automated check beyond the hard rules |
+| WR-16 | No filler sentence whose only job is to bridge to the next point. No explaining an implication the reader already sees | Partial | followed when copy is written; no automated check beyond the hard rules |
+| WR-17 | No forced groups of three. No bullets that all follow one grammatical pattern. Let some paragraphs sit next to each ... | Partial | followed when copy is written; no automated check beyond the hard rules |
+| WR-18 | No hedging or over-qualification. State a verified fact as a fact. State an unverified fact once, in one short sentence ... | Partial | followed when copy is written; no automated check beyond the hard rules |
+| WR-19 | Use headings only where the reader needs them, and never generic ones such as "Key Takeaways". Use bullets only where ... | Partial | followed when copy is written; no automated check beyond the hard rules |
+| WR-20 | Do not use markdown symbols in text that will be pasted into a plain-text channel (email body, SMS, notice) | Partial | followed when copy is written; no automated check beyond the hard rules |
+| WR-21 | Style rules never remove a required disclosure. Where the law or this standard requires telling a person they are ... | Pass | required disclosures stay in the copy modules (marketing.test.ts) |
+| WR-22 | Plain does not mean overclaiming. Claim language stays within section 1 and AS-11. Regulator-facing and client-facing ... | Partial | followed when copy is written; no automated check beyond the hard rules |
+| WR-23 | When asked to rewrite a piece of text, return only the finished text, with no preface and no list of changes, unless ... | Partial | followed when copy is written; no automated check beyond the hard rules |
+| WR-24 | A lint rule over the copy modules fails the build on an em dash, a semicolon, an emoji or a banned word. The lint ... | Partial | em dash, semicolon and emoji are hard errors in CI; banned words are a falling ratchet (77 today) |
+| CR-1 | Every change reaches the default branch through a pull request with at least one approving reviewer who did not write ... | Partial | pull requests are required on main (applied 2026-10-09) with code owner review; the owner is the only committer |
+| CR-2 | Run automated checks first (format, lint, types, tests, scans, schema guard) so people review design, correctness and ... | Pass | required status checks on main |
+| CR-3 | Keep a change reviewable: about 400 changed lines or fewer, one purpose, one capability. Larger work splits into steps ... | Partial | practice; no size report |
+| CR-4 | The author self-reviews first and states in the description: what changed, why, how it was tested, what could break, ... | Pass | .github/pull_request_template.md carries the evidence checklist |
+| CR-5 | The reviewer checks, at least: correctness and edge cases; security against this standard (authorisation, validation, ... | Partial | checklist items are in the template; reviewer is the owner |
 | CR-6 | Label each comment: blocker (must fix before merge), major (fix before release), minor, or nit (optional). Blockers and ... | Partial | fixes made in the same pass and recorded here |
-| CR-7 | Prove a claim with evidence: a diff, a test run, a query result, a probe. "Looks good" is not a review result | Not verified |  |
-| CR-8 | AI-generated or AI-assisted code gets the same review as any other. A named person is accountable for it. The reviewer ... | Not verified |  |
-| CR-9 | Reviews finish within an agreed time (one working day for a small change). A stalled review is escalated, not bypassed. ... | Not verified |  |
-| CR-10 | Measure review health: median time to first review, change size, share of changes with a blocker found, and defects ... | Not verified |  |
-| DC-1 | Remove dead code. Do not comment it out and do not leave it "just in case". Version history keeps it | Not verified |  |
-| DC-2 | Run dead-code detection on every pull request and on a schedule: unused exports and files (for example `knip` or ... | Gap | Phase 8 |
-| DC-3 | Prove absence of use before deleting (NM-7). A static search is not enough. Also check string-built names, config ... | Not verified |  |
-| DC-4 | Deprecate first, delete later. Mark the artefact deprecated with the removal release, stop new use, observe one release ... | Not verified |  |
-| DC-5 | Every feature flag has an owner, a purpose and an expiry date. Remove the flag and the losing branch within 30 days of ... | Not verified |  |
-| DC-6 | Remove unused dependencies and lockfile entries. Fewer packages mean a smaller attack surface and fewer advisories ... | Not verified |  |
-| DC-7 | Unused database tables and columns: stop writes, confirm no reads over a defined window, deprecate with a view if ... | Not verified |  |
-| DC-8 | Delete the tests, fixtures, docs and configuration of removed code in the same change. A test that exists only to cover ... | Not verified |  |
-| DC-9 | A TODO or FIXME has an owner, a date and a reference. One older than 90 days is resolved, converted into a tracked ... | Not verified |  |
-| DC-10 | One removal per commit, with the build and tests green after each. A removal that changes behaviour was not a removal, ... | Not verified |  |
-| DC-11 | Keep a technical-debt register: item, owner, risk, cost to fix, date raised, review date. Review it each quarter and ... | Not verified |  |
-| DR-1 | Each rule, constant, list, price, limit, message or schema fact has one authoritative home: a config table row, a ... | Not verified |  |
-| DR-2 | Fixed lists live in the configuration table (section 19), user-facing text in the copy modules (section 21), and limits ... | Not verified |  |
-| DR-3 | Shared cross-cutting behaviour (authentication, logging, money arithmetic, idempotency, error shape, incident ... | Not verified |  |
-| DR-4 | Run a duplication detector in CI (for example `jscpd`) with a threshold. A new block of 15 lines or more repeated ... | Gap | Phase 8 |
-| DR-5 | Apply the rule of three. Tolerate a first and second copy. On the third, extract the shared part with a name drawn from ... | Not verified |  |
-| DR-6 | Do not merge coincidental duplication. Two pieces of code that look alike but change for different reasons stay ... | Not verified |  |
-| DR-7 | Generate clients, types and documentation from the contract (API-13) and the schema, instead of writing them twice | Not verified |  |
-| KS-1 | Do the simplest thing that works and meets the requirements of this standard. Prefer plain code, standard library ... | Not verified |  |
-| KS-2 | YAGNI: build for the requirement in front of you. No feature, option, hook, abstraction layer or configuration knob for ... | Not verified |  |
-| KS-3 | Keep functions small and focused. Guidance with lint thresholds: about 50 lines per function, cyclomatic complexity of ... | Not verified |  |
-| KS-4 | Do not optimise before measuring. Profile, set a target, then change. Record the before and after figures | Not verified |  |
-| KS-5 | Prefer composition to inheritance, small interfaces to large ones, and explicit dependencies to hidden globals. Keep ... | Not verified |  |
-| KS-6 | Fail fast and loud. Validate input at the boundary, reject bad state early, and never swallow an error. A caught error ... | Not verified |  |
-| KS-7 | Make illegal states hard to represent: use types, constraints and the transition registry (AZ-8). Replace magic numbers ... | Not verified |  |
-| KS-8 | Comments explain why, not what. If a comment explains what the code does, rename or simplify the code instead. Comments ... | Not verified |  |
-| KS-9 | Tests are small, deterministic and independent. Each tests one behaviour and has one reason to fail. No sleeps, no ... | Not verified |  |
-| KS-10 | Prefer deleting code to adding code when both solve the problem | Not verified |  |
-| BS-1 | When you touch a file, make one or more small improvements in the same area: a clearer name, a removed dead import, a ... | Not verified |  |
-| BS-2 | Put cleanup in its own commit, separate from the behaviour change, so the reviewer can check each one | Not verified |  |
-| BS-3 | Stay inside the area you are working in. A cleanup that grows into an unrelated refactor becomes its own planned change ... | Not verified |  |
+| CR-7 | Prove a claim with evidence: a diff, a test run, a query result, a probe. "Looks good" is not a review result | Pass | this register cites a command or test for every Pass |
+| CR-8 | AI-generated or AI-assisted code gets the same review as any other. A named person is accountable for it. The reviewer ... | Pass | AI-assisted changes go through the same path and are accountable to the owner |
+| CR-9 | Reviews finish within an agreed time (one working day for a small change). A stalled review is escalated, not bypassed. ... | Owner-gated | review time targets need a second reviewer |
+| CR-10 | Measure review health: median time to first review, change size, share of changes with a blocker found, and defects ... | Gap | review metrics are not collected |
+| DC-1 | Remove dead code. Do not comment it out and do not leave it "just in case". Version history keeps it | Partial | dead code is deleted rather than commented; no automated detector yet |
+| DC-2 | Run dead-code detection on every pull request and on a schedule: unused exports and files (for example `knip` or ... | Partial | knip (files and dependencies) clean and blocking in CI; 63 unused exports remain as a report |
+| DC-3 | Prove absence of use before deleting (NM-7). A static search is not enough. Also check string-built names, config ... | Partial | dead code is deleted rather than commented; no automated detector yet |
+| DC-4 | Deprecate first, delete later. Mark the artefact deprecated with the removal release, stop new use, observe one release ... | Partial | dead code is deleted rather than commented; no automated detector yet |
+| DC-5 | Every feature flag has an owner, a purpose and an expiry date. Remove the flag and the losing branch within 30 days of ... | N/A | feature switches are environment settings with owners, not temporary flags |
+| DC-6 | Remove unused dependencies and lockfile entries. Fewer packages mean a smaller attack surface and fewer advisories ... | Pass | knip: unused dependencies removed (passport family, @nestjs/config, resend) |
+| DC-7 | Unused database tables and columns: stop writes, confirm no reads over a defined window, deprecate with a view if ... | Pass | no table or column was dropped; ledger, audit and log tables are never dropped |
+| DC-8 | Delete the tests, fixtures, docs and configuration of removed code in the same change. A test that exists only to cover ... | Partial | dead code is deleted rather than commented; no automated detector yet |
+| DC-9 | A TODO or FIXME has an owner, a date and a reference. One older than 90 days is resolved, converted into a tracked ... | Partial | 2 TODO markers remain and are counted by the ratchet; no owner or date on them |
+| DC-10 | One removal per commit, with the build and tests green after each. A removal that changes behaviour was not a removal, ... | Partial | dead code is deleted rather than commented; no automated detector yet |
+| DC-11 | Keep a technical-debt register: item, owner, risk, cost to fix, date raised, review date. Review it each quarter and ... | Pass | technical debt register in docs/system-description.md section 20 |
+| DR-1 | Each rule, constant, list, price, limit, message or schema fact has one authoritative home: a config table row, a ... | Partial | single sources exist for copy, types and config; duplication is not measured |
+| DR-2 | Fixed lists live in the configuration table (section 19), user-facing text in the copy modules (section 21), and limits ... | Partial | single sources exist for copy, types and config; duplication is not measured |
+| DR-3 | Shared cross-cutting behaviour (authentication, logging, money arithmetic, idempotency, error shape, incident ... | Partial | single sources exist for copy, types and config; duplication is not measured |
+| DR-4 | Run a duplication detector in CI (for example `jscpd`) with a threshold. A new block of 15 lines or more repeated ... | Pass | jscpd: 0.26 percent duplicated lines, blocking above 1 percent in CI |
+| DR-5 | Apply the rule of three. Tolerate a first and second copy. On the third, extract the shared part with a name drawn from ... | Partial | single sources exist for copy, types and config; duplication is not measured |
+| DR-6 | Do not merge coincidental duplication. Two pieces of code that look alike but change for different reasons stay ... | Partial | single sources exist for copy, types and config; duplication is not measured |
+| DR-7 | Generate clients, types and documentation from the contract (API-13) and the schema, instead of writing them twice | Partial | the route contract is generated from controllers; clients are written by hand |
+| KS-1 | Do the simplest thing that works and meets the requirements of this standard. Prefer plain code, standard library ... | Partial | practice and review; 24 files over 400 lines are counted by the ratchet |
+| KS-2 | YAGNI: build for the requirement in front of you. No feature, option, hook, abstraction layer or configuration knob for ... | Partial | practice and review; 24 files over 400 lines are counted by the ratchet |
+| KS-3 | Keep functions small and focused. Guidance with lint thresholds: about 50 lines per function, cyclomatic complexity of ... | Partial | practice and review; 24 files over 400 lines are counted by the ratchet |
+| KS-4 | Do not optimise before measuring. Profile, set a target, then change. Record the before and after figures | Partial | practice and review; 24 files over 400 lines are counted by the ratchet |
+| KS-5 | Prefer composition to inheritance, small interfaces to large ones, and explicit dependencies to hidden globals. Keep ... | Partial | practice and review; 24 files over 400 lines are counted by the ratchet |
+| KS-6 | Fail fast and loud. Validate input at the boundary, reject bad state early, and never swallow an error. A caught error ... | Partial | practice and review; 24 files over 400 lines are counted by the ratchet |
+| KS-7 | Make illegal states hard to represent: use types, constraints and the transition registry (AZ-8). Replace magic numbers ... | Partial | practice and review; 24 files over 400 lines are counted by the ratchet |
+| KS-8 | Comments explain why, not what. If a comment explains what the code does, rename or simplify the code instead. Comments ... | Partial | practice and review; 24 files over 400 lines are counted by the ratchet |
+| KS-9 | Tests are small, deterministic and independent. Each tests one behaviour and has one reason to fail. No sleeps, no ... | Partial | practice and review; 24 files over 400 lines are counted by the ratchet |
+| KS-10 | Prefer deleting code to adding code when both solve the problem | Partial | practice and review; 24 files over 400 lines are counted by the ratchet |
+| BS-1 | When you touch a file, make one or more small improvements in the same area: a clearer name, a removed dead import, a ... | Partial | cleanups are kept small and in their own commits where done |
+| BS-2 | Put cleanup in its own commit, separate from the behaviour change, so the reviewer can check each one | Partial | cleanups are kept small and in their own commits where done |
+| BS-3 | Stay inside the area you are working in. A cleanup that grows into an unrelated refactor becomes its own planned change ... | Partial | cleanups are kept small and in their own commits where done |
 | BS-4 | Fix what you find. When a review, test or audit turns up a defect, fix it in the same pass, test the fix, and then ... | Pass | defects found in this audit were fixed in code and tested in the same pass; open items carry an owner-gated reason |
-| BS-5 | A cleanup never weakens a control, a test or an audit trail. Removing a check to make code simpler is a security change ... | Not verified |  |
-| BS-6 | Never ignore a failing check or lint rule by disabling it. Fix the cause or record a time-limited exception with an ... | Not verified |  |
-| DOC-1 | Every module, public class, public function and public method has a docstring (Python), TSDoc comment (TypeScript) or ... | Gap | zero COMMENT ON in 73 migrations; Phase 8 |
-| DOC-2 | The first line is one sentence in the imperative or present tense saying what the unit does ("Validates a fee against ... | Not verified |  |
-| DOC-3 | The body states, where relevant: parameters and their units and formats; the return value; errors raised and when; side ... | Not verified |  |
-| DOC-4 | Functions that handle money state the currency handling and rounding mode. Functions that change status name the ... | Not verified |  |
-| DOC-5 | A docstring never repeats the signature or narrates the code line by line. It adds what the code cannot say: intent, ... | Not verified |  |
-| DOC-6 | Include a short, runnable example for any non-obvious public function. Examples run as tests (for example `doctest` or ... | Not verified |  |
-| DOC-7 | A docstring is updated in the same change as the code. A docstring that disagrees with the code is a defect and a ... | Not verified |  |
-| DOC-8 | Mark deprecation in the docstring and in the language's deprecation mechanism, with the replacement and the removal ... | Not verified |  |
-| DOC-9 | A docstring holds no secret, token, real personal data or emoji, and is written to the standard in section 21: plain, ... | Not verified |  |
-| DOC-10 | Enforce with tooling: for Python, `ruff` docstring rules or `pydocstyle` with one chosen convention (Google or NumPy) ... | Not verified |  |
-| DOC-11 | Where a unit implements a control from this standard, the docstring cites the requirement identifier (for example ... | Not verified |  |
+| BS-5 | A cleanup never weakens a control, a test or an audit trail. Removing a check to make code simpler is a security change ... | Partial | cleanups are kept small and in their own commits where done |
+| BS-6 | Never ignore a failing check or lint rule by disabling it. Fix the cause or record a time-limited exception with an ... | Partial | checks are fixed rather than disabled; one targeted Biome ignore (kyb-document-reader.service.ts) has a stated reason |
+| DOC-1 | Every module, public class, public function and public method has a docstring (Python), TSDoc comment (TypeScript) or ... | Pass | SQL: 139 of 139 tables and every column commented with a class (migrations 0078 0079; schema guard in CI; production checked 2026-10-09). Code: ratchet counts older exports without a comment (DOC-10) |
+| DOC-2 | The first line is one sentence in the imperative or present tense saying what the unit does ("Validates a fee against ... | Partial | first lines state the unit's capability in new code; ratchet counts 270 older exports without a comment |
+| DOC-3 | The body states, where relevant: parameters and their units and formats; the return value; errors raised and when; side ... | Partial | first lines state the unit's capability in new code; ratchet counts 270 older exports without a comment |
+| DOC-4 | Functions that handle money state the currency handling and rounding mode. Functions that change status name the ... | Partial | first lines state the unit's capability in new code; ratchet counts 270 older exports without a comment |
+| DOC-5 | A docstring never repeats the signature or narrates the code line by line. It adds what the code cannot say: intent, ... | Partial | first lines state the unit's capability in new code; ratchet counts 270 older exports without a comment |
+| DOC-6 | Include a short, runnable example for any non-obvious public function. Examples run as tests (for example `doctest` or ... | Partial | new functions in this work carry examples in tests rather than doctests |
+| DOC-7 | A docstring is updated in the same change as the code. A docstring that disagrees with the code is a defect and a ... | Partial | first lines state the unit's capability in new code; ratchet counts 270 older exports without a comment |
+| DOC-8 | Mark deprecation in the docstring and in the language's deprecation mechanism, with the replacement and the removal ... | Partial | deprecations are noted in prose; no mechanism |
+| DOC-9 | A docstring holds no secret, token, real personal data or emoji, and is written to the standard in section 21: plain, ... | Partial | first lines state the unit's capability in new code; ratchet counts 270 older exports without a comment |
+| DOC-10 | Enforce with tooling: for Python, `ruff` docstring rules or `pydocstyle` with one chosen convention (Google or NumPy) ... | Partial | quality-ratchet.mjs counts undocumented exports; TSDoc lint is not installed |
+| DOC-11 | Where a unit implements a control from this standard, the docstring cites the requirement identifier (for example ... | Partial | requirement identifiers are cited in new docstrings and specs |
 <!-- annex-e:end -->

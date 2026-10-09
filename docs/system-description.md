@@ -141,3 +141,52 @@ All servers are managed platforms that synchronise time; authoritative timestamp
 ## 16. Complementary user entity controls (AS-8)
 
 Customers run these for the service to be secure: enforce MFA for their administrators; remove leavers the day they leave; set retention periods that match their obligations; review audit exports and evidence packs; keep kiosk devices managed, patched and physically secured; use the privacy notice Checkpoint supplies unchanged or adjust it with their counsel.
+
+## 17. Risk register and scoring (GV-5)
+
+Likelihood and consequence are each scored 1 to 5 (blueprint 19.4) and multiplied: 1 to 5 low, 6 to 12 medium, 13 to 25 high. Owner of every row is the owner until a second person is named. Reviewed each quarter and on a new data category, subprocessor, region or incident.
+
+| Risk | L | C | Score | Treatment | Residual | Review |
+|---|---|---|---|---|---|---|
+| Personal data readable through a known encryption key | 1 | 5 | 5 | Key ring, envelopes re-encrypted 2026-10-09, key removed from the source of truth | Low | 2027-01 |
+| Signing secret forged sessions | 1 | 5 | 5 | EdDSA keys in the database, 90 day rotation, legacy secret window ends 2026-10-09 19:20 UTC | Low | 2027-01 |
+| Cross-tenant read through a missing scope | 2 | 5 | 10 | Two guard layers, tenant-scope ratchet, isolation e2e; row-level security proposed (AZ-4) | Medium | 2027-01 |
+| Audit rows edited by the application | 1 | 4 | 4 | Append-only grants checked in CI and on production; daily chain verifier | Low | 2027-01 |
+| Public repository exposes design detail | 4 | 2 | 8 | Secret scan with history, push protection; visibility decision is the owner's (IN-5) | Medium | 2026-11 |
+| Mail spoofing of the product domain (no DMARC) | 3 | 3 | 9 | Add DMARC and DKIM (IN-4) | Medium | 2026-11 |
+| No tested restore | 2 | 4 | 8 | Replay procedure and script written; drill blocked by the branch limit (RC-3) | Medium | 2026-11 |
+| Single API replica outage | 3 | 3 | 9 | Redeploy within the two hour target; second replica needs the shared event bus | Medium | 2027-01 |
+| Vendor without agreement or report on file | 4 | 3 | 12 | Request agreements and reports (VD-1, VD-2) | Medium | 2026-12 |
+
+## 18. Asset and account inventory (GV-14)
+
+| Asset | Kind | Owner | Data class | Environment | Last review |
+|---|---|---|---|---|---|
+| Source repository `thependalorian/buffrcheckpoint` | Source code | Owner | Internal | GitHub | 2026-10-09 |
+| Railway project `buffrcheckpoint`, service `api` | Compute and secrets | Owner | Restricted | Production | 2026-10-09 |
+| Vercel projects `buffrcheckpoint-website`, `-admin`, `-ops-console` | Compute | Owner | Internal | Production | 2026-10-09 |
+| Neon project `buffr-checkpoint-eu` (`falling-frog-15538162`) | Database and object storage | Owner | Restricted | Production and branches | 2026-10-09 |
+| Neon project `steep-credit-81607786` | Workspace operations records | Owner | Internal | Operations | 2026-10-09 |
+| Namecheap: `buffrcheckpoint.com`, `buffranalytics.com`, Private Email | DNS, domains, mailbox | Owner | Internal | Production | 2026-10-09 |
+| Secrets in Railway: signing keys are in the database; `PERSONAL_DATA_KEY`, peppers, `DELETION_TOMBSTONE_PEPPER`, SMTP, Adumo, Turnstile | Keys and credentials | Owner | Restricted | Production | 2026-10-09 |
+| Sentry, PostHog, Cloudflare Turnstile, BulkSMS Namibia, Adumo | Third-party services | Owner | Internal | Production | 2026-10-09 |
+| AI gateway key (Neon AI Gateway) for Form AI | Provider key, one per service | Owner | Restricted | Production | 2026-10-09 |
+
+## 19. Regimes by whose data is processed (GP-1)
+
+| Product | Namibia | South Africa | EU or EEA |
+|---|---|---|---|
+| Buffr Checkpoint | Yes: visitors and customer staff at Namibian sites; the draft Data Protection Bill applies when enacted | Only if a customer site hosts visitors from South Africa as data subjects of that customer: the customer is the responsible party and Checkpoint its operator | Only if a customer site is in the EU: no such customer exists today, so no representative is appointed |
+
+Re-checked when a customer outside Namibia signs (GP-8). The privacy lead (GP-2) and registrations (GP-7) are owner appointments.
+
+## 20. Technical debt register (DC-11)
+
+| Item | Owner | Risk | Cost to fix | Raised | Review |
+|---|---|---|---|---|---|
+| 270 exported backend units without a comment above them | Owner | Low | Spread over normal edits (ratchet falls) | 2026-10-09 | 2027-01 |
+| 24 source files over 400 lines | Owner | Low | Split on the next change to each | 2026-10-09 | 2027-01 |
+| 77 banned words in public copy | Owner | Low | Rewrite copy modules in tranches | 2026-10-09 | 2027-01 |
+| About 17 pre-existing accessibility and hook lint findings in the web apps | Owner | Low | One focused pass | 2026-10-09 | 2026-11 |
+| 56 backend files not formatted to Biome | Owner | Low | One formatting commit | 2026-10-09 | 2026-11 |
+| 127 queries flagged by the tenant-scope scan | Owner | Medium | Add the organisation predicate to each, file by file | 2026-10-08 | 2026-11 |

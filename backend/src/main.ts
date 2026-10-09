@@ -4,7 +4,7 @@
 import "dotenv/config";
 import "./instrument";
 
-import { Logger, ValidationPipe } from "@nestjs/common";
+import { Logger, ValidationPipe, VERSION_NEUTRAL, VersioningType } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import helmet from "helmet";
 
@@ -39,6 +39,9 @@ async function bootstrap() {
     origin: corsOrigins(process.env.CORS_ORIGIN, logger),
     credentials: true,
   });
+  // API-6: every route also answers under /v1 (each route is neutral and version 1), so clients can move to /v1 and
+  // the unversioned paths are retired later with a published date. Within v1 fields are added, never removed or repurposed.
+  app.enableVersioning({ type: VersioningType.URI, defaultVersion: [VERSION_NEUTRAL, "1"] });
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true, // strip unknown properties — never trust client-supplied fields the DTO doesn't declare
